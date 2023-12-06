@@ -197,9 +197,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
 
-  // var token = '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';
-  // var orgID = 'org-OUCND1IFsUA8u2kkqgk6kJqG';
-
   Map<String, ChatRoom> chatRooms = {};
   String selectedChatRoomName = 'Default';
   ChatModel get selectedModel =>

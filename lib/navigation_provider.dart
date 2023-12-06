@@ -101,7 +101,7 @@ class NavigationProvider with ChangeNotifier {
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.open_source),
       title: const Text('Source code'),
-      link: 'https://github.com/realkalash/ChatGPT-Windows-Flutter-App',
+      link: 'https://github.com/realkalash/chatgpt_windows_flutter_app',
       body: const SizedBox.shrink(),
     ),
   ];
