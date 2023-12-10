@@ -13,6 +13,12 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 - **Custom GPT**: You can use your own GPT models by providing a URL to the model. 
 - **Pin app**: Pin the app to the top of your screen for easy access.
 
+## Screenshots
+
+![Screenshot 1](1.png)
+![Screenshot 2](2.png)
+![Screenshot 3](3.png)
+
 ## Getting Started
 
 ### Prerequisites
