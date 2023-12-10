@@ -115,18 +115,15 @@ class ShellDriver {
   static Future<List<FileSystemEntity>> getTempFiles() async {
     var fs = const LocalFileSystem();
     List<FileSystemEntity> files = [];
-    final currDir = fs.currentDirectory.path;
-    fs.currentDirectory = fs.directory(currDir);
-    for (var file in fs.currentDirectory.listSync()) {
+    final currDir = '${fs.currentDirectory.path}\\$tempDirTrim';
+    final tempDir = fs.directory(currDir);
+    if (!(await tempDir.exists())) {
+      return files;
+    }
+    for (var file in tempDir.listSync(recursive: true)) {
       if (file is File) {
         // log('File: ${file.path}');
         files.add(file);
-      } else if (file is Directory) {
-        // log('Directory: ${file.path}');
-        for (var subFile in (file as Directory).listSync()) {
-          // log('SubFile: ${subFile.path}');
-          files.add(subFile);
-        }
       }
     }
     return files;
@@ -136,16 +133,14 @@ class ShellDriver {
       String folder) async {
     var fs = const LocalFileSystem();
     List<FileSystemEntity> files = [];
-    final currDir = fs.currentDirectory.path;
-    fs.currentDirectory = fs.directory(currDir);
-    for (var file in fs.currentDirectory.listSync()) {
-      // log('File: ${file.path}');
-      files.add(file);
-      if (file is Directory) {
-        for (var subFile in (file as Directory).listSync()) {
-          // log('SubFile: ${subFile.path}');
-          files.add(subFile);
-        }
+    final tempDir = fs.directory(folder);
+    if (!(await tempDir.exists())) {
+      return files;
+    }
+    for (var file in tempDir.listSync(recursive: true)) {
+      if (file is File) {
+        // log('File: ${file.path}');
+        files.add(file);
       }
     }
     return files;
