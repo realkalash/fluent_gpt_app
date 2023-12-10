@@ -6,8 +6,9 @@ import 'package:chatgpt_windows_flutter_app/pages/about_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/settings_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
+import 'providers/chat_gpt_provider.dart';
 
 class NavigationProvider with ChangeNotifier {
   bool value = false;

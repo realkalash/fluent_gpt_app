@@ -1,10 +1,11 @@
+import 'dart:developer';
+
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/add_chat_button.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
-import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:go_router/go_router.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -15,6 +16,7 @@ import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'navigation_provider.dart';
+import 'providers/chat_gpt_provider.dart';
 
 final openAI = OpenAI.instance.build(
   token: 'empty',
@@ -61,7 +63,17 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _appTheme.init();
     initSystemTray();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      final size = _appTheme.resolution;
+      log('size: $size');
+      if (size != null) {
+        await windowManager.setSize(Size(500, size.height - 100),
+            animate: true);
+        await windowManager.setAlignment(Alignment.centerRight, animate: true);
+      }
+    });
   }
 
   @override
@@ -201,7 +213,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
     final localizations = FluentLocalizations.of(context);
 
     final appTheme = context.watch<AppTheme>();
-    final theme = FluentTheme.of(context);
+    // final theme = FluentTheme.of(context);
     if (widget.shellContext != null) {
       if (Navigator.of(context).canPop() == false) {
         setState(() {});
@@ -261,6 +273,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         actions: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            const CollapseAppButton(),
             const AddChatButton(),
             const ClearChatButton(),
             const PinAppButton(),

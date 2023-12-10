@@ -5,12 +5,38 @@ import 'package:system_theme/system_theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'main.dart';
+
 enum NavigationIndicators { sticky, end }
 
 class AppTheme extends ChangeNotifier {
-  AppTheme(){
+  AppTheme() {
     // _windowEffect = WindowEffect.mica;
   }
+
+  /// Scheen resolution. Selectable by user. Default is null.
+  Size? resolution;
+
+  Future setResolution(Size? resolution, {bool notify = true}) async {
+    this.resolution = resolution;
+    if (resolution != null) {
+      await prefs?.setString(
+          'resolution', '${resolution.width}x${resolution.height}');
+    }
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  Future<void> init() async {
+    final resolutionWidth = prefs?.getString('resolution')?.split('x')[0];
+    final resolutionHeight = prefs?.getString('resolution')?.split('x')[1];
+    if (resolutionWidth != null && resolutionHeight != null) {
+      resolution =
+          Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
+    }
+  }
+
   AccentColor? _color;
   AccentColor get color => _color ?? systemAccentColor;
   set color(AccentColor color) {

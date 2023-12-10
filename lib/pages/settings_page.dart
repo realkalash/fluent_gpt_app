@@ -1,7 +1,8 @@
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
+import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
 import 'package:flutter/foundation.dart';
@@ -152,6 +153,66 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         const _ThemeModeSection(),
         biggerSpacer,
         const _LocaleSection(),
+        biggerSpacer,
+        const _ResolutionsSelector(),
+      ],
+    );
+  }
+}
+
+class _ResolutionsSelector extends StatelessWidget {
+  const _ResolutionsSelector({super.key});
+  static const resolutions = [
+    /// 4k
+    Size(3840, 2160),
+
+    /// 2k
+    Size(2560, 1440),
+
+    /// 1080p
+    Size(1920, 1080),
+
+    /// 720p
+    Size(1280, 720),
+    Size(1024, 768),
+    Size(800, 600),
+    Size(640, 480),
+    Size(640, 360),
+    Size(480, 360),
+    Size(480, 320),
+    Size(320, 240),
+    Size(320, 180),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = context.watch<AppTheme>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Resolution', style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+          child: ComboBox<Size>(
+            items: resolutions.map((e) {
+              final isCurrent = e == appTheme.resolution;
+              final string = '${e.width}x${e.height}';
+              final selectedString = '$string (current)';
+              return ComboBoxItem(
+                value: e,
+                child: Text(isCurrent ? selectedString : string),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                appTheme.setResolution(value);
+              }
+            },
+            value: appTheme.resolution,
+            placeholder: const Text('Select a resolution'),
+          ),
+        ),
       ],
     );
   }
@@ -457,13 +518,45 @@ class __CacheSectionState extends State<_CacheSection> {
                 }),
             Button(
                 child: const Text('Clear all data'),
-                onPressed: () {
-                  prefs!.clear();
+                onPressed: () async {
+                  await ShellDriver.deleteAllTempFiles();
+                  await prefs!.clear();
 
                   /// info to show restart the app banner
+                  // ignore: use_build_context_synchronously
                   showSnackbar(
                       context, const InfoBar(title: Text('Restart the app')));
                 }),
+            FutureBuilder(
+              future: ShellDriver.calcTempFilesSize(),
+              builder: (context, snapshot) {
+                if (snapshot.data is int) {
+                  final size = snapshot.data as int;
+                  String formattedSize = '0';
+                  if (size > 1024 * 1024) {
+                    formattedSize =
+                        '${(size / (1024 * 1024)).toStringAsFixed(2)} MB';
+                  } else if (size > 1024) {
+                    formattedSize = '${(size / 1024).toStringAsFixed(2)} KB';
+                  } else {
+                    formattedSize = '$formattedSize B';
+                  }
+                  return Button(
+                    onPressed: () async {
+                      await ShellDriver.deleteAllTempFiles();
+                      setState(() {});
+                    },
+                    child: Text('Temp files size: $formattedSize'),
+                  );
+                }
+                return Button(
+                  onPressed: () {
+                    setState(() {});
+                  },
+                  child: const Text('Calculating temp files size...'),
+                );
+              },
+            )
           ],
         )
       ],

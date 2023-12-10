@@ -1,14 +1,17 @@
-import 'dart:convert';
+// import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'dart:developer';
 
-// import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/chat_room.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/material.dart' as mat;
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:markdown/markdown.dart' as md;
+
+import '../providers/chat_gpt_provider.dart';
 
 final promptTextFocusNode = FocusNode();
 
@@ -22,7 +25,8 @@ class ChatRoomPage extends StatelessWidget {
         title: const PageHeaderText(),
         commandBar: CommandBar(
           mainAxisAlignment: MainAxisAlignment.end,
-          primaryItems: [
+          primaryItems: const [],
+          secondaryItems: [
             CommandBarButton(
               onPressed: () {
                 var chatProvider = context.read<ChatGPTProvider>();
@@ -31,8 +35,6 @@ class ChatRoomPage extends StatelessWidget {
               icon: const Icon(FluentIcons.device_bug),
               label: const Text('Send Hello message'),
             ),
-          ],
-          secondaryItems: [
             CommandBarButton(
               onPressed: () {
                 var chatProvider = context.read<ChatGPTProvider>();
@@ -99,7 +101,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatGPTProvider>();
-    final appTheme = context.read<AppTheme>();
 
     return Column(
       children: <Widget>[
@@ -113,38 +114,10 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
               final dateTimeRaw =
                   chatProvider.messages.entries.elementAt(index).key;
               final DateTime dateTime = DateTime.parse(dateTimeRaw);
-              final formatDateTime = DateFormat('HH:mm:ss').format(dateTime);
-              if (message['role'] == 'user') {
-                return Card(
-                  margin: const EdgeInsets.all(4),
-                  padding: const EdgeInsets.all(0.0),
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: ListTile(
-                    trailing: Text(formatDateTime,
-                        style: FluentTheme.of(context).typography.caption!),
-                    title: Text(
-                      'You:',
-                      style: TextStyle(color: appTheme.color, fontSize: 14),
-                    ),
-                    subtitle: SelectableText('${message['content']}',
-                        style: FluentTheme.of(context).typography.body),
-                  ),
-                );
-              }
-              return Card(
-                margin: const EdgeInsets.all(4),
-                padding: EdgeInsets.zero,
-                borderRadius: BorderRadius.circular(8.0),
-                child: ListTile(
-                  trailing: Text(formatDateTime,
-                      style: FluentTheme.of(context).typography.caption!),
-                  title: Text(
-                    '${message['role']}:',
-                    style: TextStyle(color: Colors.green, fontSize: 14),
-                  ),
-                  subtitle: SelectableText('${message['content']}',
-                      style: FluentTheme.of(context).typography.body),
-                ),
+              return MessageCard(
+                message: message,
+                dateTime: dateTime,
+                selectionMode: chatProvider.selectionModeEnabled,
               );
             },
           ),
@@ -194,292 +167,250 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   }
 }
 
-class ChatGPTProvider with ChangeNotifier {
-  final listItemsScrollController = ScrollController();
+class MessageCard extends StatefulWidget {
+  const MessageCard(
+      {super.key,
+      required this.message,
+      required this.dateTime,
+      required this.selectionMode});
+  final Map<String, String> message;
+  final DateTime dateTime;
+  final bool selectionMode;
 
-  Map<String, ChatRoom> chatRooms = {};
-  String selectedChatRoomName = 'Default';
-  ChatModel get selectedModel =>
-      chatRooms[selectedChatRoomName]?.model ?? allModels.first;
-  ChatRoom get selectedChatRoom =>
-      chatRooms[selectedChatRoomName] ?? chatRooms.values.first;
-  double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
-  get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
-  get promptBatchSize =>
-      chatRooms[selectedChatRoomName]?.promptBatchSize ?? 128;
-  get repeatPenaltyTokens =>
-      chatRooms[selectedChatRoomName]?.repeatPenaltyTokens ?? 64;
-  get topP => chatRooms[selectedChatRoomName]?.topP ?? 0.4;
-  get maxLenght => chatRooms[selectedChatRoomName]?.maxLength ?? 512;
-  get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
+  @override
+  State<MessageCard> createState() => _MessageCardState();
+}
 
-  var lastTimeAnswer = DateTime.now().toIso8601String();
+class _MessageCardState extends State<MessageCard> {
+  bool _isMarkdownView = false;
+  bool _containsPythonCode = false;
 
-  Map<String, Map<String, String>> get messages =>
-      chatRooms[selectedChatRoomName]?.messages ?? {};
-
-  final dialogApiKeyController = TextEditingController();
-
-  void saveToDisk() {
-    var rooms = {};
-    for (var chatRoom in chatRooms.entries) {
-      var timeRaw = chatRoom.key;
-      var chatRoomRaw = chatRoom.value.toJson();
-      rooms[timeRaw] = chatRoomRaw;
-    }
-    final chatRoomsRaw = jsonEncode(rooms);
-    prefs?.setString('chatRooms', chatRoomsRaw);
-  }
-
-  ChatGPTProvider() {
-    var token = prefs?.getString('token') ?? 'empty';
-    var orgID = prefs?.getString('orgID') ?? '';
-    openAI.setOrgId(orgID);
-    openAI.setToken(token);
-    final chatRoomsinSP = prefs?.getString('chatRooms');
-    if (chatRoomsinSP != null) {
-      final map = jsonDecode(chatRoomsinSP) as Map;
-      for (var chatRoom in map.entries) {
-        var timeRaw = chatRoom.key;
-        var chatRoomRaw = chatRoom.value as Map<String, dynamic>;
-        chatRooms[timeRaw] = ChatRoom.fromMap(chatRoomRaw);
-      }
-    }
-    if (chatRooms.isEmpty) {
-      chatRooms[selectedChatRoomName] = ChatRoom(
-        chatRoomName: 'Default',
-        model: selectedModel,
-        messages: messages,
-        temp: temp,
-        topk: topk,
-        promptBatchSize: promptBatchSize,
-        repeatPenaltyTokens: repeatPenaltyTokens,
-        topP: topP,
-        maxLength: maxLenght,
-        repeatPenalty: repeatPenalty,
-        token: token,
-        orgID: orgID,
+  @override
+  Widget build(BuildContext context) {
+    final formatDateTime = DateFormat('HH:mm:ss').format(widget.dateTime);
+    final appTheme = context.read<AppTheme>();
+    final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
+    final botMessageStyle = TextStyle(color: Colors.green, fontSize: 14);
+    Widget tileWidget;
+    Widget? leading = widget.selectionMode
+        ? Checkbox(
+            onChanged: (v) {
+              final provider = context.read<ChatGPTProvider>();
+              provider.toggleSelectMessage(widget.dateTime);
+            },
+            checked: widget.message['selected'] == 'true',
+          )
+        : null;
+    if (widget.message['role'] == 'user') {
+      tileWidget = ListTile(
+        leading: leading,
+        title: Text('You:', style: myMessageStyle),
+        trailing: Text(formatDateTime,
+            style: FluentTheme.of(context).typography.caption!),
+        subtitle: SelectableText('${widget.message['content']}',
+            style: FluentTheme.of(context).typography.body),
+      );
+    } else {
+      tileWidget = ListTile(
+        leading: leading,
+        title: Text('${widget.message['role']}:', style: botMessageStyle),
+        trailing: Text(formatDateTime,
+            style: FluentTheme.of(context).typography.caption!),
+        subtitle: !_isMarkdownView
+            ? SelectableText('${widget.message['content']}',
+                style: FluentTheme.of(context).typography.body)
+            : Markdown(
+                data: widget.message['content'] ?? '',
+                softLineBreak: true,
+                selectable: true,
+                shrinkWrap: true,
+                extensionSet: md.ExtensionSet(
+                  md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                  <md.InlineSyntax>[
+                    md.EmojiSyntax(),
+                    ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
+                  ],
+                ),
+              ),
       );
     }
-    if (selectedChatRoom.token != 'empty') {
-      openAI.setToken(selectedChatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.token}');
-    }
-    if (selectedChatRoom.orgID != '') {
-      openAI.setOrgId(selectedChatRoom.orgID ?? '');
-      log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
-    }
-  }
+    _containsPythonCode =
+        widget.message['content'].toString().contains('```python');
 
-  Future<void> sendMessage(String messageContent) async {
-    final dateTime = DateTime.now().toIso8601String();
-    messages[dateTime] = {
-      'role': 'user',
-      'content': messageContent,
-    };
-    notifyListeners();
-
-    final request = ChatCompleteText(
-      messages: [
-        if (selectedChatRoom.commandPrefix != null)
-          Messages(role: Role.system, content: selectedChatRoom.commandPrefix),
-
-        /// We already added the user message in the previous iteration
-        for (var message in messages.entries)
-          Messages(
-            role: message.value['role'] == 'user' ? Role.user : Role.assistant,
-            content: message.value['content'],
+    return Stack(
+      children: [
+        GestureDetector(
+          onSecondaryTap: () {
+            showDialog(
+                context: context,
+                builder: (ctx) {
+                  final provider = context.read<ChatGPTProvider>();
+                  return ContentDialog(
+                    title: const Text('Message options'),
+                    actions: [
+                      Button(
+                        onPressed: () {
+                          Navigator.of(context).maybePop();
+                        },
+                        child: const Text('Dismiss'),
+                      ),
+                      Button(
+                        onPressed: () {
+                          Navigator.of(context).maybePop();
+                          provider.toggleSelectMessage(widget.dateTime);
+                        },
+                        child: const Text('Select'),
+                      ),
+                      Button(
+                          onPressed: () {
+                            Navigator.of(context).maybePop();
+                            if (provider.selectionModeEnabled) {
+                              provider.deleteSelectedMessages();
+                            } else {
+                              provider.deleteMessage(widget.dateTime);
+                            }
+                          },
+                          style: ButtonStyle(
+                              backgroundColor: ButtonState.all(Colors.red)),
+                          child: provider.selectionModeEnabled
+                              ? Text(
+                                  'Delete ${provider.selectedMessages.length}')
+                              : const Text('Delete')),
+                    ],
+                  );
+                });
+          },
+          child: Card(
+            margin: const EdgeInsets.all(4),
+            padding: EdgeInsets.zero,
+            borderRadius: BorderRadius.circular(8.0),
+            child: tileWidget,
           ),
+        ),
+        Positioned(
+          right: 16,
+          top: 8,
+          child: Wrap(
+            spacing: 4,
+            children: [
+              Tooltip(
+                message: _isMarkdownView ? 'Show text' : 'Show markdown',
+                child: SizedBox.square(
+                  dimension: 30,
+                  child: ToggleButton(
+                    onChanged: (_) => setState(() {
+                      _isMarkdownView = !_isMarkdownView;
+                    }),
+                    checked: false,
+                    child: const Icon(FluentIcons.format_painter, size: 10),
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: 'Copy text to clipboard',
+                child: SizedBox.square(
+                  dimension: 30,
+                  child: ToggleButton(
+                    onChanged: (_) {
+                      Clipboard.setData(
+                        ClipboardData(
+                            text: widget.message['content'].toString()),
+                      );
+                    },
+                    checked: false,
+                    child: const Icon(FluentIcons.copy, size: 10),
+                  ),
+                ),
+              ),
+              if (_containsPythonCode)
+                Tooltip(
+                  message: 'Copy python code to clipboard',
+                  child: SizedBox.square(
+                    dimension: 30,
+                    child: ToggleButton(
+                      onChanged: (_) {
+                        _copyPythonCodeToClipboard(
+                            widget.message['content'].toString());
+                      },
+                      checked: false,
+                      child: const Icon(FluentIcons.code, size: 10),
+                    ),
+                  ),
+                ),
+              if (_containsPythonCode)
+                Tooltip(
+                  message: 'Run python code',
+                  child: RunPythonCodeButton(
+                    code: getPythonCodeFromMarkdown(
+                      widget.message['content'].toString(),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
-      maxToken: maxLenght,
-      model: selectedModel,
-      temperature: temp,
-      topP: topP,
-      frequencyPenalty: repeatPenalty,
-      presencePenalty: repeatPenalty,
     );
+  }
 
-    final stream = openAI.onChatCompletionSSE(request: request);
-    // we need to add a delay because iso will not be unique
-    await Future.delayed(const Duration(milliseconds: 100));
-    lastTimeAnswer = DateTime.now().toIso8601String();
-
-    await for (final response in stream) {
-      if (response.choices?.isNotEmpty == true) {
-        if (response.choices!.last.finishReason == 'stop') {
-          lastTimeAnswer = DateTime.now().toIso8601String();
-        } else {
-          final lastBotMessage = messages[lastTimeAnswer];
-          final appendedText = lastBotMessage != null
-              ? '${lastBotMessage['content']}${response.choices!.last.message?.content ?? ' '}'
-              : response.choices!.last.message?.content ?? '';
-          messages[lastTimeAnswer] = {
-            'role': 'bot',
-            'content': appendedText.trim(),
-          };
-        }
-      } else {
-        log('Retrieved response but no choices');
+  String getPythonCodeFromMarkdown(String string) {
+    final lines = string.split('\n');
+    final codeLines = <String>[];
+    final regex = RegExp(r'```python');
+    final endRegex = RegExp(r'```');
+    var isCode = false;
+    for (final line in lines) {
+      if (regex.hasMatch(line)) {
+        isCode = true;
+        continue;
       }
-      listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent + 200,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-      );
-
-      notifyListeners();
-    }
-
-    notifyListeners();
-    saveToDisk();
-  }
-
-  Future sendMessageDontStream(String messageContent) async {
-    messages[lastTimeAnswer] = ({
-      'role': 'user',
-      'content': messageContent,
-    });
-    notifyListeners();
-    saveToDisk();
-    final request = ChatCompleteText(
-      messages: [
-        // if (selectedChatRoom.commandPrefix != null)
-        //   Messages(role: Role.system, content: selectedChatRoom.commandPrefix),
-        // Messages(role: Role.user, content: messageContent),
-      ],
-      maxToken: maxLenght,
-      model: selectedModel,
-      temperature: temp,
-      topP: topP,
-      frequencyPenalty: repeatPenalty,
-      presencePenalty: repeatPenalty,
-      stream: true,
-    );
-
-    try {
-      final response = await openAI.onChatCompletion(request: request);
-      lastTimeAnswer = DateTime.now().toIso8601String();
-      if (response != null) {
-        if (response.choices.isNotEmpty) {
-          messages[lastTimeAnswer] = {
-            'role': 'bot',
-            'content': response.choices.last.message?.content ?? '...',
-          };
-        } else {
-          log('Retrieved response but no choices');
-        }
-      } else {
-        messages[lastTimeAnswer] = {
-          'role': 'bot',
-          'content': 'Error: ${response ?? 'No response'}',
-        };
+      if (endRegex.hasMatch(line)) {
+        isCode = false;
+        continue;
       }
-    } catch (e) {
-      lastTimeAnswer = DateTime.now().toIso8601String();
-      messages[lastTimeAnswer] = {
-        'role': 'bot',
-        'content': 'Error: $e',
-      };
+      if (isCode) {
+        codeLines.add(line);
+      }
     }
-
-    notifyListeners();
-    saveToDisk();
+    return codeLines.join('\n');
   }
 
-  void deleteChat() {
-    messages.clear();
-    saveToDisk();
-    notifyListeners();
+  void _copyPythonCodeToClipboard(String string) {
+    final code = getPythonCodeFromMarkdown(string);
+    log(code);
+    Clipboard.setData(ClipboardData(text: code));
   }
+}
 
-  void selectNewModel(ChatModel model) {
-    chatRooms[selectedChatRoomName]!.model = model;
-    notifyListeners();
-    saveToDisk();
-  }
+class RunPythonCodeButton extends StatelessWidget {
+  const RunPythonCodeButton({super.key, required this.code});
+  final String code;
 
-  void selectModelForChat(String chatRoomName, ChatModel model) {
-    chatRooms[chatRoomName]!.model = model;
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void createNewChatRoom() {
-    final chatRoomName = 'Chat ${chatRooms.length + 1}';
-    chatRooms[chatRoomName] = ChatRoom(
-      token: openAI.token,
-      chatRoomName: chatRoomName,
-      model: selectedModel,
-      messages: {},
-      temp: temp,
-      topk: topk,
-      promptBatchSize: promptBatchSize,
-      repeatPenaltyTokens: repeatPenaltyTokens,
-      topP: topP,
-      maxLength: maxLenght,
-      repeatPenalty: repeatPenalty,
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 30,
+      child: StreamBuilder(
+        stream: ShellDriver.isRunningStream,
+        builder: (BuildContext ctx, AsyncSnapshot<dynamic> snap) {
+          late Widget child;
+          if (snap.data == true) {
+            child = const Icon(FluentIcons.progress_ring_dots, size: 10);
+          } else {
+            child = const Icon(FluentIcons.play_solid, size: 10);
+          }
+          return ToggleButton(
+            onChanged: (_) async {
+              final result = await ShellDriver.runPythonCode(code);
+              // ignore: use_build_context_synchronously
+              Provider.of<ChatGPTProvider>(context, listen: false)
+                  .sendResultOfRunningShellCode(result);
+            },
+            checked: snap.data == true,
+            child: child,
+          );
+        },
+      ),
     );
-    selectedChatRoomName = chatRoomName;
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void setOpenAIKeyForCurrentChatRoom(String v) {
-    final trimmed = v.trim();
-    chatRooms[selectedChatRoomName]!.token = trimmed;
-    openAI.setToken(trimmed);
-    prefs?.setString('token', trimmed);
-    log('setOpenAIKeyForCurrentChatRoom: $trimmed');
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void setOpenAIGroupIDForCurrentChatRoom(String v) {
-    chatRooms[selectedChatRoomName]!.orgID = v;
-    openAI.setOrgId(v);
-    prefs?.setString('orgID', v);
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void deleteAllChatRooms() {
-    chatRooms.clear();
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void selectChatRoom(ChatRoom room) {
-    selectedChatRoomName = room.chatRoomName;
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void deleteChatRoom(String chatRoomName) {
-    chatRooms.remove(chatRoomName);
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void editChatRoom(String oldChatRoomName, ChatRoom chatRoom) {
-    // if token is changed, update openAI
-    if (chatRoom.token != chatRooms[oldChatRoomName]?.token) {
-      openAI.setToken(chatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.token}');
-    }
-    // if orgID is changed, update openAI
-    if (chatRoom.orgID != chatRooms[oldChatRoomName]?.orgID) {
-      openAI.setOrgId(chatRoom.orgID ?? '');
-      log('setOpenAIGroupIDForCurrentChatRoom: ${chatRoom.orgID}');
-    }
-    chatRooms.remove(oldChatRoomName);
-    chatRooms[chatRoom.chatRoomName] = chatRoom;
-    notifyListeners();
-    saveToDisk();
-  }
-
-  void clearConversation() {
-    messages.clear();
-    notifyListeners();
-    saveToDisk();
   }
 }
