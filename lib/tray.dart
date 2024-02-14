@@ -2,9 +2,14 @@ import 'dart:io';
 
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:rxdart/rxdart.dart';
+
+/// paste, grammar, explain, to_rus, to_eng
+final trayButtonStream = BehaviorSubject<String?>();
 
 Future<void> initSystemTray() async {
   String path =
@@ -33,15 +38,50 @@ Future<void> initSystemTray() async {
   await systemTray.setContextMenu(menu);
 
   // handle system tray event
-  systemTray.registerSystemTrayEventHandler((eventName) {
+  systemTray.registerSystemTrayEventHandler((eventName) async {
     debugPrint("eventName: $eventName");
     if (eventName == kSystemTrayEventClick) {
       Platform.isWindows ? appWindow.show() : systemTray.popUpContextMenu();
     } else if (eventName == kSystemTrayEventRightClick) {
+      final clipBoard = await Clipboard.getData(Clipboard.kTextPlain);
+      if (clipBoard?.text?.trim().isNotEmpty == true) {
+        final first20CharIfPresent = clipBoard!.text!.length > 20
+            ? clipBoard.text!.substring(0, 20)
+            : clipBoard.text;
+        menu.buildFrom([
+          MenuItemLabel(
+              label: 'Paste: "${first20CharIfPresent?.trim()}..."',
+              onClicked: (menuItem) => onTrayButtonTap('paste')),
+          MenuItemLabel(
+              label: 'Grammar',
+              onClicked: (menuItem) => onTrayButtonTap('grammar')),
+          MenuItemLabel(
+              label: 'Explain',
+              onClicked: (menuItem) => onTrayButtonTap('explain')),
+          MenuItemLabel(
+              label: 'Translate to Russian',
+              onClicked: (menuItem) => onTrayButtonTap('to_rus')),
+          MenuItemLabel(
+              label: 'Translate to English',
+              onClicked: (menuItem) => onTrayButtonTap('to_eng')),
+          MenuSeparator(),
+          MenuItemLabel(
+              label: 'Show', onClicked: (menuItem) => appWindow.show()),
+          MenuItemLabel(
+              label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
+          MenuItemLabel(
+              label: 'Exit', onClicked: (menuItem) => appWindow.close()),
+        ]);
+        await systemTray.setContextMenu(menu);
+      }
       Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
     }
   });
   await initShortcuts(appWindow);
+}
+
+onTrayButtonTap(String item) {
+  trayButtonStream.add(item);
 }
 
 HotKey openWindowHotkey = HotKey(

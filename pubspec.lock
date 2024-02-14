@@ -76,11 +76,12 @@ packages:
   chat_gpt_sdk:
     dependency: "direct main"
     description:
-      name: chat_gpt_sdk
-      sha256: ace2b12df876249c79b95be1dd570ea0cd3fcc45b77252f8c0bcaed3ffdaa45a
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.5"
+      path: "."
+      ref: HEAD
+      resolved-ref: "00052ee654fc7efbdb650dfc5e258f78a0ec5ce5"
+      url: "https://github.com/redevrx/chat_gpt_sdk.git"
+    source: git
+    version: "3.0.1"
   checked_yaml:
     dependency: transitive
     description:
@@ -133,10 +134,10 @@ packages:
     dependency: transitive
     description:
       name: dio
-      sha256: "417e2a6f9d83ab396ec38ff4ea5da6c254da71e4db765ad737a42af6930140b7"
+      sha256: "797e1e341c3dd2f69f2dad42564a6feff3bfb87187d05abb93b9609e6f1645c3"
       url: "https://pub.dev"
     source: hosted
-    version: "5.3.3"
+    version: "5.4.0"
   fake_async:
     dependency: transitive
     description:
@@ -169,6 +170,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.7.7"
+  fluentui_system_icons:
+    dependency: "direct main"
+    description:
+      name: fluentui_system_icons
+      sha256: abe7c343e2151e0ad6544653e0b6601686b993bc436ccde72b88cea677db0c0a
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.226"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -365,6 +374,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.8.3"
+  path_provider:
+    dependency: transitive
+    description:
+      name: path_provider
+      sha256: b27217933eeeba8ff24845c34003b003b2b22151de3c908d0e679e8fe1aa078b
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.2"
+  path_provider_android:
+    dependency: transitive
+    description:
+      name: path_provider_android
+      sha256: "477184d672607c0a3bf68fbbf601805f92ef79c82b64b4d6eb318cbca4c48668"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.2"
+  path_provider_foundation:
+    dependency: transitive
+    description:
+      name: path_provider_foundation
+      sha256: "5a7999be66e000916500be4f15a3633ebceb8302719b47b9cc49ce924125350f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.2"
   path_provider_linux:
     dependency: transitive
     description:
@@ -461,6 +494,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
+  rxdart:
+    dependency: "direct main"
+    description:
+      name: rxdart
+      sha256: "0c7c0cedd93788d996e33041ffecda924cc54389199cde4e6a34b440f50044cb"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.27.7"
   screen_retriever:
     dependency: transitive
     description:
@@ -779,5 +820,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=3.2.0 <4.0.0"
+  dart: ">=3.2.6 <4.0.0"
   flutter: ">=3.16.0"

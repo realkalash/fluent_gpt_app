@@ -115,7 +115,13 @@ class ChatRoom {
 }
 
 final allModels = [
-  GptTurboChatModel(),
+  GPT4TurboModel(),
   Gpt4ChatModel(),
+  GptTurboChatModel(),
   GptTurbo0301ChatModel(),
 ];
+
+/// We need to remove 'sealed' from ChatModel to allow for the new model
+class GPT4TurboModel extends ChatModel {
+  GPT4TurboModel() : super(model: 'gpt-4-0125-preview');
+}

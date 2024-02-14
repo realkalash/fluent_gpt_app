@@ -1,7 +1,7 @@
 name: chatgpt_windows_flutter_app
 description: A chat gpt project for windows created with Flutter.
 publish_to: "none"
-version: 0.2.1
+version: 0.3.2
 
 environment:
   sdk: ">=3.1.0 <4.0.0"
@@ -16,10 +16,10 @@ dependencies:
   provider: ^6.1.1
   url_launcher: ^6.2.1
   window_manager: ^0.3.7
-  chat_gpt_sdk: 2.2.5
-  # chat_gpt_sdk:
-  #   git:
-  #     url: https://github.com/redevrx/chat_gpt_sdk.git
+  # chat_gpt_sdk: 2.2.5
+  chat_gpt_sdk:
+    git:
+      url: https://github.com/redevrx/chat_gpt_sdk.git
   shared_preferences: ^2.2.2
   intl: ^0.18.1
   chat_gpt_flutter: ^1.0.15
@@ -30,6 +30,8 @@ dependencies:
   shell: ^2.0.0
   file: ^6.1.4
   markdown: ^7.1.1
+  fluentui_system_icons: ^1.1.226
+  rxdart: ^0.27.7
 
 dev_dependencies:
   flutter_test:

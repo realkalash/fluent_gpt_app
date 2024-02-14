@@ -4,10 +4,13 @@ import 'dart:developer';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/services.dart';
 
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
+  final TextEditingController messageController = TextEditingController();
 
   Map<String, ChatRoom> chatRooms = {};
   String selectedChatRoomName = 'Default';
@@ -29,6 +32,7 @@ class ChatGPTProvider with ChangeNotifier {
   get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
+  int countWordsInAllMessages = 0;
 
   Map<String, Map<String, String>> get messages =>
       chatRooms[selectedChatRoomName]?.messages ?? {};
@@ -45,6 +49,7 @@ class ChatGPTProvider with ChangeNotifier {
     }
     final chatRoomsRaw = jsonEncode(rooms);
     prefs?.setString('chatRooms', chatRoomsRaw);
+    prefs?.setString('selectedChatRoomName', selectedChatRoomName);
   }
 
   ChatGPTProvider() {
@@ -76,6 +81,9 @@ class ChatGPTProvider with ChangeNotifier {
         token: token,
         orgID: orgID,
       );
+    } else {
+      selectedChatRoomName =
+          prefs?.getString('selectedChatRoomName') ?? 'Default';
     }
     if (selectedChatRoom.token != 'empty') {
       openAI.setToken(selectedChatRoom.token);
@@ -84,6 +92,35 @@ class ChatGPTProvider with ChangeNotifier {
     if (selectedChatRoom.orgID != '') {
       openAI.setOrgId(selectedChatRoom.orgID ?? '');
       log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
+    }
+    calcWordsInAllMessages();
+    listenTray();
+  }
+  void listenTray() {
+    trayButtonStream.listen((value) async {
+      /// wait for the app to appear
+      await Future.delayed(const Duration(milliseconds: 150));
+      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+      if (value == 'paste') {
+        if (clipboard?.text?.trim().isNotEmpty == true) {
+          sendMessage(clipboard!.text!);
+        }
+      } else if (value == 'grammar') {
+        sendMessage('Check spelling and grammar: "${clipboard?.text}"');
+      } else if (value == 'explain') {
+        sendMessage('Explain: "${clipboard?.text}"');
+      } else if (value == 'to_rus') {
+        sendMessage('Translate to Rus: "${clipboard?.text}"');
+      } else if (value == 'to_eng') {
+        sendMessage('Translate to English: "${clipboard?.text}"');
+      }
+    });
+  }
+
+  void calcWordsInAllMessages() {
+    countWordsInAllMessages = 0;
+    for (var message in messages.entries) {
+      countWordsInAllMessages += message.value['content']!.split(' ').length;
     }
   }
 
@@ -98,14 +135,12 @@ class ChatGPTProvider with ChangeNotifier {
     final request = ChatCompleteText(
       messages: [
         if (selectedChatRoom.commandPrefix != null)
-          Messages(role: Role.system, content: selectedChatRoom.commandPrefix),
-
-        /// We already added the user message in the previous iteration
+          {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
         for (var message in messages.entries)
-          Messages(
-            role: message.value['role'] == 'user' ? Role.user : Role.assistant,
-            content: message.value['content'],
-          ),
+          {
+            'role': message.value['role'],
+            'content': message.value['content'],
+          },
       ],
       maxToken: maxLenght,
       model: selectedModel,
@@ -120,32 +155,53 @@ class ChatGPTProvider with ChangeNotifier {
     await Future.delayed(const Duration(milliseconds: 100));
     lastTimeAnswer = DateTime.now().toIso8601String();
 
-    await for (final response in stream) {
-      if (response.choices?.isNotEmpty == true) {
-        if (response.choices!.last.finishReason == 'stop') {
-          lastTimeAnswer = DateTime.now().toIso8601String();
+    try {
+      await for (final response in stream) {
+        if (response.choices?.isNotEmpty == true) {
+          if (response.choices!.last.finishReason == 'stop') {
+            lastTimeAnswer = DateTime.now().toIso8601String();
+          } else {
+            final lastBotMessage = messages[lastTimeAnswer];
+            final appendedText = lastBotMessage != null
+                ? '${lastBotMessage['content']}${response.choices!.last.message?.content ?? ' '}'
+                : response.choices!.last.message?.content ?? ' ';
+            messages[lastTimeAnswer] = {
+              'role': Role.assistant.name,
+              'content': appendedText,
+            };
+          }
         } else {
-          final lastBotMessage = messages[lastTimeAnswer];
-          final appendedText = lastBotMessage != null
-              ? '${lastBotMessage['content']}${response.choices!.last.message?.content ?? ' '}'
-              : response.choices!.last.message?.content ?? ' ';
-          messages[lastTimeAnswer] = {
-            'role': 'bot',
-            'content': appendedText,
-          };
+          log('Retrieved response but no choices');
         }
-      } else {
-        log('Retrieved response but no choices');
+
+        if (listItemsScrollController.position.pixels ==
+            listItemsScrollController.position.maxScrollExtent) {
+          listItemsScrollController.animateTo(
+            listItemsScrollController.position.maxScrollExtent + 200,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+          );
+        }
+
+        notifyListeners();
       }
-      listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent + 200,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-      );
-
-      notifyListeners();
+    } catch (e) {
+      if (e is OpenAIServerError) {
+        lastTimeAnswer = DateTime.now().toIso8601String();
+        messages[lastTimeAnswer] = {
+          'role': Role.assistant.name,
+          'content':
+              'Error response: Code: ${e.code}. Message: ${e.data?.message}',
+        };
+      } else {
+        lastTimeAnswer = DateTime.now().toIso8601String();
+        messages[lastTimeAnswer] = {
+          'role': Role.assistant.name,
+          'content': 'Error response: $e',
+        };
+      }
     }
-
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
@@ -178,7 +234,7 @@ class ChatGPTProvider with ChangeNotifier {
       if (response != null) {
         if (response.choices.isNotEmpty) {
           messages[lastTimeAnswer] = {
-            'role': 'bot',
+            'role': Role.assistant.name,
             'content': response.choices.last.message?.content ?? '...',
           };
         } else {
@@ -186,18 +242,18 @@ class ChatGPTProvider with ChangeNotifier {
         }
       } else {
         messages[lastTimeAnswer] = {
-          'role': 'bot',
+          'role': Role.assistant.name,
           'content': 'Error: ${response ?? 'No response'}',
         };
       }
     } catch (e) {
       lastTimeAnswer = DateTime.now().toIso8601String();
       messages[lastTimeAnswer] = {
-        'role': 'bot',
+        'role': Role.assistant.name,
         'content': 'Error: $e',
       };
     }
-
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
