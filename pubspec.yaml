@@ -32,6 +32,7 @@ dependencies:
   markdown: ^7.1.1
   fluentui_system_icons: ^1.1.226
   rxdart: ^0.27.7
+  dio: ^5.4.0
 
 dev_dependencies:
   flutter_test:

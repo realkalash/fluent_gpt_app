@@ -84,8 +84,8 @@ class _MyAppState extends State<MyApp> {
         create: (context) => ChatGPTProvider(),
         child: ChangeNotifierProvider.value(
           value: _appTheme,
-          builder: (context, child) {
-            final appTheme = context.watch<AppTheme>();
+          builder: (ctx, child) {
+            final appTheme = ctx.watch<AppTheme>();
             return FluentApp(
               title: 'appTitle',
               themeMode: appTheme.mode,
@@ -97,18 +97,18 @@ class _MyAppState extends State<MyApp> {
                 accentColor: appTheme.color,
                 visualDensity: VisualDensity.standard,
                 focusTheme: FocusThemeData(
-                  glowFactor: is10footScreen(context) ? 2.0 : 0.0,
+                  glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
                 ),
               ),
               theme: FluentThemeData(
                 accentColor: appTheme.color,
                 visualDensity: VisualDensity.standard,
                 focusTheme: FocusThemeData(
-                  glowFactor: is10footScreen(context) ? 2.0 : 0.0,
+                  glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
                 ),
               ),
               locale: appTheme.locale,
-              builder: (context, child) {
+              builder: (ctx, child) {
                 return Directionality(
                   textDirection: appTheme.textDirection,
                   child: NavigationPaneTheme(

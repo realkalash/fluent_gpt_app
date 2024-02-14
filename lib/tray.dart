@@ -64,6 +64,9 @@ Future<void> initSystemTray() async {
           MenuItemLabel(
               label: 'Translate to English',
               onClicked: (menuItem) => onTrayButtonTap('to_eng')),
+          MenuItemLabel(
+              label: 'Answer with Tags',
+              onClicked: (menuItem) => onTrayButtonTap('answer_with_tags')),
           MenuSeparator(),
           MenuItemLabel(
               label: 'Show', onClicked: (menuItem) => appWindow.show()),
@@ -82,6 +85,7 @@ Future<void> initSystemTray() async {
 
 onTrayButtonTap(String item) {
   trayButtonStream.add(item);
+  AppWindow().show();
 }
 
 HotKey openWindowHotkey = HotKey(

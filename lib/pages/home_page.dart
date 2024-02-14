@@ -1,20 +1,16 @@
-// import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
-import 'dart:async';
 import 'dart:developer';
 
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
-import 'package:chatgpt_windows_flutter_app/tray.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
-import 'package:flutter/material.dart' as mat;
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 
 import '../providers/chat_gpt_provider.dart';
 
@@ -43,9 +39,30 @@ class PageHeaderText extends StatelessWidget {
     return Column(
       children: [
         Text('Chat GPT ($model) ($selectedRoom)'),
-        Text(
-          'Words: ${chatProvider.countWordsInAllMessages}',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Words: ${chatProvider.countWordsInAllMessages}',
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.normal),
+              ),
+            ),
+            if (chatProvider.selectionModeEnabled) ...[
+              IconButton(
+                icon: Icon(ic.FluentIcons.delete_16_filled, color: Colors.red),
+                onPressed: () {
+                  chatProvider.deleteSelectedMessages();
+                },
+              ),
+              IconButton(
+                icon: const Icon(FluentIcons.cancel),
+                onPressed: () {
+                  chatProvider.disableSelectionMode();
+                },
+              ),
+            ]
+          ],
         ),
       ],
     );
@@ -78,6 +95,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatGPTProvider>();
+    chatProvider.context = context;
 
     return Column(
       children: <Widget>[
@@ -99,205 +117,9 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             },
           ),
         ),
-        const _HotShurtcutsWidget(),
-        const _InputField()
+        const HotShurtcutsWidget(),
+        const InputField()
       ],
-    );
-  }
-}
-
-class _InputField extends StatefulWidget {
-  const _InputField({super.key});
-
-  @override
-  State<_InputField> createState() => _InputFieldState();
-}
-
-class _InputFieldState extends State<_InputField> {
-  void onSubmit(String text, ChatGPTProvider chatProvider) {
-    if (text.trim().isEmpty) {
-      return;
-    }
-    chatProvider.sendMessage(text.trim());
-    chatProvider.messageController.clear();
-    promptTextFocusNode.requestFocus();
-  }
-
-  bool _shiftPressed = false;
-  final FocusNode _focusNode = FocusNode();
-  @override
-  Widget build(BuildContext context) {
-    final ChatGPTProvider chatProvider = context.read<ChatGPTProvider>();
-
-    return RawKeyboardListener(
-      focusNode: _focusNode,
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
-              event.logicalKey == LogicalKeyboardKey.shiftRight) {
-            _shiftPressed = true;
-          } else if (event.logicalKey == LogicalKeyboardKey.enter ||
-              event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-            if (_shiftPressed) {
-              // Shift+Enter pressed, go to the next line
-              // print('Shift+Enter pressed');
-            } else {
-              // Enter pressed, send message
-              print('Enter pressed');
-              onSubmit(chatProvider.messageController.text, chatProvider);
-            }
-          }
-        } else if (event is RawKeyUpEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
-              event.logicalKey == LogicalKeyboardKey.shiftRight) {
-            _shiftPressed = false;
-          }
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextBox(
-                focusNode: promptTextFocusNode,
-                prefix: (chatProvider.selectedChatRoom.commandPrefix == null ||
-                        chatProvider.selectedChatRoom.commandPrefix == '')
-                    ? null
-                    : Tooltip(
-                        message: chatProvider.selectedChatRoom.commandPrefix,
-                        child: const Card(
-                            margin: EdgeInsets.all(4),
-                            padding: EdgeInsets.all(4),
-                            child: Text('SMART')),
-                      ),
-                prefixMode: OverlayVisibilityMode.always,
-                controller: chatProvider.messageController,
-                minLines: 2,
-                maxLines: 30,
-                placeholder: 'Type your message here',
-              ),
-            ),
-            const SizedBox(width: 8.0),
-            Button(
-              onPressed: () =>
-                  onSubmit(chatProvider.messageController.text, chatProvider),
-              child: const Text('Send'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _HotShurtcutsWidget extends StatefulWidget {
-  const _HotShurtcutsWidget({super.key});
-
-  @override
-  State<_HotShurtcutsWidget> createState() => _HotShurtcutsWidgetState();
-}
-
-class _HotShurtcutsWidgetState extends State<_HotShurtcutsWidget> {
-  Timer? timer;
-  String textFromClipboard = '';
-
-  @override
-  void initState() {
-    super.initState();
-
-    /// periodically checks the clipboard for text and displays a widget if there is text
-    /// in the clipboard
-    timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-      Clipboard.getData(Clipboard.kTextPlain).then((value) {
-        if (value?.text != textFromClipboard) {
-          textFromClipboard = value?.text ?? '';
-          if (mounted) setState(() {});
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    timer?.cancel();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (textFromClipboard.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final chatProvider = context.read<ChatGPTProvider>();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: SizedBox(
-        width: double.infinity,
-        child: Wrap(
-          /// align to the left start
-          alignment: WrapAlignment.start,
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            Tooltip(
-              message: 'Paste:\n$textFromClipboard',
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 200),
-                child: Button(
-                  style: ButtonStyle(
-                      backgroundColor: ButtonState.all(Colors.blue)),
-                  onPressed: () {
-                    chatProvider.sendMessage(textFromClipboard);
-                  },
-                  child: Text(
-                    textFromClipboard.replaceAll('\n', '').trim(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ),
-            Button(
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(ic.FluentIcons.info_16_regular, size: 16),
-                    Text('Explain'),
-                  ],
-                ),
-                onPressed: () {
-                  chatProvider.sendMessage('Explain: "$textFromClipboard"');
-                }),
-            Button(
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(ic.FluentIcons.book_16_regular, size: 16),
-                    Text('Check grammar'),
-                  ],
-                ),
-                onPressed: () {
-                  chatProvider
-                      .sendMessage('Check grammar: "$textFromClipboard"');
-                }),
-            Button(
-                child: const Text('Translate to English'),
-                onPressed: () {
-                  chatProvider.sendMessage(
-                      'Translate to English: "$textFromClipboard"');
-                }),
-            Button(
-                child: const Text('Translate to Rus'),
-                onPressed: () {
-                  chatProvider
-                      .sendMessage('Translate to Rus: "$textFromClipboard"');
-                }),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -387,15 +209,15 @@ class _MessageCardState extends State<MessageCard> {
                       Button(
                         onPressed: () {
                           Navigator.of(context).maybePop();
+                          provider.toggleSelectMessage(widget.dateTime);
                         },
-                        child: const Text('Dismiss'),
+                        child: const Text('Select'),
                       ),
                       Button(
                         onPressed: () {
                           Navigator.of(context).maybePop();
-                          provider.toggleSelectMessage(widget.dateTime);
                         },
-                        child: const Text('Select'),
+                        child: const Text('Dismiss'),
                       ),
                       Button(
                           onPressed: () {

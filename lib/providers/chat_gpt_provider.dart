@@ -5,6 +5,8 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
+import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 
@@ -39,6 +41,11 @@ class ChatGPTProvider with ChangeNotifier {
 
   final dialogApiKeyController = TextEditingController();
   final selectedMessages = <String>{};
+  bool isAnswering = false;
+  CancelToken? cancelToken;
+
+  /// It's not a good practice to use [context] directly in the provider...
+  BuildContext? context;
 
   void saveToDisk() {
     var rooms = {};
@@ -106,15 +113,25 @@ class ChatGPTProvider with ChangeNotifier {
           sendMessage(clipboard!.text!);
         }
       } else if (value == 'grammar') {
-        sendMessage('Check spelling and grammar: "${clipboard?.text}"');
+        sendCheckGrammar(clipboard!.text!.trim());
       } else if (value == 'explain') {
-        sendMessage('Explain: "${clipboard?.text}"');
+        sendMessage('Explain: "${clipboard?.text}"', false);
       } else if (value == 'to_rus') {
-        sendMessage('Translate to Rus: "${clipboard?.text}"');
+        sendMessage('Translate to Rus: "${clipboard?.text}"', false);
       } else if (value == 'to_eng') {
-        sendMessage('Translate to English: "${clipboard?.text}"');
+        sendMessage('Translate to English: "${clipboard?.text}"', false);
+      } else if (value == 'answer_with_tags') {
+        HotShurtcutsWidget.showAnswerWithTagsDialog(context!, clipboard!.text!);
       }
     });
+  }
+
+  void sendCheckGrammar(String text) {
+    sendMessage(
+      'Check spelling and grammar: "$text". '
+      'If it contains issues, write a revised version at the very start of your message and then your short description.',
+      false,
+    );
   }
 
   void calcWordsInAllMessages() {
@@ -124,22 +141,32 @@ class ChatGPTProvider with ChangeNotifier {
     }
   }
 
-  Future<void> sendMessage(String messageContent) async {
+  Future<void> sendMessage(
+    String messageContent, [
+    bool includeConversation = true,
+  ]) async {
     final dateTime = DateTime.now().toIso8601String();
     messages[dateTime] = {
       'role': 'user',
       'content': messageContent,
     };
+    isAnswering = true;
     notifyListeners();
 
     final request = ChatCompleteText(
       messages: [
         if (selectedChatRoom.commandPrefix != null)
           {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
-        for (var message in messages.entries)
+        if (includeConversation)
+          for (var message in messages.entries)
+            {
+              'role': message.value['role'],
+              'content': message.value['content'],
+            },
+        if (!includeConversation)
           {
-            'role': message.value['role'],
-            'content': message.value['content'],
+            'role': Role.user.name,
+            'content': messageContent,
           },
       ],
       maxToken: maxLenght,
@@ -150,7 +177,12 @@ class ChatGPTProvider with ChangeNotifier {
       presencePenalty: repeatPenalty,
     );
 
-    final stream = openAI.onChatCompletionSSE(request: request);
+    final stream = openAI.onChatCompletionSSE(
+      request: request,
+      onCancel: (cancelData) {
+        cancelToken = cancelData.cancelToken;
+      },
+    );
     // we need to add a delay because iso will not be unique
     await Future.delayed(const Duration(milliseconds: 100));
     lastTimeAnswer = DateTime.now().toIso8601String();
@@ -159,6 +191,7 @@ class ChatGPTProvider with ChangeNotifier {
       await for (final response in stream) {
         if (response.choices?.isNotEmpty == true) {
           if (response.choices!.last.finishReason == 'stop') {
+            isAnswering = false;
             lastTimeAnswer = DateTime.now().toIso8601String();
           } else {
             final lastBotMessage = messages[lastTimeAnswer];
@@ -174,7 +207,7 @@ class ChatGPTProvider with ChangeNotifier {
           log('Retrieved response but no choices');
         }
 
-        if (listItemsScrollController.position.pixels ==
+        if ((listItemsScrollController.position.pixels + 100) ==
             listItemsScrollController.position.maxScrollExtent) {
           listItemsScrollController.animateTo(
             listItemsScrollController.position.maxScrollExtent + 200,
@@ -186,6 +219,7 @@ class ChatGPTProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
+      isAnswering = false;
       if (e is OpenAIServerError) {
         lastTimeAnswer = DateTime.now().toIso8601String();
         messages[lastTimeAnswer] = {
@@ -206,18 +240,32 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
   }
 
-  Future sendMessageDontStream(String messageContent) async {
+  Future sendMessageDontStream(
+    String messageContent, [
+    bool includeConversation = true,
+  ]) async {
     messages[lastTimeAnswer] = ({
       'role': 'user',
       'content': messageContent,
     });
+    isAnswering = true;
     notifyListeners();
     saveToDisk();
     final request = ChatCompleteText(
       messages: [
-        // if (selectedChatRoom.commandPrefix != null)
-        //   Messages(role: Role.system, content: selectedChatRoom.commandPrefix),
-        // Messages(role: Role.user, content: messageContent),
+        if (selectedChatRoom.commandPrefix != null)
+          {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
+        if (includeConversation)
+          for (var message in messages.entries)
+            {
+              'role': message.value['role'],
+              'content': message.value['content'],
+            },
+        if (!includeConversation)
+          {
+            'role': Role.user.name,
+            'content': messageContent,
+          },
       ],
       maxToken: maxLenght,
       model: selectedModel,
@@ -229,7 +277,12 @@ class ChatGPTProvider with ChangeNotifier {
     );
 
     try {
-      final response = await openAI.onChatCompletion(request: request);
+      final response = await openAI.onChatCompletion(
+        request: request,
+        onCancel: (cancelData) {
+          cancelToken = cancelData.cancelToken;
+        },
+      );
       lastTimeAnswer = DateTime.now().toIso8601String();
       if (response != null) {
         if (response.choices.isNotEmpty) {
@@ -253,6 +306,7 @@ class ChatGPTProvider with ChangeNotifier {
         'content': 'Error: $e',
       };
     }
+    isAnswering = false;
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
@@ -292,6 +346,7 @@ class ChatGPTProvider with ChangeNotifier {
       repeatPenalty: repeatPenalty,
     );
     selectedChatRoomName = chatRoomName;
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
@@ -345,12 +400,14 @@ class ChatGPTProvider with ChangeNotifier {
     }
     chatRooms.remove(oldChatRoomName);
     chatRooms[chatRoom.chatRoomName] = chatRoom;
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
 
   void clearConversation() {
     messages.clear();
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
@@ -361,6 +418,7 @@ class ChatGPTProvider with ChangeNotifier {
       'role': 'system',
       'content': 'Result: \n\n$result',
     });
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
     // scroll to bottom
@@ -373,6 +431,7 @@ class ChatGPTProvider with ChangeNotifier {
 
   void deleteMessage(DateTime dateTime) {
     messages.remove(dateTime.toIso8601String());
+    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
@@ -400,6 +459,7 @@ class ChatGPTProvider with ChangeNotifier {
       messages.remove(message.key);
       selectedMessages.remove(message.key);
     }
+    calcWordsInAllMessages();
     disableSelectionMode();
     saveToDisk();
   }
@@ -415,5 +475,17 @@ class ChatGPTProvider with ChangeNotifier {
     messages[dateTime.toIso8601String()]!['selected'] = 'true';
     selectedMessages.add(dateTime.toIso8601String());
     notifyListeners();
+  }
+
+  void stopAnswering() {
+    try {
+      cancelToken?.cancel('stop');
+      log('Canceled');
+    } catch (e) {
+      log('Error while canceling: $e');
+    } finally {
+      isAnswering = false;
+      notifyListeners();
+    }
   }
 }
