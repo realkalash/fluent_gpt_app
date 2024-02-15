@@ -207,8 +207,13 @@ class ChatGPTProvider with ChangeNotifier {
           log('Retrieved response but no choices');
         }
 
-        if ((listItemsScrollController.position.pixels + 100) ==
-            listItemsScrollController.position.maxScrollExtent) {
+        /// 0 when at the top
+        final pixelsNow = listItemsScrollController.position.pixels;
+        /// pixels at the very end of the list
+        final maxScrollExtent = listItemsScrollController.position.maxScrollExtent;
+
+        /// if we nearly at the bottom (+-100 px), scroll to the bottom always
+        if (pixelsNow >= maxScrollExtent - 100) {
           listItemsScrollController.animateTo(
             listItemsScrollController.position.maxScrollExtent + 200,
             duration: const Duration(milliseconds: 400),

@@ -155,6 +155,32 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         const _LocaleSection(),
         biggerSpacer,
         const _ResolutionsSelector(),
+        biggerSpacer,
+        const _OtherSettings(),
+      ],
+    );
+  }
+}
+
+class _OtherSettings extends StatelessWidget {
+  const _OtherSettings({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = context.watch<AppTheme>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Other settings',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        FlyoutListTile(
+          text: const Text('Prevent close app'),
+          trailing: Checkbox(
+            checked: appTheme.preventClose,
+            onChanged: (value) => appTheme.togglePreventClose(),
+          ),
+        ),
       ],
     );
   }
@@ -476,7 +502,6 @@ class _ThemeModeSection extends StatelessWidget {
                 checked: appTheme.windowEffect == mode,
                 onChanged: (value) {
                   if (value) {
-                    appTheme.windowEffect = mode;
                     appTheme.setEffect(mode, context);
                   }
                 },

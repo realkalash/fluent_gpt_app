@@ -12,8 +12,10 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
+import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:windows_single_instance/windows_single_instance.dart';
 
 import 'navigation_provider.dart';
 import 'providers/chat_gpt_provider.dart';
@@ -26,9 +28,14 @@ final openAI = OpenAI.instance.build(
 
 SharedPreferences? prefs;
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemTheme.accentColor.load();
+  await WindowsSingleInstance.ensureSingleInstance(
+      args, "chatgpt_windows_flutter_app", onSecondWindow: (args) {
+    AppWindow().show();
+    log('onSecondWindow. args: $args');
+  });
   prefs = await SharedPreferences.getInstance();
 
   await flutter_acrylic.Window.initialize();
@@ -41,7 +48,8 @@ void main() async {
     );
     await windowManager.setMinimumSize(const Size(500, 600));
     await windowManager.show();
-    await windowManager.setPreventClose(true);
+    await windowManager
+        .setPreventClose(prefs?.getBool('preventClose') ?? false);
     await windowManager.setSkipTaskbar(false);
   });
 // For hot reload, `unregisterAll()` needs to be called.
@@ -72,6 +80,12 @@ class _MyAppState extends State<MyApp> {
         await windowManager.setSize(Size(500, size.height - 100),
             animate: true);
         await windowManager.setAlignment(Alignment.centerRight, animate: true);
+      }
+      if (mounted) {
+        await flutter_acrylic.Window.setEffect(
+          effect: flutter_acrylic.WindowEffect.mica,
+          color: AppTheme.micaColor,
+        );
       }
     });
   }
@@ -266,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
           return const DragToMoveArea(
             child: Align(
               alignment: AlignmentDirectional.centerStart,
-              child: Text('appTitle'),
+              // child: Text('appTitle'),
             ),
           );
         }(),

@@ -27,7 +27,9 @@ class _InputFieldState extends State<InputField> {
   }
 
   bool _shiftPressed = false;
+  int wordCountInField = 0;
   final FocusNode _focusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
@@ -78,7 +80,21 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
+                suffix: wordCountInField == 0
+                    ? null
+                    : Text(
+                        '$wordCountInField words',
+                        style: FluentTheme.of(context).typography.caption,
+                      ),
                 placeholder: 'Type your message here',
+                onChanged: (value) {
+                  if (value.contains(' ')) {
+                    wordCountInField = value.trim().split(' ').length;
+                  } else {
+                    wordCountInField = 0;
+                  }
+                  setState(() {});
+                },
               ),
             ),
             const SizedBox(width: 8.0),

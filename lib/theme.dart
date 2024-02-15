@@ -11,7 +11,7 @@ enum NavigationIndicators { sticky, end }
 
 class AppTheme extends ChangeNotifier {
   AppTheme() {
-    // _windowEffect = WindowEffect.mica;
+    _windowEffect = WindowEffect.mica;
   }
 
   /// Scheen resolution. Selectable by user. Default is null.
@@ -35,6 +35,15 @@ class AppTheme extends ChangeNotifier {
       resolution =
           Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
     }
+    preventClose = prefs?.getBool('preventClose') ?? false;
+  }
+
+  bool preventClose = false;
+  void togglePreventClose() {
+    preventClose = !preventClose;
+    prefs?.setBool('preventClose', preventClose);
+    windowManager.setPreventClose(preventClose);
+    notifyListeners();
   }
 
   AccentColor? _color;
@@ -74,22 +83,17 @@ class AppTheme extends ChangeNotifier {
 
   WindowEffect _windowEffect = WindowEffect.disabled;
   WindowEffect get windowEffect => _windowEffect;
-  set windowEffect(WindowEffect windowEffect) {
-    _windowEffect = windowEffect;
-    notifyListeners();
-  }
 
-  void setEffect(WindowEffect effect, BuildContext context) {
-    Window.setEffect(
+  static Color micaColor = Colors.blue.withOpacity(0.05);
+
+  Future<void> setEffect(WindowEffect effect, BuildContext context) async {
+    await Window.setEffect(
       effect: effect,
-      color: [
-        WindowEffect.solid,
-        WindowEffect.acrylic,
-      ].contains(effect)
-          ? FluentTheme.of(context).micaBackgroundColor.withOpacity(0.05)
-          : Colors.transparent,
+      color: effect == WindowEffect.acrylic ? micaColor : Colors.transparent,
       dark: FluentTheme.of(context).brightness.isDark,
     );
+    _windowEffect = effect;
+    notifyListeners();
   }
 
   TextDirection _textDirection = TextDirection.ltr;
