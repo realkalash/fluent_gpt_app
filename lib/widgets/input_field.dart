@@ -31,6 +31,21 @@ class _InputFieldState extends State<InputField> {
   final FocusNode _focusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    final chatProvider = context.read<ChatGPTProvider>();
+    chatProvider.messageController.addListener(() {
+      final text = chatProvider.messageController.text;
+      if (text.contains(' ')) {
+        wordCountInField = text.trim().split(' ').length;
+      } else {
+        wordCountInField = 0;
+      }
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
 
@@ -87,14 +102,6 @@ class _InputFieldState extends State<InputField> {
                         style: FluentTheme.of(context).typography.caption,
                       ),
                 placeholder: 'Type your message here',
-                onChanged: (value) {
-                  if (value.contains(' ')) {
-                    wordCountInField = value.trim().split(' ').length;
-                  } else {
-                    wordCountInField = 0;
-                  }
-                  setState(() {});
-                },
               ),
             ),
             const SizedBox(width: 8.0),
