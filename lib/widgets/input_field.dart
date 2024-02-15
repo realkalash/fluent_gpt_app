@@ -33,16 +33,16 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    final chatProvider = context.read<ChatGPTProvider>();
-    chatProvider.messageController.addListener(() {
-      final text = chatProvider.messageController.text;
-      if (text.contains(' ')) {
-        wordCountInField = text.trim().split(' ').length;
-      } else {
-        wordCountInField = 0;
-      }
-      if (mounted) setState(() {});
-    });
+    // final chatProvider = context.read<ChatGPTProvider>();
+    // // chatProvider.messageController.addListener(() {
+    // //   final text = chatProvider.messageController.text;
+    // //   if (text.contains(' ')) {
+    // //     wordCountInField = text.trim().split(' ').length;
+    // //   } else {
+    // //     wordCountInField = 0;
+    // //   }
+    // //   if (mounted) setState(() {});
+    // // });
   }
 
   @override
@@ -58,11 +58,8 @@ class _InputFieldState extends State<InputField> {
             _shiftPressed = true;
           } else if (event.logicalKey == LogicalKeyboardKey.enter ||
               event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-            if (_shiftPressed) {
-              // Shift+Enter pressed, go to the next line
-              // print('Shift+Enter pressed');
-            } else {
-              // Enter pressed, send message
+            if (!_shiftPressed) {
+              // Enter pressed without shift, send message
               // print('Enter pressed');
               onSubmit(chatProvider.messageController.text, chatProvider);
             }
