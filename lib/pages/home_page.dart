@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_builder.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -181,12 +182,21 @@ class _MessageCardState extends State<MessageCard> {
                 softLineBreak: true,
                 selectable: true,
                 shrinkWrap: true,
+                styleSheet: MarkdownStyleSheet(
+                  code: const TextStyle(
+                      fontSize: 14, backgroundColor: Colors.transparent),
+                ),
+                builders: {
+                  'code': CodeElementBuilder(
+                      isDarkTheme: FluentTheme.of(context).brightness ==
+                          Brightness.dark),
+                },
                 onTapLink: (text, href, title) => launchUrlString(href!),
                 extensionSet: md.ExtensionSet(
                   md.ExtensionSet.gitHubFlavored.blockSyntaxes,
                   <md.InlineSyntax>[
                     md.EmojiSyntax(),
-                    ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
+                    ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
                   ],
                 ),
               ),

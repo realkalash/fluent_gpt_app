@@ -22,8 +22,12 @@ class _InputFieldState extends State<InputField> {
       return;
     }
     chatProvider.sendMessage(text.trim());
-    chatProvider.messageController.clear();
-    promptTextFocusNode.requestFocus();
+    Future.delayed(const Duration(milliseconds: 50)).then(
+      (value) {
+        chatProvider.messageController.clear();
+        promptTextFocusNode.requestFocus();
+      },
+    );
   }
 
   bool _shiftPressed = false;
@@ -33,16 +37,16 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    // final chatProvider = context.read<ChatGPTProvider>();
-    // // chatProvider.messageController.addListener(() {
-    // //   final text = chatProvider.messageController.text;
-    // //   if (text.contains(' ')) {
-    // //     wordCountInField = text.trim().split(' ').length;
-    // //   } else {
-    // //     wordCountInField = 0;
-    // //   }
-    // //   if (mounted) setState(() {});
-    // // });
+    final chatProvider = context.read<ChatGPTProvider>();
+    chatProvider.messageController.addListener(() {
+      final text = chatProvider.messageController.text;
+      if (text.contains(' ')) {
+        wordCountInField = text.trim().split(' ').length;
+      } else {
+        wordCountInField = 0;
+      }
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -92,16 +96,14 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
-                suffix: wordCountInField == 0
-                    ? null
-                    : Text(
-                        '$wordCountInField words',
-                        style: FluentTheme.of(context).typography.caption,
-                      ),
                 placeholder: 'Type your message here',
               ),
             ),
-            const SizedBox(width: 8.0),
+            if (wordCountInField != 0)
+              Text(
+                '$wordCountInField words',
+                style: FluentTheme.of(context).typography.caption,
+              ),
             if (chatProvider.isAnswering)
               IconButton(
                 icon: const Icon(ic.FluentIcons.stop_16_filled),

@@ -34,6 +34,7 @@ dependencies:
   rxdart: ^0.27.7
   dio: ^5.4.0
   windows_single_instance: ^1.0.1
+  flutter_highlighter: ^0.1.1
 
 dev_dependencies:
   flutter_test:
