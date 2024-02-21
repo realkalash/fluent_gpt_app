@@ -287,7 +287,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         actions: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            const CollapseAppButton(),
             const AddChatButton(),
             const ClearChatButton(),
             const PinAppButton(),
@@ -308,6 +307,11 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
                 ),
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: CollapseAppButton(),
+            ),
+
             // if (!kIsWeb) const WindowButtons(),
           ],
         ),

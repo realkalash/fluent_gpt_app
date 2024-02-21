@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -18,7 +19,7 @@ class InputField extends StatefulWidget {
 
 class _InputFieldState extends State<InputField> {
   void onSubmit(String text, ChatGPTProvider chatProvider) {
-    if (text.trim().isEmpty) {
+    if (text.trim().isEmpty && chatProvider.pathFileInput == null) {
       return;
     }
     chatProvider.sendMessage(text.trim());
@@ -79,6 +80,57 @@ class _InputFieldState extends State<InputField> {
         padding: const EdgeInsets.all(8.0),
         child: Row(
           children: [
+            if (chatProvider.pathFileInput == null)
+              SizedBox.square(
+                dimension: 48,
+                child: IconButton(
+                  onPressed: () async {
+                    if (chatProvider.isSendingFile) {
+                      return;
+                    }
+                    FilePickerResult? result =
+                        await FilePicker.platform.pickFiles();
+                    if (result != null && result.files.isNotEmpty) {
+                      chatProvider.addFileToInput(result.files.first.path!);
+                    }
+                  },
+                  icon: chatProvider.isSendingFile
+                      ? const ProgressRing()
+                      : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
+                ),
+              ),
+            if (chatProvider.pathFileInput != null)
+              SizedBox.square(
+                dimension: 48,
+                child: Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () async {
+                        if (chatProvider.isSendingFile) {
+                          return;
+                        }
+                        FilePickerResult? result =
+                            await FilePicker.platform.pickFiles();
+                        if (result != null && result.files.isNotEmpty) {
+                          chatProvider.addFileToInput(result.files.first.path!);
+                        }
+                      },
+                      icon: const Icon(
+                          ic.FluentIcons.document_number_1_16_regular,
+                          size: 24),
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        onPressed: () => chatProvider.removeFileFromInput(),
+                        icon: Icon(FluentIcons.chrome_close,
+                            size: 12, color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Expanded(
               child: TextBox(
                 focusNode: promptTextFocusNode,
@@ -112,10 +164,13 @@ class _InputFieldState extends State<InputField> {
                 },
               )
             else
-              Button(
-                onPressed: () =>
-                    onSubmit(chatProvider.messageController.text, chatProvider),
-                child: const Text('Send'),
+              SizedBox.square(
+                dimension: 48,
+                child: IconButton(
+                  onPressed: () => onSubmit(
+                      chatProvider.messageController.text, chatProvider),
+                  icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
+                ),
               ),
           ],
         ),

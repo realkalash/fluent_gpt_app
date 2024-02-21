@@ -148,6 +148,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
             context.read<ChatGPTProvider>().selectNewModel(model);
           },
         ),
+        const _FilesSection(),
         const _CacheSection(),
         const _HotKeySection(),
         const _ThemeModeSection(),
@@ -157,6 +158,72 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         const _ResolutionsSelector(),
         biggerSpacer,
         const _OtherSettings(),
+      ],
+    );
+  }
+}
+
+class _FilesSection extends StatefulWidget {
+  const _FilesSection({super.key});
+
+  @override
+  State<_FilesSection> createState() => _FilesSectionState();
+}
+
+class _FilesSectionState extends State<_FilesSection> {
+  @override
+  void initState() {
+    super.initState();
+    final provider = context.read<ChatGPTProvider>();
+    provider.retrieveFiles();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gptProvider = context.watch<ChatGPTProvider>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Files', style: FluentTheme.of(context).typography.subtitle),
+            IconButton(
+              icon: const Icon(FluentIcons.refresh),
+              onPressed: () {
+                gptProvider.retrieveFiles();
+              },
+            ),
+          ],
+        ),
+        spacer,
+        if (gptProvider.isRetrievingFiles)
+          const Center(child: ProgressBar())
+        else
+          Wrap(
+            spacing: 15.0,
+            runSpacing: 10.0,
+            children: List.generate(
+              gptProvider.filesInOpenAi.length,
+              (index) {
+                final file = gptProvider.filesInOpenAi[index];
+                return Button(
+                  onPressed: () => gptProvider.downloadOpenFile(file),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('${file.filename} (${file.bytes ~/ 1024} KB)'),
+                      IconButton(
+                        icon: const Icon(FluentIcons.delete),
+                        onPressed: () {
+                          gptProvider.deleteFileFromOpenAi(file);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
       ],
     );
   }

@@ -1,5 +1,7 @@
 import 'dart:developer';
 
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
+import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
@@ -29,17 +31,166 @@ class ChatRoomPage extends StatelessWidget {
   }
 }
 
+class ModelChooserCards extends StatelessWidget {
+  const ModelChooserCards({super.key});
+  static const textStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
+
+  Color applyOpacityIfSelected(bool isSelected, Color color) {
+    if (!isSelected) {
+      return color.withOpacity(0.2);
+    }
+    return color;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ChatGPTProvider>();
+    final selectedModel = provider.selectedModel.model;
+    final currentChat = provider.selectedChatRoomName;
+    bool isGPT4_125 = selectedModel == 'gpt-4-0125-preview';
+    bool isGPT4 = selectedModel == 'gpt-4';
+    bool isGPT3_5 = selectedModel == 'gpt-3.5-turbo';
+    return SizedBox(
+      width: 400,
+      height: 50,
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () =>
+                  provider.selectModelForChat(currentChat, GPT4TurboModel()),
+              child: Card(
+                  backgroundColor:
+                      applyOpacityIfSelected(isGPT4_125, Colors.blue),
+                  child: const Text('GPT-4-124k',
+                      style: textStyle, textAlign: TextAlign.center)),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () =>
+                  provider.selectModelForChat(currentChat, Gpt4ChatModel()),
+              child: Card(
+                  backgroundColor:
+                      applyOpacityIfSelected(isGPT4, Colors.yellow),
+                  child: const Text('GPT-4',
+                      style: textStyle, textAlign: TextAlign.center)),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () =>
+                  provider.selectModelForChat(currentChat, GptTurboChatModel()),
+              child: Card(
+                  backgroundColor:
+                      applyOpacityIfSelected(isGPT3_5, Colors.green),
+                  child: const Text('GPT-3.5',
+                      style: textStyle, textAlign: TextAlign.center)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class PageHeaderText extends StatelessWidget {
   const PageHeaderText({super.key});
+
+  Future<void> editChatRoomDialog(
+      BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
+    var roomName = room.chatRoomName;
+    var commandPrefix = room.commandPrefix;
+    var maxLength = room.maxLength;
+    var token = room.token;
+    var orgID = room.orgID;
+    await showDialog(
+      context: context,
+      builder: (ctx) => ContentDialog(
+        title: const Text('Edit chat room'),
+        actions: [
+          Button(
+            onPressed: () {
+              provider.editChatRoom(
+                room.chatRoomName,
+                room.copyWith(
+                  chatRoomName: roomName,
+                  commandPrefix: commandPrefix,
+                  maxLength: maxLength,
+                  token: token,
+                  orgID: orgID,
+                ),
+                switchToForeground: true,
+              );
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save'),
+          ),
+          Button(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+        content: ListView(
+          shrinkWrap: true,
+          children: [
+            const Text('Chat room name'),
+            TextBox(
+              controller: TextEditingController(text: room.chatRoomName),
+              onChanged: (value) {
+                roomName = value;
+              },
+            ),
+            const Text('Command prefix'),
+            TextBox(
+              controller: TextEditingController(text: room.commandPrefix),
+              onChanged: (value) {
+                commandPrefix = value;
+              },
+            ),
+            const Text('Max length'),
+            TextBox(
+              controller:
+                  TextEditingController(text: room.maxLength.toString()),
+              onChanged: (value) {
+                maxLength = int.parse(value);
+              },
+            ),
+            const Text('Token'),
+            TextBox(
+              controller: TextEditingController(text: room.token),
+              obscureText: true,
+              onChanged: (value) {
+                token = value;
+              },
+            ),
+            const Text('Org ID'),
+            TextBox(
+              controller: TextEditingController(text: room.orgID),
+              onChanged: (value) {
+                orgID = value;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatGPTProvider>();
-    final model = chatProvider.selectedModel.model;
     final selectedRoom = chatProvider.selectedChatRoomName;
     return Column(
       children: [
-        Text('Chat GPT ($model) ($selectedRoom)'),
+        GestureDetector(
+          onTap: () => editChatRoomDialog(
+              context, chatProvider.chatRooms[selectedRoom]!, chatProvider),
+          child: Text(selectedRoom),
+        ),
+        const ModelChooserCards(),
         Row(
           children: [
             Expanded(
@@ -48,6 +199,18 @@ class PageHeaderText extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Text('Include conversation',
+                    style: TextStyle(fontSize: 12)),
+                ToggleSwitch(
+                    checked: chatProvider.includeConversationGlobal,
+                    onChanged: (v) {
+                      chatProvider.setIncludeWholeConversation(v);
+                    }),
+              ],
             ),
             if (chatProvider.selectionModeEnabled) ...[
               IconButton(
@@ -98,29 +261,92 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     var chatProvider = context.watch<ChatGPTProvider>();
     chatProvider.context = context;
 
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: ListView.builder(
-            controller: chatProvider.listItemsScrollController,
-            itemCount: chatProvider.messages.entries.length,
-            itemBuilder: (context, index) {
-              final message =
-                  chatProvider.messages.entries.elementAt(index).value;
-              final dateTimeRaw =
-                  chatProvider.messages.entries.elementAt(index).key;
-              final DateTime dateTime = DateTime.parse(dateTimeRaw);
-              return MessageCard(
-                message: message,
-                dateTime: dateTime,
-                selectionMode: chatProvider.selectionModeEnabled,
-              );
-            },
-          ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Column(
+          children: <Widget>[
+            Expanded(
+              child: ListView.builder(
+                controller: chatProvider.listItemsScrollController,
+                itemCount: chatProvider.messages.entries.length,
+                itemBuilder: (context, index) {
+                  final message =
+                      chatProvider.messages.entries.elementAt(index).value;
+                  final dateTimeRaw =
+                      chatProvider.messages.entries.elementAt(index).key;
+                  final DateTime dateTime = DateTime.parse(dateTimeRaw);
+                  return MessageCard(
+                    message: message,
+                    dateTime: dateTime,
+                    selectionMode: chatProvider.selectionModeEnabled,
+                  );
+                },
+              ),
+            ),
+            const HotShurtcutsWidget(),
+            const InputField()
+          ],
         ),
-        const HotShurtcutsWidget(),
-        const InputField()
+        const Positioned(
+          bottom: 128,
+          right: 16,
+          child: _ScrollToBottomButton(),
+        ),
       ],
+    );
+  }
+}
+
+class _ScrollToBottomButton extends StatefulWidget {
+  const _ScrollToBottomButton({super.key});
+
+  @override
+  State<_ScrollToBottomButton> createState() => __ScrollToBottomButtonState();
+}
+
+class __ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
+  bool isAtBottom = true;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      final chatProvider = context.read<ChatGPTProvider>();
+      chatProvider.listItemsScrollController.addListener(() {
+        if (mounted == false) return;
+        final isAtBottomNew = chatProvider.listItemsScrollController.offset ==
+            chatProvider.listItemsScrollController.position.maxScrollExtent;
+        if (isAtBottom == isAtBottomNew) return;
+        if (isAtBottomNew) {
+          setState(() {
+            isAtBottom = true;
+          });
+        } else {
+          setState(() {
+            isAtBottom = false;
+          });
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isAtBottom) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox.square(
+      dimension: 48,
+      child: GestureDetector(
+          onTap: () {
+            final chatProvider = context.read<ChatGPTProvider>();
+            chatProvider.listItemsScrollController.animateTo(
+              chatProvider.listItemsScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+            );
+          },
+          child: const Card(child: Icon(FluentIcons.down, size: 16))),
     );
   }
 }
@@ -162,18 +388,26 @@ class _MessageCardState extends State<MessageCard> {
     if (widget.message['role'] == 'user') {
       tileWidget = ListTile(
         leading: leading,
-        title: Text('You:', style: myMessageStyle),
-        trailing: Text(formatDateTime,
-            style: FluentTheme.of(context).typography.caption!),
+        title: Row(
+          children: [
+            Text('$formatDateTime ',
+                style: FluentTheme.of(context).typography.caption!),
+            Text('You:', style: myMessageStyle),
+          ],
+        ),
         subtitle: SelectableText('${widget.message['content']}',
             style: FluentTheme.of(context).typography.body),
       );
     } else {
       tileWidget = ListTile(
         leading: leading,
-        title: Text('${widget.message['role']}:', style: botMessageStyle),
-        trailing: Text(formatDateTime,
-            style: FluentTheme.of(context).typography.caption!),
+        title: Row(
+          children: [
+            Text('$formatDateTime ',
+                style: FluentTheme.of(context).typography.caption!),
+            Text('${widget.message['role']}:', style: botMessageStyle),
+          ],
+        ),
         subtitle: !_isMarkdownView
             ? SelectableText('${widget.message['content']}',
                 style: FluentTheme.of(context).typography.body)

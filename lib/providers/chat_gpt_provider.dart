@@ -3,10 +3,12 @@ import 'dart:developer';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 
@@ -18,6 +20,7 @@ class ChatGPTProvider with ChangeNotifier {
   String selectedChatRoomName = 'Default';
 
   bool selectionModeEnabled = false;
+  bool includeConversationGlobal = true;
 
   ChatModel get selectedModel =>
       chatRooms[selectedChatRoomName]?.model ?? allModels.first;
@@ -103,6 +106,7 @@ class ChatGPTProvider with ChangeNotifier {
     calcWordsInAllMessages();
     listenTray();
   }
+
   void listenTray() {
     trayButtonStream.listen((value) async {
       /// wait for the app to appear
@@ -141,10 +145,63 @@ class ChatGPTProvider with ChangeNotifier {
     }
   }
 
+  final listSupportedImageFormats = [
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'bmp',
+    'webp',
+    'tiff',
+    'svg',
+    'ico',
+    'webp',
+  ];
+  Future sendImageInput(
+    String path, {
+    String textPrompt = "Whats in this image?",
+  }) async {
+    final fileExt = path.split('.').last;
+    if (!listSupportedImageFormats.contains(fileExt)) {
+      addMessageSystem('Unsupported file format: $fileExt');
+      return;
+    }
+    final encodedImage = await encodeImage(path);
+    final request = ChatCompleteText(
+      messages: [
+        {
+          "role": Role.user.name,
+          "content": [
+            {"type": "text", "text": textPrompt},
+            {
+              "type": "image_url",
+              "image_url": {"url": "data:image/$fileExt;base64,${encodedImage}"}
+            }
+          ]
+        }
+      ],
+      maxToken: 200,
+      model: Gpt4VisionPreviewChatModel(),
+    );
+
+    ChatCTResponse? response = await openAI.onChatCompletion(request: request);
+    debugPrint("$response");
+  }
+
+  String? pathFileInput;
+  void addFileToInput(String path) {
+    pathFileInput = path;
+    notifyListeners();
+  }
+
   Future<void> sendMessage(
     String messageContent, [
     bool includeConversation = true,
   ]) async {
+    bool includeConversation0 = includeConversation;
+    if (includeConversationGlobal == false) {
+      includeConversation0 = false;
+    }
     final dateTime = DateTime.now().toIso8601String();
     messages[dateTime] = {
       'role': 'user',
@@ -153,29 +210,98 @@ class ChatGPTProvider with ChangeNotifier {
     isAnswering = true;
     notifyListeners();
 
-    final request = ChatCompleteText(
-      messages: [
-        if (selectedChatRoom.commandPrefix != null)
-          {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
-        if (includeConversation)
-          for (var message in messages.entries)
+    late ChatCompleteText request;
+    if (pathFileInput != null) {
+      final fileExt = pathFileInput!.split('.').last;
+      if (listSupportedImageFormats.contains(fileExt)) {
+        final encodedImage = await encodeImage(pathFileInput!);
+        request = ChatCompleteText(
+          messages: [
+            if (selectedChatRoom.commandPrefix != null)
+              {
+                'role': Role.system.name,
+                'content': selectedChatRoom.commandPrefix
+              },
+            if (includeConversation0)
+              for (var message in messages.entries)
+                {
+                  'role': message.value['role'],
+                  'content': message.value['content'],
+                },
+            if (!includeConversation0)
+              {
+                'role': Role.user.name,
+                'content': messageContent,
+              },
             {
-              'role': message.value['role'],
-              'content': message.value['content'],
+              "type": "image_url",
+              "image_url": {"url": "data:image/$fileExt;base64,$encodedImage"}
+            }
+          ],
+          maxToken: 300,
+          model: Gpt4VisionPreviewChatModel(),
+          temperature: temp,
+          topP: topP,
+          frequencyPenalty: repeatPenalty,
+          presencePenalty: repeatPenalty,
+        );
+      } else if (!listSupportedImageFormats.contains(fileExt)) {
+        await sendFile(pathFileInput!);
+        request = ChatCompleteText(
+          messages: [
+            if (selectedChatRoom.commandPrefix != null)
+              {
+                'role': Role.system.name,
+                'content': selectedChatRoom.commandPrefix
+              },
+            if (includeConversation0)
+              for (var message in messages.entries)
+                {
+                  'role': message.value['role'],
+                  'content': message.value['content'],
+                },
+            if (!includeConversation0)
+              {
+                'role': Role.user.name,
+                'content': messageContent,
+              },
+          ],
+          maxToken: maxLenght,
+          model: selectedModel,
+          temperature: temp,
+          topP: topP,
+          frequencyPenalty: repeatPenalty,
+          presencePenalty: repeatPenalty,
+        );
+      }
+    } else {
+      request = ChatCompleteText(
+        messages: [
+          if (selectedChatRoom.commandPrefix != null)
+            {
+              'role': Role.system.name,
+              'content': selectedChatRoom.commandPrefix
             },
-        if (!includeConversation)
-          {
-            'role': Role.user.name,
-            'content': messageContent,
-          },
-      ],
-      maxToken: maxLenght,
-      model: selectedModel,
-      temperature: temp,
-      topP: topP,
-      frequencyPenalty: repeatPenalty,
-      presencePenalty: repeatPenalty,
-    );
+          if (includeConversation0)
+            for (var message in messages.entries)
+              {
+                'role': message.value['role'],
+                'content': message.value['content'],
+              },
+          if (!includeConversation0)
+            {
+              'role': Role.user.name,
+              'content': messageContent,
+            },
+        ],
+        maxToken: maxLenght,
+        model: selectedModel,
+        temperature: temp,
+        topP: topP,
+        frequencyPenalty: repeatPenalty,
+        presencePenalty: repeatPenalty,
+      );
+    }
 
     final stream = openAI.onChatCompletionSSE(
       request: request,
@@ -209,8 +335,10 @@ class ChatGPTProvider with ChangeNotifier {
 
         /// 0 when at the top
         final pixelsNow = listItemsScrollController.position.pixels;
+
         /// pixels at the very end of the list
-        final maxScrollExtent = listItemsScrollController.position.maxScrollExtent;
+        final maxScrollExtent =
+            listItemsScrollController.position.maxScrollExtent;
 
         /// if we nearly at the bottom (+-100 px), scroll to the bottom always
         if (pixelsNow >= maxScrollExtent - 100) {
@@ -240,6 +368,7 @@ class ChatGPTProvider with ChangeNotifier {
         };
       }
     }
+    pathFileInput = null;
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
@@ -249,6 +378,10 @@ class ChatGPTProvider with ChangeNotifier {
     String messageContent, [
     bool includeConversation = true,
   ]) async {
+    bool includeConversation0 = includeConversation;
+    if (includeConversationGlobal == false) {
+      includeConversation0 = false;
+    }
     messages[lastTimeAnswer] = ({
       'role': 'user',
       'content': messageContent,
@@ -260,13 +393,13 @@ class ChatGPTProvider with ChangeNotifier {
       messages: [
         if (selectedChatRoom.commandPrefix != null)
           {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
-        if (includeConversation)
+        if (includeConversation0)
           for (var message in messages.entries)
             {
               'role': message.value['role'],
               'content': message.value['content'],
             },
-        if (!includeConversation)
+        if (!includeConversation0)
           {
             'role': Role.user.name,
             'content': messageContent,
@@ -392,7 +525,8 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
   }
 
-  void editChatRoom(String oldChatRoomName, ChatRoom chatRoom) {
+  void editChatRoom(String oldChatRoomName, ChatRoom chatRoom,
+      {switchToForeground = false}) {
     // if token is changed, update openAI
     if (chatRoom.token != chatRooms[oldChatRoomName]?.token) {
       openAI.setToken(chatRoom.token);
@@ -405,6 +539,9 @@ class ChatGPTProvider with ChangeNotifier {
     }
     chatRooms.remove(oldChatRoomName);
     chatRooms[chatRoom.chatRoomName] = chatRoom;
+    if (switchToForeground) {
+      selectedChatRoomName = chatRoom.chatRoomName;
+    }
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
@@ -484,7 +621,7 @@ class ChatGPTProvider with ChangeNotifier {
 
   void stopAnswering() {
     try {
-      cancelToken?.cancel('stop');
+      cancelToken?.cancel('canceled ');
       log('Canceled');
     } catch (e) {
       log('Error while canceling: $e');
@@ -492,5 +629,92 @@ class ChatGPTProvider with ChangeNotifier {
       isAnswering = false;
       notifyListeners();
     }
+  }
+
+  void addMessageSystem(String message) {
+    lastTimeAnswer = DateTime.now().toIso8601String();
+    messages[lastTimeAnswer] = ({
+      'role': Role.system.name,
+      'content': message,
+    });
+    calcWordsInAllMessages();
+    notifyListeners();
+    saveToDisk();
+  }
+
+  void setIncludeWholeConversation(bool v) {
+    includeConversationGlobal = v;
+    notifyListeners();
+  }
+
+  bool isSendingFile = false;
+
+  Future<bool> sendFile(String path) async {
+    bool isSuccess = false;
+    isSendingFile = true;
+    notifyListeners();
+    try {
+      final fileName =
+          path.contains('\\') ? path.split('\\').last : path.split('/').last;
+      final uploadFile =
+          UploadFile(file: FileInfo(path, fileName), purpose: 'assistants');
+      final response = await OpenAI.instance.file.uploadFile(uploadFile);
+      addMessageSystem('File uploaded: ${response.filename}');
+      isSuccess = true;
+    } catch (e) {
+      log('Error while ending file: $e');
+      isSuccess = false;
+    } finally {
+      isSendingFile = false;
+      notifyListeners();
+    }
+    return isSuccess;
+  }
+
+  bool isRetrievingFiles = false;
+  List<FileData> filesInOpenAi = [];
+  Future retrieveFiles() async {
+    isRetrievingFiles = true;
+    notifyListeners();
+    try {
+      final response = await OpenAI.instance.file.get();
+      filesInOpenAi = response.data;
+    } catch (e) {
+      log('Error while retrieving files: $e');
+    } finally {
+      isRetrievingFiles = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> downloadOpenFile(FileData file) async {
+    final info = await openAI.file.retrieveContent(file.id);
+    final PlatformFile platformFile = PlatformFile(
+      name: file.filename,
+      size: info.length,
+      bytes: info,
+    );
+
+    /// TODO: add save
+  }
+
+  Future<void> deleteFileFromOpenAi(FileData file) async {
+    isRetrievingFiles = true;
+    notifyListeners();
+    try {
+      final result = await OpenAI.instance.file.delete(file.id);
+      filesInOpenAi.removeWhere((element) => element.id == file.id);
+      notifyListeners();
+    } catch (e) {
+      log('Error while deleting file: $e');
+    } finally {
+      isRetrievingFiles = false;
+      notifyListeners();
+    }
+  }
+
+  void removeFileFromInput() {
+    pathFileInput = null;
+    notifyListeners();
   }
 }
