@@ -2,6 +2,8 @@ import 'dart:developer';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/file_utils.dart';
+import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
@@ -368,6 +370,11 @@ class MessageCard extends StatefulWidget {
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
   bool _containsPythonCode = false;
+  @override
+  void initState() {
+    super.initState();
+    _isMarkdownView = prefs!.getBool('isMarkdownView') ?? true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -388,6 +395,11 @@ class _MessageCardState extends State<MessageCard> {
     if (widget.message['role'] == 'user') {
       tileWidget = ListTile(
         leading: leading,
+        contentPadding: EdgeInsets.zero,
+        onPressed: () {
+          final provider = context.read<ChatGPTProvider>();
+          provider.toggleSelectMessage(widget.dateTime);
+        },
         title: Row(
           children: [
             Text('$formatDateTime ',
@@ -395,12 +407,54 @@ class _MessageCardState extends State<MessageCard> {
             Text('You:', style: myMessageStyle),
           ],
         ),
-        subtitle: SelectableText('${widget.message['content']}',
-            style: FluentTheme.of(context).typography.body),
+        subtitle: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SelectableText('${widget.message['content']}',
+                style: FluentTheme.of(context).typography.body),
+            if (widget.message['image_url'] != null)
+              Image.network(widget.message['image_url']!),
+            if (widget.message['image'] != null)
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  width: 400,
+                  height: 400,
+                  margin: const EdgeInsets.all(8.0),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 10,
+                          spreadRadius: 5,
+                        )
+                      ]),
+                  child: Image.memory(
+                    key: ValueKey(widget.message['content']),
+                    decodeImage(widget.message['image']!),
+                    fit: BoxFit.cover,
+                    cacheHeight: 400,
+                    cacheWidth: 400,
+                    width: 400,
+                    height: 400,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+              ),
+          ],
+        ),
       );
     } else {
       tileWidget = ListTile(
         leading: leading,
+        onPressed: () {
+          final provider = context.read<ChatGPTProvider>();
+          provider.toggleSelectMessage(widget.dateTime);
+        },
+        contentPadding: EdgeInsets.zero,
         title: Row(
           children: [
             Text('$formatDateTime ',
@@ -500,9 +554,12 @@ class _MessageCardState extends State<MessageCard> {
                 child: SizedBox.square(
                   dimension: 30,
                   child: ToggleButton(
-                    onChanged: (_) => setState(() {
-                      _isMarkdownView = !_isMarkdownView;
-                    }),
+                    onChanged: (_) {
+                      setState(() {
+                        _isMarkdownView = !_isMarkdownView;
+                      });
+                      prefs!.setBool('isMarkdownView', _isMarkdownView);
+                    },
                     checked: false,
                     child: const Icon(FluentIcons.format_painter, size: 10),
                   ),

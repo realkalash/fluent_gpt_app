@@ -14,7 +14,7 @@ class AddChatButton extends StatelessWidget {
     var navProvider = context.read<NavigationProvider>();
 
     return Tooltip(
-      message: 'Add new chat',
+      message: 'Add new chat (Ctrl + T)',
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(
@@ -38,7 +38,7 @@ class ClearChatButton extends StatelessWidget {
     var chatProvider = context.read<ChatGPTProvider>();
 
     return Tooltip(
-      message: 'Clear conversation',
+      message: 'Clear conversation (Ctrl + R)',
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(

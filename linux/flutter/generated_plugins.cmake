@@ -4,7 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_acrylic
-  hotkey_manager
+  flutter_secure_storage_linux
+  hotkey_manager_linux
   screen_retriever
   system_theme
   system_tray

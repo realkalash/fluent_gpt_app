@@ -42,6 +42,12 @@ class NavigationProvider with ChangeNotifier {
               final provider = context.read<ChatGPTProvider>();
               provider.createNewChatRoom();
               refreshNavItems(provider);
+            }),
+        IconButton(
+            icon: const Icon(FluentIcons.refresh),
+            onPressed: () {
+              final provider = context.read<ChatGPTProvider>();
+              refreshNavItems(provider);
             })
       ],
     )),

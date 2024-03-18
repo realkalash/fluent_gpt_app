@@ -89,16 +89,25 @@ onTrayButtonTap(String item) {
 }
 
 HotKey openWindowHotkey = HotKey(
-  KeyCode.digit1,
-  modifiers: [KeyModifier.control, KeyModifier.shift],
-  // Set hotkey scope (default is HotKeyScope.system)
-  scope: HotKeyScope.system, // Set as inapp-wide hotkey.
+  key: LogicalKeyboardKey.digit1,
+  modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
+  scope: HotKeyScope.system,
+);
+HotKey createNewChat = HotKey(
+  key: LogicalKeyboardKey.keyT,
+  modifiers: [HotKeyModifier.control],
+  scope: HotKeyScope.inapp,
+);
+HotKey resetChat = HotKey(
+  key: LogicalKeyboardKey.keyR,
+  modifiers: [HotKeyModifier.control],
+  scope: HotKeyScope.inapp,
 );
 Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     openWindowHotkey,
     keyDownHandler: (hotKey) async {
-      print('onKeyDown+${hotKey.toJson()}');
+      // print('onKeyDown+${hotKey.toJson()}');
       final isAppVisible = await windowManager.isVisible();
 
       if (isAppVisible) {
@@ -107,6 +116,22 @@ Future<void> initShortcuts(AppWindow appWindow) async {
         appWindow.show();
         promptTextFocusNode.requestFocus();
       }
+    },
+  );
+  await hotKeyManager.register(
+    createNewChat,
+    keyDownHandler: (hotKey) async {
+      onTrayButtonTap('create_new_chat');
+      await Future.delayed(const Duration(milliseconds: 200));
+      promptTextFocusNode.requestFocus();
+    },
+  );
+  await hotKeyManager.register(
+    resetChat,
+    keyDownHandler: (hotKey) async {
+      onTrayButtonTap('reset_chat');
+      await Future.delayed(const Duration(milliseconds: 200));
+      promptTextFocusNode.requestFocus();
     },
   );
 }

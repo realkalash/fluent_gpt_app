@@ -5,16 +5,20 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/onedrive_utils.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
   final TextEditingController messageController = TextEditingController();
+  final OneDriveUtils oneDriveUtils = OneDriveUtils();
 
   Map<String, ChatRoom> chatRooms = {};
   String selectedChatRoomName = 'Default';
@@ -126,6 +130,10 @@ class ChatGPTProvider with ChangeNotifier {
         sendMessage('Translate to English: "${clipboard?.text}"', false);
       } else if (value == 'answer_with_tags') {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, clipboard!.text!);
+      } else if (value == 'create_new_chat') {
+        createNewChatRoom();
+      } else if (value == 'reset_chat') {
+        clearConversation();
       }
     });
   }
@@ -158,15 +166,15 @@ class ChatGPTProvider with ChangeNotifier {
     'webp',
   ];
   Future sendImageInput(
-    String path, {
+    XFile file, {
     String textPrompt = "Whats in this image?",
   }) async {
-    final fileExt = path.split('.').last;
+    final fileExt = file.path.split('.').last;
     if (!listSupportedImageFormats.contains(fileExt)) {
       addMessageSystem('Unsupported file format: $fileExt');
       return;
     }
-    final encodedImage = await encodeImage(path);
+    final encodedImage = await encodeImage(file);
     final request = ChatCompleteText(
       messages: [
         {
@@ -188,9 +196,9 @@ class ChatGPTProvider with ChangeNotifier {
     debugPrint("$response");
   }
 
-  String? pathFileInput;
-  void addFileToInput(String path) {
-    pathFileInput = path;
+  XFile? fileInput;
+  void addFileToInput(XFile file) {
+    fileInput = file;
     notifyListeners();
   }
 
@@ -203,50 +211,32 @@ class ChatGPTProvider with ChangeNotifier {
       includeConversation0 = false;
     }
     final dateTime = DateTime.now().toIso8601String();
-    messages[dateTime] = {
-      'role': 'user',
-      'content': messageContent,
-    };
+    final isImageAttached =
+        fileInput != null && fileInput!.mimeType?.contains('image') == true;
+    if (isImageAttached) {
+      await sendImageMessage(fileInput!, messageContent);
+      isAnswering = false;
+      notifyListeners();
+      listItemsScrollController.animateTo(
+        listItemsScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+      return;
+    } else if (!isImageAttached) {
+      messages[dateTime] = {
+        'role': 'user',
+        'content': messageContent,
+      };
+    }
     isAnswering = true;
     notifyListeners();
 
     late ChatCompleteText request;
-    if (pathFileInput != null) {
-      final fileExt = pathFileInput!.split('.').last;
-      if (listSupportedImageFormats.contains(fileExt)) {
-        final encodedImage = await encodeImage(pathFileInput!);
-        request = ChatCompleteText(
-          messages: [
-            if (selectedChatRoom.commandPrefix != null)
-              {
-                'role': Role.system.name,
-                'content': selectedChatRoom.commandPrefix
-              },
-            if (includeConversation0)
-              for (var message in messages.entries)
-                {
-                  'role': message.value['role'],
-                  'content': message.value['content'],
-                },
-            if (!includeConversation0)
-              {
-                'role': Role.user.name,
-                'content': messageContent,
-              },
-            {
-              "type": "image_url",
-              "image_url": {"url": "data:image/$fileExt;base64,$encodedImage"}
-            }
-          ],
-          maxToken: 300,
-          model: Gpt4VisionPreviewChatModel(),
-          temperature: temp,
-          topP: topP,
-          frequencyPenalty: repeatPenalty,
-          presencePenalty: repeatPenalty,
-        );
-      } else if (!listSupportedImageFormats.contains(fileExt)) {
-        await sendFile(pathFileInput!);
+    if (isImageAttached) {
+      final fileExt = fileInput!.path.split('.').last;
+      if (!listSupportedImageFormats.contains(fileExt)) {
+        await sendFile(fileInput!);
         request = ChatCompleteText(
           messages: [
             if (selectedChatRoom.commandPrefix != null)
@@ -368,7 +358,7 @@ class ChatGPTProvider with ChangeNotifier {
         };
       }
     }
-    pathFileInput = null;
+    fileInput = null;
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
@@ -619,6 +609,19 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void enableSelectMessage(DateTime dateTime) {
+    selectionModeEnabled = true;
+    messages[dateTime.toIso8601String()]!['selected'] = 'true';
+    selectedMessages.add(dateTime.toIso8601String());
+    notifyListeners();
+  }
+
+  void disableSelectMessage(DateTime dateTime) {
+    messages[dateTime.toIso8601String()]!['selected'] = 'false';
+    selectedMessages.remove(dateTime.toIso8601String());
+    notifyListeners();
+  }
+
   void stopAnswering() {
     try {
       cancelToken?.cancel('canceled ');
@@ -640,6 +643,19 @@ class ChatGPTProvider with ChangeNotifier {
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
+    scrollToEnd();
+  }
+
+  void addMessageAssistant(String message) {
+    lastTimeAnswer = DateTime.now().toIso8601String();
+    messages[lastTimeAnswer] = ({
+      'role': Role.assistant.name,
+      'content': message,
+    });
+    calcWordsInAllMessages();
+    notifyListeners();
+    saveToDisk();
+    scrollToEnd();
   }
 
   void setIncludeWholeConversation(bool v) {
@@ -649,15 +665,15 @@ class ChatGPTProvider with ChangeNotifier {
 
   bool isSendingFile = false;
 
-  Future<bool> sendFile(String path) async {
+  Future<bool> sendFile(XFile file) async {
     bool isSuccess = false;
     isSendingFile = true;
     notifyListeners();
     try {
-      final fileName =
-          path.contains('\\') ? path.split('\\').last : path.split('/').last;
-      final uploadFile =
-          UploadFile(file: FileInfo(path, fileName), purpose: 'assistants');
+      final fileName = fileInput!.name;
+
+      final uploadFile = UploadFile(
+          file: FileInfo(fileInput!.path, fileName), purpose: 'assistants');
       final response = await OpenAI.instance.file.uploadFile(uploadFile);
       addMessageSystem('File uploaded: ${response.filename}');
       isSuccess = true;
@@ -689,13 +705,16 @@ class ChatGPTProvider with ChangeNotifier {
 
   Future<void> downloadOpenFile(FileData file) async {
     final info = await openAI.file.retrieveContent(file.id);
-    final PlatformFile platformFile = PlatformFile(
-      name: file.filename,
-      size: info.length,
-      bytes: info,
-    );
-
-    /// TODO: add save
+    if (info is String) {
+      final dirPath =
+          await FilePicker.platform.saveFile(allowedExtensions: ['*']);
+      if (dirPath != null) {
+        final newFile = await FileUtils.saveFile(dirPath, info);
+        if (newFile != null) {
+          addMessageSystem('File downloaded: ${file.filename}');
+        }
+      }
+    }
   }
 
   Future<void> deleteFileFromOpenAi(FileData file) async {
@@ -714,7 +733,78 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   void removeFileFromInput() {
-    pathFileInput = null;
+    fileInput = null;
     notifyListeners();
+  }
+
+  Future<String?> _uploadFileOneDrive(XFile xFile) async {
+    final res = await oneDriveUtils.uploadFile(xFile, context!);
+  }
+
+  Future<void> sendImageMessage(XFile file,
+      [String prompt = "What's in this image?"]) async {
+    isSendingFile = true;
+    var base64Image = await encodeImage(file);
+    messages[lastTimeAnswer] = ({
+      'role': 'user',
+      'content': prompt,
+      'image': base64Image,
+    });
+    notifyListeners();
+    Map<String, String> headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer ${selectedChatRoom.token}"
+    };
+
+    Map<String, dynamic> payload = {
+      "model": "gpt-4-vision-preview",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {"type": "text", "text": prompt},
+            {
+              "type": "image_url",
+              "image_url": {"url": "data:image/jpeg;base64,$base64Image"}
+            }
+          ]
+        }
+      ],
+      "max_tokens": 300,
+    };
+    log('Sending image to chat/completions: $payload');
+
+    final response = await http.post(
+      Uri.parse("https://api.openai.com/v1/chat/completions"),
+      headers: headers,
+      body: jsonEncode(payload),
+    );
+    isSendingFile = false;
+    fileInput = null;
+    notifyListeners();
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final choices = data['choices'] as List?;
+      if (choices != null && choices.isNotEmpty) {
+        final message = choices.last['message'];
+        if (message != null) {
+          final content = message['content'];
+          if (content != null) {
+            addMessageAssistant(content);
+          }
+        }
+      }
+    } else {
+      addMessageSystem('Error while sending image: ${response.body}');
+    }
+  }
+
+  Future<void> scrollToEnd() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    await listItemsScrollController.animateTo(
+      listItemsScrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+    );
   }
 }

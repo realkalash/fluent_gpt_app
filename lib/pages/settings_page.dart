@@ -8,6 +8,7 @@ import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
@@ -207,7 +208,9 @@ class _FilesSectionState extends State<_FilesSection> {
               (index) {
                 final file = gptProvider.filesInOpenAi[index];
                 return Button(
-                  onPressed: () => gptProvider.downloadOpenFile(file),
+                  onPressed: () {
+                    // gptProvider.downloadOpenFile(file);
+                  },
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -321,13 +324,9 @@ class _HotKeySection extends StatefulWidget {
 class _HotKeySectionState extends State<_HotKeySection> {
   bool isChoosingHotkey = false;
 
-  String getKeyCodeString(HotKey hotKey) {
-    final modifiers = hotKey.modifiers?.map((e) => e.keyLabel).join('') ?? '';
-    return '$modifiers${hotKey.keyCode.keyLabel}';
-  }
-
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final appTheme = context.watch<AppTheme>();
 
     /// a button to add a new hotkey
@@ -357,10 +356,10 @@ class _HotKeySectionState extends State<_HotKeySection> {
                   isChoosingHotkey
                       ? HotKeyRecorder(
                           onHotKeyRecorded: (v) async {
-                            print('onHotKeyRecorded: $v');
+                            // print('onHotKeyRecorded: $v');
 
                             /// if escape is pressed, the value will be null
-                            if (v.keyCode == KeyCode.escape) {
+                            if (v.physicalKey == PhysicalKeyboardKey.escape) {
                               setState(() {
                                 isChoosingHotkey = false;
                               });
@@ -616,8 +615,8 @@ class __CacheSectionState extends State<_CacheSection> {
 
                   /// info to show restart the app banner
                   // ignore: use_build_context_synchronously
-                  showSnackbar(
-                      context, const InfoBar(title: Text('Restart the app')));
+                  // showSnackbar(
+                  //     context, const InfoBar(title: Text('Restart the app')));
                 }),
             FutureBuilder(
               future: ShellDriver.calcTempFilesSize(),

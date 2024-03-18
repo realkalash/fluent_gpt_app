@@ -223,9 +223,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
   Widget build(BuildContext context) {
     var navigationProvider = context.watch<NavigationProvider>();
     navigationProvider.context = context;
-
-    final localizations = FluentLocalizations.of(context);
-
     final appTheme = context.watch<AppTheme>();
     // final theme = FluentTheme.of(context);
     if (widget.shellContext != null) {
@@ -237,45 +234,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
       key: navigationProvider.viewKey,
       appBar: NavigationAppBar(
         automaticallyImplyLeading: false,
-        leading: () {
-          final enabled =
-              widget.shellContext != null && Navigator.of(context).canPop();
-
-          final onPressed = enabled
-              ? () {
-                  if (Navigator.of(context).canPop()) {
-                    context.pop();
-                    setState(() {});
-                  }
-                }
-              : null;
-          return NavigationPaneTheme(
-            data: NavigationPaneTheme.of(context).merge(NavigationPaneThemeData(
-              unselectedIconColor: ButtonState.resolveWith((states) {
-                if (states.isDisabled) {
-                  return ButtonThemeData.buttonColor(context, states);
-                }
-                return ButtonThemeData.uncheckedInputColor(
-                  FluentTheme.of(context),
-                  states,
-                ).basedOnLuminance();
-              }),
-            )),
-            child: Builder(
-              builder: (context) => PaneItem(
-                icon: const Center(child: Icon(FluentIcons.back, size: 12.0)),
-                title: Text(localizations.backButtonTooltip),
-                body: const SizedBox.shrink(),
-                enabled: enabled,
-              ).build(
-                context,
-                false,
-                onPressed,
-                displayMode: PaneDisplayMode.compact,
-              ),
-            ),
-          );
-        }(),
         title: () {
           return const DragToMoveArea(
             child: Align(
@@ -339,42 +297,6 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         items: navigationProvider.originalItems,
         autoSuggestBoxReplacement: const Icon(FluentIcons.search),
         footerItems: navigationProvider.footerItems,
-        // autoSuggestBox: Builder(builder: (context) {
-        //   return AutoSuggestBox(
-        //     key: navigationProvider.searchKey,
-        //     focusNode: navigationProvider.searchFocusNode,
-        //     controller: navigationProvider.searchController,
-        //     unfocusedColor: Colors.transparent,
-        //     items: navigationProvider.originalItems
-        //         .whereType<PaneItem>()
-        //         .map((item) {
-        //       assert(item.title is Text);
-        //       final text = (item.title as Text).data!;
-        //       return AutoSuggestBoxItem(
-        //         label: text,
-        //         value: text,
-        //         onSelected: () {
-        //           item.onTap?.call();
-        //           navigationProvider.searchController.clear();
-        //           navigationProvider.searchFocusNode.unfocus();
-        //           final view = NavigationView.of(context);
-        //           if (view.compactOverlayOpen) {
-        //             view.compactOverlayOpen = false;
-        //           } else if (view.minimalPaneOpen) {
-        //             view.minimalPaneOpen = false;
-        //           }
-        //         },
-        //       );
-        //     }).toList(),
-        //     trailingIcon: IgnorePointer(
-        //       child: IconButton(
-        //         onPressed: () {},
-        //         icon: const Icon(FluentIcons.search),
-        //       ),
-        //     ),
-        //     placeholder: 'Search',
-        //   );
-        // }),
       ),
       onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
     );

@@ -10,6 +10,8 @@ class ChatRoom {
   double topP;
   int maxLength;
   double repeatPenalty;
+
+  /// Api key for the chat model
   String token;
   String? orgID;
 
@@ -119,9 +121,9 @@ final allModels = [
   Gpt4ChatModel(),
   GptTurboChatModel(),
   GptTurbo0301ChatModel(),
+  Gpt4VisionPreviewChatModel(),
 ];
 
-/// We need to remove 'sealed' from ChatModel to allow for the new model
-class GPT4TurboModel extends ChatModel {
+class GPT4TurboModel extends ChatModelFromValue {
   GPT4TurboModel() : super(model: 'gpt-4-0125-preview');
 }

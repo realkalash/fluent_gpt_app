@@ -1,6 +1,7 @@
 // import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'dart:async';
 
+import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/chat_gpt_provider.dart';
+import 'prompt_dialogs.dart';
 
 class InputField extends StatefulWidget {
   const InputField({super.key});
@@ -19,7 +21,7 @@ class InputField extends StatefulWidget {
 
 class _InputFieldState extends State<InputField> {
   void onSubmit(String text, ChatGPTProvider chatProvider) {
-    if (text.trim().isEmpty && chatProvider.pathFileInput == null) {
+    if (text.trim().isEmpty && chatProvider.fileInput == null) {
       return;
     }
     chatProvider.sendMessage(text.trim());
@@ -31,7 +33,6 @@ class _InputFieldState extends State<InputField> {
     );
   }
 
-  bool _shiftPressed = false;
   int wordCountInField = 0;
   final FocusNode _focusNode = FocusNode();
 
@@ -50,48 +51,56 @@ class _InputFieldState extends State<InputField> {
     });
   }
 
+  bool _isShiftPressed = false;
   @override
   Widget build(BuildContext context) {
     final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
 
-    return RawKeyboardListener(
+    return KeyboardListener(
       focusNode: _focusNode,
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
-              event.logicalKey == LogicalKeyboardKey.shiftRight) {
-            _shiftPressed = true;
-          } else if (event.logicalKey == LogicalKeyboardKey.enter ||
-              event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-            if (!_shiftPressed) {
-              // Enter pressed without shift, send message
-              // print('Enter pressed');
-              onSubmit(chatProvider.messageController.text, chatProvider);
-            }
+      onKeyEvent: (event) {
+        if (event is KeyRepeatEvent) return;
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+          setState(() {
+            _isShiftPressed = true;
+          });
+        }
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.enter) {
+          if (_isShiftPressed == false) {
+            onSubmit(chatProvider.messageController.text, chatProvider);
           }
-        } else if (event is RawKeyUpEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
-              event.logicalKey == LogicalKeyboardKey.shiftRight) {
-            _shiftPressed = false;
-          }
+          setState(() {
+            _isShiftPressed = false;
+          });
+        }
+        if (event is KeyUpEvent &&
+            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+          setState(() {
+            _isShiftPressed = false;
+          });
         }
       },
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Row(
           children: [
-            if (chatProvider.pathFileInput == null)
+            if (chatProvider.fileInput == null)
               SizedBox.square(
                 dimension: 48,
                 child: IconButton(
                   onPressed: () async {
-                    if (chatProvider.isSendingFile) {
-                      return;
-                    }
+                    /// if we don't have oneDrive api yet, show the dialog
+                    // if (prefs?.getString('oneDriveRedirectURL') == null ||
+                    //     prefs?.getString('oneDriveClientID') == null) {
+                    //   _showOneDriveDialog(context);
+                    //   return;
+                    // }
                     FilePickerResult? result =
                         await FilePicker.platform.pickFiles();
                     if (result != null && result.files.isNotEmpty) {
-                      chatProvider.addFileToInput(result.files.first.path!);
+                      chatProvider.addFileToInput(result.files.first.toXFile());
                     }
                   },
                   icon: chatProvider.isSendingFile
@@ -99,7 +108,7 @@ class _InputFieldState extends State<InputField> {
                       : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
                 ),
               ),
-            if (chatProvider.pathFileInput != null)
+            if (chatProvider.fileInput != null)
               SizedBox.square(
                 dimension: 48,
                 child: Stack(
@@ -112,17 +121,47 @@ class _InputFieldState extends State<InputField> {
                         FilePickerResult? result =
                             await FilePicker.platform.pickFiles();
                         if (result != null && result.files.isNotEmpty) {
-                          chatProvider.addFileToInput(result.files.first.path!);
+                          chatProvider
+                              .addFileToInput(result.files.first.toXFile());
+                          promptTextFocusNode.requestFocus();
                         }
                       },
                       icon: const Icon(
                           ic.FluentIcons.document_number_1_16_regular,
                           size: 24),
                     ),
+                    if (chatProvider.fileInput!.mimeType?.contains('image') ==
+                        true)
+                      Positioned.fill(
+                        bottom: 0,
+                        right: 0,
+                        child: FutureBuilder<Uint8List>(
+                            future: chatProvider.fileInput!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (snapshot.data == null) {
+                                return const SizedBox.shrink();
+                              }
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Image.memory(
+                                  snapshot.data as Uint8List,
+                                  fit: BoxFit.cover,
+                                ),
+                              );
+                            }),
+                      ),
+                    if (chatProvider.isSendingFile)
+                      const Positioned.fill(
+                        child: Center(child: ProgressRing()),
+                      ),
                     Positioned(
                       top: 0,
                       right: 0,
                       child: IconButton(
+                        style: ButtonStyle(
+                          backgroundColor:
+                              ButtonState.all(Colors.black.withOpacity(0.5)),
+                        ),
                         onPressed: () => chatProvider.removeFileFromInput(),
                         icon: Icon(FluentIcons.chrome_close,
                             size: 12, color: Colors.red),
@@ -133,6 +172,8 @@ class _InputFieldState extends State<InputField> {
               ),
             Expanded(
               child: TextBox(
+                autofocus: true,
+                autocorrect: true,
                 focusNode: promptTextFocusNode,
                 prefix: (chatProvider.selectedChatRoom.commandPrefix == null ||
                         chatProvider.selectedChatRoom.commandPrefix == '')
@@ -148,9 +189,15 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
+                textInputAction: TextInputAction.newline,
+                onSubmitted: (value) {
+                  // do nothing
+                },
                 placeholder: 'Type your message here',
               ),
             ),
+            if (_isShiftPressed)
+              const Icon(ic.FluentIcons.arrow_down_12_filled),
             if (wordCountInField != 0)
               Text(
                 '$wordCountInField words',
@@ -176,6 +223,10 @@ class _InputFieldState extends State<InputField> {
         ),
       ),
     );
+  }
+
+  void _showOneDriveDialog(BuildContext context) {
+    OneDriveAccessDialog.show(context);
   }
 }
 
