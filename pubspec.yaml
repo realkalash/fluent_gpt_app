@@ -39,7 +39,6 @@ dependencies:
   background_downloader: ^8.4.0
   cross_file: ^0.3.4+1
   mime_type: ^1.0.0
-  flutter_onedrive: ^1.6.2
 
 dev_dependencies:
   flutter_test:

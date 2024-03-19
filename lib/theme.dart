@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:system_theme/system_theme.dart';
@@ -10,12 +12,13 @@ import 'main.dart';
 enum NavigationIndicators { sticky, end }
 
 class AppTheme extends ChangeNotifier {
-  AppTheme() {
-    _windowEffect = WindowEffect.mica;
-  }
+  AppTheme();
 
   /// Scheen resolution. Selectable by user. Default is null.
   Size? resolution;
+
+  /// Percentage of the window opacity. Default is 5%.
+  double windowEffectOpacity = 0.05;
 
   Future setResolution(Size? resolution, {bool notify = true}) async {
     this.resolution = resolution;
@@ -60,12 +63,15 @@ class AppTheme extends ChangeNotifier {
     windowManager.setAlwaysOnTop(isPinned);
   }
 
-  ThemeMode _mode = ThemeMode.system;
+  /// We should ignore the system theme mode!
+  ThemeMode _mode = ThemeMode.dark;
   ThemeMode get mode => _mode;
   set mode(ThemeMode mode) {
     _mode = mode;
     notifyListeners();
   }
+
+  bool get isDark => mode == ThemeMode.dark;
 
   PaneDisplayMode _displayMode = PaneDisplayMode.auto;
   PaneDisplayMode get displayMode => _displayMode;
@@ -81,19 +87,35 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  WindowEffect _windowEffect = WindowEffect.disabled;
+  WindowEffect _windowEffect = WindowEffect.acrylic;
   WindowEffect get windowEffect => _windowEffect;
 
-  static Color micaColor = Colors.blue.withOpacity(0.05);
+  /// By default is blue with 5% opacity
+  static Color micaColor = Colors.blue.withOpacity(0.7);
 
-  Future<void> setEffect(WindowEffect effect, BuildContext context) async {
+  Color windowEffectColor = micaColor;
+
+  Future<void> setEffect(WindowEffect effect) async {
     await Window.setEffect(
       effect: effect,
-      color: effect == WindowEffect.acrylic ? micaColor : Colors.transparent,
-      dark: FluentTheme.of(context).brightness.isDark,
+      color: windowEffectColor.withOpacity(windowEffectOpacity),
+      dark: isDark,
     );
     _windowEffect = effect;
+    log('Setting window effect to $effect');
     notifyListeners();
+  }
+
+  Future<void> setWindowEffectColor(Color color) async {
+    windowEffectColor = color;
+    log('Setting window effect color to $color');
+    await setEffect(windowEffect);
+  }
+
+  Future<void> setWindowEffectOpacity(double opacity) async {
+    windowEffectOpacity = opacity;
+    log('Setting window effect opacity to $opacity');
+    await setEffect(windowEffect);
   }
 
   TextDirection _textDirection = TextDirection.ltr;

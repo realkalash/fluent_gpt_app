@@ -175,8 +175,10 @@ class _FilesSectionState extends State<_FilesSection> {
   @override
   void initState() {
     super.initState();
-    final provider = context.read<ChatGPTProvider>();
-    provider.retrieveFiles();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      final provider = context.read<ChatGPTProvider>();
+      provider.retrieveFiles();
+    });
   }
 
   @override
@@ -439,6 +441,7 @@ class _ThemeModeSection extends StatelessWidget {
       child: Button(
         onPressed: () {
           appTheme.color = color;
+          appTheme.setWindowEffectColor(color);
         },
         style: ButtonStyle(
           padding: ButtonState.all(EdgeInsets.zero),
@@ -475,27 +478,42 @@ class _ThemeModeSection extends StatelessWidget {
       children: [
         Text('Theme mode', style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        ...List.generate(ThemeMode.values.length, (index) {
-          final mode = ThemeMode.values[index];
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: appTheme.mode == mode,
-              onChanged: (value) {
-                if (value) {
-                  appTheme.mode = mode;
+        Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+          child: RadioButton(
+            checked: appTheme.mode == ThemeMode.light,
+            onChanged: (value) {
+              if (value) {
+                appTheme.mode = ThemeMode.light;
 
-                  if (kIsWindowEffectsSupported) {
-                    // some window effects require on [dark] to look good.
-                    // appTheme.setEffect(WindowEffect.disabled, context);
-                    appTheme.setEffect(appTheme.windowEffect, context);
-                  }
+                if (kIsWindowEffectsSupported) {
+                  // some window effects require on [dark] to look good.
+                  // appTheme.setEffect(WindowEffect.disabled, context);
+                  appTheme.setEffect(appTheme.windowEffect);
                 }
-              },
-              content: Text('$mode'.replaceAll('ThemeMode.', '')),
-            ),
-          );
-        }),
+              }
+            },
+            content: const Text('Light'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+          child: RadioButton(
+            checked: appTheme.mode == ThemeMode.dark,
+            onChanged: (value) {
+              if (value) {
+                appTheme.mode = ThemeMode.dark;
+
+                if (kIsWindowEffectsSupported) {
+                  // some window effects require on [dark] to look good.
+                  // appTheme.setEffect(WindowEffect.disabled, context);
+                  appTheme.setEffect(appTheme.windowEffect);
+                }
+              }
+            },
+            content: const Text('Dark'),
+          ),
+        ),
         biggerSpacer,
         Text(
           'Navigation Pane Display Mode',
@@ -568,7 +586,7 @@ class _ThemeModeSection extends StatelessWidget {
                 checked: appTheme.windowEffect == mode,
                 onChanged: (value) {
                   if (value) {
-                    appTheme.setEffect(mode, context);
+                    appTheme.setEffect(mode);
                   }
                 },
                 content: Text(
@@ -577,8 +595,59 @@ class _ThemeModeSection extends StatelessWidget {
               ),
             );
           }),
+          Text(
+            'Window Transparency Percentage',
+            style: FluentTheme.of(context).typography.subtitle,
+          ),
         ],
       ],
+    );
+  }
+}
+
+class SliderStatefull extends StatefulWidget {
+  const SliderStatefull({
+    super.key,
+    required this.initValue,
+    required this.onChanged,
+    this.label,
+    this.min = 0.0,
+    this.max = 100.0,
+    this.divisions = 100,
+  });
+  final double initValue;
+  final void Function(double) onChanged;
+  final String? label;
+  final double min;
+  final double max;
+  final int divisions;
+
+  @override
+  State<SliderStatefull> createState() => _SliderStatefullState();
+}
+
+class _SliderStatefullState extends State<SliderStatefull> {
+  double _value = 0.0;
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.initValue;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Slider(
+      value: _value,
+      label: '$_value',
+      min: widget.min,
+      max: widget.max,
+      divisions: widget.divisions,
+      onChanged: (value) {
+        setState(() {
+          _value = value;
+        });
+        widget.onChanged.call(value);
+      },
     );
   }
 }

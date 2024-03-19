@@ -8,6 +8,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_gpt_provider.dart';
 import 'prompt_dialogs.dart';
@@ -101,6 +102,8 @@ class _InputFieldState extends State<InputField> {
                         await FilePicker.platform.pickFiles();
                     if (result != null && result.files.isNotEmpty) {
                       chatProvider.addFileToInput(result.files.first.toXFile());
+                      windowManager.focus();
+                      promptTextFocusNode.requestFocus();
                     }
                   },
                   icon: chatProvider.isSendingFile
@@ -123,6 +126,7 @@ class _InputFieldState extends State<InputField> {
                         if (result != null && result.files.isNotEmpty) {
                           chatProvider
                               .addFileToInput(result.files.first.toXFile());
+                          windowManager.focus();
                           promptTextFocusNode.requestFocus();
                         }
                       },

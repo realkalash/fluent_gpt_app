@@ -5,7 +5,6 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/onedrive_utils.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
@@ -18,7 +17,6 @@ import 'package:http/http.dart' as http;
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
   final TextEditingController messageController = TextEditingController();
-  final OneDriveUtils oneDriveUtils = OneDriveUtils();
 
   Map<String, ChatRoom> chatRooms = {};
   String selectedChatRoomName = 'Default';
@@ -737,16 +735,14 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> _uploadFileOneDrive(XFile xFile) async {
-    final res = await oneDriveUtils.uploadFile(xFile, context!);
-  }
-
   Future<void> sendImageMessage(XFile file,
       [String prompt = "What's in this image?"]) async {
     isSendingFile = true;
+
     var base64Image = await encodeImage(file);
     messages[lastTimeAnswer] = ({
       'role': 'user',
+      if (prompt.isEmpty) 'hiddent_content': "What's in this image?",
       'content': prompt,
       'image': base64Image,
     });
@@ -806,5 +802,19 @@ class ChatGPTProvider with ChangeNotifier {
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeOut,
     );
+  }
+
+  void editMessage(Map<String, String> message, String text) {
+    message['content'] = text;
+    notifyListeners();
+    calcWordsInAllMessages();
+    saveToDisk();
+  }
+
+  Future<void> regenerateMessage(Map<String, String> message) async {
+    final content = message['content'];
+    if (content != null) {
+      await sendMessage(content, true);
+    }
   }
 }

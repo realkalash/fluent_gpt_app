@@ -41,7 +41,11 @@ Future<void> initSystemTray() async {
   systemTray.registerSystemTrayEventHandler((eventName) async {
     debugPrint("eventName: $eventName");
     if (eventName == kSystemTrayEventClick) {
-      Platform.isWindows ? appWindow.show() : systemTray.popUpContextMenu();
+      if (Platform.isWindows) {
+        appWindow.show();
+      } else {
+        systemTray.popUpContextMenu();
+      }
     } else if (eventName == kSystemTrayEventRightClick) {
       final clipBoard = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipBoard?.text?.trim().isNotEmpty == true) {
@@ -77,7 +81,11 @@ Future<void> initSystemTray() async {
         ]);
         await systemTray.setContextMenu(menu);
       }
-      Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
+      if (Platform.isWindows) {
+        systemTray.popUpContextMenu();
+      } else {
+        appWindow.show();
+      }
     }
   });
   await initShortcuts(appWindow);

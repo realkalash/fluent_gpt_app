@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -202,18 +203,7 @@ class PageHeaderText extends StatelessWidget {
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const Text('Include conversation',
-                    style: TextStyle(fontSize: 12)),
-                ToggleSwitch(
-                    checked: chatProvider.includeConversationGlobal,
-                    onChanged: (v) {
-                      chatProvider.setIncludeWholeConversation(v);
-                    }),
-              ],
-            ),
+            const IncludeConversationSwitcher(),
             if (chatProvider.selectionModeEnabled) ...[
               IconButton(
                 icon: Icon(ic.FluentIcons.delete_16_filled, color: Colors.red),
@@ -230,6 +220,26 @@ class PageHeaderText extends StatelessWidget {
             ]
           ],
         ),
+      ],
+    );
+  }
+}
+
+class IncludeConversationSwitcher extends StatelessWidget {
+  const IncludeConversationSwitcher({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const Text('Include conversation', style: TextStyle(fontSize: 12)),
+        ToggleSwitch(
+            checked: chatProvider.includeConversationGlobal,
+            onChanged: (v) {
+              chatProvider.setIncludeWholeConversation(v);
+            }),
       ],
     );
   }
@@ -503,35 +513,53 @@ class _MessageCardState extends State<MessageCard> {
                   final provider = context.read<ChatGPTProvider>();
                   return ContentDialog(
                     title: const Text('Message options'),
+                    content: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Button(
+                          onPressed: () {
+                            Navigator.of(context).maybePop();
+                            provider.toggleSelectMessage(widget.dateTime);
+                          },
+                          child: const Text('Select'),
+                        ),
+                        const SizedBox(height: 8),
+                        Button(
+                          onPressed: () {
+                            Navigator.of(context).maybePop();
+                            _showRawMessageDialog(context, widget.message);
+                          },
+                          child: const Text('Show raw message'),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Divider(),
+                        ),
+                        Button(
+                            onPressed: () {
+                              Navigator.of(context).maybePop();
+                              if (provider.selectionModeEnabled) {
+                                provider.deleteSelectedMessages();
+                              } else {
+                                provider.deleteMessage(widget.dateTime);
+                              }
+                            },
+                            style: ButtonStyle(
+                                backgroundColor: ButtonState.all(Colors.red)),
+                            child: provider.selectionModeEnabled
+                                ? Text(
+                                    'Delete ${provider.selectedMessages.length}')
+                                : const Text('Delete')),
+                      ],
+                    ),
                     actions: [
-                      Button(
-                        onPressed: () {
-                          Navigator.of(context).maybePop();
-                          provider.toggleSelectMessage(widget.dateTime);
-                        },
-                        child: const Text('Select'),
-                      ),
                       Button(
                         onPressed: () {
                           Navigator.of(context).maybePop();
                         },
                         child: const Text('Dismiss'),
                       ),
-                      Button(
-                          onPressed: () {
-                            Navigator.of(context).maybePop();
-                            if (provider.selectionModeEnabled) {
-                              provider.deleteSelectedMessages();
-                            } else {
-                              provider.deleteMessage(widget.dateTime);
-                            }
-                          },
-                          style: ButtonStyle(
-                              backgroundColor: ButtonState.all(Colors.red)),
-                          child: provider.selectionModeEnabled
-                              ? Text(
-                                  'Delete ${provider.selectedMessages.length}')
-                              : const Text('Delete')),
                     ],
                   );
                 });
@@ -546,8 +574,8 @@ class _MessageCardState extends State<MessageCard> {
         Positioned(
           right: 16,
           top: 8,
-          child: Wrap(
-            spacing: 4,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Tooltip(
                 message: _isMarkdownView ? 'Show text' : 'Show markdown',
@@ -562,6 +590,19 @@ class _MessageCardState extends State<MessageCard> {
                     },
                     checked: false,
                     child: const Icon(FluentIcons.format_painter, size: 10),
+                  ),
+                ),
+              ),
+              Tooltip(
+                message: 'Edit message',
+                child: SizedBox.square(
+                  dimension: 30,
+                  child: ToggleButton(
+                    onChanged: (_) {
+                      _showEditMessageDialog(context, widget.message);
+                    },
+                    checked: false,
+                    child: const Icon(FluentIcons.edit, size: 10),
                   ),
                 ),
               ),
@@ -638,6 +679,88 @@ class _MessageCardState extends State<MessageCard> {
     final code = getPythonCodeFromMarkdown(string);
     log(code);
     Clipboard.setData(ClipboardData(text: code));
+  }
+
+  void _showRawMessageDialog(
+      BuildContext context, Map<String, String> message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => ContentDialog(
+        title: const Text('Raw message'),
+        content: SelectableText.rich(
+          TextSpan(
+            children: [
+              for (final entry in message.entries) ...[
+                TextSpan(
+                  text: '"${entry.key}": ',
+                  style: TextStyle(color: Colors.blue),
+                ),
+                TextSpan(
+                  text: '"${entry.value}",\n',
+                  style: TextStyle(color: Colors.green),
+                ),
+              ],
+            ],
+          ),
+          style: FluentTheme.of(context).typography.body,
+        ),
+        actions: [
+          Button(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditMessageDialog(
+      BuildContext context, Map<String, String> message) {
+    final contentController = TextEditingController(text: message['content']);
+    showDialog(
+      context: context,
+      builder: (ctx) => ContentDialog(
+        title: const Text('Edit message'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const IncludeConversationSwitcher(),
+            const SizedBox(height: 8),
+            TextBox(
+              controller: contentController,
+              minLines: 5,
+              maxLines: 10,
+            ),
+          ],
+        ),
+        actions: [
+          Button(
+            onPressed: () {
+              final provider = context.read<ChatGPTProvider>();
+              provider.editMessage(message, contentController.text);
+              provider.regenerateMessage(message);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save & regenerate'),
+          ),
+          Button(
+            onPressed: () {
+              final provider = context.read<ChatGPTProvider>();
+              provider.editMessage(message, contentController.text);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Save'),
+          ),
+          Button(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

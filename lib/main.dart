@@ -42,10 +42,12 @@ void main(List<String> args) async {
   await flutter_acrylic.Window.hideWindowControls();
   await WindowManager.instance.ensureInitialized();
   windowManager.waitUntilReadyToShow().then((_) async {
-    await windowManager.setTitleBarStyle(
-      TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-    );
+    // causes breaking of acrylic and mica effects
+    // windowManager.setTitleBarStyle(
+    //   TitleBarStyle.hidden,
+    //   windowButtonVisibility: false,
+    // );
+    await windowManager.setTitle('');
     await windowManager.setMinimumSize(const Size(500, 600));
     await windowManager.show();
     await windowManager
@@ -82,10 +84,7 @@ class _MyAppState extends State<MyApp> {
         await windowManager.setAlignment(Alignment.centerRight, animate: true);
       }
       if (mounted) {
-        await flutter_acrylic.Window.setEffect(
-          effect: flutter_acrylic.WindowEffect.mica,
-          color: AppTheme.micaColor,
-        );
+        await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
       }
     });
   }
@@ -101,7 +100,8 @@ class _MyAppState extends State<MyApp> {
           builder: (ctx, child) {
             final appTheme = ctx.watch<AppTheme>();
             return FluentApp(
-              title: 'appTitle',
+              title: '',
+              onGenerateTitle: (context) => 'ChatGPT',
               themeMode: appTheme.mode,
               debugShowCheckedModeBanner: false,
               home: const MyHomePage(shellContext: null),
@@ -230,18 +230,11 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         setState(() {});
       }
     }
+    bool isDark = appTheme.windowEffect == flutter_acrylic.WindowEffect.mica;
     return NavigationView(
       key: navigationProvider.viewKey,
       appBar: NavigationAppBar(
         automaticallyImplyLeading: false,
-        title: () {
-          return const DragToMoveArea(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              // child: Text('appTitle'),
-            ),
-          );
-        }(),
         actions: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -253,12 +246,12 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
               child: Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: ToggleButton(
-                  checked: FluentTheme.of(context).brightness.isDark,
+                  checked: isDark,
                   onChanged: (v) {
                     if (v) {
-                      appTheme.mode = ThemeMode.dark;
+                      appTheme.setEffect(flutter_acrylic.WindowEffect.mica);
                     } else {
-                      appTheme.mode = ThemeMode.light;
+                      appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
                     }
                   },
                   child: const Icon(FluentIcons.sunny),
