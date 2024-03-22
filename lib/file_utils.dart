@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:mime_type/mime_type.dart';
+import 'package:path_provider/path_provider.dart';
 
 Future<String> encodeImage(XFile file) async {
   final Uint8List imageBytes = await file.readAsBytes();
@@ -31,6 +33,36 @@ extension XFileExtension on PlatformFile {
       path!,
       name: name,
       mimeType: mimeType,
+    );
+  }
+}
+
+extension XFileUint8ListExtension on Uint8List {
+  XFile toXFile() {
+    final bytes = this;
+    final randomNumber = DateTime.now().millisecondsSinceEpoch;
+    return XFile.fromData(
+      bytes,
+      length: lengthInBytes,
+      mimeType: 'image/png',
+      name: '$randomNumber.png',
+    );
+  }
+
+  Future<XFile> toPNG() async {
+    final bytes = this;
+    final randomNumber = DateTime.now().millisecondsSinceEpoch;
+
+    // copy from decodeImageFromList of package:flutter/painting.dart
+    final codec = await instantiateImageCodec(bytes);
+    final frameInfo = await codec.getNextFrame();
+    final newImageByte =
+        await frameInfo.image.toByteData(format: ImageByteFormat.png);
+    return XFile.fromData(
+      newImageByte!.buffer.asUint8List(),
+      length: newImageByte.lengthInBytes,
+      mimeType: 'image/png',
+      name: '$randomNumber.png',
     );
   }
 }

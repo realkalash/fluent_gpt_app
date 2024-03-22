@@ -9,6 +9,7 @@ import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_builder.dart';
+import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -423,34 +424,37 @@ class _MessageCardState extends State<MessageCard> {
           children: [
             SelectableText('${widget.message['content']}',
                 style: FluentTheme.of(context).typography.body),
-            if (widget.message['image_url'] != null)
-              Image.network(widget.message['image_url']!),
             if (widget.message['image'] != null)
-              Align(
-                alignment: Alignment.center,
-                child: Container(
-                  width: 400,
-                  height: 400,
-                  margin: const EdgeInsets.all(8.0),
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.4),
-                          blurRadius: 10,
-                          spreadRadius: 5,
-                        )
-                      ]),
-                  child: Image.memory(
-                    key: ValueKey(widget.message['content']),
-                    decodeImage(widget.message['image']!),
-                    fit: BoxFit.cover,
-                    cacheHeight: 400,
-                    cacheWidth: 400,
+              GestureDetector(
+                onTap: () {
+                  _showImageDialog(context, widget.message);
+                },
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Container(
                     width: 400,
                     height: 400,
-                    filterQuality: FilterQuality.medium,
+                    margin: const EdgeInsets.all(8.0),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.4),
+                            blurRadius: 10,
+                            spreadRadius: 5,
+                          )
+                        ]),
+                    child: Image.memory(
+                      decodeImage(widget.message['image']!),
+                      fit: BoxFit.cover,
+                      cacheHeight: 400,
+                      cacheWidth: 400,
+                      width: 400,
+                      height: 400,
+                      filterQuality: FilterQuality.medium,
+                      gaplessPlayback: true,
+                    ),
                   ),
                 ),
               ),
@@ -761,6 +765,15 @@ class _MessageCardState extends State<MessageCard> {
         ],
       ),
     );
+  }
+
+  void _showImageDialog(BuildContext context, Map<String, String> message) {
+    final image = decodeImage(message['image']!);
+    final provider = Image.memory(
+      image,
+      filterQuality: FilterQuality.high,
+    ).image;
+    showImageViewer(context, provider);
   }
 }
 

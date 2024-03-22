@@ -1,8 +1,10 @@
 // import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'dart:async';
 
+import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -57,70 +59,70 @@ class _InputFieldState extends State<InputField> {
   Widget build(BuildContext context) {
     final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
 
-    return KeyboardListener(
-      focusNode: _focusNode,
-      onKeyEvent: (event) {
-        if (event is KeyRepeatEvent) return;
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-          setState(() {
-            _isShiftPressed = true;
-          });
-        }
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.enter) {
-          if (_isShiftPressed == false) {
-            onSubmit(chatProvider.messageController.text, chatProvider);
-          }
-          setState(() {
-            _isShiftPressed = false;
-          });
-        }
-        if (event is KeyUpEvent &&
-            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-          setState(() {
-            _isShiftPressed = false;
-          });
-        }
+    return Actions(
+      actions: {
+        PasteIntent: pasteAction,
       },
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            if (chatProvider.fileInput == null)
-              SizedBox.square(
-                dimension: 48,
-                child: IconButton(
-                  onPressed: () async {
-                    /// if we don't have oneDrive api yet, show the dialog
-                    // if (prefs?.getString('oneDriveRedirectURL') == null ||
-                    //     prefs?.getString('oneDriveClientID') == null) {
-                    //   _showOneDriveDialog(context);
-                    //   return;
-                    // }
-                    FilePickerResult? result =
-                        await FilePicker.platform.pickFiles();
-                    if (result != null && result.files.isNotEmpty) {
-                      chatProvider.addFileToInput(result.files.first.toXFile());
-                      windowManager.focus();
-                      promptTextFocusNode.requestFocus();
-                    }
-                  },
-                  icon: chatProvider.isSendingFile
-                      ? const ProgressRing()
-                      : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
-                ),
-              ),
-            if (chatProvider.fileInput != null)
-              SizedBox.square(
-                dimension: 48,
-                child: Stack(
-                  children: [
-                    IconButton(
+      child: Shortcuts(
+        shortcuts: <LogicalKeySet, Intent>{
+          /// CTRL + V should paste image or text from clipboard
+          LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.control):
+              PasteIntent(
+            onPasteText: (text) {
+              chatProvider.messageController.text =
+                  chatProvider.messageController.text + text;
+              windowManager.focus();
+              promptTextFocusNode.requestFocus();
+            },
+            onPasteImage: (image) async {
+              final convertedPngImage = await image.toPNG();
+              chatProvider.addFileToInput(convertedPngImage);
+              windowManager.focus();
+              promptTextFocusNode.requestFocus();
+            },
+          ),
+        },
+        child: KeyboardListener(
+          focusNode: _focusNode,
+          onKeyEvent: (event) {
+            if (event is KeyRepeatEvent) return;
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+              setState(() {
+                _isShiftPressed = true;
+              });
+            }
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              if (_isShiftPressed == false) {
+                onSubmit(chatProvider.messageController.text, chatProvider);
+              }
+              setState(() {
+                _isShiftPressed = false;
+              });
+            }
+            if (event is KeyUpEvent &&
+                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+              setState(() {
+                _isShiftPressed = false;
+              });
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                if (chatProvider.fileInput == null)
+                  SizedBox.square(
+                    dimension: 48,
+                    child: IconButton(
                       onPressed: () async {
-                        if (chatProvider.isSendingFile) {
-                          return;
-                        }
+                        /// if we don't have oneDrive api yet, show the dialog
+                        // if (prefs?.getString('oneDriveRedirectURL') == null ||
+                        //     prefs?.getString('oneDriveClientID') == null) {
+                        //   _showOneDriveDialog(context);
+                        //   return;
+                        // }
                         FilePickerResult? result =
                             await FilePicker.platform.pickFiles();
                         if (result != null && result.files.isNotEmpty) {
@@ -130,100 +132,130 @@ class _InputFieldState extends State<InputField> {
                           promptTextFocusNode.requestFocus();
                         }
                       },
-                      icon: const Icon(
-                          ic.FluentIcons.document_number_1_16_regular,
-                          size: 24),
+                      icon: chatProvider.isSendingFile
+                          ? const ProgressRing()
+                          : const Icon(ic.FluentIcons.attach_24_filled,
+                              size: 24),
                     ),
-                    if (chatProvider.fileInput!.mimeType?.contains('image') ==
-                        true)
-                      Positioned.fill(
-                        bottom: 0,
-                        right: 0,
-                        child: FutureBuilder<Uint8List>(
-                            future: chatProvider.fileInput!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (snapshot.data == null) {
-                                return const SizedBox.shrink();
-                              }
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Image.memory(
-                                  snapshot.data as Uint8List,
-                                  fit: BoxFit.cover,
-                                ),
-                              );
-                            }),
-                      ),
-                    if (chatProvider.isSendingFile)
-                      const Positioned.fill(
-                        child: Center(child: ProgressRing()),
-                      ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: IconButton(
-                        style: ButtonStyle(
-                          backgroundColor:
-                              ButtonState.all(Colors.black.withOpacity(0.5)),
+                  ),
+                if (chatProvider.fileInput != null)
+                  SizedBox.square(
+                    dimension: 48,
+                    child: Stack(
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            if (chatProvider.isSendingFile) {
+                              return;
+                            }
+                            FilePickerResult? result =
+                                await FilePicker.platform.pickFiles();
+                            if (result != null && result.files.isNotEmpty) {
+                              chatProvider
+                                  .addFileToInput(result.files.first.toXFile());
+                              windowManager.focus();
+                              promptTextFocusNode.requestFocus();
+                            }
+                          },
+                          icon: const Icon(
+                              ic.FluentIcons.document_number_1_16_regular,
+                              size: 24),
                         ),
-                        onPressed: () => chatProvider.removeFileFromInput(),
-                        icon: Icon(FluentIcons.chrome_close,
-                            size: 12, color: Colors.red),
-                      ),
+                        if (chatProvider.fileInput!.mimeType
+                                ?.contains('image') ==
+                            true)
+                          Positioned.fill(
+                            bottom: 0,
+                            right: 0,
+                            child: FutureBuilder<Uint8List>(
+                                future: chatProvider.fileInput!.readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.data == null) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.memory(
+                                      snapshot.data as Uint8List,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  );
+                                }),
+                          ),
+                        if (chatProvider.isSendingFile)
+                          const Positioned.fill(
+                            child: Center(child: ProgressRing()),
+                          ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: IconButton(
+                            style: ButtonStyle(
+                              backgroundColor: ButtonState.all(
+                                  Colors.black.withOpacity(0.5)),
+                            ),
+                            onPressed: () => chatProvider.removeFileFromInput(),
+                            icon: Icon(FluentIcons.chrome_close,
+                                size: 12, color: Colors.red),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                Expanded(
+                  child: TextBox(
+                    autofocus: true,
+                    autocorrect: true,
+                    focusNode: promptTextFocusNode,
+                    prefix: (chatProvider.selectedChatRoom.commandPrefix ==
+                                null ||
+                            chatProvider.selectedChatRoom.commandPrefix == '')
+                        ? null
+                        : Tooltip(
+                            message:
+                                chatProvider.selectedChatRoom.commandPrefix,
+                            child: const Card(
+                                margin: EdgeInsets.all(4),
+                                padding: EdgeInsets.all(4),
+                                child: Text('SMART')),
+                          ),
+                    prefixMode: OverlayVisibilityMode.always,
+                    controller: chatProvider.messageController,
+                    minLines: 2,
+                    maxLines: 30,
+                    textInputAction: TextInputAction.newline,
+                    onSubmitted: (value) {
+                      // do nothing
+                    },
+                    placeholder: 'Type your message here',
+                  ),
                 ),
-              ),
-            Expanded(
-              child: TextBox(
-                autofocus: true,
-                autocorrect: true,
-                focusNode: promptTextFocusNode,
-                prefix: (chatProvider.selectedChatRoom.commandPrefix == null ||
-                        chatProvider.selectedChatRoom.commandPrefix == '')
-                    ? null
-                    : Tooltip(
-                        message: chatProvider.selectedChatRoom.commandPrefix,
-                        child: const Card(
-                            margin: EdgeInsets.all(4),
-                            padding: EdgeInsets.all(4),
-                            child: Text('SMART')),
-                      ),
-                prefixMode: OverlayVisibilityMode.always,
-                controller: chatProvider.messageController,
-                minLines: 2,
-                maxLines: 30,
-                textInputAction: TextInputAction.newline,
-                onSubmitted: (value) {
-                  // do nothing
-                },
-                placeholder: 'Type your message here',
-              ),
+                if (_isShiftPressed)
+                  const Icon(ic.FluentIcons.arrow_down_12_filled),
+                if (wordCountInField != 0)
+                  Text(
+                    '$wordCountInField words',
+                    style: FluentTheme.of(context).typography.caption,
+                  ),
+                if (chatProvider.isAnswering)
+                  IconButton(
+                    icon: const Icon(ic.FluentIcons.stop_16_filled),
+                    onPressed: () {
+                      chatProvider.stopAnswering();
+                    },
+                  )
+                else
+                  SizedBox.square(
+                    dimension: 48,
+                    child: IconButton(
+                      onPressed: () => onSubmit(
+                          chatProvider.messageController.text, chatProvider),
+                      icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
+                    ),
+                  ),
+              ],
             ),
-            if (_isShiftPressed)
-              const Icon(ic.FluentIcons.arrow_down_12_filled),
-            if (wordCountInField != 0)
-              Text(
-                '$wordCountInField words',
-                style: FluentTheme.of(context).typography.caption,
-              ),
-            if (chatProvider.isAnswering)
-              IconButton(
-                icon: const Icon(ic.FluentIcons.stop_16_filled),
-                onPressed: () {
-                  chatProvider.stopAnswering();
-                },
-              )
-            else
-              SizedBox.square(
-                dimension: 48,
-                child: IconButton(
-                  onPressed: () => onSubmit(
-                      chatProvider.messageController.text, chatProvider),
-                  icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );
@@ -346,11 +378,8 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (textFromClipboard.trim().isEmpty) {
-      return const SizedBox.shrink();
-    }
-
     final chatProvider = context.read<ChatGPTProvider>();
+    final txtController = chatProvider.messageController;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -362,24 +391,25 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
           spacing: 4,
           runSpacing: 4,
           children: [
-            Tooltip(
-              message: 'Paste:\n$textFromClipboard',
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 200),
-                child: Button(
-                  style: ButtonStyle(
-                      backgroundColor: ButtonState.all(Colors.blue)),
-                  onPressed: () {
-                    chatProvider.sendMessage(textFromClipboard);
-                  },
-                  child: Text(
-                    textFromClipboard.replaceAll('\n', '').trim(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            if (textFromClipboard.trim().isNotEmpty)
+              Tooltip(
+                message: 'Paste:\n$textFromClipboard',
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 200),
+                  child: Button(
+                    style: ButtonStyle(
+                        backgroundColor: ButtonState.all(Colors.blue)),
+                    onPressed: () {
+                      chatProvider.sendMessage(textFromClipboard);
+                    },
+                    child: Text(
+                      textFromClipboard.replaceAll('\n', '').trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),
-            ),
             Button(
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
@@ -389,7 +419,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   ],
                 ),
                 onPressed: () {
-                  chatProvider.sendMessage('Explain: "$textFromClipboard"');
+                  chatProvider.sendMessage('Explain: "${txtController.text}"');
                 }),
             Button(
                 child: const Row(
@@ -400,25 +430,25 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   ],
                 ),
                 onPressed: () {
-                  chatProvider.sendCheckGrammar(textFromClipboard.trim());
+                  chatProvider.sendCheckGrammar(txtController.text);
                 }),
             Button(
                 child: const Text('Translate to English'),
                 onPressed: () {
                   chatProvider.sendMessage(
-                      'Translate to English: "$textFromClipboard"');
+                      'Translate to English: "${txtController.text}"');
                 }),
             Button(
                 child: const Text('Translate to Rus'),
                 onPressed: () {
                   chatProvider
-                      .sendMessage('Translate to Rus: "$textFromClipboard"');
+                      .sendMessage('Translate to Rus: "${txtController.text}"');
                 }),
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () {
                   HotShurtcutsWidget.showAnswerWithTagsDialog(
-                      context, textFromClipboard);
+                      context, txtController.text);
                 }),
           ],
         ),
