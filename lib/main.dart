@@ -7,8 +7,8 @@ import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/add_chat_button.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
-import 'package:go_router/go_router.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:protocol_handler/protocol_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
@@ -16,11 +16,10 @@ import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
-
 import 'navigation_provider.dart';
 import 'providers/chat_gpt_provider.dart';
 
-final openAI = OpenAI.instance.build(
+var openAI = OpenAI.instance.build(
   token: 'empty',
   baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 30)),
   enableLog: true,
@@ -28,16 +27,27 @@ final openAI = OpenAI.instance.build(
 
 SharedPreferences? prefs;
 
+void resetOpenAiUrl({String? url, required String token}) {
+  if (url != null) {}
+  openAI = OpenAI.instance.build(
+    token: token,
+    baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 30)),
+    enableLog: true,
+    apiUrl: url ?? 'https://api.openai.com/v1/',
+  );
+}
+
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await protocolHandler.register('fluentgpt');
   SystemTheme.accentColor.load();
   await WindowsSingleInstance.ensureSingleInstance(
-      args, "chatgpt_windows_flutter_app", onSecondWindow: (args) {
+      args, "chatgpt_windows_flutter_app", onSecondWindow: (secondWindowArgs) {
     AppWindow().show();
+
     log('onSecondWindow. args: $args');
   });
   prefs = await SharedPreferences.getInstance();
-
   await flutter_acrylic.Window.initialize();
   await flutter_acrylic.Window.hideWindowControls();
   await WindowManager.instance.ensureInitialized();
@@ -47,7 +57,7 @@ void main(List<String> args) async {
     //   TitleBarStyle.hidden,
     //   windowButtonVisibility: false,
     // );
-    await windowManager.setTitle('');
+    // await windowManager.setTitle('chatgpt_windows_flutter_app');
     await windowManager.setMinimumSize(const Size(500, 600));
     await windowManager.show();
     await windowManager
@@ -69,10 +79,11 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with ProtocolListener {
   @override
   void initState() {
     super.initState();
+    protocolHandler.addListener(this);
     _appTheme.init();
     initSystemTray();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
@@ -87,6 +98,19 @@ class _MyAppState extends State<MyApp> {
         await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    protocolHandler.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onProtocolUrlReceived(String url) {
+    super.onProtocolUrlReceived(url);
+    log('Url received: $url');
+    trayButtonStream.add(url);
   }
 
   @override

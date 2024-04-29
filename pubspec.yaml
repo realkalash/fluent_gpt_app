@@ -17,9 +17,6 @@ dependencies:
   url_launcher: ^6.2.1
   window_manager: ^0.3.7
   chat_gpt_sdk: ^3.0.7
-  # chat_gpt_sdk:
-  #   git:
-  #     url: https://github.com/redevrx/chat_gpt_sdk.git
   shared_preferences: ^2.2.2
   intl: ^0.18.1
   chat_gpt_flutter: ^1.0.15
@@ -42,6 +39,8 @@ dependencies:
   pasteboard: ^0.2.0
   easy_image_viewer: ^1.4.1
   path_provider: ^2.1.2
+  protocol_handler: ^0.2.0
+  
 
 dev_dependencies:
   flutter_test:

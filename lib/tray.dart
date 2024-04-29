@@ -8,7 +8,8 @@ import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:rxdart/rxdart.dart';
 
-/// paste, grammar, explain, to_rus, to_eng
+/// Can handle direct commands as [paste, grammar, explain, to_rus, to_eng] (Value from clipboard will be used as text)
+/// or onProtocol url link as myApp://command?text=Hello%20World
 final trayButtonStream = BehaviorSubject<String?>();
 
 Future<void> initSystemTray() async {

@@ -127,3 +127,8 @@ final allModels = [
 class GPT4TurboModel extends ChatModelFromValue {
   GPT4TurboModel() : super(model: 'gpt-4-0125-preview');
 }
+
+class LocalChatModel extends ChatModelFromValue {
+  LocalChatModel() : super(model: 'local');
+  final url = 'http://localhost:1234/v1/';
+}

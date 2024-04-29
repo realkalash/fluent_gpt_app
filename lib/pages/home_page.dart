@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -12,6 +11,7 @@ import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_bu
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -54,6 +54,7 @@ class ModelChooserCards extends StatelessWidget {
     bool isGPT4_125 = selectedModel == 'gpt-4-0125-preview';
     bool isGPT4 = selectedModel == 'gpt-4';
     bool isGPT3_5 = selectedModel == 'gpt-3.5-turbo';
+    bool isLocal = selectedModel == 'local';
     return SizedBox(
       width: 400,
       height: 50,
@@ -90,6 +91,15 @@ class ModelChooserCards extends StatelessWidget {
                       applyOpacityIfSelected(isGPT3_5, Colors.green),
                   child: const Text('GPT-3.5',
                       style: textStyle, textAlign: TextAlign.center)),
+            ),
+          ),
+          GestureDetector(
+            onTap: () =>
+                provider.selectModelForChat(currentChat, LocalChatModel()),
+            child: Card(
+              backgroundColor: applyOpacityIfSelected(isLocal, Colors.purple),
+              child: const Text('Local',
+                  style: textStyle, textAlign: TextAlign.center),
             ),
           ),
         ],

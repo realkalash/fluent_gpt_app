@@ -111,26 +111,36 @@ class ChatGPTProvider with ChangeNotifier {
 
   void listenTray() {
     trayButtonStream.listen((value) async {
+      var command = '';
+      var text = '';
+      if (value?.contains('fluentgpt:///') == true) {
+        final uri = Uri.parse(value!);
+        command = uri.queryParameters['command'] ?? '';
+        text = uri.queryParameters['text'] ?? '';
+      } else {
+        final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+        text = clipboard?.text ?? '';
+      }
+
       /// wait for the app to appear
       await Future.delayed(const Duration(milliseconds: 150));
-      final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
-      if (value == 'paste') {
-        if (clipboard?.text?.trim().isNotEmpty == true) {
-          sendMessage(clipboard!.text!);
+      if (command == 'paste') {
+        if (text.trim().isNotEmpty == true) {
+          sendMessage(text);
         }
-      } else if (value == 'grammar') {
-        sendCheckGrammar(clipboard!.text!.trim());
-      } else if (value == 'explain') {
-        sendMessage('Explain: "${clipboard?.text}"', false);
-      } else if (value == 'to_rus') {
-        sendMessage('Translate to Rus: "${clipboard?.text}"', false);
-      } else if (value == 'to_eng') {
-        sendMessage('Translate to English: "${clipboard?.text}"', false);
-      } else if (value == 'answer_with_tags') {
-        HotShurtcutsWidget.showAnswerWithTagsDialog(context!, clipboard!.text!);
-      } else if (value == 'create_new_chat') {
+      } else if (command == 'grammar') {
+        sendCheckGrammar(text.trim());
+      } else if (command == 'explain') {
+        sendMessage('Explain: "$text"', false);
+      } else if (command == 'to_rus') {
+        sendMessage('Translate to Rus: "$text"', false);
+      } else if (command == 'to_eng') {
+        sendMessage('Translate to English: "$text"', false);
+      } else if (command == 'answer_with_tags') {
+        HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
+      } else if (command == 'create_new_chat') {
         createNewChatRoom();
-      } else if (value == 'reset_chat') {
+      } else if (command == 'reset_chat') {
         clearConversation();
       }
     });
@@ -181,7 +191,7 @@ class ChatGPTProvider with ChangeNotifier {
             {"type": "text", "text": textPrompt},
             {
               "type": "image_url",
-              "image_url": {"url": "data:image/$fileExt;base64,${encodedImage}"}
+              "image_url": {"url": "data:image/$fileExt;base64,$encodedImage"}
             }
           ]
         }
@@ -342,6 +352,9 @@ class ChatGPTProvider with ChangeNotifier {
     } catch (e) {
       isAnswering = false;
       if (e is OpenAIServerError) {
+        if (e.code == 500) {
+          return;
+        }
         lastTimeAnswer = DateTime.now().toIso8601String();
         messages[lastTimeAnswer] = {
           'role': Role.assistant.name,
@@ -454,6 +467,12 @@ class ChatGPTProvider with ChangeNotifier {
     chatRooms[chatRoomName]!.model = model;
     notifyListeners();
     saveToDisk();
+    if (model is LocalChatModel) {
+      prefs?.setString('llmUrl', model.url);
+      resetOpenAiUrl(url: model.url, token: selectedChatRoom.token);
+    } else {
+      resetOpenAiUrl(token: selectedChatRoom.token);
+    }
   }
 
   void createNewChatRoom() {
@@ -719,7 +738,7 @@ class ChatGPTProvider with ChangeNotifier {
     isRetrievingFiles = true;
     notifyListeners();
     try {
-      final result = await OpenAI.instance.file.delete(file.id);
+      await OpenAI.instance.file.delete(file.id);
       filesInOpenAi.removeWhere((element) => element.id == file.id);
       notifyListeners();
     } catch (e) {

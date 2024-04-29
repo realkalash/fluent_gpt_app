@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_acrylic
   hotkey_manager_windows
   pasteboard
+  protocol_handler_windows
   screen_retriever
   system_theme
   system_tray
