@@ -46,8 +46,25 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  msix: ^3.16.7
 
 flutter:
   assets:
     - assets/
   uses-material-design: true
+
+msix_config:
+  display_name: Fluent GPT
+  publisher_display_name: Realkalash
+  msix_version: 0.8.0.0
+  logo_path: C:\Users\realk\repos\pet\chatgpt_windows_flutter_app\assets\app_icon.png
+  capabilities: internetClient, microphone
+  languages: en-us
+  protocol_activation: fluentgpt
+  app_installer:
+    publish_folder_path: msi_flutter_builds
+    hours_between_update_checks: 0
+    automatic_background_task: false
+    update_blocks_activation: true
+    show_prompt: true
+    force_update_from_any_version: false
