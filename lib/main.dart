@@ -46,7 +46,7 @@ Future<void> initWindow() async {
   //   TitleBarStyle.hidden,
   //   windowButtonVisibility: false,
   // );
-  await windowManager.setTitle('');
+  await windowManager.setTitle('chatgpt_windows_flutter_app');
   await windowManager.setMinimumSize(const Size(500, 600));
   await windowManager.show();
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);

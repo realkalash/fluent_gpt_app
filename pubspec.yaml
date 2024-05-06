@@ -1,7 +1,7 @@
 name: chatgpt_windows_flutter_app
 description: A chat gpt project for windows created with Flutter.
 publish_to: "none"
-version: 0.8.6
+version: 0.8.7
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
