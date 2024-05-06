@@ -27,6 +27,7 @@ gpt-3.5-turbo-0125 is the flagship model of this family, supports a 16K context
  */
 
   static final pricePerThousendPromptToken = {
+    'gpt-4-0125-preview': 0.03,
     'gpt-4-turbo': 0.03,
     'gpt-4': 0.03,
     'gpt-3.5-turbo': 0.0015,

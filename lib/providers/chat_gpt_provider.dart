@@ -9,6 +9,7 @@ import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
@@ -18,6 +19,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:tiktoken/tiktoken.dart';
 
 class ChatGPTProvider with ChangeNotifier {
@@ -227,6 +229,7 @@ class ChatGPTProvider with ChangeNotifier {
     bool includeConversation = true,
   ]) async {
     bool includeConversation0 = includeConversation;
+    bool isFirstMessage = messages.isEmpty;
     if (includeConversationGlobal == false) {
       includeConversation0 = false;
     }
@@ -328,6 +331,10 @@ class ChatGPTProvider with ChangeNotifier {
           if (response.choices!.last.finishReason == 'stop') {
             isAnswering = false;
             lastTimeAnswer = DateTime.now().toIso8601String();
+            if (isFirstMessage) {
+              await _nameCurrentChat(messageContent);
+            }
+
             calcUsageTokens(response.usage);
           } else {
             final lastBotMessage = messages[lastTimeAnswer];
@@ -385,6 +392,39 @@ class ChatGPTProvider with ChangeNotifier {
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
+  }
+
+  Future<void> _nameCurrentChat(String messageContent) async {
+    final navProvider =
+        Provider.of<NavigationProvider>(context!, listen: false);
+    String? title = await _sendMessageSilent(
+      'Based on this message, give a name for current conversation: "$messageContent". Dont include any other text except the title for this conversation',
+    );
+    if (chatRooms.containsKey(title)) {
+      title = '$title 2';
+    }
+    if (title != null) {
+      editChatRoom(
+        selectedChatRoomName,
+        selectedChatRoom.copyWith(chatRoomName: title),
+        switchToForeground: true,
+      );
+    }
+    navProvider.refreshNavItems(this);
+  }
+
+  Future<String?> _sendMessageSilent(String prompt) async {
+    try {
+      final request = ChatCompleteText(model: GptTurboChatModel(), messages: [
+        {'role': Role.user.name, 'content': prompt}
+      ]);
+
+      final response = await openAI.onChatCompletion(request: request);
+      return response?.choices.last.message?.content;
+    } catch (e) {
+      logError(e.toString());
+      return null;
+    }
   }
 
   Future sendMessageDontStream(
@@ -488,6 +528,10 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   void createNewChatRoom() {
+    NavigationProvider? navProvider;
+    try {
+      navProvider = Provider.of<NavigationProvider>(context!, listen: false);
+    } catch (e) {}
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
     chatRooms[chatRoomName] = ChatRoom(
       token: openAI.token,
@@ -503,6 +547,10 @@ class ChatGPTProvider with ChangeNotifier {
       repeatPenalty: repeatPenalty,
     );
     selectedChatRoomName = chatRoomName;
+    if (navProvider != null) {
+      navProvider.index = chatRooms.length - 1;
+      navProvider.refreshNavItems(this);
+    }
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();

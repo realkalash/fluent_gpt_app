@@ -1,4 +1,3 @@
-import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -11,7 +10,7 @@ class AddChatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.read<ChatGPTProvider>();
-    var navProvider = context.read<NavigationProvider>();
+    // var navProvider = context.read<NavigationProvider>();
 
     return Tooltip(
       message: 'Add new chat (Ctrl + T)',
@@ -21,7 +20,7 @@ class AddChatButton extends StatelessWidget {
           checked: false,
           onChanged: (v) {
             chatProvider.createNewChatRoom();
-            navProvider.refreshNavItems(chatProvider);
+            // navProvider.refreshNavItems(chatProvider);
           },
           child: const Icon(FluentIcons.add),
         ),

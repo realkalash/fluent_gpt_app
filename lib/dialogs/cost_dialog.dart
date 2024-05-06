@@ -12,16 +12,18 @@ class CostDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Cost per token for all models in current Chat:'),
-                ...CostCalculator.calculateCostPerTokenForAllModels(tokens)
-                    .entries
-                    .map((entry) => Text(
-                        '${entry.key}: \$${entry.value.toStringAsFixed(3)}')),
-              ],
+          SelectionArea(
+            child: Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Cost per token for all models in current Chat:'),
+                  ...CostCalculator.calculateCostPerTokenForAllModels(tokens)
+                      .entries
+                      .map((entry) => Text(
+                          '${entry.key}: \$${entry.value.toStringAsFixed(3)}')),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 10),

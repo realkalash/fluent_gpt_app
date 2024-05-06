@@ -74,10 +74,10 @@ String appVersion = '-';
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
-    logError(details.exceptionAsString());
+    logError(details.exceptionAsString(), details.stack);
   };
   PlatformDispatcher.instance.onError = (error, stack) {
-    logError('[Platform] $error');
+    logError('[Platform] $error', stack);
     return true;
   };
   await protocolHandler.register('fluentgpt');
