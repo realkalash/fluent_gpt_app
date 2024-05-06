@@ -1,11 +1,14 @@
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
+import 'package:chatgpt_windows_flutter_app/common/window_listener.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/add_chat_button.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:protocol_handler/protocol_handler.dart';
@@ -37,8 +40,46 @@ void resetOpenAiUrl({String? url, required String token}) {
   );
 }
 
+Future<void> initWindow() async {
+  // causes breaking of acrylic and mica effects
+  // windowManager.setTitleBarStyle(
+  //   TitleBarStyle.hidden,
+  //   windowButtonVisibility: false,
+  // );
+  await windowManager.setTitle('');
+  await windowManager.setMinimumSize(const Size(500, 600));
+  await windowManager.show();
+  await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
+  windowManager.removeListener(AppWindowListener());
+  windowManager.addListener(AppWindowListener());
+  await windowManager.setSkipTaskbar(false);
+  final lastWindowWidth = AppCache.windowWidth.value;
+  final lastWindowHeight = AppCache.windowHeight.value;
+  if (lastWindowWidth != null && lastWindowHeight != null) {
+    await windowManager.setSize(
+      Size(lastWindowWidth.toDouble(), lastWindowHeight.toDouble()),
+    );
+  }
+  final lastWindowX = AppCache.windowX.value;
+  final lastWindowY = AppCache.windowY.value;
+  if (lastWindowX != null && lastWindowY != null) {
+    await windowManager.setPosition(
+      Offset(lastWindowX.toDouble(), lastWindowY.toDouble()),
+    );
+  }
+}
+
+String appVersion = '-';
+
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    logError(details.exceptionAsString());
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logError('[Platform] $error');
+    return true;
+  };
   await protocolHandler.register('fluentgpt');
   SystemTheme.accentColor.load();
   await WindowsSingleInstance.ensureSingleInstance(
@@ -51,18 +92,8 @@ void main(List<String> args) async {
   await flutter_acrylic.Window.initialize();
   await flutter_acrylic.Window.hideWindowControls();
   await WindowManager.instance.ensureInitialized();
-  windowManager.waitUntilReadyToShow().then((_) async {
-    // causes breaking of acrylic and mica effects
-    // windowManager.setTitleBarStyle(
-    //   TitleBarStyle.hidden,
-    //   windowButtonVisibility: false,
-    // );
-    // await windowManager.setTitle('chatgpt_windows_flutter_app');
-    await windowManager.setMinimumSize(const Size(500, 600));
-    await windowManager.show();
-    await windowManager
-        .setPreventClose(prefs?.getBool('preventClose') ?? false);
-    await windowManager.setSkipTaskbar(false);
+  windowManager.waitUntilReadyToShow().then((_) {
+    initWindow();
   });
 // For hot reload, `unregisterAll()` needs to be called.
   await hotKeyManager.unregisterAll();
@@ -128,7 +159,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
               onGenerateTitle: (context) => 'ChatGPT',
               themeMode: appTheme.mode,
               debugShowCheckedModeBanner: false,
-              home: const MyHomePage(shellContext: null),
+              home: const GlobalPage(),
               color: appTheme.color,
               darkTheme: FluentThemeData(
                 brightness: Brightness.dark,
@@ -171,19 +202,16 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({
+class GlobalPage extends StatefulWidget {
+  const GlobalPage({
     super.key,
-    required this.shellContext,
   });
 
-  final BuildContext? shellContext;
-
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<GlobalPage> createState() => _GlobalPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with WindowListener {
+class _GlobalPageState extends State<GlobalPage> with WindowListener {
   @override
   void initState() {
     windowManager.addListener(this);
@@ -249,11 +277,11 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
     navigationProvider.context = context;
     final appTheme = context.watch<AppTheme>();
     // final theme = FluentTheme.of(context);
-    if (widget.shellContext != null) {
-      if (Navigator.of(context).canPop() == false) {
-        setState(() {});
-      }
-    }
+    // if (widget.shellContext != null) {
+    //   if (Navigator.of(context).canPop() == false) {
+    //     setState(() {});
+    //   }
+    // }
     bool isDark = appTheme.windowEffect == flutter_acrylic.WindowEffect.mica;
     return NavigationView(
       key: navigationProvider.viewKey,
@@ -300,7 +328,7 @@ class _MyHomePageState extends State<MyHomePage> with WindowListener {
         );
       },
       pane: NavigationPane(
-        selected: navigationProvider.calculateSelectedIndex(context),
+        selected: navigationProvider.index,
         displayMode: appTheme.displayMode,
         indicator: () {
           switch (appTheme.indicator) {

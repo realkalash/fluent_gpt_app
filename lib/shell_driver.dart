@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'dart:io';
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:file/local.dart';
 import 'package:shell/shell.dart';
@@ -79,7 +80,7 @@ class ShellDriver {
       await python.stderr.drain();
       log('Wrote $resultFile to ${fs.currentDirectory}');
       currentFileIndex++;
-      prefs?.setInt('currentFileIndex', currentFileIndex);
+      AppCache.currentFileIndex.set(currentFileIndex);
       await openResultsFolder();
     } catch (e) {
       log('Error running python code: $e');
@@ -88,7 +89,7 @@ class ShellDriver {
       await errorFile.create(recursive: true);
       await errorFile.writeAsString(e.toString());
       currentFileIndex++;
-      prefs?.setInt('currentFileIndex', currentFileIndex);
+      AppCache.currentFileIndex.set(currentFileIndex);
       message = '[Error]: $e';
     } finally {
       _isRunningStreamController.add(false);
@@ -166,6 +167,6 @@ class ShellDriver {
       await file.delete();
     }
     currentFileIndex = 0;
-    await prefs?.setInt('currentFileIndex', currentFileIndex);
+    await AppCache.currentFileIndex.set(currentFileIndex);
   }
 }

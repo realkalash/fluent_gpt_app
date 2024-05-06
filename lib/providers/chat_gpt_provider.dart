@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
@@ -60,8 +61,8 @@ class ChatGPTProvider with ChangeNotifier {
       rooms[timeRaw] = chatRoomRaw;
     }
     final chatRoomsRaw = jsonEncode(rooms);
-    prefs?.setString('chatRooms', chatRoomsRaw);
-    prefs?.setString('selectedChatRoomName', selectedChatRoomName);
+    AppCache.chatRooms.set(chatRoomsRaw);
+    AppCache.selectedChatRoomName.set(selectedChatRoomName);
   }
 
   ChatGPTProvider() {
@@ -99,7 +100,7 @@ class ChatGPTProvider with ChangeNotifier {
     }
     if (selectedChatRoom.token != 'empty') {
       openAI.setToken(selectedChatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.token}');
+      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
     }
     if (selectedChatRoom.orgID != '') {
       openAI.setOrgId(selectedChatRoom.orgID ?? '');
@@ -120,6 +121,7 @@ class ChatGPTProvider with ChangeNotifier {
       } else {
         final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
         text = clipboard?.text ?? '';
+        command = value ?? '';
       }
 
       /// wait for the app to appear
@@ -142,6 +144,8 @@ class ChatGPTProvider with ChangeNotifier {
         createNewChatRoom();
       } else if (command == 'reset_chat') {
         clearConversation();
+      } else {
+        throw Exception('Unknown command: $command');
       }
     });
   }
@@ -468,7 +472,7 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
     saveToDisk();
     if (model is LocalChatModel) {
-      prefs?.setString('llmUrl', model.url);
+      AppCache.llmUrl.set(model.url);
       resetOpenAiUrl(url: model.url, token: selectedChatRoom.token);
     } else {
       resetOpenAiUrl(token: selectedChatRoom.token);
@@ -500,8 +504,8 @@ class ChatGPTProvider with ChangeNotifier {
     final trimmed = v.trim();
     chatRooms[selectedChatRoomName]!.token = trimmed;
     openAI.setToken(trimmed);
-    prefs?.setString('token', trimmed);
-    log('setOpenAIKeyForCurrentChatRoom: $trimmed');
+    AppCache.token.set(trimmed);
+    log('setOpenAIKeyForCurrentChatRoom: ${chatRooms[selectedChatRoomName]!.securedToken}');
     notifyListeners();
     saveToDisk();
   }
@@ -509,7 +513,7 @@ class ChatGPTProvider with ChangeNotifier {
   void setOpenAIGroupIDForCurrentChatRoom(String v) {
     chatRooms[selectedChatRoomName]!.orgID = v;
     openAI.setOrgId(v);
-    prefs?.setString('orgID', v);
+    AppCache.orgID.set(v);
     notifyListeners();
     saveToDisk();
   }
@@ -537,7 +541,7 @@ class ChatGPTProvider with ChangeNotifier {
     // if token is changed, update openAI
     if (chatRoom.token != chatRooms[oldChatRoomName]?.token) {
       openAI.setToken(chatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.token}');
+      log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.securedToken}');
     }
     // if orgID is changed, update openAI
     if (chatRoom.orgID != chatRooms[oldChatRoomName]?.orgID) {

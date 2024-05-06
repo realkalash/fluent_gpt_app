@@ -1,9 +1,10 @@
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/pages/about_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:chatgpt_windows_flutter_app/pages/log_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/settings_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,8 @@ import 'providers/chat_gpt_provider.dart';
 class NavigationProvider with ChangeNotifier {
   bool value = false;
 
+  /// The index of the selected item
+  /// THE LAST ITEM IS A LINK THAT SHOULD NOT BE USED AS A NAVIGATION ITEM
   int index = 0;
 
   final viewKey = GlobalKey(debugLabel: 'Navigation View Key');
@@ -21,17 +24,10 @@ class NavigationProvider with ChangeNotifier {
   final searchController = TextEditingController();
   // it's bad practice to use context in a provider
   late BuildContext context;
+  List<NavigationPaneItem> originalItems = [];
+
+  /// onTap will be overridden for each item
   late final originalTopItems = [
-    PaneItem(
-        key: const ValueKey('/'),
-        icon: const Icon(FluentIcons.home),
-        title: const Text('Home'),
-        body: const ChatRoomPage(),
-        onTap: () {
-          index = 0;
-          notifyListeners();
-          // router.go('/');
-        }),
     PaneItemHeader(
         header: Row(
       children: [
@@ -53,57 +49,28 @@ class NavigationProvider with ChangeNotifier {
     )),
   ];
 
-  late List<NavigationPaneItem> originalItems = [
-    ...originalTopItems,
-  ].map((e) {
-    // ignore: unnecessary_type_check
-    if (e is PaneItem) {
-      return PaneItem(
-          key: e.key,
-          icon: e.icon,
-          title: e.title,
-          body: e.body,
-          onTap: () {
-            index = originalItems.indexOf(e);
-            notifyListeners();
-          }
-          // onTap: () {
-          //   final path = (e.key as ValueKey).value;
-          //   if (GoRouterState.of(context).uri.toString() != path) {
-          //     context.go(path);
-          //   }
-          //   e.onTap?.call();
-          // },
-          );
-    }
-    return e;
-  }).toList();
+  /// onTap will be overridden for each item
   late final List<PaneItem> footerItems = [
     PaneItem(
       key: const ValueKey('/settings'),
       icon: const Icon(FluentIcons.settings),
       title: const Text('Settings'),
       body: const SettingsPage(),
-      onTap: () {
-        index = originalItems.length - 1;
-        notifyListeners();
-        // if (GoRouterState.of(context).uri.toString() != '/settings') {
-        //   context.go('/settings');
-        // }
-      },
+      onTap: () => _openSubRoute('/settings'),
     ),
     PaneItem(
       key: const ValueKey('/about'),
       icon: const Icon(FluentIcons.info),
       title: const Text('About'),
       body: const AboutPage(),
-      onTap: () {
-        index = originalItems.length;
-        notifyListeners();
-        // if (GoRouterState.of(context).uri.toString() != '/about') {
-        //   context.go('/about');
-        // }
-      },
+      onTap: () => _openSubRoute('/about'),
+    ),
+    PaneItem(
+      key: const ValueKey('/log'),
+      icon: const Icon(FluentIcons.developer_tools),
+      title: const Text('Log'),
+      body: const LogPage(),
+      onTap: () => _openSubRoute('/log'),
     ),
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.open_source),
@@ -112,7 +79,33 @@ class NavigationProvider with ChangeNotifier {
       body: const SizedBox.shrink(),
     ),
   ];
-  int calculateSelectedIndex(BuildContext context) {
+
+  int getIndexPage(String page) {
+    final listAllPages = [...originalItems, ...footerItems];
+    final index = listAllPages.indexWhere((element) {
+      if (element.key is ValueKey) {
+        return (element.key as ValueKey).value == page;
+      }
+      return element.key == ValueKey(page);
+    });
+    if (index == -1) {
+      log('Could not find page $page');
+      return -1;
+    }
+    return index - 1;
+  }
+
+  void _openSubRoute(String route) {
+    final newIndex = getIndexPage(route);
+    if (index == -1) {
+      log('Could not find route $route');
+      return;
+    }
+    index = newIndex;
+    notifyListeners();
+  }
+
+  int calculateSelectedIndex() {
     return index;
 
     /// Old method

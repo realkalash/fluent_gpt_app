@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/chat_room.dart';
@@ -11,7 +11,6 @@ import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_bu
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';

@@ -12,7 +12,6 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_gpt_provider.dart';
-import 'prompt_dialogs.dart';
 
 class InputField extends StatefulWidget {
   const InputField({super.key});
@@ -258,10 +257,6 @@ class _InputFieldState extends State<InputField> {
         ),
       ),
     );
-  }
-
-  void _showOneDriveDialog(BuildContext context) {
-    OneDriveAccessDialog.show(context);
   }
 }
 

@@ -15,6 +15,10 @@ class ChatRoom {
   String token;
   String? orgID;
 
+  String get securedToken => token.replaceAllMapped(RegExp(r'.{4}'), (match) {
+        return '*' * match.group(0)!.length;
+      });
+
   /// <DateTime, <key, value>>
   Map<String, Map<String, String>> messages;
   String? commandPrefix;

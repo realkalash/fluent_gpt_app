@@ -1,5 +1,6 @@
-import 'dart:developer';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:system_theme/system_theme.dart';
@@ -23,8 +24,7 @@ class AppTheme extends ChangeNotifier {
   Future setResolution(Size? resolution, {bool notify = true}) async {
     this.resolution = resolution;
     if (resolution != null) {
-      await prefs?.setString(
-          'resolution', '${resolution.width}x${resolution.height}');
+      await AppCache.resolution.set('${resolution.width}x${resolution.height}');
     }
     if (notify) {
       notifyListeners();
@@ -44,7 +44,8 @@ class AppTheme extends ChangeNotifier {
   bool preventClose = false;
   void togglePreventClose() {
     preventClose = !preventClose;
-    prefs?.setBool('preventClose', preventClose);
+    AppCache.preventClose.set(preventClose);
+
     windowManager.setPreventClose(preventClose);
     notifyListeners();
   }
