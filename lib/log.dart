@@ -8,6 +8,9 @@ void log(String message) {
   final value = '${timeStamp()}: $message';
   logMessages.add([...logMessages.value, value]);
   dev.log(value);
+  if (logMessages.value.length > 100) {
+    logMessages.add(logMessages.value.sublist(1));
+  }
 }
 
 void logError(String message) {

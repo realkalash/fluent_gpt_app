@@ -1,4 +1,7 @@
 import 'dart:convert';
+// ignore: implementation_imports
+import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
+import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -13,7 +16,9 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+// ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
+import 'package:tiktoken/tiktoken.dart';
 
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
@@ -41,6 +46,9 @@ class ChatGPTProvider with ChangeNotifier {
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
   int countWordsInAllMessages = 0;
+
+  /// Applied only after the response is received
+  int countTokens = 0;
 
   Map<String, Map<String, String>> get messages =>
       chatRooms[selectedChatRoomName]?.messages ?? {};
@@ -304,7 +312,6 @@ class ChatGPTProvider with ChangeNotifier {
         presencePenalty: repeatPenalty,
       );
     }
-
     final stream = openAI.onChatCompletionSSE(
       request: request,
       onCancel: (cancelData) {
@@ -321,6 +328,7 @@ class ChatGPTProvider with ChangeNotifier {
           if (response.choices!.last.finishReason == 'stop') {
             isAnswering = false;
             lastTimeAnswer = DateTime.now().toIso8601String();
+            calcUsageTokens(response.usage);
           } else {
             final lastBotMessage = messages[lastTimeAnswer];
             final appendedText = lastBotMessage != null
@@ -561,6 +569,7 @@ class ChatGPTProvider with ChangeNotifier {
   void clearConversation() {
     messages.clear();
     calcWordsInAllMessages();
+    calcUsageTokens(null);
     notifyListeners();
     saveToDisk();
   }
@@ -650,6 +659,7 @@ class ChatGPTProvider with ChangeNotifier {
     } catch (e) {
       log('Error while canceling: $e');
     } finally {
+      calcUsageTokens(null);
       isAnswering = false;
       notifyListeners();
     }
@@ -839,5 +849,24 @@ class ChatGPTProvider with ChangeNotifier {
     if (content != null) {
       await sendMessage(content, true);
     }
+  }
+
+  void calcUsageTokens(Usage? usage) {
+    if (usage != null) {
+      log('Usage: $usage');
+      countTokens == usage.totalTokens;
+      return;
+    }
+    countTokens = 0;
+    final modelName = selectedModel.model;
+    final encoding = encodingForModel(modelName);
+    final listTexts = messages.values.map((e) => e['content']).toList();
+    final oneLine = listTexts.join('');
+    final uint = encoding.encode(oneLine);
+    countTokens = uint.length;
+    selectedChatRoom.costUSD = CostCalculator.calculateCostPerToken(
+      countTokens,
+      modelName,
+    );
   }
 }

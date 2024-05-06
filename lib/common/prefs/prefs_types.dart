@@ -11,7 +11,7 @@ abstract class _Pref<T> {
 }
 
 class StringPref extends _Pref<String> {
-  const StringPref(String _key) : super(_key);
+  const StringPref(super.key);
 
   @override
   String? get value => prefs?.get(key) as String?;
@@ -29,7 +29,7 @@ class StringPref extends _Pref<String> {
 }
 
 class IntPref extends _Pref<int> {
-  const IntPref(String _key, [this.defaultValue]) : super(_key);
+  const IntPref(super.key, [this.defaultValue]);
   final int? defaultValue;
   @override
   int? get value => (prefs?.get(key) as int?) ?? defaultValue;
@@ -47,7 +47,7 @@ class IntPref extends _Pref<int> {
 }
 
 class DoublePref extends _Pref<double> {
-  const DoublePref(String _key) : super(_key);
+  const DoublePref(super.key);
 
   @override
   double? get value => prefs?.get(key) as double?;

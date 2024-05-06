@@ -1,3 +1,4 @@
+import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -207,10 +208,23 @@ class PageHeaderText extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Words: ${chatProvider.countWordsInAllMessages}',
-                style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.normal),
+              child: Row(
+                children: [
+                  Text(
+                    'Words: ${chatProvider.countWordsInAllMessages}',
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.normal),
+                  ),
+                  HyperlinkButton(
+                    onPressed: () {
+                      showCostCalculatorDialog(context, chatProvider);
+                    },
+                    child: Text(
+                      ' Tokens: ${chatProvider.countTokens}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  )
+                ],
               ),
             ),
             const IncludeConversationSwitcher(),
@@ -231,6 +245,15 @@ class PageHeaderText extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  void showCostCalculatorDialog(
+      BuildContext context, ChatGPTProvider chatProvider) {
+    final tokens = chatProvider.countTokens;
+    showDialog(
+      context: context,
+      builder: (context) => CostDialog(tokens: tokens),
     );
   }
 }
@@ -456,12 +479,7 @@ class _MessageCardState extends State<MessageCard> {
                         ]),
                     child: Image.memory(
                       decodeImage(widget.message['image']!),
-                      fit: BoxFit.cover,
-                      cacheHeight: 400,
-                      cacheWidth: 400,
-                      width: 400,
-                      height: 400,
-                      filterQuality: FilterQuality.medium,
+                      fit: BoxFit.fitHeight,
                       gaplessPlayback: true,
                     ),
                   ),

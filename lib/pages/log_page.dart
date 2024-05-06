@@ -36,7 +36,7 @@ class _LogPageState extends State<LogPage> {
                 onPressed: () {
                   logMessages.add([]);
                   log('Logs cleared');
-                })
+                }),
           ],
         ),
       ),
