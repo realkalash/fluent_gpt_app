@@ -34,6 +34,106 @@ class ShellDriver {
     log('Wrote hello.txt to ${fs.currentDirectory}');
   }
 
+  static Future<String> runShellSearchFileCommand(String command) async {
+    var fs = const LocalFileSystem();
+    var shell = Shell();
+    var password = Platform.environment['PASSWORD'];
+    _isRunningStreamController.add(true);
+    String message;
+    // We need to get arguments from the command. Command example: es.exe -n 5 -o 5 "file"
+    final argsString = command.replaceAll('es.exe ', '').trim();
+    final args = argsString.split(' ');
+    final regexQuery = RegExp(r'\"(.*?)\"');
+    final searchQuery = regexQuery.firstMatch(command)?.group(1) ?? '';
+    try {
+      log('Password from env: $password');
+      log('Running shell command: "$command"');
+      var shellProcess = await shell.start('es.exe', arguments: [
+        args[0],
+        args[1],
+        args[2],
+        args[3],
+        searchQuery.replaceAll('"', '')
+      ]);
+      // var shellProcess = await shell.start('es.exe', arguments: ["-n", "5", "-o", "0", 'file1']);
+
+      message = await shellProcess.stdout.readAsString();
+
+      await shellProcess.stderr.drain();
+      print('Shell command output: $message');
+    } catch (e) {
+      log('Error running shell command: $e');
+      // write an error to log file
+      var errorFile = fs.file('error_log_$currentFileIndex.txt');
+      await errorFile.create(recursive: true);
+      await errorFile.writeAsString(e.toString());
+      currentFileIndex++;
+      AppCache.currentFileIndex.set(currentFileIndex);
+      message = '[Error]: $e';
+    } finally {
+      _isRunningStreamController.add(false);
+    }
+
+    return message;
+  }
+
+  static Future<String> runShellCommand(String command) async {
+    var fs = const LocalFileSystem();
+    var shell = Shell();
+    var password = Platform.environment['PASSWORD'];
+    _isRunningStreamController.add(true);
+    String message;
+    final bool containsString = command.contains('"');
+    var commandArgs = <String>[];
+    var commandSplit = command.split(' ');
+    final commandName = commandSplit.first;
+
+    if (containsString) {
+      final regexQuery = RegExp(r'\"(.*?)\"');
+      final searchQuery = regexQuery.firstMatch(command)?.group(1) ?? '';
+      String newArgsString = command
+          .replaceAll(searchQuery, '')
+          .replaceAll(commandName, '')
+          .replaceAll('""', '');
+      for (var arg in newArgsString.split(' ')) {
+        if (arg.isNotEmpty) {
+          commandArgs.add(arg);
+        }
+      }
+      // add the query
+      commandArgs.add(searchQuery.replaceAll('"', ''));
+    } else {
+      var commandSplit = command.split(' ');
+      if (commandSplit.length > 1) {
+        commandArgs = commandSplit.sublist(1);
+      }
+    }
+
+    try {
+      log('Password from env: $password');
+      log('Running shell command: "$commandName" with args: $commandArgs');
+      var shellProcess = await shell.start(commandName,
+          arguments: commandArgs.map((e) => e.replaceAll('"', '')));
+      message = await shellProcess.stdout.readAsString();
+
+      await shellProcess.stderr.drain();
+      print('Shell command output: $message');
+    } catch (e) {
+      log('Error running shell command: $e');
+      // write an error to log file
+      var errorFile = fs.file('error_log_$currentFileIndex.txt');
+      await errorFile.create(recursive: true);
+      await errorFile.writeAsString(e.toString());
+      currentFileIndex++;
+      AppCache.currentFileIndex.set(currentFileIndex);
+      message = '[Error]: $e';
+    } finally {
+      _isRunningStreamController.add(false);
+    }
+
+    return message;
+  }
+
   static Future<void> runPythonShellTest() async {
     var fs = const LocalFileSystem();
     var shell = Shell();
@@ -75,8 +175,6 @@ class ShellDriver {
       message = await python.stdout.readAsString();
       await fs.file(outputPathFile).create(recursive: true);
       await fs.file(outputPathFile).writeAsString(message);
-      // await python.stdout
-      //     .writeToFile(fs.file('$tempDir${currentFileIndex}_$resultFile.txt'));
       await python.stderr.drain();
       log('Wrote $resultFile to ${fs.currentDirectory}');
       currentFileIndex++;

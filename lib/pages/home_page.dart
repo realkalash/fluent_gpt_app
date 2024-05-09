@@ -73,8 +73,9 @@ class ModelChooserCards extends StatelessWidget {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () =>
-                  provider.selectModelForChat(currentChat, Gpt4ChatModel()),
+              onTap: () {
+                provider.selectModelForChat(currentChat, Gpt4ChatModel());
+              },
               child: Card(
                   backgroundColor:
                       applyOpacityIfSelected(isGPT4, Colors.yellow),
@@ -202,7 +203,7 @@ class PageHeaderText extends StatelessWidget {
         GestureDetector(
           onTap: () => editChatRoomDialog(
               context, chatProvider.chatRooms[selectedRoom]!, chatProvider),
-          child: Text(selectedRoom),
+          child: Text(selectedRoom, maxLines: 2),
         ),
         const ModelChooserCards(),
         Row(
@@ -220,7 +221,7 @@ class PageHeaderText extends StatelessWidget {
                       showCostCalculatorDialog(context, chatProvider);
                     },
                     child: Text(
-                      ' Tokens: ${chatProvider.countTokens}',
+                      ' Tokens: ${chatProvider.selectedChatRoom.tokens ?? 0} | ${(chatProvider.selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
                       style: const TextStyle(fontSize: 12),
                     ),
                   )
@@ -250,7 +251,7 @@ class PageHeaderText extends StatelessWidget {
 
   void showCostCalculatorDialog(
       BuildContext context, ChatGPTProvider chatProvider) {
-    final tokens = chatProvider.countTokens;
+    final tokens = chatProvider.selectedChatRoom.tokens ?? 0;
     showDialog(
       context: context,
       builder: (context) => CostDialog(tokens: tokens),
@@ -531,8 +532,10 @@ class _MessageCardState extends State<MessageCard> {
               ),
       );
     }
-    _containsPythonCode =
-        widget.message['content'].toString().contains('```python');
+    _containsPythonCode = widget.message['content']
+            .toString()
+            .contains('```python') ||
+        widget.message['content'].toString().contains('```\npython-executable');
 
     return Stack(
       children: [
@@ -685,25 +688,15 @@ class _MessageCardState extends State<MessageCard> {
   }
 
   String getPythonCodeFromMarkdown(String string) {
-    final lines = string.split('\n');
-    final codeLines = <String>[];
-    final regex = RegExp(r'```python');
-    final endRegex = RegExp(r'```');
-    var isCode = false;
-    for (final line in lines) {
-      if (regex.hasMatch(line)) {
-        isCode = true;
-        continue;
-      }
-      if (endRegex.hasMatch(line)) {
-        isCode = false;
-        continue;
-      }
-      if (isCode) {
-        codeLines.add(line);
-      }
+    final regex =
+        RegExp(r'```python-exe\n(.*?)```', multiLine: true, dotAll: true);
+    var isCode = regex.hasMatch(string);
+    if (isCode) {
+      final match = regex.firstMatch(string);
+      return match!.group(1)!;
     }
-    return codeLines.join('\n');
+
+    return '';
   }
 
   void _copyPythonCodeToClipboard(String string) {

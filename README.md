@@ -12,6 +12,8 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 - **Integration with ChatGPT from OpenAI**: Use ChatGPT by obtaining a token from OpenAI.
 - **Custom GPT**: You can use your own GPT models by providing a URL to the model. 
 - **Pin app**: Pin the app to the top of your screen for easy access.
+- **Search files support**: You can download and use "Everything" search engine to search files on your computer.
+- **Shell support**: GPT can run shell commands on your computer.
 
 ## Screenshots
 
@@ -29,6 +31,11 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 
 1. Download the Fluent GPT App from [GitHub Releases](#).
 2. Follow the installation instructions specific to your OS.
+
+(optional)
+
+3. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
+4. Download and install python from [here](https://www.python.org/downloads/).
 
 ### Using ChatGPT from OpenAI
 

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -110,6 +111,13 @@ class _InputFieldState extends State<InputField> {
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
+                // Button(
+                //     child: const Text('Search test'),
+                //     onPressed: () async {
+                //       final result = await ShellDriver.runShellCommand(
+                //           'es.exe -n 5 -o 0 "file1 -"');
+                //       chatProvider.sendResultOfRunningShellCode(result);
+                //     }),
                 if (chatProvider.fileInput == null)
                   SizedBox.square(
                     dimension: 48,
@@ -414,6 +422,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                 ),
                 onPressed: () {
                   chatProvider.sendMessage('Explain: "${txtController.text}"');
+                  txtController.clear();
                 }),
             Button(
                 child: const Row(
@@ -425,24 +434,28 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                 ),
                 onPressed: () {
                   chatProvider.sendCheckGrammar(txtController.text);
+                  txtController.clear();
                 }),
             Button(
                 child: const Text('Translate to English'),
                 onPressed: () {
                   chatProvider.sendMessage(
                       'Translate to English: "${txtController.text}"');
+                  txtController.clear();
                 }),
             Button(
                 child: const Text('Translate to Rus'),
                 onPressed: () {
                   chatProvider
                       .sendMessage('Translate to Rus: "${txtController.text}"');
+                  txtController.clear();
                 }),
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () {
                   HotShurtcutsWidget.showAnswerWithTagsDialog(
                       context, txtController.text);
+                  txtController.clear();
                 }),
           ],
         ),

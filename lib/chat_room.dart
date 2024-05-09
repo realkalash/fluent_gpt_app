@@ -18,6 +18,9 @@ class ChatRoom {
   /// cost in USD
   double? costUSD;
 
+  /// Tokens in all messages
+  int? tokens;
+
   String get securedToken => token.replaceAllMapped(RegExp(r'.{4}'), (match) {
         return '*' * match.group(0)!.length;
       });
@@ -41,6 +44,7 @@ class ChatRoom {
     this.orgID,
     this.commandPrefix,
     this.costUSD,
+    this.tokens,
   });
 
   @override
@@ -70,6 +74,7 @@ class ChatRoom {
         orgID = map['orgID'],
         commandPrefix = map['commandPrefix'],
         costUSD = map['costUSD'],
+        tokens = map['tokens'],
         messages = (map['messages'] as Map).map(
           (key, value) {
             return MapEntry(key, Map<String, String>.from(value));
@@ -91,6 +96,7 @@ class ChatRoom {
         'orgID': orgID,
         'commandPrefix': commandPrefix,
         'costUSD': costUSD,
+        'tokens': tokens,
       };
 
   ChatRoom copyWith({
@@ -108,6 +114,7 @@ class ChatRoom {
     String? orgID,
     String? commandPrefix,
     double? costUSD,
+    int? tokens,
   }) {
     return ChatRoom(
       chatRoomName: chatRoomName ?? this.chatRoomName,
@@ -124,6 +131,7 @@ class ChatRoom {
       orgID: orgID ?? this.orgID,
       commandPrefix: commandPrefix ?? this.commandPrefix,
       costUSD: costUSD ?? this.costUSD,
+      tokens: tokens ?? this.tokens,
     );
   }
 }

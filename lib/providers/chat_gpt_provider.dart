@@ -10,6 +10,8 @@ import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
+import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
+import 'package:chatgpt_windows_flutter_app/system_messages.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
@@ -48,9 +50,6 @@ class ChatGPTProvider with ChangeNotifier {
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
   int countWordsInAllMessages = 0;
-
-  /// Applied only after the response is received
-  int countTokens = 0;
 
   Map<String, Map<String, String>> get messages =>
       chatRooms[selectedChatRoomName]?.messages ?? {};
@@ -329,13 +328,12 @@ class ChatGPTProvider with ChangeNotifier {
       await for (final response in stream) {
         if (response.choices?.isNotEmpty == true) {
           if (response.choices!.last.finishReason == 'stop') {
-            isAnswering = false;
-            lastTimeAnswer = DateTime.now().toIso8601String();
-            if (isFirstMessage) {
-              await _nameCurrentChat(messageContent);
-            }
-
-            calcUsageTokens(response.usage);
+            await _onResponseEnd(
+              isFirstMessage,
+              messageContent,
+              messages.values.last['content'] ?? ' ',
+              response,
+            );
           } else {
             final lastBotMessage = messages[lastTimeAnswer];
             final appendedText = lastBotMessage != null
@@ -394,30 +392,74 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
   }
 
-  Future<void> _nameCurrentChat(String messageContent) async {
-    final navProvider =
-        Provider.of<NavigationProvider>(context!, listen: false);
-    String? title = await _sendMessageSilent(
-      'Based on this message, give a name for current conversation: "$messageContent". Dont include any other text except the title for this conversation',
-    );
-    if (chatRooms.containsKey(title)) {
-      title = '$title 2';
+  Future<void> _onResponseEnd(
+    bool isFirstMessage,
+    String userContent,
+    String assistantContent,
+    ChatResponseSSE response,
+  ) async {
+    isAnswering = false;
+    lastTimeAnswer = DateTime.now().toIso8601String();
+    if (isFirstMessage) {
+      await _nameCurrentChat(userContent);
     }
-    if (title != null) {
-      editChatRoom(
-        selectedChatRoomName,
-        selectedChatRoom.copyWith(chatRoomName: title),
-        switchToForeground: true,
-      );
+
+    calcUsageTokens(response.usage);
+    notifyListeners();
+
+    if (shellCommandRegex.hasMatch(assistantContent)) {
+      final match = shellCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        final result = await ShellDriver.runShellCommand(command);
+        sendResultOfRunningShellCode(result);
+      }
+    } else if (pythonCommandRegex.hasMatch(assistantContent)) {
+      final match = pythonCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        final result = await ShellDriver.runPythonCode(command);
+        sendResultOfRunningShellCode(result);
+      }
+    } else if (everythingSearchCommandRegex.hasMatch(assistantContent)) {
+      final match = everythingSearchCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        final result = await ShellDriver.runShellSearchFileCommand(command);
+        sendResultOfRunningShellCode(result);
+      }
     }
-    navProvider.refreshNavItems(this);
   }
 
-  Future<String?> _sendMessageSilent(String prompt) async {
+  Future<void> _nameCurrentChat(String messageContent) async {
+    // final navProvider =
+    //     Provider.of<NavigationProvider>(context!, listen: false);
+    // String? title = await _sendMessageSilent(
+    //   'Based on this message, give a very short name for current conversation: "$messageContent". Dont include any other text except the title for this conversation',
+    // );
+    // if (chatRooms.containsKey(title)) {
+    //   title = '$title 2';
+    // }
+    // if (title != null) {
+    //   editChatRoom(
+    //     selectedChatRoomName,
+    //     selectedChatRoom.copyWith(chatRoomName: title),
+    //     switchToForeground: false,
+    //   );
+    // }
+    // navProvider.refreshNavItems(this);
+  }
+
+  Future<String?> _sendMessageSilent(String prompt,
+      {int maxTokens = 100}) async {
     try {
-      final request = ChatCompleteText(model: GptTurboChatModel(), messages: [
-        {'role': Role.user.name, 'content': prompt}
-      ]);
+      final request = ChatCompleteText(
+        model: GptTurboChatModel(),
+        maxToken: maxTokens,
+        messages: [
+          {'role': Role.user.name, 'content': prompt}
+        ],
+      );
 
       final response = await openAI.onChatCompletion(request: request);
       return response?.choices.last.message?.content;
@@ -517,6 +559,7 @@ class ChatGPTProvider with ChangeNotifier {
 
   void selectModelForChat(String chatRoomName, ChatModel model) {
     chatRooms[chatRoomName]!.model = model;
+    calcUsageTokens(null);
     notifyListeners();
     saveToDisk();
     if (model is LocalChatModel) {
@@ -545,6 +588,7 @@ class ChatGPTProvider with ChangeNotifier {
       topP: topP,
       maxLength: maxLenght,
       repeatPenalty: repeatPenalty,
+      commandPrefix: defaultSystemMessage,
     );
     selectedChatRoomName = chatRoomName;
     if (navProvider != null) {
@@ -625,7 +669,7 @@ class ChatGPTProvider with ChangeNotifier {
   void sendResultOfRunningShellCode(String result) {
     lastTimeAnswer = DateTime.now().toIso8601String();
     messages[lastTimeAnswer] = ({
-      'role': 'system',
+      'role': Role.assistant.name,
       'content': 'Result: \n\n$result',
     });
     calcWordsInAllMessages();
@@ -902,18 +946,22 @@ class ChatGPTProvider with ChangeNotifier {
   void calcUsageTokens(Usage? usage) {
     if (usage != null) {
       log('Usage: $usage');
-      countTokens == usage.totalTokens;
+      selectedChatRoom.tokens == usage.totalTokens;
       return;
     }
-    countTokens = 0;
+    selectedChatRoom.tokens = 0;
+    selectedChatRoom.costUSD = 0;
+    if (selectedModel is LocalChatModel) {
+      return;
+    }
     final modelName = selectedModel.model;
     final encoding = encodingForModel(modelName);
     final listTexts = messages.values.map((e) => e['content']).toList();
     final oneLine = listTexts.join('');
     final uint = encoding.encode(oneLine);
-    countTokens = uint.length;
+    selectedChatRoom.tokens = uint.length;
     selectedChatRoom.costUSD = CostCalculator.calculateCostPerToken(
-      countTokens,
+      selectedChatRoom.tokens ?? 0,
       modelName,
     );
   }
