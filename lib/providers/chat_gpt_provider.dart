@@ -161,8 +161,7 @@ class ChatGPTProvider with ChangeNotifier {
 
   void sendCheckGrammar(String text) {
     sendMessage(
-      'Check spelling and grammar: "$text". '
-      'If it contains issues, write a revised version at the very start of your message and then your short description.',
+      'Check spelling and grammar: "$text"',
       false,
     );
   }
@@ -427,6 +426,18 @@ class ChatGPTProvider with ChangeNotifier {
       if (command != null) {
         final result = await ShellDriver.runShellSearchFileCommand(command);
         sendResultOfRunningShellCode(result);
+      }
+    } else if (grammarCheckRegex.hasMatch(assistantContent)) {
+      final match = grammarCheckRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        displayInfoBar(
+          context!,
+          builder: (context, close) => const InfoBar(
+            title: Text('The result is copied to clipboard'),
+          ),
+        );
+        Clipboard.setData(ClipboardData(text: command));
       }
     }
   }
