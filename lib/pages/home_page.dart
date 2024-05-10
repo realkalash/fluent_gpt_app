@@ -455,8 +455,23 @@ class _MessageCardState extends State<MessageCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText('${widget.message['content']}',
-                style: FluentTheme.of(context).typography.body),
+            Button(
+                child: Text('Display info bar'),
+                onPressed: () {
+                  displayInfoBar(
+                    context!,
+                    builder: (context, close) => const InfoBar(
+                      title: Text('The result is copied to clipboard'),
+                      isLong: false,
+                      severity: InfoBarSeverity.info,
+                    ),
+                  );
+                }),
+            SelectableText(
+              '${widget.message['content']}',
+              style: FluentTheme.of(context).typography.body,
+              selectionControls: fluentTextSelectionControls,
+            ),
             if (widget.message['image'] != null)
               GestureDetector(
                 onTap: () {

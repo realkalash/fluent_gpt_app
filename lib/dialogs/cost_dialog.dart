@@ -13,6 +13,7 @@ class CostDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SelectionArea(
+            selectionControls: fluentTextSelectionControls,
             child: Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

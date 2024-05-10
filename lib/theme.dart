@@ -132,6 +132,18 @@ class AppTheme extends ChangeNotifier {
     _locale = locale;
     notifyListeners();
   }
+
+  buildInfoBarDecoration(InfoBarSeverity severity) {
+    if (severity == InfoBarSeverity.warning) {
+      return BoxDecoration(
+          color: Colors.yellow, borderRadius: BorderRadius.circular(8.0));
+    } else if (severity == InfoBarSeverity.error) {
+      return BoxDecoration(
+          color: Colors.red, borderRadius: BorderRadius.circular(8.0));
+    }
+    return BoxDecoration(
+        color: Colors.black, borderRadius: BorderRadius.circular(8.0));
+  }
 }
 
 AccentColor get systemAccentColor {

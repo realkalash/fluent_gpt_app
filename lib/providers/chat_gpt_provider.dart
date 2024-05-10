@@ -433,8 +433,16 @@ class ChatGPTProvider with ChangeNotifier {
       if (command != null) {
         displayInfoBar(
           context!,
-          builder: (context, close) => const InfoBar(
+          builder: (context, close) => InfoBar(
             title: Text('The result is copied to clipboard'),
+            isLong: false,
+            severity: InfoBarSeverity.info,
+            style: InfoBarThemeData(
+              decoration: (severity) => BoxDecoration(
+                color: Colors.blue,
+                border: Border.all(color: Colors.blue),
+              ),
+            ),
           ),
         );
         Clipboard.setData(ClipboardData(text: command));

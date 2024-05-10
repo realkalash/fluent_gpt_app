@@ -163,6 +163,9 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
               color: appTheme.color,
               darkTheme: FluentThemeData(
                 brightness: Brightness.dark,
+                infoBarTheme: InfoBarThemeData(
+                    decoration: (severity) =>
+                        appTheme.buildInfoBarDecoration(severity)),
                 accentColor: appTheme.color,
                 visualDensity: VisualDensity.standard,
                 focusTheme: FocusThemeData(
@@ -171,6 +174,9 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
               ),
               theme: FluentThemeData(
                 accentColor: appTheme.color,
+                infoBarTheme: InfoBarThemeData(
+                    decoration: (severity) =>
+                        appTheme.buildInfoBarDecoration(severity)),
                 visualDensity: VisualDensity.standard,
                 focusTheme: FocusThemeData(
                   glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
