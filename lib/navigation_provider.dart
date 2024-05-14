@@ -1,6 +1,6 @@
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
-import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/pages/about_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
@@ -187,7 +187,7 @@ class NavigationProvider with ChangeNotifier {
       BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
     var roomName = room.chatRoomName;
     var commandPrefix = room.commandPrefix;
-    var maxLength = room.maxLength;
+    var maxLength = room.maxTokenLength;
     var token = room.token;
     var orgID = room.orgID;
     await showDialog(
@@ -245,7 +245,7 @@ class NavigationProvider with ChangeNotifier {
             const Text('Max length'),
             TextBox(
               controller:
-                  TextEditingController(text: room.maxLength.toString()),
+                  TextEditingController(text: room.maxTokenLength.toString()),
               onChanged: (value) {
                 maxLength = int.parse(value);
               },

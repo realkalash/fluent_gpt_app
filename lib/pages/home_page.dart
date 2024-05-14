@@ -2,10 +2,11 @@ import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
+import 'package:chatgpt_windows_flutter_app/system_messages.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_builder.dart';
@@ -51,7 +52,7 @@ class ModelChooserCards extends StatelessWidget {
     final provider = context.watch<ChatGPTProvider>();
     final selectedModel = provider.selectedModel.model;
     final currentChat = provider.selectedChatRoomName;
-    bool isGPT4_125 = selectedModel == 'gpt-4-0125-preview';
+    bool isGPT4O = selectedModel == 'gpt-4o';
     bool isGPT4 = selectedModel == 'gpt-4';
     bool isGPT3_5 = selectedModel == 'gpt-3.5-turbo';
     bool isLocal = selectedModel == 'local';
@@ -63,12 +64,12 @@ class ModelChooserCards extends StatelessWidget {
           Expanded(
             child: GestureDetector(
               onTap: () =>
-                  provider.selectModelForChat(currentChat, GPT4TurboModel()),
+                  provider.selectModelForChat(currentChat, GPT4OModel()),
               child: Card(
-                  backgroundColor:
-                      applyOpacityIfSelected(isGPT4_125, Colors.blue),
-                  child: const Text('GPT-4-124k',
-                      style: textStyle, textAlign: TextAlign.center)),
+                backgroundColor: applyOpacityIfSelected(isGPT4O, Colors.blue),
+                child: const Text('GPT-4o',
+                    style: textStyle, textAlign: TextAlign.center),
+              ),
             ),
           ),
           Expanded(
@@ -116,7 +117,7 @@ class PageHeaderText extends StatelessWidget {
       BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
     var roomName = room.chatRoomName;
     var commandPrefix = room.commandPrefix;
-    var maxLength = room.maxLength;
+    var maxLength = room.maxTokenLength;
     var token = room.token;
     var orgID = room.orgID;
     await showDialog(
@@ -168,7 +169,7 @@ class PageHeaderText extends StatelessWidget {
             const Text('Max length'),
             TextBox(
               controller:
-                  TextEditingController(text: room.maxLength.toString()),
+                  TextEditingController(text: room.maxTokenLength.toString()),
               onChanged: (value) {
                 maxLength = int.parse(value);
               },
@@ -413,7 +414,7 @@ class MessageCard extends StatefulWidget {
 
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
-  bool _containsPythonCode = false;
+  bool _containsCode = false;
   @override
   void initState() {
     super.initState();
@@ -455,7 +456,6 @@ class _MessageCardState extends State<MessageCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-         
             SelectableText(
               '${widget.message['content']}',
               style: FluentTheme.of(context).typography.body,
@@ -536,10 +536,7 @@ class _MessageCardState extends State<MessageCard> {
               ),
       );
     }
-    _containsPythonCode = widget.message['content']
-            .toString()
-            .contains('```python') ||
-        widget.message['content'].toString().contains('```\npython-executable');
+    _containsCode = widget.message['content'].toString().contains('```');
 
     return Stack(
       children: [
@@ -660,28 +657,30 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 ),
               ),
-              if (_containsPythonCode)
+              if (_containsCode)
                 Tooltip(
                   message: 'Copy python code to clipboard',
                   child: SizedBox.square(
                     dimension: 30,
                     child: ToggleButton(
                       onChanged: (_) {
-                        _copyPythonCodeToClipboard(
+                        _copyCodeToClipboard(
                             widget.message['content'].toString());
                       },
                       checked: false,
+                      style: ToggleButtonThemeData(
+                        uncheckedButtonStyle: ButtonStyle(
+                            backgroundColor: ButtonState.all(Colors.blue)),
+                      ),
                       child: const Icon(FluentIcons.code, size: 10),
                     ),
                   ),
                 ),
-              if (_containsPythonCode)
+              if (_containsCode)
                 Tooltip(
                   message: 'Run python code',
-                  child: RunPythonCodeButton(
-                    code: getPythonCodeFromMarkdown(
-                      widget.message['content'].toString(),
-                    ),
+                  child: RunCodeButton(
+                    code: widget.message['content'].toString(),
                   ),
                 ),
             ],
@@ -691,22 +690,47 @@ class _MessageCardState extends State<MessageCard> {
     );
   }
 
-  String getPythonCodeFromMarkdown(String string) {
-    final regex =
-        RegExp(r'```python-exe\n(.*?)```', multiLine: true, dotAll: true);
-    var isCode = regex.hasMatch(string);
-    if (isCode) {
-      final match = regex.firstMatch(string);
-      return match!.group(1)!;
+  String getCodeFromMarkdown(String assistantContent) {
+    if (shellCommandRegex.hasMatch(assistantContent)) {
+      final match = shellCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        return command;
+      }
+    } else if (pythonCommandRegex.hasMatch(assistantContent)) {
+      final match = pythonCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        return command;
+      }
+    } else if (everythingSearchCommandRegex.hasMatch(assistantContent)) {
+      final match = everythingSearchCommandRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        return command;
+      }
+    } else if (grammarCheckRegex.hasMatch(assistantContent)) {
+      final match = grammarCheckRegex.firstMatch(assistantContent);
+      final command = match?.group(1);
+      if (command != null) {
+        return command;
+      }
     }
 
     return '';
   }
 
-  void _copyPythonCodeToClipboard(String string) {
-    final code = getPythonCodeFromMarkdown(string);
+  void _copyCodeToClipboard(String string) {
+    final code = getCodeFromMarkdown(string);
     log(code);
     Clipboard.setData(ClipboardData(text: code));
+    displayInfoBar(
+      context,
+      builder: (context, close) => const InfoBar(
+        title: Text('The result is copied to clipboard'),
+        severity: InfoBarSeverity.info,
+      ),
+    );
   }
 
   void _showRawMessageDialog(
@@ -801,8 +825,8 @@ class _MessageCardState extends State<MessageCard> {
   }
 }
 
-class RunPythonCodeButton extends StatelessWidget {
-  const RunPythonCodeButton({super.key, required this.code});
+class RunCodeButton extends StatelessWidget {
+  const RunCodeButton({super.key, required this.code});
   final String code;
 
   @override
@@ -820,12 +844,37 @@ class RunPythonCodeButton extends StatelessWidget {
           }
           return ToggleButton(
             onChanged: (_) async {
-              final result = await ShellDriver.runPythonCode(code);
-              // ignore: use_build_context_synchronously
-              Provider.of<ChatGPTProvider>(context, listen: false)
-                  .sendResultOfRunningShellCode(result);
+              final provider =
+                  Provider.of<ChatGPTProvider>(context, listen: false);
+              if (shellCommandRegex.hasMatch(code)) {
+                final match = shellCommandRegex.firstMatch(code);
+                final command = match?.group(1);
+                if (command != null) {
+                  final result = await ShellDriver.runShellCommand(command);
+                  provider.sendResultOfRunningShellCode(result);
+                }
+              } else if (pythonCommandRegex.hasMatch(code)) {
+                final match = pythonCommandRegex.firstMatch(code);
+                final command = match?.group(1);
+                if (command != null) {
+                  final result = await ShellDriver.runPythonCode(command);
+                  provider.sendResultOfRunningShellCode(result);
+                }
+              } else if (everythingSearchCommandRegex.hasMatch(code)) {
+                final match = everythingSearchCommandRegex.firstMatch(code);
+                final command = match?.group(1);
+                if (command != null) {
+                  final result =
+                      await ShellDriver.runShellSearchFileCommand(command);
+                  provider.sendResultOfRunningShellCode(result);
+                }
+              }
             },
             checked: snap.data == true,
+            style: ToggleButtonThemeData(
+              uncheckedButtonStyle:
+                  ButtonStyle(backgroundColor: ButtonState.all(Colors.green)),
+            ),
             child: child,
           );
         },

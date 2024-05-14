@@ -33,7 +33,7 @@ class CostDialog extends StatelessWidget {
               content: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Cost per token for all models:'),
+                  const Text('Cost per 1K tokens for all models:'),
                   for (final entry
                       in CostCalculator.pricePerThousendPromptToken.entries)
                     Text('${entry.key}: \$${entry.value}'),

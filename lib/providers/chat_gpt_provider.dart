@@ -5,7 +5,7 @@ import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
@@ -45,7 +45,7 @@ class ChatGPTProvider with ChangeNotifier {
   get repeatPenaltyTokens =>
       chatRooms[selectedChatRoomName]?.repeatPenaltyTokens ?? 64;
   get topP => chatRooms[selectedChatRoomName]?.topP ?? 0.4;
-  get maxLenght => chatRooms[selectedChatRoomName]?.maxLength ?? 512;
+  get maxLenght => chatRooms[selectedChatRoomName]?.maxTokenLength ?? 512;
   get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
@@ -98,7 +98,7 @@ class ChatGPTProvider with ChangeNotifier {
         promptBatchSize: promptBatchSize,
         repeatPenaltyTokens: repeatPenaltyTokens,
         topP: topP,
-        maxLength: maxLenght,
+        maxTokenLength: maxLenght,
         repeatPenalty: repeatPenalty,
         token: token,
         orgID: orgID,
@@ -185,36 +185,6 @@ class ChatGPTProvider with ChangeNotifier {
     'ico',
     'webp',
   ];
-  Future sendImageInput(
-    XFile file, {
-    String textPrompt = "Whats in this image?",
-  }) async {
-    final fileExt = file.path.split('.').last;
-    if (!listSupportedImageFormats.contains(fileExt)) {
-      addMessageSystem('Unsupported file format: $fileExt');
-      return;
-    }
-    final encodedImage = await encodeImage(file);
-    final request = ChatCompleteText(
-      messages: [
-        {
-          "role": Role.user.name,
-          "content": [
-            {"type": "text", "text": textPrompt},
-            {
-              "type": "image_url",
-              "image_url": {"url": "data:image/$fileExt;base64,$encodedImage"}
-            }
-          ]
-        }
-      ],
-      maxToken: 200,
-      model: Gpt4VisionPreviewChatModel(),
-    );
-
-    ChatCTResponse? response = await openAI.onChatCompletion(request: request);
-    debugPrint("$response");
-  }
 
   XFile? fileInput;
   void addFileToInput(XFile file) {
@@ -410,6 +380,7 @@ class ChatGPTProvider with ChangeNotifier {
       final match = shellCommandRegex.firstMatch(assistantContent);
       final command = match?.group(1);
       if (command != null) {
+        if (command.contains('del') == true) return;
         final result = await ShellDriver.runShellCommand(command);
         sendResultOfRunningShellCode(result);
       }
@@ -424,6 +395,7 @@ class ChatGPTProvider with ChangeNotifier {
       final match = everythingSearchCommandRegex.firstMatch(assistantContent);
       final command = match?.group(1);
       if (command != null) {
+        if (command.contains('del') == true) return;
         final result = await ShellDriver.runShellSearchFileCommand(command);
         sendResultOfRunningShellCode(result);
       }
@@ -598,7 +570,7 @@ class ChatGPTProvider with ChangeNotifier {
       promptBatchSize: promptBatchSize,
       repeatPenaltyTokens: repeatPenaltyTokens,
       topP: topP,
-      maxLength: maxLenght,
+      maxTokenLength: maxLenght,
       repeatPenalty: repeatPenalty,
       commandPrefix: defaultSystemMessage,
     );
@@ -682,7 +654,8 @@ class ChatGPTProvider with ChangeNotifier {
     lastTimeAnswer = DateTime.now().toIso8601String();
     messages[lastTimeAnswer] = ({
       'role': Role.assistant.name,
-      'content': 'Result: \n\n$result',
+      'content':
+          'Result: \n${result.trim().isEmpty ? 'Done. No output' : result}',
     });
     calcWordsInAllMessages();
     notifyListeners();
@@ -890,7 +863,7 @@ class ChatGPTProvider with ChangeNotifier {
     };
 
     Map<String, dynamic> payload = {
-      "model": "gpt-4-vision-preview",
+      "model": GPT4OModel().model,
       "messages": [
         {
           "role": "user",
@@ -966,7 +939,10 @@ class ChatGPTProvider with ChangeNotifier {
     if (selectedModel is LocalChatModel) {
       return;
     }
-    final modelName = selectedModel.model;
+    String modelName = selectedModel.model;
+    if (selectedModel is GPT4OModel) {
+      modelName = 'gpt-4-0125-preview';
+    }
     final encoding = encodingForModel(modelName);
     final listTexts = messages.values.map((e) => e['content']).toList();
     final oneLine = listTexts.join('');

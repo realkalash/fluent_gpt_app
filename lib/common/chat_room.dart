@@ -8,7 +8,7 @@ class ChatRoom {
   int promptBatchSize;
   int repeatPenaltyTokens;
   double topP;
-  int maxLength;
+  int maxTokenLength;
   double repeatPenalty;
 
   /// Api key for the chat model
@@ -38,7 +38,7 @@ class ChatRoom {
     required this.promptBatchSize,
     required this.repeatPenaltyTokens,
     required this.topP,
-    required this.maxLength,
+    required this.maxTokenLength,
     required this.repeatPenalty,
     required this.token,
     this.orgID,
@@ -68,7 +68,7 @@ class ChatRoom {
         promptBatchSize = map['promptBatchSize'],
         repeatPenaltyTokens = map['repeatPenaltyTokens'],
         topP = map['topP'],
-        maxLength = map['maxLength'],
+        maxTokenLength = map['maxLength'],
         repeatPenalty = map['repeatPenalty'],
         token = map['token'],
         orgID = map['orgID'],
@@ -90,7 +90,7 @@ class ChatRoom {
         'promptBatchSize': promptBatchSize,
         'repeatPenaltyTokens': repeatPenaltyTokens,
         'topP': topP,
-        'maxLength': maxLength,
+        'maxLength': maxTokenLength,
         'repeatPenalty': repeatPenalty,
         'token': token,
         'orgID': orgID,
@@ -125,7 +125,7 @@ class ChatRoom {
       promptBatchSize: promptBatchSize ?? this.promptBatchSize,
       repeatPenaltyTokens: repeatPenaltyTokens ?? this.repeatPenaltyTokens,
       topP: topP ?? this.topP,
-      maxLength: maxLength ?? this.maxLength,
+      maxTokenLength: maxLength ?? this.maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
       token: token ?? this.token,
       orgID: orgID ?? this.orgID,
@@ -137,8 +137,9 @@ class ChatRoom {
 }
 
 final allModels = [
-  GPT4TurboModel(),
+  GPT4OModel(),
   Gpt4ChatModel(),
+  GPT4TurboModel(),
   GptTurboChatModel(),
   GptTurbo0301ChatModel(),
   Gpt4VisionPreviewChatModel(),
@@ -146,6 +147,10 @@ final allModels = [
 
 class GPT4TurboModel extends ChatModelFromValue {
   GPT4TurboModel() : super(model: 'gpt-4-0125-preview');
+}
+
+class GPT4OModel extends ChatModelFromValue {
+  GPT4OModel() : super(model: 'gpt-4o');
 }
 
 class LocalChatModel extends ChatModelFromValue {

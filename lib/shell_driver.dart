@@ -49,10 +49,7 @@ class ShellDriver {
       log('Password from env: $password');
       log('Running shell command: "$command"');
       var shellProcess = await shell.start('es.exe', arguments: [
-        args[0],
-        args[1],
-        args[2],
-        args[3],
+        for (var i = 0; i < args.length - 1; i++) args[i],
         searchQuery.replaceAll('"', '')
       ]);
       // var shellProcess = await shell.start('es.exe', arguments: ["-n", "5", "-o", "0", 'file1']);
@@ -61,8 +58,8 @@ class ShellDriver {
 
       await shellProcess.stderr.drain();
       print('Shell command output: $message');
-    } catch (e) {
-      log('Error running shell command: $e');
+    } catch (e, stack) {
+      log('Error running shell command: $e', stack);
       // write an error to log file
       var errorFile = fs.file('error_log_$currentFileIndex.txt');
       await errorFile.create(recursive: true);
