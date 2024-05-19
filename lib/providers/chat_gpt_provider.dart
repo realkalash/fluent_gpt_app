@@ -1,7 +1,7 @@
 import 'dart:convert';
-// ignore: implementation_imports
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
 import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
+import 'package:chatgpt_windows_flutter_app/gpt_tools.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -19,40 +19,46 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-// ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:tiktoken/tiktoken.dart';
+
+BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
+    BehaviorSubject.seeded({});
+Map<String, ChatRoom> get chatRooms => chatRoomsStream.value;
+
+BehaviorSubject<String> selectedChatRoomNameStream =
+    BehaviorSubject.seeded('Default');
+String get selectedChatRoomName => selectedChatRoomNameStream.value;
+set selectedChatRoomName(String v) => selectedChatRoomNameStream.add(v);
+
+ChatModel get selectedModel =>
+    chatRooms[selectedChatRoomName]?.model ?? allModels.first;
+ChatRoom get selectedChatRoom =>
+    chatRooms[selectedChatRoomName] ?? chatRooms.values.first;
+double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
+get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
+get promptBatchSize => chatRooms[selectedChatRoomName]?.promptBatchSize ?? 128;
+get repeatPenaltyTokens =>
+    chatRooms[selectedChatRoomName]?.repeatPenaltyTokens ?? 64;
+get topP => chatRooms[selectedChatRoomName]?.topP ?? 0.4;
+get maxLenght => chatRooms[selectedChatRoomName]?.maxTokenLength ?? 512;
+get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
+
+/// the key is (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2) the answer is message
+Map<String, Map<String, String>> get messages =>
+    chatRooms[selectedChatRoomName]?.messages ?? {};
 
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
   final TextEditingController messageController = TextEditingController();
 
-  Map<String, ChatRoom> chatRooms = {};
-  String selectedChatRoomName = 'Default';
-
   bool selectionModeEnabled = false;
   bool includeConversationGlobal = true;
 
-  ChatModel get selectedModel =>
-      chatRooms[selectedChatRoomName]?.model ?? allModels.first;
-  ChatRoom get selectedChatRoom =>
-      chatRooms[selectedChatRoomName] ?? chatRooms.values.first;
-  double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
-  get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
-  get promptBatchSize =>
-      chatRooms[selectedChatRoomName]?.promptBatchSize ?? 128;
-  get repeatPenaltyTokens =>
-      chatRooms[selectedChatRoomName]?.repeatPenaltyTokens ?? 64;
-  get topP => chatRooms[selectedChatRoomName]?.topP ?? 0.4;
-  get maxLenght => chatRooms[selectedChatRoomName]?.maxTokenLength ?? 512;
-  get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
-
   var lastTimeAnswer = DateTime.now().toIso8601String();
   int countWordsInAllMessages = 0;
-
-  Map<String, Map<String, String>> get messages =>
-      chatRooms[selectedChatRoomName]?.messages ?? {};
 
   final dialogApiKeyController = TextEditingController();
   final selectedMessages = <String>{};
@@ -173,19 +179,6 @@ class ChatGPTProvider with ChangeNotifier {
     }
   }
 
-  final listSupportedImageFormats = [
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'bmp',
-    'webp',
-    'tiff',
-    'svg',
-    'ico',
-    'webp',
-  ];
-
   XFile? fileInput;
   void addFileToInput(XFile file) {
     fileInput = file;
@@ -207,7 +200,7 @@ class ChatGPTProvider with ChangeNotifier {
     if (isImageAttached) {
       await sendImageMessage(fileInput!, messageContent);
       isAnswering = false;
-      notifyListeners();
+      notifyRoomsStream();
       listItemsScrollController.animateTo(
         listItemsScrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 400),
@@ -218,6 +211,7 @@ class ChatGPTProvider with ChangeNotifier {
       messages[dateTime] = {
         'role': 'user',
         'content': messageContent,
+        'created': dateTime,
       };
     }
     isAnswering = true;
@@ -225,43 +219,13 @@ class ChatGPTProvider with ChangeNotifier {
 
     late ChatCompleteText request;
     if (isImageAttached) {
-      final fileExt = fileInput!.path.split('.').last;
-      if (!listSupportedImageFormats.contains(fileExt)) {
-        await sendFile(fileInput!);
-        request = ChatCompleteText(
-          messages: [
-            if (selectedChatRoom.commandPrefix != null)
-              {
-                'role': Role.system.name,
-                'content': selectedChatRoom.commandPrefix
-              },
-            if (includeConversation0)
-              for (var message in messages.entries)
-                {
-                  'role': message.value['role'],
-                  'content': message.value['content'],
-                },
-            if (!includeConversation0)
-              {
-                'role': Role.user.name,
-                'content': messageContent,
-              },
-          ],
-          maxToken: maxLenght,
-          model: selectedModel,
-          temperature: temp,
-          topP: topP,
-          frequencyPenalty: repeatPenalty,
-          presencePenalty: repeatPenalty,
-        );
-      }
-    } else {
+      await sendFile(fileInput!);
       request = ChatCompleteText(
         messages: [
-          if (selectedChatRoom.commandPrefix != null)
+          if (selectedChatRoom.systemMessage != null)
             {
               'role': Role.system.name,
-              'content': selectedChatRoom.commandPrefix
+              'content': selectedChatRoom.systemMessage
             },
           if (includeConversation0)
             for (var message in messages.entries)
@@ -273,6 +237,7 @@ class ChatGPTProvider with ChangeNotifier {
             {
               'role': Role.user.name,
               'content': messageContent,
+              'created': dateTime,
             },
         ],
         maxToken: maxLenght,
@@ -282,6 +247,38 @@ class ChatGPTProvider with ChangeNotifier {
         frequencyPenalty: repeatPenalty,
         presencePenalty: repeatPenalty,
       );
+    } else {
+      request = ChatCompleteText(
+        messages: [
+          if (selectedChatRoom.systemMessage != null)
+            {
+              'role': Role.system.name,
+              'content': selectedChatRoom.systemMessage
+            },
+          if (includeConversation0)
+            for (var message in messages.entries)
+              {
+                'role': message.value['role'],
+                'content': message.value['content'],
+              },
+          if (!includeConversation0)
+            {
+              'role': Role.user.name,
+              'content': messageContent,
+              'created': dateTime,
+            },
+        ],
+        maxToken: maxLenght,
+        model: selectedModel,
+        temperature: temp,
+        topP: topP,
+        frequencyPenalty: repeatPenalty,
+        presencePenalty: repeatPenalty,
+        tools: [
+          if (AppCache.gptToolSearchEnabled.value!) searchFilesFunction,
+          if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
+        ],
+      );
     }
     final stream = openAI.onChatCompletionSSE(
       request: request,
@@ -289,52 +286,53 @@ class ChatGPTProvider with ChangeNotifier {
         cancelToken = cancelData.cancelToken;
       },
     );
-    // we need to add a delay because iso will not be unique
-    await Future.delayed(const Duration(milliseconds: 100));
     lastTimeAnswer = DateTime.now().toIso8601String();
 
+    Map<String, dynamic>? toolResponseJson;
+    String? toolResponseArgsString;
+
     try {
-      await for (final response in stream) {
-        if (response.choices?.isNotEmpty == true) {
-          if (response.choices!.last.finishReason == 'stop') {
-            await _onResponseEnd(
-              isFirstMessage,
-              messageContent,
-              messages.values.last['content'] ?? ' ',
-              response,
-            );
-          } else {
-            final lastBotMessage = messages[lastTimeAnswer];
-            final appendedText = lastBotMessage != null
-                ? '${lastBotMessage['content']}${response.choices!.last.message?.content ?? ' '}'
-                : response.choices!.last.message?.content ?? ' ';
-            messages[lastTimeAnswer] = {
-              'role': Role.assistant.name,
-              'content': appendedText,
-            };
-          }
-        } else {
-          log('Retrieved response but no choices');
-        }
-
-        /// 0 when at the top
-        final pixelsNow = listItemsScrollController.position.pixels;
-
-        /// pixels at the very end of the list
-        final maxScrollExtent =
-            listItemsScrollController.position.maxScrollExtent;
-
-        /// if we nearly at the bottom (+-100 px), scroll to the bottom always
-        if (pixelsNow >= maxScrollExtent - 100) {
-          listItemsScrollController.animateTo(
-            listItemsScrollController.position.maxScrollExtent + 200,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
+      stream.listen((event) {
+        if (event.choices?.isEmpty == true) return;
+        log('Received response: ${event.toJson()}');
+        final choice = event.choices!.last;
+        if (choice.finishReason == 'tool_calls') {
+          toolResponseJson?['function']['arguments'] = toolResponseArgsString;
+          _onToolsResponseEnd(
+            messageContent,
+            toolResponseJson!,
+            event,
           );
         }
+        if (choice.finishReason == 'stop') {
+          _onResponseEnd(
+            isFirstMessage,
+            messageContent,
+            messages.values.last['content'] ?? ' ',
+            event,
+          );
+        } else {
+          final lastBotMessage = messages[event.id];
+          final appendedText = lastBotMessage != null
+              ? '${lastBotMessage['content']}${choice.message?.content ?? ' '}'
+              : choice.message?.content ?? ' ';
 
-        notifyListeners();
-      }
+          if (choice.message!.toolCalls?.isNotEmpty == true) {
+            final tools = choice.message!.toolCalls!;
+
+            /// TODO: add more tools
+            if (tools[0]['function']['name'] != null) {
+              toolResponseJson = tools[0];
+            }
+            final appendedArgText =
+                '${toolResponseArgsString ?? ''}${tools[0]['function']['arguments'] ?? ''}';
+            toolResponseArgsString = appendedArgText;
+
+            return;
+          }
+          addBotMessageToList(appendedText, event.id);
+        }
+      });
     } catch (e) {
       isAnswering = false;
       if (e is OpenAIServerError) {
@@ -342,23 +340,60 @@ class ChatGPTProvider with ChangeNotifier {
           return;
         }
         lastTimeAnswer = DateTime.now().toIso8601String();
-        messages[lastTimeAnswer] = {
-          'role': Role.assistant.name,
-          'content':
-              'Error response: Code: ${e.code}. Message: ${e.data?.message}',
-        };
+        addBotMessageToList(
+            'Error response: Code: ${e.code}. Message: ${e.data?.message}');
       } else {
-        lastTimeAnswer = DateTime.now().toIso8601String();
-        messages[lastTimeAnswer] = {
-          'role': Role.assistant.name,
-          'content': 'Error response: $e',
-        };
+        addBotMessageToList('Error response: $e');
       }
     }
     fileInput = null;
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
+  }
+
+  void addBotMessageToList(String appendedText, [String? id]) {
+    messages[id ?? lastTimeAnswer] = {
+      'role': Role.assistant.name,
+      'content': appendedText,
+      'created': DateTime.now().toIso8601String(),
+    };
+    chatRoomsStream.add(chatRooms);
+  }
+
+  Future _onToolsResponseEnd(
+    String userContent,
+    Map<String, dynamic> assistantArgs,
+    ChatResponseSSE assistantLastEmptyResponse,
+  ) async {
+    //e.g. {index: 0, id: call_ko18NuZ0HCgKkk5rcBZyUQ3B, type: function, function: {name: search_files, arguments: {"filename":"1.png","offset":0,"maxNumberFiles":10}}}
+    log('assistantArgs: $assistantArgs');
+    final toolFunction = assistantArgs['function'] as Map<String, dynamic>;
+    final toolName = toolFunction['name'];
+    final toolArgsString = toolFunction['arguments'] as String;
+    final toolArgs = jsonDecode(toolArgsString) as Map<String, dynamic>;
+    if (toolName == 'search_files') {
+      final fileName = '${toolArgs!['filename']}';
+      toolArgs.remove('filename');
+
+      final result =
+          await ShellDriver.runShellSearchFileCommand(fileName, toolArgs);
+      addBotMessageToList(result, assistantLastEmptyResponse.id);
+    } else if (toolName == 'get_current_weather') {
+      final location = toolArgs['location'];
+      final unit = toolArgs['unit'];
+      final result = await ShellDriver.runShellCommand(
+          'curl wttr.in/$location?format="%C+%t+%w+%h+%p"');
+      addBotMessageToList(result, assistantLastEmptyResponse.id);
+    } else if (toolName == 'write_python_code') {
+      final code = toolArgs['code'];
+      final responseMessage = toolArgs['responseMessage'];
+      addBotMessageToList(
+          '$code\n$responseMessage', assistantLastEmptyResponse.id);
+    } else {
+      addBotMessageToList(
+          'Unknown tool: $toolName', assistantLastEmptyResponse.id);
+    }
   }
 
   Future<void> _onResponseEnd(
@@ -369,9 +404,6 @@ class ChatGPTProvider with ChangeNotifier {
   ) async {
     isAnswering = false;
     lastTimeAnswer = DateTime.now().toIso8601String();
-    if (isFirstMessage) {
-      await _nameCurrentChat(userContent);
-    }
 
     calcUsageTokens(response.usage);
     notifyListeners();
@@ -392,13 +424,13 @@ class ChatGPTProvider with ChangeNotifier {
         sendResultOfRunningShellCode(result);
       }
     } else if (everythingSearchCommandRegex.hasMatch(assistantContent)) {
-      final match = everythingSearchCommandRegex.firstMatch(assistantContent);
-      final command = match?.group(1);
-      if (command != null) {
-        if (command.contains('del') == true) return;
-        final result = await ShellDriver.runShellSearchFileCommand(command);
-        sendResultOfRunningShellCode(result);
-      }
+      // final match = everythingSearchCommandRegex.firstMatch(assistantContent);
+      // final command = match?.group(1);
+      // if (command != null) {
+      //   if (command.contains('del') == true) return;
+      //   final result = await ShellDriver.runShellSearchFileCommand(command);
+      //   sendResultOfRunningShellCode(result);
+      // }
     } else if (grammarCheckRegex.hasMatch(assistantContent)) {
       final match = grammarCheckRegex.firstMatch(assistantContent);
       final command = match?.group(1);
@@ -413,126 +445,18 @@ class ChatGPTProvider with ChangeNotifier {
         Clipboard.setData(ClipboardData(text: command));
       }
     }
-  }
 
-  Future<void> _nameCurrentChat(String messageContent) async {
-    // final navProvider =
-    //     Provider.of<NavigationProvider>(context!, listen: false);
-    // String? title = await _sendMessageSilent(
-    //   'Based on this message, give a very short name for current conversation: "$messageContent". Dont include any other text except the title for this conversation',
-    // );
-    // if (chatRooms.containsKey(title)) {
-    //   title = '$title 2';
-    // }
-    // if (title != null) {
-    //   editChatRoom(
-    //     selectedChatRoomName,
-    //     selectedChatRoom.copyWith(chatRoomName: title),
-    //     switchToForeground: false,
-    //   );
-    // }
-    // navProvider.refreshNavItems(this);
-  }
-
-  Future<String?> _sendMessageSilent(String prompt,
-      {int maxTokens = 100}) async {
-    try {
-      final request = ChatCompleteText(
-        model: GptTurboChatModel(),
-        maxToken: maxTokens,
-        messages: [
-          {'role': Role.user.name, 'content': prompt}
-        ],
-      );
-
-      final response = await openAI.onChatCompletion(request: request);
-      return response?.choices.last.message?.content;
-    } catch (e) {
-      logError(e.toString());
-      return null;
-    }
-  }
-
-  Future sendMessageDontStream(
-    String messageContent, [
-    bool includeConversation = true,
-  ]) async {
-    bool includeConversation0 = includeConversation;
-    if (includeConversationGlobal == false) {
-      includeConversation0 = false;
-    }
-    messages[lastTimeAnswer] = ({
-      'role': 'user',
-      'content': messageContent,
-    });
-    isAnswering = true;
-    notifyListeners();
-    saveToDisk();
-    final request = ChatCompleteText(
-      messages: [
-        if (selectedChatRoom.commandPrefix != null)
-          {'role': Role.system.name, 'content': selectedChatRoom.commandPrefix},
-        if (includeConversation0)
-          for (var message in messages.entries)
-            {
-              'role': message.value['role'],
-              'content': message.value['content'],
-            },
-        if (!includeConversation0)
-          {
-            'role': Role.user.name,
-            'content': messageContent,
-          },
-      ],
-      maxToken: maxLenght,
-      model: selectedModel,
-      temperature: temp,
-      topP: topP,
-      frequencyPenalty: repeatPenalty,
-      presencePenalty: repeatPenalty,
-      stream: true,
-    );
-
-    try {
-      final response = await openAI.onChatCompletion(
-        request: request,
-        onCancel: (cancelData) {
-          cancelToken = cancelData.cancelToken;
-        },
-      );
-      lastTimeAnswer = DateTime.now().toIso8601String();
-      if (response != null) {
-        if (response.choices.isNotEmpty) {
-          messages[lastTimeAnswer] = {
-            'role': Role.assistant.name,
-            'content': response.choices.last.message?.content ?? '...',
-          };
-        } else {
-          log('Retrieved response but no choices');
-        }
-      } else {
-        messages[lastTimeAnswer] = {
-          'role': Role.assistant.name,
-          'content': 'Error: ${response ?? 'No response'}',
-        };
-      }
-    } catch (e) {
-      lastTimeAnswer = DateTime.now().toIso8601String();
-      messages[lastTimeAnswer] = {
-        'role': Role.assistant.name,
-        'content': 'Error: $e',
-      };
-    }
-    isAnswering = false;
-    calcWordsInAllMessages();
-    notifyListeners();
     saveToDisk();
   }
 
   void deleteChat() {
     messages.clear();
     saveToDisk();
-    notifyListeners();
+    notifyRoomsStream();
+  }
+
+  void notifyRoomsStream() {
+    chatRoomsStream.add(chatRooms);
   }
 
   void selectNewModel(ChatModel model) {
@@ -544,7 +468,7 @@ class ChatGPTProvider with ChangeNotifier {
   void selectModelForChat(String chatRoomName, ChatModel model) {
     chatRooms[chatRoomName]!.model = model;
     calcUsageTokens(null);
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
     if (model is LocalChatModel) {
       AppCache.llmUrl.set(model.url);
@@ -572,12 +496,12 @@ class ChatGPTProvider with ChangeNotifier {
       topP: topP,
       maxTokenLength: maxLenght,
       repeatPenalty: repeatPenalty,
-      commandPrefix: defaultSystemMessage,
+      systemMessage: defaultSystemMessage,
     );
     selectedChatRoomName = chatRoomName;
     if (navProvider != null) {
       navProvider.index = chatRooms.length - 1;
-      navProvider.refreshNavItems(this);
+      navProvider.refreshNavItems();
     }
     calcWordsInAllMessages();
     notifyListeners();
@@ -605,12 +529,12 @@ class ChatGPTProvider with ChangeNotifier {
   void deleteAllChatRooms() {
     chatRooms.clear();
     notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
   }
 
   void selectChatRoom(ChatRoom room) {
     selectedChatRoomName = room.chatRoomName;
-    notifyListeners();
     saveToDisk();
   }
 
@@ -638,7 +562,7 @@ class ChatGPTProvider with ChangeNotifier {
       selectedChatRoomName = chatRoom.chatRoomName;
     }
     calcWordsInAllMessages();
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
   }
 
@@ -646,7 +570,7 @@ class ChatGPTProvider with ChangeNotifier {
     messages.clear();
     calcWordsInAllMessages();
     calcUsageTokens(null);
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
   }
 
@@ -657,8 +581,8 @@ class ChatGPTProvider with ChangeNotifier {
       'content':
           'Result: \n${result.trim().isEmpty ? 'Done. No output' : result}',
     });
+    notifyRoomsStream();
     calcWordsInAllMessages();
-    notifyListeners();
     saveToDisk();
     // scroll to bottom
     listItemsScrollController.animateTo(
@@ -668,10 +592,10 @@ class ChatGPTProvider with ChangeNotifier {
     );
   }
 
-  void deleteMessage(DateTime dateTime) {
-    messages.remove(dateTime.toIso8601String());
+  void deleteMessage(String id) {
+    messages.remove(id);
     calcWordsInAllMessages();
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
   }
 
@@ -703,23 +627,23 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
   }
 
-  void toggleSelectMessage(DateTime dateTime) {
-    if (messages[dateTime.toIso8601String()]!['selected'] == 'true') {
-      messages[dateTime.toIso8601String()]!['selected'] = 'false';
-      selectedMessages.remove(dateTime.toIso8601String());
+  void toggleSelectMessage(String id) {
+    if (messages[id]!['selected'] == 'true') {
+      messages[id]!['selected'] = 'false';
+      selectedMessages.remove(id);
       notifyListeners();
       return;
     }
     selectionModeEnabled = true;
-    messages[dateTime.toIso8601String()]!['selected'] = 'true';
-    selectedMessages.add(dateTime.toIso8601String());
+    messages[id]!['selected'] = 'true';
+    selectedMessages.add(id);
     notifyListeners();
   }
 
-  void enableSelectMessage(DateTime dateTime) {
+  void enableSelectMessage(String id) {
     selectionModeEnabled = true;
-    messages[dateTime.toIso8601String()]!['selected'] = 'true';
-    selectedMessages.add(dateTime.toIso8601String());
+    messages[id]!['selected'] = 'true';
+    selectedMessages.add(id);
     notifyListeners();
   }
 
@@ -749,7 +673,7 @@ class ChatGPTProvider with ChangeNotifier {
       'content': message,
     });
     calcWordsInAllMessages();
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
     scrollToEnd();
   }
@@ -761,7 +685,7 @@ class ChatGPTProvider with ChangeNotifier {
       'content': message,
     });
     calcWordsInAllMessages();
-    notifyListeners();
+    notifyRoomsStream();
     saveToDisk();
     scrollToEnd();
   }
@@ -855,6 +779,7 @@ class ChatGPTProvider with ChangeNotifier {
       if (prompt.isEmpty) 'hiddent_content': "What's in this image?",
       'content': prompt,
       'image': base64Image,
+      'created': DateTime.now().toIso8601String(),
     });
     notifyListeners();
     Map<String, String> headers = {

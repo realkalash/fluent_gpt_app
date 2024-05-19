@@ -24,7 +24,8 @@ import 'providers/chat_gpt_provider.dart';
 
 var openAI = OpenAI.instance.build(
   token: 'empty',
-  baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 30)),
+  baseOption:
+      HttpSetup(receiveTimeout: const Duration(seconds: kDebugMode ? 240 : 30)),
   enableLog: true,
 );
 
@@ -34,7 +35,8 @@ void resetOpenAiUrl({String? url, required String token}) {
   if (url != null) {}
   openAI = OpenAI.instance.build(
     token: token,
-    baseOption: HttpSetup(receiveTimeout: const Duration(seconds: 30)),
+    baseOption: HttpSetup(
+        receiveTimeout: const Duration(seconds: kDebugMode ? 240 : 30)),
     enableLog: true,
     apiUrl: url ?? 'https://api.openai.com/v1/',
   );
@@ -223,9 +225,8 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     windowManager.addListener(this);
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      final provider = context.read<ChatGPTProvider>();
       final navigationProvider = context.read<NavigationProvider>();
-      navigationProvider.refreshNavItems(provider);
+      navigationProvider.refreshNavItems();
 
       if (openAI.token == 'empty') {
         showDialog(

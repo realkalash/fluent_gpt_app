@@ -34,25 +34,25 @@ class ShellDriver {
     log('Wrote hello.txt to ${fs.currentDirectory}');
   }
 
-  static Future<String> runShellSearchFileCommand(String command) async {
+  static Future<String> runShellSearchFileCommand(
+      String fileName, Map<String, dynamic> args) async {
     var fs = const LocalFileSystem();
     var shell = Shell();
     var password = Platform.environment['PASSWORD'];
     _isRunningStreamController.add(true);
     String message;
-    // We need to get arguments from the command. Command example: es.exe -n 5 -o 5 "file"
-    final argsString = command.replaceAll('es.exe ', '').trim();
-    final args = argsString.split(' ');
-    final regexQuery = RegExp(r'\"(.*?)\"');
-    final searchQuery = regexQuery.firstMatch(command)?.group(1) ?? '';
     try {
       log('Password from env: $password');
-      log('Running shell command: "$command"');
-      var shellProcess = await shell.start('es.exe', arguments: [
-        for (var i = 0; i < args.length - 1; i++) args[i],
-        searchQuery.replaceAll('"', '')
-      ]);
-      // var shellProcess = await shell.start('es.exe', arguments: ["-n", "5", "-o", "0", 'file1']);
+      final argsList = <String>[];
+      for (var entry in args.entries) {
+        argsList.add('-${entry.key}');
+        argsList.add('${entry.value}');
+      }
+      final argsShell = [...argsList, '$fileName'];
+      print('Running shell command: es.exe $argsShell');
+      var shellProcess = await shell.start('es.exe', arguments: argsShell);
+      // var shellProcess = await shell
+      // .start('es.exe', arguments: ["-n", "5", "-o", "0", 'file1']);
 
       message = await shellProcess.stdout.readAsString();
 

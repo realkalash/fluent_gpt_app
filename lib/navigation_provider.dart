@@ -26,6 +26,15 @@ class NavigationProvider with ChangeNotifier {
   late BuildContext context;
   List<NavigationPaneItem> originalItems = [];
 
+  NavigationProvider() {
+    listenChatRooms();
+  }
+  listenChatRooms() {
+    chatRoomsStream.listen((event) {
+      refreshNavItems();
+    });
+  }
+
   /// onTap will be overridden for each item
   late final originalTopItems = [
     PaneItemHeader(
@@ -37,13 +46,12 @@ class NavigationProvider with ChangeNotifier {
             onPressed: () {
               final provider = context.read<ChatGPTProvider>();
               provider.createNewChatRoom();
-              refreshNavItems(provider);
+              refreshNavItems();
             }),
         IconButton(
             icon: const Icon(FluentIcons.refresh),
             onPressed: () {
-              final provider = context.read<ChatGPTProvider>();
-              refreshNavItems(provider);
+              refreshNavItems();
             })
       ],
     )),
@@ -105,41 +113,14 @@ class NavigationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  int calculateSelectedIndex() {
-    return index;
-
-    /// Old method
-    // final location = GoRouterState.of(context).uri.toString();
-    // int indexOriginal = originalItems
-    //     .where((item) => item.key != null)
-    //     .toList()
-    //     .indexWhere((item) => item.key == Key(location));
-
-    // if (indexOriginal == -1) {
-    //   int indexFooter = footerItems
-    //       .where((element) => element.key != null)
-    //       .toList()
-    //       .indexWhere((element) => element.key == Key(location));
-    //   if (indexFooter == -1) {
-    //     return 0;
-    //   }
-    //   return originalItems
-    //           .where((element) => element.key != null)
-    //           .toList()
-    //           .length +
-    //       indexFooter;
-    // } else {
-    //   return indexOriginal;
-    // }
-  }
+  int calculateSelectedIndex() => index;
 
   void addPaneItem(PaneItem item) {
     originalItems.add(item);
     notifyListeners();
   }
 
-  void refreshNavItems(ChatGPTProvider provider) {
-    final chatRooms = provider.chatRooms;
+  void refreshNavItems() {
     originalItems.clear();
     originalItems.addAll(originalTopItems);
     for (var room in chatRooms.values) {
@@ -153,11 +134,13 @@ class NavigationProvider with ChangeNotifier {
             IconButton(
                 icon: const Icon(FluentIcons.edit),
                 onPressed: () {
+                  final provider = context.read<ChatGPTProvider>();
                   editChatRoomDialog(context, room, provider);
                 }),
             IconButton(
                 icon: const Icon(FluentIcons.delete),
                 onPressed: () {
+                  final provider = context.read<ChatGPTProvider>();
                   provider.deleteChatRoom(room.chatRoomName);
                   originalItems.removeWhere(
                       (element) => element.key == ValueKey(room.chatRoomName));
@@ -167,6 +150,7 @@ class NavigationProvider with ChangeNotifier {
         ),
         body: const ChatRoomPage(),
         onTap: () {
+          final provider = context.read<ChatGPTProvider>();
           var index = originalItems.indexWhere(
               (element) => element.key == ValueKey(room.chatRoomName));
           if (index == -1) {
@@ -186,7 +170,7 @@ class NavigationProvider with ChangeNotifier {
   Future<void> editChatRoomDialog(
       BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
     var roomName = room.chatRoomName;
-    var commandPrefix = room.commandPrefix;
+    var systemMessage = room.systemMessage;
     var maxLength = room.maxTokenLength;
     var token = room.token;
     var orgID = room.orgID;
@@ -194,6 +178,7 @@ class NavigationProvider with ChangeNotifier {
       context: context,
       builder: (ctx) => ContentDialog(
         title: const Text('Edit chat room'),
+        constraints: const BoxConstraints(maxWidth: 800),
         actions: [
           Button(
             onPressed: () {
@@ -201,14 +186,14 @@ class NavigationProvider with ChangeNotifier {
                   room.chatRoomName,
                   room.copyWith(
                     chatRoomName: roomName,
-                    commandPrefix: commandPrefix,
+                    commandPrefix: systemMessage,
                     maxLength: maxLength,
                     token: token,
                     orgID: orgID,
                   ));
               Navigator.of(ctx).pop();
 
-              refreshNavItems(provider);
+              refreshNavItems();
             },
             child: const Text('Save'),
           ),
@@ -219,8 +204,9 @@ class NavigationProvider with ChangeNotifier {
             child: const Text('Cancel'),
           ),
         ],
-        content: ListView(
-          shrinkWrap: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Chat room name'),
             TextBox(
@@ -229,11 +215,13 @@ class NavigationProvider with ChangeNotifier {
                 roomName = value;
               },
             ),
-            const Text('Command prefix'),
+            const Text('System message'),
             TextBox(
-              controller: TextEditingController(text: room.commandPrefix),
+              controller: TextEditingController(text: room.systemMessage),
+              maxLines: 30,
+              minLines: 3,
               onChanged: (value) {
-                commandPrefix = value;
+                systemMessage = value;
               },
             ),
             const Text('Model'),

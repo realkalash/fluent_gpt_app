@@ -25,9 +25,9 @@ class ChatRoom {
         return '*' * match.group(0)!.length;
       });
 
-  /// <DateTime, <key, value>>
+  /// <chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2, <key, value>>
   Map<String, Map<String, String>> messages;
-  String? commandPrefix;
+  String? systemMessage;
 
   ChatRoom({
     required this.chatRoomName,
@@ -42,7 +42,7 @@ class ChatRoom {
     required this.repeatPenalty,
     required this.token,
     this.orgID,
-    this.commandPrefix,
+    this.systemMessage,
     this.costUSD,
     this.tokens,
   });
@@ -72,7 +72,7 @@ class ChatRoom {
         repeatPenalty = map['repeatPenalty'],
         token = map['token'],
         orgID = map['orgID'],
-        commandPrefix = map['commandPrefix'],
+        systemMessage = map['commandPrefix'],
         costUSD = map['costUSD'],
         tokens = map['tokens'],
         messages = (map['messages'] as Map).map(
@@ -94,7 +94,7 @@ class ChatRoom {
         'repeatPenalty': repeatPenalty,
         'token': token,
         'orgID': orgID,
-        'commandPrefix': commandPrefix,
+        'commandPrefix': systemMessage,
         'costUSD': costUSD,
         'tokens': tokens,
       };
@@ -129,7 +129,7 @@ class ChatRoom {
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
       token: token ?? this.token,
       orgID: orgID ?? this.orgID,
-      commandPrefix: commandPrefix ?? this.commandPrefix,
+      systemMessage: commandPrefix ?? this.systemMessage,
       costUSD: costUSD ?? this.costUSD,
       tokens: tokens ?? this.tokens,
     );

@@ -114,9 +114,14 @@ class _InputFieldState extends State<InputField> {
                 // Button(
                 //     child: const Text('Search test'),
                 //     onPressed: () async {
-                //       final result = await ShellDriver.runShellCommand(
-                //           'es.exe -n 5 -o 0 "file1 -"');
-                //       chatProvider.sendResultOfRunningShellCode(result);
+                //       chatProvider
+                //           .sendMessage('Can you search for file named "1.png?');
+                //     }),
+                // Button(
+                //     child: const Text('Weather test'),
+                //     onPressed: () async {
+                //       chatProvider.sendMessage(
+                //           'Get the current weather in a San Francisco');
                 //     }),
                 if (chatProvider.fileInput == null)
                   SizedBox.square(
@@ -213,13 +218,11 @@ class _InputFieldState extends State<InputField> {
                     autofocus: true,
                     autocorrect: true,
                     focusNode: promptTextFocusNode,
-                    prefix: (chatProvider.selectedChatRoom.commandPrefix ==
-                                null ||
-                            chatProvider.selectedChatRoom.commandPrefix == '')
+                    prefix: (selectedChatRoom.systemMessage == null ||
+                            selectedChatRoom.systemMessage == '')
                         ? null
                         : Tooltip(
-                            message:
-                                chatProvider.selectedChatRoom.commandPrefix,
+                            message: selectedChatRoom.systemMessage,
                             child: const Card(
                                 margin: EdgeInsets.all(4),
                                 padding: EdgeInsets.all(4),

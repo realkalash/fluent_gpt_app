@@ -1,3 +1,4 @@
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
@@ -49,64 +50,69 @@ class ModelChooserCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ChatGPTProvider>();
-    final selectedModel = provider.selectedModel.model;
-    final currentChat = provider.selectedChatRoomName;
-    bool isGPT4O = selectedModel == 'gpt-4o';
-    bool isGPT4 = selectedModel == 'gpt-4';
-    bool isGPT3_5 = selectedModel == 'gpt-3.5-turbo';
-    bool isLocal = selectedModel == 'local';
-    return SizedBox(
-      width: 400,
-      height: 50,
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () =>
-                  provider.selectModelForChat(currentChat, GPT4OModel()),
-              child: Card(
-                backgroundColor: applyOpacityIfSelected(isGPT4O, Colors.blue),
-                child: const Text('GPT-4o',
-                    style: textStyle, textAlign: TextAlign.center),
-              ),
+    final provider = context.read<ChatGPTProvider>();
+    return StreamBuilder<Map<String, ChatRoom>>(
+        stream: chatRoomsStream,
+        builder: (context, snapshot) {
+          final currentChat = selectedChatRoomName;
+          bool isGPT4O = selectedModel.model == 'gpt-4o';
+          bool isGPT4 = selectedModel.model == 'gpt-4';
+          bool isGPT3_5 = selectedModel.model == 'gpt-3.5-turbo';
+          bool isLocal = selectedModel.model == 'local';
+          return SizedBox(
+            width: 400,
+            height: 50,
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () =>
+                        provider.selectModelForChat(currentChat, GPT4OModel()),
+                    child: Card(
+                      backgroundColor:
+                          applyOpacityIfSelected(isGPT4O, Colors.blue),
+                      child: const Text('GPT-4o',
+                          style: textStyle, textAlign: TextAlign.center),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      provider.selectModelForChat(currentChat, Gpt4ChatModel());
+                    },
+                    child: Card(
+                        backgroundColor:
+                            applyOpacityIfSelected(isGPT4, Colors.yellow),
+                        child: const Text('GPT-4',
+                            style: textStyle, textAlign: TextAlign.center)),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => provider.selectModelForChat(
+                        currentChat, GptTurboChatModel()),
+                    child: Card(
+                        backgroundColor:
+                            applyOpacityIfSelected(isGPT3_5, Colors.green),
+                        child: const Text('GPT-3.5',
+                            style: textStyle, textAlign: TextAlign.center)),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => provider.selectModelForChat(
+                      currentChat, LocalChatModel()),
+                  child: Card(
+                    backgroundColor:
+                        applyOpacityIfSelected(isLocal, Colors.purple),
+                    child: const Text('Local',
+                        style: textStyle, textAlign: TextAlign.center),
+                  ),
+                ),
+              ],
             ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                provider.selectModelForChat(currentChat, Gpt4ChatModel());
-              },
-              child: Card(
-                  backgroundColor:
-                      applyOpacityIfSelected(isGPT4, Colors.yellow),
-                  child: const Text('GPT-4',
-                      style: textStyle, textAlign: TextAlign.center)),
-            ),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () =>
-                  provider.selectModelForChat(currentChat, GptTurboChatModel()),
-              child: Card(
-                  backgroundColor:
-                      applyOpacityIfSelected(isGPT3_5, Colors.green),
-                  child: const Text('GPT-3.5',
-                      style: textStyle, textAlign: TextAlign.center)),
-            ),
-          ),
-          GestureDetector(
-            onTap: () =>
-                provider.selectModelForChat(currentChat, LocalChatModel()),
-            child: Card(
-              backgroundColor: applyOpacityIfSelected(isLocal, Colors.purple),
-              child: const Text('Local',
-                  style: textStyle, textAlign: TextAlign.center),
-            ),
-          ),
-        ],
-      ),
-    );
+          );
+        });
   }
 }
 
@@ -116,7 +122,7 @@ class PageHeaderText extends StatelessWidget {
   Future<void> editChatRoomDialog(
       BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
     var roomName = room.chatRoomName;
-    var commandPrefix = room.commandPrefix;
+    var commandPrefix = room.systemMessage;
     var maxLength = room.maxTokenLength;
     var token = room.token;
     var orgID = room.orgID;
@@ -161,7 +167,7 @@ class PageHeaderText extends StatelessWidget {
             ),
             const Text('Command prefix'),
             TextBox(
-              controller: TextEditingController(text: room.commandPrefix),
+              controller: TextEditingController(text: room.systemMessage),
               onChanged: (value) {
                 commandPrefix = value;
               },
@@ -198,12 +204,12 @@ class PageHeaderText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatGPTProvider>();
-    final selectedRoom = chatProvider.selectedChatRoomName;
+    final selectedRoom = selectedChatRoomName;
     return Column(
       children: [
         GestureDetector(
           onTap: () => editChatRoomDialog(
-              context, chatProvider.chatRooms[selectedRoom]!, chatProvider),
+              context, chatRooms[selectedRoom]!, chatProvider),
           child: Text(selectedRoom, maxLines: 2),
         ),
         const ModelChooserCards(),
@@ -218,11 +224,9 @@ class PageHeaderText extends StatelessWidget {
                         fontSize: 12, fontWeight: FontWeight.normal),
                   ),
                   HyperlinkButton(
-                    onPressed: () {
-                      showCostCalculatorDialog(context, chatProvider);
-                    },
+                    onPressed: () => showCostCalculatorDialog(context),
                     child: Text(
-                      ' Tokens: ${chatProvider.selectedChatRoom.tokens ?? 0} | ${(chatProvider.selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
+                      ' Tokens: ${selectedChatRoom.tokens ?? 0} | ${(selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
                       style: const TextStyle(fontSize: 12),
                     ),
                   )
@@ -250,9 +254,8 @@ class PageHeaderText extends StatelessWidget {
     );
   }
 
-  void showCostCalculatorDialog(
-      BuildContext context, ChatGPTProvider chatProvider) {
-    final tokens = chatProvider.selectedChatRoom.tokens ?? 0;
+  void showCostCalculatorDialog(BuildContext context) {
+    final tokens = selectedChatRoom.tokens ?? 0;
     showDialog(
       context: context,
       builder: (context) => CostDialog(tokens: tokens),
@@ -275,6 +278,28 @@ class IncludeConversationSwitcher extends StatelessWidget {
             onChanged: (v) {
               chatProvider.setIncludeWholeConversation(v);
             }),
+        FlyoutListTile(
+          text: const Icon(FluentIcons.search_data),
+          tooltip: 'Tool Search files',
+          trailing: Checkbox(
+            checked: AppCache.gptToolSearchEnabled.value!,
+            onChanged: (value) {
+              AppCache.gptToolSearchEnabled.value = value;
+              chatProvider.notifyListeners();
+            },
+          ),
+        ),
+        FlyoutListTile(
+          text: const Icon(FluentIcons.python_language),
+          tooltip: 'Tool Python code execution',
+          trailing: Checkbox(
+            checked: AppCache.gptToolPythonEnabled.value!,
+            onChanged: (value) {
+              AppCache.gptToolPythonEnabled.value = value;
+              chatProvider.notifyListeners();
+            },
+          ),
+        ),
       ],
     );
   }
@@ -314,22 +339,26 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
         Column(
           children: <Widget>[
             Expanded(
-              child: ListView.builder(
-                controller: chatProvider.listItemsScrollController,
-                itemCount: chatProvider.messages.entries.length,
-                itemBuilder: (context, index) {
-                  final message =
-                      chatProvider.messages.entries.elementAt(index).value;
-                  final dateTimeRaw =
-                      chatProvider.messages.entries.elementAt(index).key;
-                  final DateTime dateTime = DateTime.parse(dateTimeRaw);
-                  return MessageCard(
-                    message: message,
-                    dateTime: dateTime,
-                    selectionMode: chatProvider.selectionModeEnabled,
-                  );
-                },
-              ),
+              child: StreamBuilder(
+                  stream: chatRoomsStream,
+                  builder: (context, snapshot) {
+                    return ListView.builder(
+                      controller: chatProvider.listItemsScrollController,
+                      itemCount: messages.entries.length,
+                      itemBuilder: (context, index) {
+                        final message = messages.entries.elementAt(index).value;
+                        final dateTimeRaw =
+                            messages.entries.elementAt(index).value['created'];
+
+                        return MessageCard(
+                          id: messages.entries.elementAt(index).key,
+                          message: message,
+                          dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
+                          selectionMode: chatProvider.selectionModeEnabled,
+                        );
+                      },
+                    );
+                  }),
             ),
             const HotShurtcutsWidget(),
             const InputField()
@@ -402,11 +431,13 @@ class MessageCard extends StatefulWidget {
   const MessageCard(
       {super.key,
       required this.message,
-      required this.dateTime,
-      required this.selectionMode});
+      this.dateTime,
+      required this.selectionMode,
+      required this.id});
   final Map<String, String> message;
-  final DateTime dateTime;
+  final DateTime? dateTime;
   final bool selectionMode;
+  final String id;
 
   @override
   State<MessageCard> createState() => _MessageCardState();
@@ -423,7 +454,9 @@ class _MessageCardState extends State<MessageCard> {
 
   @override
   Widget build(BuildContext context) {
-    final formatDateTime = DateFormat('HH:mm:ss').format(widget.dateTime);
+    final formatDateTime = widget.dateTime == null
+        ? ''
+        : DateFormat('HH:mm:ss').format(widget.dateTime!);
     final appTheme = context.read<AppTheme>();
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     final botMessageStyle = TextStyle(color: Colors.green, fontSize: 14);
@@ -432,7 +465,7 @@ class _MessageCardState extends State<MessageCard> {
         ? Checkbox(
             onChanged: (v) {
               final provider = context.read<ChatGPTProvider>();
-              provider.toggleSelectMessage(widget.dateTime);
+              provider.toggleSelectMessage(widget.id);
             },
             checked: widget.message['selected'] == 'true',
           )
@@ -443,7 +476,7 @@ class _MessageCardState extends State<MessageCard> {
         contentPadding: EdgeInsets.zero,
         onPressed: () {
           final provider = context.read<ChatGPTProvider>();
-          provider.toggleSelectMessage(widget.dateTime);
+          provider.toggleSelectMessage(widget.id);
         },
         title: Row(
           children: [
@@ -498,7 +531,7 @@ class _MessageCardState extends State<MessageCard> {
         leading: leading,
         onPressed: () {
           final provider = context.read<ChatGPTProvider>();
-          provider.toggleSelectMessage(widget.dateTime);
+          provider.toggleSelectMessage(widget.id);
         },
         contentPadding: EdgeInsets.zero,
         title: Row(
@@ -555,7 +588,7 @@ class _MessageCardState extends State<MessageCard> {
                         Button(
                           onPressed: () {
                             Navigator.of(context).maybePop();
-                            provider.toggleSelectMessage(widget.dateTime);
+                            provider.toggleSelectMessage(widget.id);
                           },
                           child: const Text('Select'),
                         ),
@@ -577,7 +610,7 @@ class _MessageCardState extends State<MessageCard> {
                               if (provider.selectionModeEnabled) {
                                 provider.deleteSelectedMessages();
                               } else {
-                                provider.deleteMessage(widget.dateTime);
+                                provider.deleteMessage(widget.id);
                               }
                             },
                             style: ButtonStyle(
@@ -858,14 +891,6 @@ class RunCodeButton extends StatelessWidget {
                 final command = match?.group(1);
                 if (command != null) {
                   final result = await ShellDriver.runPythonCode(command);
-                  provider.sendResultOfRunningShellCode(result);
-                }
-              } else if (everythingSearchCommandRegex.hasMatch(code)) {
-                final match = everythingSearchCommandRegex.firstMatch(code);
-                final command = match?.group(1);
-                if (command != null) {
-                  final result =
-                      await ShellDriver.runShellSearchFileCommand(command);
                   provider.sendResultOfRunningShellCode(result);
                 }
               }

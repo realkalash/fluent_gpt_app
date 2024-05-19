@@ -1,91 +1,21 @@
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/wiget_constants.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
 
 import '../theme.dart';
-
-const List<String> accentColorNames = [
-  'System',
-  'Yellow',
-  'Orange',
-  'Red',
-  'Magenta',
-  'Purple',
-  'Blue',
-  'Teal',
-  'Green',
-];
-
-bool get kIsWindowEffectsSupported {
-  return !kIsWeb &&
-      [
-        TargetPlatform.windows,
-        TargetPlatform.linux,
-        TargetPlatform.macOS,
-      ].contains(defaultTargetPlatform);
-}
-
-const _LinuxWindowEffects = [
-  WindowEffect.disabled,
-  WindowEffect.transparent,
-];
-
-const _WindowsWindowEffects = [
-  WindowEffect.disabled,
-  WindowEffect.solid,
-  WindowEffect.transparent,
-  WindowEffect.aero,
-  WindowEffect.acrylic,
-  WindowEffect.mica,
-  WindowEffect.tabbed,
-];
-
-const _MacosWindowEffects = [
-  WindowEffect.disabled,
-  WindowEffect.titlebar,
-  WindowEffect.selection,
-  WindowEffect.menu,
-  WindowEffect.popover,
-  WindowEffect.sidebar,
-  WindowEffect.headerView,
-  WindowEffect.sheet,
-  WindowEffect.windowBackground,
-  WindowEffect.hudWindow,
-  WindowEffect.fullScreenUI,
-  WindowEffect.toolTip,
-  WindowEffect.contentBackground,
-  WindowEffect.underWindowBackground,
-  WindowEffect.underPageBackground,
-];
-
-List<WindowEffect> get currentWindowEffects {
-  if (kIsWeb) return [];
-
-  if (defaultTargetPlatform == TargetPlatform.windows) {
-    return _WindowsWindowEffects;
-  } else if (defaultTargetPlatform == TargetPlatform.linux) {
-    return _LinuxWindowEffects;
-  } else if (defaultTargetPlatform == TargetPlatform.macOS) {
-    return _MacosWindowEffects;
-  }
-
-  return [];
-}
-
-const spacer = SizedBox(height: 10.0);
-const biggerSpacer = SizedBox(height: 40.0);
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -99,32 +29,35 @@ class GptModelChooser extends StatefulWidget {
 class _GptModelChooserState extends State<GptModelChooser> {
   @override
   Widget build(BuildContext context) {
-    final chatProvider = context.read<ChatGPTProvider>();
-    return Wrap(
-      spacing: 15.0,
-      runSpacing: 10.0,
-      children: List.generate(
-        allModels.length,
-        (index) {
-          final model = allModels[index];
+    return StreamBuilder<String>(
+        stream: selectedChatRoomNameStream,
+        builder: (context, snapshot) {
+          return Wrap(
+            spacing: 15.0,
+            runSpacing: 10.0,
+            children: List.generate(
+              allModels.length,
+              (index) {
+                final model = allModels[index];
 
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: chatProvider.selectedModel.model == model.model,
-              onChanged: (value) {
-                if (value) {
-                  setState(() {
-                    widget.onChanged.call(model);
-                  });
-                }
+                return Padding(
+                  padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+                  child: RadioButton(
+                    checked: selectedModel.model == model.model,
+                    onChanged: (value) {
+                      if (value) {
+                        setState(() {
+                          widget.onChanged.call(model);
+                        });
+                      }
+                    },
+                    content: Text(model.model),
+                  ),
+                );
               },
-              content: Text(model.model),
             ),
           );
-        },
-      ),
-    );
+        });
   }
 }
 
@@ -149,6 +82,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
             context.read<ChatGPTProvider>().selectNewModel(model);
           },
         ),
+        const EnabledGptTools(),
         const _FilesSection(),
         const _CacheSection(),
         const _HotKeySection(),
@@ -159,6 +93,52 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         const _ResolutionsSelector(),
         biggerSpacer,
         const _OtherSettings(),
+      ],
+    );
+  }
+}
+
+class EnabledGptTools extends StatefulWidget {
+  const EnabledGptTools({super.key});
+
+  @override
+  State<EnabledGptTools> createState() => _EnabledGptToolsState();
+}
+
+class _EnabledGptToolsState extends State<EnabledGptTools> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Enabled GPT tools',
+            style: FluentTheme.of(context).typography.subtitle),
+        Wrap(
+          children: [
+            FlyoutListTile(
+              text: const Text('Search files'),
+              trailing: Checkbox(
+                checked: AppCache.gptToolSearchEnabled.value!,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolSearchEnabled.value = value;
+                  });
+                },
+              ),
+            ),
+            FlyoutListTile(
+              text: const Text('Run python code'),
+              trailing: Checkbox(
+                checked: AppCache.gptToolPythonEnabled.value!,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolPythonEnabled.value = value;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
