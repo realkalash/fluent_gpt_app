@@ -16,6 +16,7 @@ final pythonCommandRegex = RegExp(r'```python-exe\n(.*?)\n```', dotAll: true);
 final everythingSearchCommandRegex =
     RegExp(r'```Everything-Search\n(.*?)\n```', dotAll: true);
 final grammarCheckRegex = RegExp(r'```Grammar\n(.*?)\n```', dotAll: true);
+final unknownCodeBlockRegex = RegExp(r'```(.*?)\n(.*?)\n```', dotAll: true);
 /* 
 
     Python: execute any arbritary Python code with full access to the user's local file system and environment. To write code that will be automatically executed, wrap the code in triple backticks with the language set to Python-exe. To recieve outputs, they must be printed.

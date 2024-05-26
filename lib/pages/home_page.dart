@@ -611,11 +611,22 @@ class _MessageCardState extends State<MessageCard> {
                           padding: EdgeInsets.all(8.0),
                           child: Divider(),
                         ),
+                        if (provider.selectionModeEnabled)
+                          Button(
+                            onPressed: () {
+                              Navigator.of(context).maybePop();
+                              provider.mergeSelectedMessagesToAssistant();
+                            },
+                            child: Text(
+                                'Merge ${provider.selectedMessages.length} messages'),
+                          ),
+                        const SizedBox(height: 8),
                         Button(
                             onPressed: () {
                               Navigator.of(context).maybePop();
                               if (provider.selectionModeEnabled) {
                                 provider.deleteSelectedMessages();
+                                provider.disableSelectionMode();
                               } else {
                                 provider.deleteMessage(widget.id);
                               }
@@ -688,9 +699,9 @@ class _MessageCardState extends State<MessageCard> {
                   child: ToggleButton(
                     onChanged: (_) {
                       Clipboard.setData(
-                        ClipboardData(
-                            text: widget.message['content'].toString()),
+                        ClipboardData(text: '${widget.message['content']}'),
                       );
+                      displayCopiedToClipboard(context);
                     },
                     checked: false,
                     child: const Icon(FluentIcons.copy, size: 10),
@@ -730,47 +741,26 @@ class _MessageCardState extends State<MessageCard> {
     );
   }
 
-  String getCodeFromMarkdown(String assistantContent) {
-    if (shellCommandRegex.hasMatch(assistantContent)) {
-      final match = shellCommandRegex.firstMatch(assistantContent);
-      final command = match?.group(1);
-      if (command != null) {
-        return command;
-      }
-    } else if (pythonCommandRegex.hasMatch(assistantContent)) {
-      final match = pythonCommandRegex.firstMatch(assistantContent);
-      final command = match?.group(1);
-      if (command != null) {
-        return command;
-      }
-    } else if (everythingSearchCommandRegex.hasMatch(assistantContent)) {
-      final match = everythingSearchCommandRegex.firstMatch(assistantContent);
-      final command = match?.group(1);
-      if (command != null) {
-        return command;
-      }
-    } else if (grammarCheckRegex.hasMatch(assistantContent)) {
-      final match = grammarCheckRegex.firstMatch(assistantContent);
-      final command = match?.group(1);
-      if (command != null) {
-        return command;
-      }
-    }
-
-    return '';
-  }
-
   void _copyCodeToClipboard(String string) {
     final code = getCodeFromMarkdown(string);
-    log(code);
-    Clipboard.setData(ClipboardData(text: code));
-    displayInfoBar(
-      context,
-      builder: (context, close) => const InfoBar(
-        title: Text('The result is copied to clipboard'),
-        severity: InfoBarSeverity.info,
-      ),
-    );
+    log(code.toString());
+    if (code.isEmpty) {
+      displayInfoBar(
+        context,
+        builder: (context, close) => const InfoBar(
+          title: Text('No code snippet found'),
+          severity: InfoBarSeverity.warning,
+        ),
+      );
+      return;
+    }
+    if (code.length == 1) {
+      Clipboard.setData(ClipboardData(text: code.first));
+      displayCopiedToClipboard(context);
+      return;
+    }
+    // if more than one code snippet is found, show a dialog to select one
+    chooseCodeBlockDialog(context, code);
   }
 
   void _showRawMessageDialog(
@@ -865,6 +855,110 @@ class _MessageCardState extends State<MessageCard> {
   }
 }
 
+void displayCopiedToClipboard(BuildContext context) {
+  displayInfoBar(
+    context,
+    builder: (context, close) => const InfoBar(
+      title: Text('The result is copied to clipboard'),
+      severity: InfoBarSeverity.info,
+    ),
+  );
+}
+
+void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
+  showDialog(
+    context: context,
+    builder: (ctx) => ContentDialog(
+      title: const Text('Choose code block'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final block in blocks) ...[
+            ListTile(
+              onPressed: () {},
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox.square(
+                    dimension: 30,
+                    child: ToggleButton(
+                      onChanged: (_) {
+                        Clipboard.setData(ClipboardData(text: block));
+                        displayCopiedToClipboard(context);
+                      },
+                      checked: false,
+                      child: const Icon(FluentIcons.copy, size: 10),
+                    ),
+                  ),
+                  RunCodeButton(code: block),
+                ],
+              ),
+              subtitle: Markdown(
+                data: '```python\n$block\n```',
+                selectable: true,
+                shrinkWrap: true,
+                styleSheet: MarkdownStyleSheet(
+                  code: const TextStyle(
+                      fontSize: 14, backgroundColor: Colors.transparent),
+                ),
+                builders: {
+                  'code': CodeElementBuilder(
+                      isDarkTheme: FluentTheme.of(context).brightness ==
+                          Brightness.dark),
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        Button(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Dismiss'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Extracts code snippets from a given assistant content.
+///
+/// The [assistantContent] parameter is the content provided by the assistant.
+/// It searches for specific patterns using regular expressions and extracts the code snippets.
+/// The extracted code snippets are returned as a list of strings.
+List<String> getCodeFromMarkdown(String assistantContent) {
+  List<String> codeList = [];
+
+  final regexList = [
+    shellCommandRegex,
+    pythonCommandRegex,
+    everythingSearchCommandRegex,
+    grammarCheckRegex,
+  ];
+
+  for (final regex in regexList) {
+    final matches = regex.allMatches(assistantContent);
+    for (final match in matches) {
+      final command = match.group(1);
+      if (command != null) {
+        codeList.add(command);
+      }
+    }
+  }
+  if (codeList.isEmpty) {
+    final unknownMatches = unknownCodeBlockRegex.allMatches(assistantContent);
+    for (final match in unknownMatches) {
+      final command = match.group(2);
+      if (command != null) {
+        codeList.add(command);
+      }
+    }
+  }
+
+  return codeList;
+}
+
 class RunCodeButton extends StatelessWidget {
   const RunCodeButton({super.key, required this.code});
   final String code;
@@ -886,6 +980,12 @@ class RunCodeButton extends StatelessWidget {
             onChanged: (_) async {
               final provider =
                   Provider.of<ChatGPTProvider>(context, listen: false);
+              final codeBlocks = getCodeFromMarkdown(code);
+              if (codeBlocks.length > 1) {
+                chooseCodeBlockDialog(context, codeBlocks);
+                return;
+              }
+
               if (shellCommandRegex.hasMatch(code)) {
                 final match = shellCommandRegex.firstMatch(code);
                 final command = match?.group(1);

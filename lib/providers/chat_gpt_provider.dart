@@ -290,11 +290,15 @@ class ChatGPTProvider with ChangeNotifier {
 
     Map<String, dynamic>? toolResponseJson;
     String? toolResponseArgsString;
-
+    String responseMessage = '';
     stream.listen(
       (event) {
-        if (event.choices?.isEmpty == true) return;
-        log('Received response: ${event.toJson()}');
+        if (event.choices?.isEmpty == true) {
+          log('Received empty response');
+          return;
+        }
+        responseMessage += event.choices!.last.message?.content ?? '';
+        // log('Received response: ${event.toJson()}');
         final choice = event.choices!.last;
         if (choice.finishReason == 'tool_calls') {
           toolResponseJson?['function']['arguments'] = toolResponseArgsString;
@@ -312,11 +316,6 @@ class ChatGPTProvider with ChangeNotifier {
             event,
           );
         } else {
-          final lastBotMessage = messages[event.id];
-          final appendedText = lastBotMessage != null
-              ? '${lastBotMessage['content']}${choice.message?.content ?? ' '}'
-              : choice.message?.content ?? ' ';
-
           if (choice.message!.toolCalls?.isNotEmpty == true) {
             final tools = choice.message!.toolCalls!;
 
@@ -330,7 +329,7 @@ class ChatGPTProvider with ChangeNotifier {
 
             return;
           }
-          addBotMessageToList(appendedText, event.id);
+          addBotMessageToList(responseMessage, event.id);
         }
       },
       onError: (e, stack) {
@@ -695,18 +694,6 @@ class ChatGPTProvider with ChangeNotifier {
     scrollToEnd();
   }
 
-  void addMessageAssistant(String message) {
-    lastTimeAnswer = DateTime.now().toIso8601String();
-    messages[lastTimeAnswer] = ({
-      'role': Role.assistant.name,
-      'content': message,
-    });
-    calcWordsInAllMessages();
-    notifyRoomsStream();
-    saveToDisk();
-    scrollToEnd();
-  }
-
   void setIncludeWholeConversation(bool v) {
     includeConversationGlobal = v;
     notifyListeners();
@@ -838,7 +825,7 @@ class ChatGPTProvider with ChangeNotifier {
         if (message != null) {
           final content = message['content'];
           if (content != null) {
-            addMessageAssistant(content);
+            addBotMessageToList(content);
           }
         }
       }
@@ -894,5 +881,34 @@ class ChatGPTProvider with ChangeNotifier {
       selectedChatRoom.tokens ?? 0,
       modelName,
     );
+  }
+
+  void mergeSelectedMessagesToAssistant() {
+    final selected = messages.entries
+        .where((element) {
+          return element.value['selected'] == 'true';
+        })
+        .map((e) => e.key)
+        .toList();
+    String lastId = '';
+    // merge selected messages to one
+    final mergedContent = selected.map((e) {
+      final message = messages[e];
+      return message!['content'];
+    }).join('\n');
+
+    // remove selected messages from original list
+    for (var id in selected) {
+      final message = messages[id];
+      if (message != null) {
+        messages.remove(id);
+        selectedMessages.remove(id);
+        lastId = id;
+      }
+    }
+    // add merged message to the list
+    addBotMessageToList(mergedContent, lastId);
+    selectionModeEnabled = false;
+    notifyListeners();
   }
 }

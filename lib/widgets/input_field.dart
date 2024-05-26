@@ -117,23 +117,12 @@ class _InputFieldState extends State<InputField> {
                 //       chatProvider
                 //           .sendMessage('Can you search for file named "1.png?');
                 //     }),
-                // Button(
-                //     child: const Text('Weather test'),
-                //     onPressed: () async {
-                //       chatProvider.sendMessage(
-                //           'Get the current weather in a San Francisco');
-                //     }),
+
                 if (chatProvider.fileInput == null)
                   SizedBox.square(
                     dimension: 48,
                     child: IconButton(
                       onPressed: () async {
-                        /// if we don't have oneDrive api yet, show the dialog
-                        // if (prefs?.getString('oneDriveRedirectURL') == null ||
-                        //     prefs?.getString('oneDriveClientID') == null) {
-                        //   _showOneDriveDialog(context);
-                        //   return;
-                        // }
                         FilePickerResult? result =
                             await FilePicker.platform.pickFiles();
                         if (result != null && result.files.isNotEmpty) {
