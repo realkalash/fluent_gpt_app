@@ -291,8 +291,8 @@ class ChatGPTProvider with ChangeNotifier {
     Map<String, dynamic>? toolResponseJson;
     String? toolResponseArgsString;
 
-    try {
-      stream.listen((event) {
+    stream.listen(
+      (event) {
         if (event.choices?.isEmpty == true) return;
         log('Received response: ${event.toJson()}');
         final choice = event.choices!.last;
@@ -332,20 +332,27 @@ class ChatGPTProvider with ChangeNotifier {
           }
           addBotMessageToList(appendedText, event.id);
         }
-      });
-    } catch (e) {
-      isAnswering = false;
-      if (e is OpenAIServerError) {
-        if (e.code == 500) {
-          return;
-        }
+      },
+      onError: (e, stack) {
+        isAnswering = false;
+        String message = 'unknown error';
         lastTimeAnswer = DateTime.now().toIso8601String();
-        addBotMessageToList(
-            'Error response: Code: ${e.code}. Message: ${e.data?.message}');
-      } else {
-        addBotMessageToList('Error response: $e');
-      }
-    }
+        if (e is OpenAIServerError) {
+          message = 'Server error: ${e.data?.message}. Code: ${e.code}';
+        } else if (e is OpenAIAuthError) {
+          message = 'Authentication error: ${e.data?.message}. Code: ${e.code}';
+        } else if (e is OpenAIRateLimitError) {
+          message = 'Rate limit error: ${e.data?.message}. Code: ${e.code}';
+        } else if (e is RequestError) {
+          message = 'Request error: ${e.data?.message}. Code: ${e.code}';
+        } else if (e is Exception) {
+          message = 'Exception: $e';
+        }
+        addBotErrorMessageToList('Error response: $message');
+      },
+      cancelOnError: true,
+    );
+
     fileInput = null;
     calcWordsInAllMessages();
     notifyListeners();
@@ -357,6 +364,16 @@ class ChatGPTProvider with ChangeNotifier {
       'role': Role.assistant.name,
       'content': appendedText,
       'created': DateTime.now().toIso8601String(),
+    };
+    chatRoomsStream.add(chatRooms);
+  }
+
+  void addBotErrorMessageToList(String appendedText, [String? id]) {
+    messages[id ?? lastTimeAnswer] = {
+      'role': Role.assistant.name,
+      'content': appendedText,
+      'created': DateTime.now().toIso8601String(),
+      'error': 'true',
     };
     chatRoomsStream.add(chatRooms);
   }

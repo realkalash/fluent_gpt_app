@@ -355,6 +355,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           message: message,
                           dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
                           selectionMode: chatProvider.selectionModeEnabled,
+                          isError: message['error'] == 'true',
                         );
                       },
                     );
@@ -428,16 +429,19 @@ class __ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
 }
 
 class MessageCard extends StatefulWidget {
-  const MessageCard(
-      {super.key,
-      required this.message,
-      this.dateTime,
-      required this.selectionMode,
-      required this.id});
+  const MessageCard({
+    super.key,
+    required this.message,
+    this.dateTime,
+    required this.selectionMode,
+    required this.id,
+    required this.isError,
+  });
   final Map<String, String> message;
   final DateTime? dateTime;
   final bool selectionMode;
   final String id;
+  final bool isError;
 
   @override
   State<MessageCard> createState() => _MessageCardState();
@@ -529,6 +533,9 @@ class _MessageCardState extends State<MessageCard> {
     } else {
       tileWidget = ListTile(
         leading: leading,
+        tileColor: widget.isError
+            ? ButtonState.all(Colors.red.withOpacity(0.2))
+            : null,
         onPressed: () {
           final provider = context.read<ChatGPTProvider>();
           provider.toggleSelectMessage(widget.id);
