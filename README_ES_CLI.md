@@ -1,6 +1,6 @@
 ### Interface for Everything search engine
 
-Downloaded from https://www.voidtools.com/support/everything/command_line_interface/
+Source: https://www.voidtools.com/support/everything/command_line_interface/
 
 #### Usage
 ```
@@ -26,21 +26,17 @@ Match case.
 -whole-words
 Match whole words.
 
-
 -p
 -match-path
 Match full path and file name.
-
 
 -h
 -help
 Display this help.
 
-
 -o <offset>
 -offset <offset>
 Show results starting from the zero based offset.
-
 
 -n <num>
 -max-results <num>

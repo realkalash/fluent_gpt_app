@@ -272,12 +272,16 @@ class IncludeConversationSwitcher extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const Text('Include conversation', style: TextStyle(fontSize: 12)),
-        ToggleSwitch(
+        FlyoutListTile(
+          text: const Icon(FluentIcons.full_history),
+          tooltip: 'Include conversation',
+          trailing: Checkbox(
             checked: chatProvider.includeConversationGlobal,
-            onChanged: (v) {
-              chatProvider.setIncludeWholeConversation(v);
-            }),
+            onChanged: (value) {
+              chatProvider.setIncludeWholeConversation(value ?? false);
+            },
+          ),
+        ),
         FlyoutListTile(
           text: const Icon(FluentIcons.search_data),
           tooltip: 'Tool Search files',
@@ -356,6 +360,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
                           selectionMode: chatProvider.selectionModeEnabled,
                           isError: message['error'] == 'true',
+                          textSize: chatProvider.textSize,
                         );
                       },
                     );
@@ -436,12 +441,14 @@ class MessageCard extends StatefulWidget {
     required this.selectionMode,
     required this.id,
     required this.isError,
+    required this.textSize,
   });
   final Map<String, String> message;
   final DateTime? dateTime;
   final bool selectionMode;
   final String id;
   final bool isError;
+  final int textSize;
 
   @override
   State<MessageCard> createState() => _MessageCardState();
@@ -495,7 +502,9 @@ class _MessageCardState extends State<MessageCard> {
           children: [
             SelectableText(
               '${widget.message['content']}',
-              style: FluentTheme.of(context).typography.body,
+              style: FluentTheme.of(context).typography.body?.copyWith(
+                    fontSize: widget.textSize.toDouble(),
+                  ),
               selectionControls: fluentTextSelectionControls,
             ),
             if (widget.message['image'] != null)
@@ -549,16 +558,23 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
         subtitle: !_isMarkdownView
-            ? SelectableText('${widget.message['content']}',
-                style: FluentTheme.of(context).typography.body)
+            ? SelectableText(
+                '${widget.message['content']}',
+                style: FluentTheme.of(context).typography.body?.copyWith(
+                      fontSize: widget.textSize.toDouble(),
+                    ),
+              )
             : Markdown(
                 data: widget.message['content'] ?? '',
                 softLineBreak: true,
                 selectable: true,
                 shrinkWrap: true,
                 styleSheet: MarkdownStyleSheet(
-                  code: const TextStyle(
-                      fontSize: 14, backgroundColor: Colors.transparent),
+                  p: TextStyle(fontSize: widget.textSize.toDouble()),
+                  code: TextStyle(
+                    fontSize: widget.textSize.toDouble() + 2,
+                    backgroundColor: Colors.transparent,
+                  ),
                 ),
                 builders: {
                   'code': CodeElementBuilder(

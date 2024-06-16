@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chatgpt_windows_flutter_app/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -43,18 +45,23 @@ void resetOpenAiUrl({String? url, required String token}) {
 }
 
 Future<void> initWindow() async {
-  // causes breaking of acrylic and mica effects
-  // windowManager.setTitleBarStyle(
-  //   TitleBarStyle.hidden,
-  //   windowButtonVisibility: false,
-  // );
+  if (Platform.isMacOS) {
+    // causes breaking of acrylic and mica effects on windows
+    windowManager.setTitleBarStyle(
+      TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+    );
+  }
+
   await windowManager.setTitle('chatgpt_windows_flutter_app');
   await windowManager.setMinimumSize(const Size(500, 600));
   await windowManager.show();
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
-  await windowManager.setSkipTaskbar(false);
+  if (Platform.isMacOS) {
+    await windowManager.setSkipTaskbar(true);
+  }
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
   if (lastWindowWidth != null && lastWindowHeight != null) {

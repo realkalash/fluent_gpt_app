@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
 
 import '../theme.dart';
+import 'home_page.dart';
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -220,6 +221,7 @@ class _OtherSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
+    final gptProvider = context.watch<ChatGPTProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -231,6 +233,14 @@ class _OtherSettings extends StatelessWidget {
           trailing: Checkbox(
             checked: appTheme.preventClose,
             onChanged: (value) => appTheme.togglePreventClose(),
+          ),
+        ),
+        FlyoutListTile(
+          text: const Text('Use second request for naming chats'),
+          trailing: Checkbox(
+            checked: gptProvider.useSecondRequestForNamingChats,
+            onChanged: (value) =>
+                gptProvider.toggleUseSecondRequestForNamingChats(),
           ),
         ),
       ],
@@ -265,13 +275,14 @@ class _ResolutionsSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
+    final gptProvider = context.watch<ChatGPTProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Resolution', style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        Padding(
-          padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+        SizedBox(
+          width: 200.0,
           child: ComboBox<Size>(
             items: resolutions.map((e) {
               final isCurrent = e == appTheme.resolution;
@@ -291,7 +302,52 @@ class _ResolutionsSelector extends StatelessWidget {
             placeholder: const Text('Select a resolution'),
           ),
         ),
+        const SizedBox(height: 8.0),
+        Text('Text size', style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        SizedBox(
+          width: 200.0,
+          child: NumberBox(
+            value: gptProvider.textSize,
+            onChanged: (value) {
+              gptProvider.textSize = value ?? 14;
+            },
+            mode: SpinButtonPlacementMode.inline,
+          ),
+        ),
+        const MessageSamplePreviewCard(),
       ],
+    );
+  }
+}
+
+class MessageSamplePreviewCard extends StatelessWidget {
+  const MessageSamplePreviewCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ChatGPTProvider>();
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Message sample preview'),
+            MessageCard(
+              message: const {
+                'content': '''Hello, how are you doing today?\nI'm doing great, thank you for asking. I'm here to help you with anything you need.''',
+                'role': 'user',
+              },
+              selectionMode: false,
+              dateTime: DateTime.now(),
+              id: '1234',
+              isError: false,
+              textSize: provider.textSize,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

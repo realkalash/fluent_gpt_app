@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;

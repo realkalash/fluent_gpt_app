@@ -8,6 +8,8 @@ import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:rxdart/rxdart.dart';
 
+import 'common/window_listener.dart';
+
 /// Can handle direct commands as [paste, grammar, explain, to_rus, to_eng] (Value from clipboard will be used as text)
 /// or onProtocol url link as myApp://command?text=Hello%20World
 final trayButtonStream = BehaviorSubject<String?>();
@@ -21,7 +23,6 @@ Future<void> initSystemTray() async {
 
   // We first init the systray menu
   await systemTray.initSystemTray(
-    title: "system tray",
     iconPath: path,
     isTemplate: true,
     toolTip: "FluentGPT",
@@ -42,11 +43,9 @@ Future<void> initSystemTray() async {
   systemTray.registerSystemTrayEventHandler((eventName) async {
     debugPrint("eventName: $eventName");
     if (eventName == kSystemTrayEventClick) {
-      if (Platform.isWindows) {
-        appWindow.show();
-      } else {
-        systemTray.popUpContextMenu();
-      }
+      AppWindowListener.windowVisibilityStream.value == false
+          ? appWindow.show()
+          : appWindow.hide();
     } else if (eventName == kSystemTrayEventRightClick) {
       final clipBoard = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipBoard?.text?.trim().isNotEmpty == true) {
@@ -97,10 +96,22 @@ onTrayButtonTap(String item) {
   AppWindow().show();
 }
 
+/// If the window is visible or not
+BehaviorSubject<bool> windowVisibilityStream =
+    BehaviorSubject<bool>.seeded(true);
+
+showWindow() {
+  AppWindow().show();
+}
+
 HotKey openWindowHotkey = HotKey(
   key: LogicalKeyboardKey.digit1,
   modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
   scope: HotKeyScope.system,
+);
+HotKey escapeCancelSelectKey = HotKey(
+  key: LogicalKeyboardKey.escape,
+  scope: HotKeyScope.inapp,
 );
 HotKey createNewChat = HotKey(
   key: LogicalKeyboardKey.keyT,
@@ -141,6 +152,12 @@ Future<void> initShortcuts(AppWindow appWindow) async {
       onTrayButtonTap('reset_chat');
       await Future.delayed(const Duration(milliseconds: 200));
       promptTextFocusNode.requestFocus();
+    },
+  );
+  await hotKeyManager.register(
+    escapeCancelSelectKey,
+    keyDownHandler: (hotKey) async {
+      onTrayButtonTap('escape_cancel_select');
     },
   );
 }

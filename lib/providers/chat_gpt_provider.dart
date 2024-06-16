@@ -36,7 +36,23 @@ set selectedChatRoomName(String v) => selectedChatRoomNameStream.add(v);
 ChatModel get selectedModel =>
     chatRooms[selectedChatRoomName]?.model ?? allModels.first;
 ChatRoom get selectedChatRoom =>
-    chatRooms[selectedChatRoomName] ?? chatRooms.values.first;
+    chatRooms[selectedChatRoomName] ??
+    (chatRooms.values.isEmpty == true
+        ? ChatRoom(
+            chatRoomName: 'Default',
+            model: selectedModel,
+            messages: messages,
+            temp: temp,
+            topk: topk,
+            promptBatchSize: promptBatchSize,
+            repeatPenaltyTokens: repeatPenaltyTokens,
+            topP: topP,
+            maxTokenLength: maxLenght,
+            repeatPenalty: repeatPenalty,
+            token: openAI.token,
+            orgID: openAI.orgId,
+          )
+        : chatRooms.values.first);
 double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
 get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
 get promptBatchSize => chatRooms[selectedChatRoomName]?.promptBatchSize ?? 128;
@@ -67,6 +83,16 @@ class ChatGPTProvider with ChangeNotifier {
 
   /// It's not a good practice to use [context] directly in the provider...
   BuildContext? context;
+
+  int _textSize = 14;
+
+  bool useSecondRequestForNamingChats = true;
+  set textSize(int v) {
+    _textSize = v;
+    notifyListeners();
+  }
+
+  int get textSize => _textSize;
 
   void saveToDisk() {
     var rooms = {};
@@ -159,6 +185,8 @@ class ChatGPTProvider with ChangeNotifier {
         createNewChatRoom();
       } else if (command == 'reset_chat') {
         clearConversation();
+      } else if (command == 'escape_cancel_select') {
+        disableSelectionMode();
       } else {
         throw Exception('Unknown command: $command');
       }
@@ -463,6 +491,48 @@ class ChatGPTProvider with ChangeNotifier {
     }
 
     saveToDisk();
+    if (isFirstMessage) {
+      if (useSecondRequestForNamingChats) {
+        _requestForTitleChat(userContent);
+      } else {
+        final lastMessage = messages.values.last['content'];
+        if (lastMessage != null) {
+          final title = lastMessage.split('\n').first;
+          if (title.isNotEmpty) {
+            final chatRoom = chatRooms[selectedChatRoomName];
+            chatRoom!.chatRoomName = title;
+            chatRooms[selectedChatRoomName] = chatRoom;
+            notifyRoomsStream();
+            saveToDisk();
+          }
+        }
+      }
+    }
+  }
+
+  _requestForTitleChat(String userMessage) async {
+    final request = ChatCompleteText(
+      messages: [
+        {
+          'role': Role.user.name,
+          'content':
+              'Name this chat: "$userMessage". Use VERY SHORT name using 3-5 words.',
+        }
+      ],
+      maxToken: 100,
+      model: GptTurboChatModel(),
+    );
+    final response = await openAI.onChatCompletion(request: request);
+    if (response?.choices.last.message?.content != null &&
+        response!.choices.last.message!.content.isNotEmpty) {
+      final message =
+          response.choices.last.message!.content.replaceAll('"', '');
+      editChatRoom(
+        selectedChatRoomName,
+        selectedChatRoom.copyWith(chatRoomName: message),
+        switchToForeground: true,
+      );
+    }
   }
 
   void deleteChat() {
@@ -909,6 +979,11 @@ class ChatGPTProvider with ChangeNotifier {
     // add merged message to the list
     addBotMessageToList(mergedContent, lastId);
     selectionModeEnabled = false;
+    notifyListeners();
+  }
+
+  toggleUseSecondRequestForNamingChats() {
+    useSecondRequestForNamingChats = !useSecondRequestForNamingChats;
     notifyListeners();
   }
 }
