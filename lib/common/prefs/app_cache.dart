@@ -5,6 +5,7 @@ class AppCache {
   // ${resolution.width}x${resolution.height}
   static const resolution = StringPref("resolution");
   static const preventClose = BoolPref("preventClose");
+  static const showAppInDock = BoolPref("showAppInDock", true);
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
   static const windowWidth = IntPref("windowWidth");

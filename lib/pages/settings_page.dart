@@ -236,6 +236,15 @@ class _OtherSettings extends StatelessWidget {
           ),
         ),
         FlyoutListTile(
+          text: const Text('Show in dock'),
+          trailing: Checkbox(
+            checked: AppCache.showAppInDock.value == true,
+            onChanged: (value) {
+              appTheme.toggleShowInDock();
+            }
+          ),
+        ),
+        FlyoutListTile(
           text: const Text('Use second request for naming chats'),
           tooltip: 'Can cause additional charges!',
           trailing: Checkbox(

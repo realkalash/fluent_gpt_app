@@ -59,9 +59,7 @@ Future<void> initWindow() async {
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
-  if (Platform.isMacOS) {
-    await windowManager.setSkipTaskbar(true);
-  }
+  await windowManager.setSkipTaskbar(AppCache.showAppInDock.value == true);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
   if (lastWindowWidth != null && lastWindowHeight != null) {
