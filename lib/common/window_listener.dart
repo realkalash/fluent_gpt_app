@@ -1,5 +1,7 @@
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -49,5 +51,6 @@ class AppWindowListener extends WindowListener {
   onWindowRestore() {
     log('Window restored');
     windowVisibilityStream.add(true);
+    promptTextFocusNode.requestFocus();
   }
 }

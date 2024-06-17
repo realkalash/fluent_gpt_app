@@ -16,7 +16,7 @@ final trayButtonStream = BehaviorSubject<String?>();
 
 Future<void> initSystemTray() async {
   String path =
-      Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+      Platform.isWindows ? 'assets/app_icon.ico' : 'assets/transparent_app_icon_32x32.png';
 
   final AppWindow appWindow = AppWindow();
   final SystemTray systemTray = SystemTray();

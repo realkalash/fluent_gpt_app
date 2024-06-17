@@ -14,6 +14,8 @@ class AppCache {
   static const token = StringPref("token");
   static const orgID = StringPref("orgID");
   static const llmUrl = StringPref("llmUrl");
+  static const tokensUsedTotal = IntPref("tokensUsedTotal");
+  static const costTotal = DoublePref("costTotal");
 
   static const gptToolSearchEnabled = BoolPref("gptToolSearchEnabled", true);
   static const gptToolPythonEnabled = BoolPref("gptToolPythonEnabled", true);

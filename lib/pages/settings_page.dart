@@ -237,6 +237,7 @@ class _OtherSettings extends StatelessWidget {
         ),
         FlyoutListTile(
           text: const Text('Use second request for naming chats'),
+          tooltip: 'Can cause additional charges!',
           trailing: Checkbox(
             checked: gptProvider.useSecondRequestForNamingChats,
             onChanged: (value) =>
@@ -711,6 +712,12 @@ class __CacheSectionState extends State<_CacheSection> {
                 child: const Text('Delete all chat rooms'),
                 onPressed: () {
                   context.read<ChatGPTProvider>().deleteAllChatRooms();
+                }),
+            Button(
+                child: const Text('Delete total costs cache'),
+                onPressed: () {
+                  AppCache.costTotal.value = 0.0;
+                  AppCache.tokensUsedTotal.value = 0;
                 }),
             Button(
                 child: const Text('Clear all data'),

@@ -499,8 +499,12 @@ class ChatGPTProvider with ChangeNotifier {
         if (lastMessage != null) {
           final title = lastMessage.split('\n').first;
           if (title.isNotEmpty) {
+            final tilteWords = title.split(' ');
+            final titleShort = tilteWords.length > 5
+                ? tilteWords.sublist(0, 5).join(' ')
+                : title;
             final chatRoom = chatRooms[selectedChatRoomName];
-            chatRoom!.chatRoomName = title;
+            chatRoom!.chatRoomName = titleShort;
             chatRooms[selectedChatRoomName] = chatRoom;
             notifyRoomsStream();
             saveToDisk();
@@ -951,6 +955,8 @@ class ChatGPTProvider with ChangeNotifier {
       selectedChatRoom.tokens ?? 0,
       modelName,
     );
+    AppCache.tokensUsedTotal.value = selectedChatRoom.tokens ?? 0;
+    AppCache.costTotal.value = selectedChatRoom.costUSD ?? 0;
   }
 
   void mergeSelectedMessagesToAssistant() {

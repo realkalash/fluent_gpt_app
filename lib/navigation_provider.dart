@@ -135,7 +135,7 @@ class NavigationProvider with ChangeNotifier {
                 icon: const Icon(FluentIcons.edit),
                 onPressed: () {
                   final provider = context.read<ChatGPTProvider>();
-                  editChatRoomDialog(context, room, provider);
+                  editChatRoomDialog(context, room);
                 }),
             IconButton(
                 icon: const Icon(FluentIcons.delete),
@@ -168,93 +168,110 @@ class NavigationProvider with ChangeNotifier {
   }
 
   Future<void> editChatRoomDialog(
-      BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
+      BuildContext context, ChatRoom room) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => EditChatRoomDialog(
+        room: room,
+        onOkPressed: () {
+          refreshNavItems();
+        },
+      ),
+    );
+  }
+}
+
+class EditChatRoomDialog extends StatelessWidget {
+  const EditChatRoomDialog(
+      {super.key, required this.room, required this.onOkPressed});
+  final ChatRoom room;
+  final VoidCallback onOkPressed;
+
+  @override
+  Widget build(BuildContext ctx) {
+    final provider = ctx.read<ChatGPTProvider>();
     var roomName = room.chatRoomName;
     var systemMessage = room.systemMessage;
     var maxLength = room.maxTokenLength;
     var token = room.token;
     var orgID = room.orgID;
-    await showDialog(
-      context: context,
-      builder: (ctx) => ContentDialog(
-        title: const Text('Edit chat room'),
-        constraints: const BoxConstraints(maxWidth: 800),
-        actions: [
-          Button(
-            onPressed: () {
-              provider.editChatRoom(
-                  room.chatRoomName,
-                  room.copyWith(
-                    chatRoomName: roomName,
-                    commandPrefix: systemMessage,
-                    maxLength: maxLength,
-                    token: token,
-                    orgID: orgID,
-                  ));
-              Navigator.of(ctx).pop();
-
-              refreshNavItems();
+    return ContentDialog(
+      title: const Text('Edit chat room'),
+      constraints: const BoxConstraints(maxWidth: 800),
+      actions: [
+        Button(
+          onPressed: () {
+            provider.editChatRoom(
+                room.chatRoomName,
+                room.copyWith(
+                  chatRoomName: roomName,
+                  commandPrefix: systemMessage,
+                  maxLength: maxLength,
+                  token: token,
+                  orgID: orgID,
+                ));
+            Navigator.of(ctx).pop();
+            onOkPressed();
+          },
+          child: const Text('Save'),
+        ),
+        Button(
+          onPressed: () {
+            Navigator.of(ctx).pop();
+          },
+          child: const Text('Cancel'),
+        ),
+      ],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Chat room name'),
+          TextBox(
+            controller: TextEditingController(text: room.chatRoomName),
+            onChanged: (value) {
+              roomName = value;
             },
-            child: const Text('Save'),
           ),
-          Button(
-            onPressed: () {
-              Navigator.of(ctx).pop();
+          const Text('System message'),
+          TextBox(
+            controller: TextEditingController(text: room.systemMessage),
+            maxLines: 30,
+            minLines: 3,
+            onChanged: (value) {
+              systemMessage = value;
             },
-            child: const Text('Cancel'),
+          ),
+          const Text('Model'),
+          GptModelChooser(
+            onChanged: (model) {
+              provider.selectModelForChat(room.chatRoomName, model);
+            },
+          ),
+          const Text('Max length'),
+          TextBox(
+            controller:
+                TextEditingController(text: room.maxTokenLength.toString()),
+            onChanged: (value) {
+              maxLength = int.parse(value);
+            },
+          ),
+          const Text('Token'),
+          TextBox(
+            controller: TextEditingController(text: room.token),
+            obscureText: true,
+            onChanged: (value) {
+              token = value;
+            },
+          ),
+          const Text('Org ID'),
+          TextBox(
+            controller: TextEditingController(text: room.orgID),
+            onChanged: (value) {
+              orgID = value;
+            },
           ),
         ],
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Chat room name'),
-            TextBox(
-              controller: TextEditingController(text: room.chatRoomName),
-              onChanged: (value) {
-                roomName = value;
-              },
-            ),
-            const Text('System message'),
-            TextBox(
-              controller: TextEditingController(text: room.systemMessage),
-              maxLines: 30,
-              minLines: 3,
-              onChanged: (value) {
-                systemMessage = value;
-              },
-            ),
-            const Text('Model'),
-            GptModelChooser(
-              onChanged: (model) {
-                provider.selectModelForChat(room.chatRoomName, model);
-              },
-            ),
-            const Text('Max length'),
-            TextBox(
-              controller:
-                  TextEditingController(text: room.maxTokenLength.toString()),
-              onChanged: (value) {
-                maxLength = int.parse(value);
-              },
-            ),
-            const Text('Token'),
-            TextBox(
-              controller: TextEditingController(text: room.token),
-              obscureText: true,
-              onChanged: (value) {
-                token = value;
-              },
-            ),
-            const Text('Org ID'),
-            TextBox(
-              controller: TextEditingController(text: room.orgID),
-              onChanged: (value) {
-                orgID = value;
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -16,6 +16,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
+// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher_string.dart';
@@ -39,7 +40,7 @@ class ChatRoomPage extends StatelessWidget {
 
 class ModelChooserCards extends StatelessWidget {
   const ModelChooserCards({super.key});
-  static const textStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
+  static const textStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.bold);
 
   Color applyOpacityIfSelected(bool isSelected, Color color) {
     if (!isSelected) {
@@ -61,7 +62,7 @@ class ModelChooserCards extends StatelessWidget {
           bool isLocal = selectedModel.model == 'local';
           return SizedBox(
             width: 400,
-            height: 50,
+            height: 46,
             child: Row(
               children: [
                 Expanded(
@@ -224,6 +225,9 @@ class PageHeaderText extends StatelessWidget {
                         fontSize: 12, fontWeight: FontWeight.normal),
                   ),
                   HyperlinkButton(
+                    style: ButtonStyle(
+                      padding: ButtonState.all(EdgeInsets.zero),
+                    ),
                     onPressed: () => showCostCalculatorDialog(context),
                     child: Text(
                       ' Tokens: ${selectedChatRoom.tokens ?? 0} | ${(selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',

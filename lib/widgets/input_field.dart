@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
+import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -209,12 +210,23 @@ class _InputFieldState extends State<InputField> {
                     prefix: (selectedChatRoom.systemMessage == null ||
                             selectedChatRoom.systemMessage == '')
                         ? null
-                        : Tooltip(
-                            message: selectedChatRoom.systemMessage,
-                            child: const Card(
-                                margin: EdgeInsets.all(4),
-                                padding: EdgeInsets.all(4),
-                                child: Text('SMART')),
+                        : GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => EditChatRoomDialog(
+                                  room: selectedChatRoom,
+                                  onOkPressed: () {},
+                                ),
+                              );
+                            },
+                            child: Tooltip(
+                              message: selectedChatRoom.systemMessage,
+                              child: const Card(
+                                  margin: EdgeInsets.all(4),
+                                  padding: EdgeInsets.all(4),
+                                  child: Text('SMART')),
+                            ),
                           ),
                     prefixMode: OverlayVisibilityMode.always,
                     controller: chatProvider.messageController,
