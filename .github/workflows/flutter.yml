@@ -68,6 +68,6 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: windows-release-build
-          path: build/windows
+          path: build/windows/x64/runner/Release
           retention-days: 3
           if-no-files-found: error
