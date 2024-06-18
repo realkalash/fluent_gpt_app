@@ -68,4 +68,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: windows-release-build
-          path: build/windows/runner/Release
+          path: build/windows
+          retention-days: 3
+          if-no-files-found: error
+          archive: zip
