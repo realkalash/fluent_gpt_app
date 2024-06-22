@@ -238,11 +238,10 @@ class _OtherSettings extends StatelessWidget {
         FlyoutListTile(
           text: const Text('Show in dock'),
           trailing: Checkbox(
-            checked: AppCache.showAppInDock.value == true,
-            onChanged: (value) {
-              appTheme.toggleShowInDock();
-            }
-          ),
+              checked: AppCache.showAppInDock.value == true,
+              onChanged: (value) {
+                appTheme.toggleShowInDock();
+              }),
         ),
         FlyoutListTile(
           text: const Text('Use second request for naming chats'),
@@ -346,7 +345,8 @@ class MessageSamplePreviewCard extends StatelessWidget {
             const Text('Message sample preview'),
             MessageCard(
               message: const {
-                'content': '''Hello, how are you doing today?\nI'm doing great, thank you for asking. I'm here to help you with anything you need.''',
+                'content':
+                    '''Hello, how are you doing today?\nI'm doing great, thank you for asking. I'm here to help you with anything you need.''',
                 'role': 'user',
               },
               selectionMode: false,
@@ -443,7 +443,8 @@ class _LocaleSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
 
-    const supportedLocales = FluentLocalizations.supportedLocales;
+    // const supportedLocales = FluentLocalizations.supportedLocales;
+    const supportedLocales = [Locale('en')];
     final currentLocale =
         appTheme.locale ?? Localizations.maybeLocaleOf(context);
     return Column(
@@ -617,35 +618,6 @@ class _ThemeModeSection extends StatelessWidget {
             );
           }),
         ]),
-        if (kIsWindowEffectsSupported) ...[
-          biggerSpacer,
-          Text(
-            'Window Transparency (${defaultTargetPlatform.toString().replaceAll('TargetPlatform.', '')})',
-            style: FluentTheme.of(context).typography.subtitle,
-          ),
-          spacer,
-          ...List.generate(currentWindowEffects.length, (index) {
-            final mode = currentWindowEffects[index];
-            return Padding(
-              padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-              child: RadioButton(
-                checked: appTheme.windowEffect == mode,
-                onChanged: (value) {
-                  if (value) {
-                    appTheme.setEffect(mode);
-                  }
-                },
-                content: Text(
-                  mode.toString().replaceAll('WindowEffect.', ''),
-                ),
-              ),
-            );
-          }),
-          Text(
-            'Window Transparency Percentage',
-            style: FluentTheme.of(context).typography.subtitle,
-          ),
-        ],
       ],
     );
   }

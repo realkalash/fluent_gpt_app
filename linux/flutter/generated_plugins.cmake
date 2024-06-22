@@ -3,10 +3,13 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  file_selector_linux
   flutter_acrylic
   hotkey_manager_linux
+  irondash_engine_context
   pasteboard
   screen_retriever
+  super_native_extensions
   system_theme
   system_tray
   url_launcher_linux

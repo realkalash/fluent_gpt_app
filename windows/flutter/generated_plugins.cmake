@@ -3,11 +3,14 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  file_selector_windows
   flutter_acrylic
   hotkey_manager_windows
+  irondash_engine_context
   pasteboard
   protocol_handler_windows
   screen_retriever
+  super_native_extensions
   system_theme
   system_tray
   url_launcher_windows

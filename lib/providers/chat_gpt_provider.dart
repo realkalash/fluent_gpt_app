@@ -246,68 +246,35 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
 
     late ChatCompleteText request;
-    if (isImageAttached) {
-      await sendFile(fileInput!);
-      request = ChatCompleteText(
-        messages: [
-          if (selectedChatRoom.systemMessage != null)
+
+    request = ChatCompleteText(
+      messages: [
+        if (selectedChatRoom.systemMessage != null)
+          {'role': Role.system.name, 'content': selectedChatRoom.systemMessage},
+        if (includeConversation0)
+          for (var message in messages.entries)
             {
-              'role': Role.system.name,
-              'content': selectedChatRoom.systemMessage
+              'role': message.value['role'],
+              'content': message.value['content'],
             },
-          if (includeConversation0)
-            for (var message in messages.entries)
-              {
-                'role': message.value['role'],
-                'content': message.value['content'],
-              },
-          if (!includeConversation0)
-            {
-              'role': Role.user.name,
-              'content': messageContent,
-              'created': dateTime,
-            },
-        ],
-        maxToken: maxLenght,
-        model: selectedModel,
-        temperature: temp,
-        topP: topP,
-        frequencyPenalty: repeatPenalty,
-        presencePenalty: repeatPenalty,
-      );
-    } else {
-      request = ChatCompleteText(
-        messages: [
-          if (selectedChatRoom.systemMessage != null)
-            {
-              'role': Role.system.name,
-              'content': selectedChatRoom.systemMessage
-            },
-          if (includeConversation0)
-            for (var message in messages.entries)
-              {
-                'role': message.value['role'],
-                'content': message.value['content'],
-              },
-          if (!includeConversation0)
-            {
-              'role': Role.user.name,
-              'content': messageContent,
-              'created': dateTime,
-            },
-        ],
-        maxToken: maxLenght,
-        model: selectedModel,
-        temperature: temp,
-        topP: topP,
-        frequencyPenalty: repeatPenalty,
-        presencePenalty: repeatPenalty,
-        tools: [
-          if (AppCache.gptToolSearchEnabled.value!) searchFilesFunction,
-          if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
-        ],
-      );
-    }
+        if (!includeConversation0)
+          {
+            'role': Role.user.name,
+            'content': messageContent,
+            'created': dateTime,
+          },
+      ],
+      maxToken: maxLenght,
+      model: selectedModel,
+      temperature: temp,
+      topP: topP,
+      frequencyPenalty: repeatPenalty,
+      presencePenalty: repeatPenalty,
+      tools: [
+        if (AppCache.gptToolSearchEnabled.value!) searchFilesFunction,
+        if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
+      ],
+    );
     final stream = openAI.onChatCompletionSSE(
       request: request,
       onCancel: (cancelData) {
@@ -896,10 +863,12 @@ class ChatGPTProvider with ChangeNotifier {
       final choices = data['choices'] as List?;
       if (choices != null && choices.isNotEmpty) {
         final message = choices.last['message'];
+        final messageID = data['id'];
+
         if (message != null) {
           final content = message['content'];
           if (content != null) {
-            addBotMessageToList(content);
+            addBotMessageToList(content, messageID);
           }
         }
       }

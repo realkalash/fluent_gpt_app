@@ -29,14 +29,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build macOS release
-        run: flutter build macos --release
+      - name: Build macOS profile
+        run: flutter build macos --profile
 
       - name: Archive build artifacts
         uses: actions/upload-artifact@v2
         with:
           name: macos-release-build
-          path: build/macos/Build/Products/Release
+          path: build/macos/Build/Products/
 
   build-windows:
     runs-on: windows-latest

@@ -1,7 +1,9 @@
+import 'dart:convert';
+
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
-
+import 'package:file_selector/file_selector.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
@@ -11,6 +13,8 @@ import 'package:chatgpt_windows_flutter_app/system_messages.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_builder.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:super_clipboard/super_clipboard.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +23,8 @@ import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:rxdart/rxdart.dart';
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 
@@ -33,7 +39,112 @@ class ChatRoomPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const ScaffoldPage(
       header: PageHeader(title: PageHeaderText()),
-      content: ChatGPTContent(),
+      content: Stack(
+        children: [
+          ChatGPTContent(),
+          HomeDropOverlay(),
+          HomeDropRegion(),
+        ],
+      ),
+    );
+  }
+}
+
+// isDropOverlayVisible is a BehaviorSubject that is used to show the overlay when a drag is over the drop region.
+final BehaviorSubject<bool> isDropOverlayVisible =
+    BehaviorSubject<bool>.seeded(false);
+
+class HomeDropOverlay extends StatelessWidget {
+  const HomeDropOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<bool>(
+      stream: isDropOverlayVisible,
+      builder: (context, snapshot) {
+        if (snapshot.data == true) {
+          return Container(
+            color: Colors.black.withOpacity(0.2),
+            child: Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: FluentTheme.of(context).accentColor.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Center(
+                  child: Icon(
+                    FluentIcons.file_image,
+                    size: 48,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+}
+
+class HomeDropRegion extends StatelessWidget {
+  const HomeDropRegion({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<ChatGPTProvider>();
+    return DropRegion(
+      // Formats this region can accept.
+      formats: Formats.standardFormats,
+      hitTestBehavior: HitTestBehavior.translucent,
+      onDropOver: (event) {
+        // This drop region only supports copy operation.
+        if (event.session.allowedOperations.contains(DropOperation.copy)) {
+          return DropOperation.copy;
+        } else {
+          return DropOperation.none;
+        }
+      },
+      onDropEnter: (event) {
+        // This is called when region first accepts a drag. You can use this
+        // to display a visual indicator that the drop is allowed.
+        isDropOverlayVisible.add(true);
+      },
+      onDropLeave: (event) {
+        // Called when drag leaves the region. Will also be called after
+        // drag completion.
+        // This is a good place to remove any visual indicators.
+        isDropOverlayVisible.add(false);
+      },
+      onPerformDrop: (event) async {
+        // Called when user dropped the item. You can now request the data.
+        // Note that data must be requested before the performDrop callback
+        // is over.
+        final item = event.session.items.first;
+
+        // data reader is available now
+        final reader = item.dataReader!;
+
+        if (reader.canProvide(Formats.png)) {
+          reader.getFile(Formats.png, (file) async {
+            final data = await file.readAll();
+            final xfile = XFile.fromData(
+              data,
+              name: file.fileName,
+              mimeType: 'image/png',
+              length: data.length,
+            );
+            log('File dropped: ${xfile.mimeType} ${data.length} bytes');
+            provider.addFileToInput(xfile);
+          }, onError: (error) {
+            log('Error reading value $error');
+          });
+        }
+      },
+      child: const SizedBox.expand(),
     );
   }
 }
@@ -573,6 +684,7 @@ class _MessageCardState extends State<MessageCard> {
                 softLineBreak: true,
                 selectable: true,
                 shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 styleSheet: MarkdownStyleSheet(
                   p: TextStyle(fontSize: widget.textSize.toDouble()),
                   code: TextStyle(
@@ -612,6 +724,74 @@ class _MessageCardState extends State<MessageCard> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (widget.message['image'] != null)
+                          Container(
+                            width: 100,
+                            height: 100,
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12.0)),
+                            child: Image.memory(
+                              decodeImage(widget.message['image']!),
+                              fit: BoxFit.fitHeight,
+                              gaplessPlayback: true,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Button(
+                          onPressed: () async {
+                            Navigator.of(context).maybePop();
+
+                            final item = DataWriterItem();
+                            final imageBytesString = widget.message['image']!;
+                            final imageBytes = base64.decode(imageBytesString);
+                           
+                            item.add(Formats.png(imageBytes));
+                            await ClipboardWriter.instance.write([item]);
+                            displayCopiedToClipboard(context);
+                          },
+                          child: const Text('Copy image data'),
+                        ),
+                        const SizedBox(height: 8),
+                        Button(
+                          onPressed: () async {
+                            final fileBytesString = widget.message['image']!;
+                            final fileBytes = base64.decode(fileBytesString);
+                            final file = XFile.fromData(
+                              fileBytes,
+                              name: 'image.png',
+                              mimeType: 'image/png',
+                              length: fileBytes.lengthInBytes,
+                            );
+
+                            final FileSaveLocation? location =
+                                await getSaveLocation(
+                              suggestedName: '${fileBytes.lengthInBytes}.png',
+                              acceptedTypeGroups: [
+                                const XTypeGroup(
+                                  label: 'images',
+                                  extensions: ['png', 'jpg', 'jpeg'],
+                                ),
+                              ],
+                            );
+
+                            if (location != null) {
+                              await file.saveTo(location.path);
+                              displayInfoBar(
+                                // ignore: use_build_context_synchronously
+                                context,
+                                builder: (context, close) => const InfoBar(
+                                  title: Text('Image saved to file'),
+                                  severity: InfoBarSeverity.success,
+                                ),
+                              );
+                              // ignore: use_build_context_synchronously
+                              Navigator.of(context).maybePop();
+                            }
+                          },
+                          child: const Text('Save image to file'),
+                        ),
+                        const SizedBox(height: 8),
                         Button(
                           onPressed: () {
                             Navigator.of(context).maybePop();
@@ -872,6 +1052,82 @@ class _MessageCardState extends State<MessageCard> {
       filterQuality: FilterQuality.high,
     ).image;
     showImageViewer(context, provider);
+  }
+
+  @Deprecated('Not used')
+  void _showContextMenuImage(
+      BuildContext context, Map<String, String> message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => ContentDialog(
+        title: const Text('Image options'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              clipBehavior: Clip.antiAlias,
+              decoration:
+                  BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
+              child: Image.memory(
+                decodeImage(message['image']!),
+                fit: BoxFit.fitHeight,
+                gaplessPlayback: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Button(
+              onPressed: () {
+                Navigator.of(context).maybePop();
+                Clipboard.setData(
+                  ClipboardData(text: message['image']!),
+                );
+                displayCopiedToClipboard(context);
+              },
+              child: const Text('Copy image data'),
+            ),
+            // save to file
+            Button(
+              onPressed: () async {
+                final fileBytesString = message['image']!;
+                final fileBytes = base64.decode(fileBytesString);
+                final file = XFile.fromData(
+                  fileBytes,
+                  name: 'image.png',
+                  mimeType: 'image/png',
+                  length: fileBytes.length,
+                );
+                final first8Bytes = fileBytes.sublist(0, 8).toString();
+                final FileSaveLocation? location = await getSaveLocation(
+                  suggestedName: '$first8Bytes.png',
+                  acceptedTypeGroups: [
+                    const XTypeGroup(
+                      label: 'images',
+                      extensions: ['png', 'jpg', 'jpeg'],
+                    ),
+                  ],
+                );
+
+                if (location != null) {
+                  // Save the file to the selected path
+                  await file.saveTo(location.path);
+                  // Optionally, show a confirmation message to the user
+                }
+              },
+              child: const Text('Save image to file'),
+            ),
+          ],
+        ),
+        actions: [
+          Button(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
