@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
@@ -618,6 +619,45 @@ class _ThemeModeSection extends StatelessWidget {
             );
           }),
         ]),
+        biggerSpacer,
+        Text('Background', style: FluentTheme.of(context).typography.subtitle),
+        // background color
+        spacer,
+        // use solid background effect
+        FlyoutListTile(
+          text: const Text('Use acrylic'),
+          trailing: Checkbox(
+            checked: appTheme.windowEffect == WindowEffect.acrylic,
+            onChanged: (value) {
+              if (value == true) {
+                appTheme.setEffect(WindowEffect.acrylic);
+              } else {
+                appTheme.windowEffectOpacity = 0.0;
+                appTheme.setEffect(WindowEffect.disabled);
+              }
+            },
+          ),
+          onPressed: () {
+            if (appTheme.windowEffect == WindowEffect.acrylic) {
+              appTheme.setEffect(WindowEffect.disabled);
+            } else {
+              appTheme.windowEffectOpacity = 0.0;
+              appTheme.setEffect(WindowEffect.acrylic);
+            }
+          },
+          // selected: appTheme.windowEffect == WindowEffect.acrylic,
+          // trailing: Checkbox(
+          //   checked: appTheme.windowEffect == WindowEffect.acrylic,
+          //   onChanged: (v) {
+          //     if (v == true) {
+          //       appTheme.setEffect(WindowEffect.acrylic);
+          //     } else {
+          //       appTheme.windowEffectOpacity = 0.0;
+          //       appTheme.setEffect(WindowEffect.disabled);
+          //     }
+          //   },
+          // ),
+        ),
       ],
     );
   }
@@ -656,7 +696,7 @@ class _SliderStatefullState extends State<SliderStatefull> {
   Widget build(BuildContext context) {
     return Slider(
       value: _value,
-      label: '$_value',
+      label: widget.label == null ? '$_value' : '${widget.label!}: $_value',
       min: widget.min,
       max: widget.max,
       divisions: widget.divisions,

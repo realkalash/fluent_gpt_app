@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
+import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:file_picker/file_picker.dart';
@@ -13,6 +14,24 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_gpt_provider.dart';
+
+PasteIntent getPasteIntent(BuildContext context) {
+  final chatProvider = context.read<ChatGPTProvider>();
+  return PasteIntent(
+    onPasteText: (text) {
+      chatProvider.messageController.text =
+          chatProvider.messageController.text + text;
+      windowManager.focus();
+      promptTextFocusNode.requestFocus();
+    },
+    onPasteImage: (image) async {
+      final convertedPngImage = await image.toPNG();
+      chatProvider.addFileToInput(convertedPngImage);
+      windowManager.focus();
+      promptTextFocusNode.requestFocus();
+    },
+  );
+}
 
 class InputField extends StatefulWidget {
   const InputField({super.key});
@@ -36,7 +55,6 @@ class _InputFieldState extends State<InputField> {
   }
 
   int wordCountInField = 0;
-  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -49,6 +67,10 @@ class _InputFieldState extends State<InputField> {
       } else {
         wordCountInField = 0;
       }
+      if (mounted) setState(() {});
+    });
+    shiftPressedStream.stream.listen((isShiftPressed) {
+      _isShiftPressed = isShiftPressed;
       if (mounted) setState(() {});
     });
   }
@@ -66,204 +88,176 @@ class _InputFieldState extends State<InputField> {
         shortcuts: <LogicalKeySet, Intent>{
           /// CTRL + V should paste image or text from clipboard
           LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.control):
-              PasteIntent(
-            onPasteText: (text) {
-              chatProvider.messageController.text =
-                  chatProvider.messageController.text + text;
-              windowManager.focus();
-              promptTextFocusNode.requestFocus();
-            },
-            onPasteImage: (image) async {
-              final convertedPngImage = await image.toPNG();
-              chatProvider.addFileToInput(convertedPngImage);
-              windowManager.focus();
-              promptTextFocusNode.requestFocus();
-            },
-          ),
+              getPasteIntent(context),
+          // for mac
+          LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.meta):
+              getPasteIntent(context),
         },
-        child: KeyboardListener(
-          focusNode: _focusNode,
-          onKeyEvent: (event) {
-            if (event is KeyRepeatEvent) return;
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-              setState(() {
-                _isShiftPressed = true;
-              });
-            }
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.enter) {
-              if (_isShiftPressed == false) {
-                onSubmit(chatProvider.messageController.text, chatProvider);
-              }
-              setState(() {
-                _isShiftPressed = false;
-              });
-            }
-            if (event is KeyUpEvent &&
-                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-              setState(() {
-                _isShiftPressed = false;
-              });
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                // Button(
-                //     child: const Text('Search test'),
-                //     onPressed: () async {
-                //       chatProvider
-                //           .sendMessage('Can you search for file named "1.png?');
-                //     }),
-
-                if (chatProvider.fileInput == null)
-                  SizedBox.square(
-                    dimension: 48,
-                    child: IconButton(
-                      onPressed: () async {
-                        FilePickerResult? result =
-                            await FilePicker.platform.pickFiles();
-                        if (result != null && result.files.isNotEmpty) {
-                          chatProvider
-                              .addFileToInput(result.files.first.toXFile());
-                          windowManager.focus();
-                          promptTextFocusNode.requestFocus();
-                        }
-                      },
-                      icon: chatProvider.isSendingFile
-                          ? const ProgressRing()
-                          : const Icon(ic.FluentIcons.attach_24_filled,
-                              size: 24),
-                    ),
-                  ),
-                if (chatProvider.fileInput != null)
-                  SizedBox.square(
-                    dimension: 48,
-                    child: Stack(
-                      children: [
-                        IconButton(
-                          onPressed: () async {
-                            if (chatProvider.isSendingFile) {
-                              return;
-                            }
-                            FilePickerResult? result =
-                                await FilePicker.platform.pickFiles();
-                            if (result != null && result.files.isNotEmpty) {
-                              chatProvider
-                                  .addFileToInput(result.files.first.toXFile());
-                              windowManager.focus();
-                              promptTextFocusNode.requestFocus();
-                            }
-                          },
-                          icon: const Icon(
-                              ic.FluentIcons.document_number_1_16_regular,
-                              size: 24),
-                        ),
-                        if (chatProvider.fileInput!.mimeType
-                                ?.contains('image') ==
-                            true)
-                          Positioned.fill(
-                            bottom: 0,
-                            right: 0,
-                            child: FutureBuilder<Uint8List>(
-                                future: chatProvider.fileInput!.readAsBytes(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.data == null) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Image.memory(
-                                      snapshot.data as Uint8List,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  );
-                                }),
-                          ),
-                        if (chatProvider.isSendingFile)
-                          const Positioned.fill(
-                            child: Center(child: ProgressRing()),
-                          ),
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            style: ButtonStyle(
-                              backgroundColor: ButtonState.all(
-                                  Colors.black.withOpacity(0.5)),
-                            ),
-                            onPressed: () => chatProvider.removeFileFromInput(),
-                            icon: Icon(FluentIcons.chrome_close,
-                                size: 12, color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                Expanded(
-                  child: TextBox(
-                    autofocus: true,
-                    autocorrect: true,
-                    focusNode: promptTextFocusNode,
-                    prefix: (selectedChatRoom.systemMessage == null ||
-                            selectedChatRoom.systemMessage == '')
-                        ? null
-                        : GestureDetector(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => EditChatRoomDialog(
-                                  room: selectedChatRoom,
-                                  onOkPressed: () {},
-                                ),
-                              );
-                            },
-                            child: Tooltip(
-                              message: selectedChatRoom.systemMessage,
-                              child: const Card(
-                                  margin: EdgeInsets.all(4),
-                                  padding: EdgeInsets.all(4),
-                                  child: Text('SMART')),
-                            ),
-                          ),
-                    prefixMode: OverlayVisibilityMode.always,
-                    controller: chatProvider.messageController,
-                    minLines: 2,
-                    maxLines: 30,
-                    textInputAction: TextInputAction.newline,
-                    onSubmitted: (value) {
-                      // do nothing
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              // Button(
+              //     child: const Text('Search test'),
+              //     onPressed: () async {
+              //       chatProvider
+              //           .sendMessage('Can you search for file named "1.png?');
+              //     }),
+              if (chatProvider.fileInput == null)
+                SizedBox.square(
+                  dimension: 48,
+                  child: IconButton(
+                    onPressed: () async {
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+                      if (result != null && result.files.isNotEmpty) {
+                        chatProvider
+                            .addFileToInput(result.files.first.toXFile());
+                        windowManager.focus();
+                        promptTextFocusNode.requestFocus();
+                      }
                     },
-                    placeholder: 'Type your message here',
+                    icon: chatProvider.isSendingFile
+                        ? const ProgressRing()
+                        : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
                   ),
                 ),
-                if (_isShiftPressed)
-                  const Icon(ic.FluentIcons.arrow_down_12_filled),
-                if (wordCountInField != 0)
-                  Text(
-                    '$wordCountInField words',
-                    style: FluentTheme.of(context).typography.caption,
+              if (chatProvider.fileInput != null)
+                SizedBox.square(
+                  dimension: 48,
+                  child: Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          if (chatProvider.isSendingFile) {
+                            return;
+                          }
+                          FilePickerResult? result =
+                              await FilePicker.platform.pickFiles();
+                          if (result != null && result.files.isNotEmpty) {
+                            chatProvider
+                                .addFileToInput(result.files.first.toXFile());
+                            windowManager.focus();
+                            promptTextFocusNode.requestFocus();
+                          }
+                        },
+                        icon: const Icon(
+                            ic.FluentIcons.document_number_1_16_regular,
+                            size: 24),
+                      ),
+                      if (chatProvider.fileInput!.mimeType?.contains('image') ==
+                          true)
+                        Positioned.fill(
+                          bottom: 0,
+                          right: 0,
+                          child: FutureBuilder<Uint8List>(
+                              future: chatProvider.fileInput!.readAsBytes(),
+                              builder: (context, snapshot) {
+                                if (snapshot.data == null) {
+                                  return const SizedBox.shrink();
+                                }
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Image.memory(
+                                    snapshot.data as Uint8List,
+                                    fit: BoxFit.cover,
+                                  ),
+                                );
+                              }),
+                        ),
+                      if (chatProvider.isSendingFile)
+                        const Positioned.fill(
+                          child: Center(child: ProgressRing()),
+                        ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: IconButton(
+                          style: ButtonStyle(
+                            backgroundColor:
+                                ButtonState.all(Colors.black.withOpacity(0.5)),
+                          ),
+                          onPressed: () => chatProvider.removeFileFromInput(),
+                          icon: Icon(FluentIcons.chrome_close,
+                              size: 12, color: Colors.red),
+                        ),
+                      ),
+                    ],
                   ),
-                if (chatProvider.isAnswering)
-                  IconButton(
-                    icon: const Icon(ic.FluentIcons.stop_16_filled),
-                    onPressed: () {
-                      chatProvider.stopAnswering();
-                    },
-                  )
-                else
-                  SizedBox.square(
-                    dimension: 48,
-                    child: IconButton(
-                      onPressed: () => onSubmit(
-                          chatProvider.messageController.text, chatProvider),
-                      icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
-                    ),
+                ),
+              Expanded(
+                child: TextBox(
+                  autofocus: true,
+                  autocorrect: true,
+                  focusNode: promptTextFocusNode,
+                  prefix: (selectedChatRoom.systemMessage == null ||
+                          selectedChatRoom.systemMessage == '')
+                      ? null
+                      : GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => EditChatRoomDialog(
+                                room: selectedChatRoom,
+                                onOkPressed: () {},
+                              ),
+                            );
+                          },
+                          child: Tooltip(
+                            message: selectedChatRoom.systemMessage,
+                            child: const Card(
+                                margin: EdgeInsets.all(4),
+                                padding: EdgeInsets.all(4),
+                                child: Text('SMART')),
+                          ),
+                        ),
+                  prefixMode: OverlayVisibilityMode.always,
+                  controller: chatProvider.messageController,
+                  minLines: 2,
+                  maxLines: 30,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (value) {
+                    if (value.trim().isEmpty) {
+                      promptTextFocusNode.requestFocus();
+                      return;
+                    }
+                    if (_isShiftPressed == false) {
+                      onSubmit(value, chatProvider);
+                    }
+                    if (_isShiftPressed) {
+                      chatProvider.messageController.text =
+                          '${chatProvider.messageController.text}\n';
+                      // refocus
+                      promptTextFocusNode.requestFocus();
+                    }
+                  },
+                  placeholder: 'Type your message here',
+                ),
+              ),
+              if (_isShiftPressed)
+                const Icon(ic.FluentIcons.arrow_down_12_filled),
+              if (wordCountInField != 0)
+                Text(
+                  '$wordCountInField words',
+                  style: FluentTheme.of(context).typography.caption,
+                ),
+              if (chatProvider.isAnswering)
+                IconButton(
+                  icon: const Icon(ic.FluentIcons.stop_16_filled),
+                  onPressed: () {
+                    chatProvider.stopAnswering();
+                  },
+                )
+              else
+                SizedBox.square(
+                  dimension: 48,
+                  child: IconButton(
+                    onPressed: () => onSubmit(
+                        chatProvider.messageController.text, chatProvider),
+                    icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -424,7 +418,10 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   ],
                 ),
                 onPressed: () {
-                  chatProvider.sendMessage('Explain: "${txtController.text}"');
+                  final text = txtController.text.trim().isEmpty
+                      ? textFromClipboard
+                      : txtController.text;
+                  chatProvider.sendMessage('Explain: "$text"');
                   txtController.clear();
                 }),
             Button(
@@ -436,28 +433,37 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   ],
                 ),
                 onPressed: () {
-                  chatProvider.sendCheckGrammar(txtController.text);
+                  final text = txtController.text.trim().isEmpty
+                      ? textFromClipboard
+                      : txtController.text;
+                  chatProvider.sendCheckGrammar(text);
                   txtController.clear();
                 }),
             Button(
                 child: const Text('Translate to English'),
                 onPressed: () {
-                  chatProvider.sendMessage(
-                      'Translate to English: "${txtController.text}"');
+                  final text = txtController.text.trim().isEmpty
+                      ? textFromClipboard
+                      : txtController.text;
+                  chatProvider.sendMessage('Translate to English: "$text"');
                   txtController.clear();
                 }),
             Button(
                 child: const Text('Translate to Rus'),
                 onPressed: () {
-                  chatProvider
-                      .sendMessage('Translate to Rus: "${txtController.text}"');
+                  final text = txtController.text.trim().isEmpty
+                      ? textFromClipboard
+                      : txtController.text;
+                  chatProvider.sendMessage('Translate to Rus: "$text"');
                   txtController.clear();
                 }),
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () {
-                  HotShurtcutsWidget.showAnswerWithTagsDialog(
-                      context, txtController.text);
+                  final text = txtController.text.trim().isEmpty
+                      ? textFromClipboard
+                      : txtController.text;
+                  HotShurtcutsWidget.showAnswerWithTagsDialog(context, text);
                   txtController.clear();
                 }),
           ],

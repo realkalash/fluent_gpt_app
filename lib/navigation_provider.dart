@@ -134,17 +134,25 @@ class NavigationProvider with ChangeNotifier {
             IconButton(
                 icon: const Icon(FluentIcons.edit),
                 onPressed: () {
-                  final provider = context.read<ChatGPTProvider>();
                   editChatRoomDialog(context, room);
                 }),
             IconButton(
                 icon: const Icon(FluentIcons.delete),
                 onPressed: () {
                   final provider = context.read<ChatGPTProvider>();
-                  provider.deleteChatRoom(room.chatRoomName);
+                  // check shift key is pressed
+                  if (shiftPressedStream.value) {
+                    provider.deleteChatRoomHard(room.chatRoomName);
+                  } else {
+                    provider.deleteChatRoom(room.chatRoomName);
+                  }
                   originalItems.removeWhere(
                       (element) => element.key == ValueKey(room.chatRoomName));
-                  notifyListeners();
+                  if (chatRooms.length == 1) {
+                    refreshNavItems();
+                  } else {
+                    notifyListeners();
+                  }
                 }),
           ],
         ),
@@ -167,8 +175,7 @@ class NavigationProvider with ChangeNotifier {
     }
   }
 
-  Future<void> editChatRoomDialog(
-      BuildContext context, ChatRoom room) async {
+  Future<void> editChatRoomDialog(BuildContext context, ChatRoom room) async {
     await showDialog(
       context: context,
       builder: (ctx) => EditChatRoomDialog(

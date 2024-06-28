@@ -11,10 +11,12 @@ import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/add_chat_button.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:protocol_handler/protocol_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:system_tray/system_tray.dart';
@@ -59,7 +61,7 @@ Future<void> initWindow() async {
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
-  await windowManager.setSkipTaskbar(AppCache.showAppInDock.value == true);
+  await windowManager.setSkipTaskbar(AppCache.showAppInDock.value ?? true);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
   if (lastWindowWidth != null && lastWindowHeight != null) {
@@ -77,6 +79,7 @@ Future<void> initWindow() async {
 }
 
 String appVersion = '-';
+BehaviorSubject<bool> shiftPressedStream = BehaviorSubject<bool>.seeded(false);
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -168,6 +171,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
               debugShowCheckedModeBanner: false,
               home: const GlobalPage(),
               color: appTheme.color,
+              supportedLocales: const [Locale('en')],
               darkTheme: FluentThemeData(
                 brightness: Brightness.dark,
                 infoBarTheme: InfoBarThemeData(
@@ -283,6 +287,8 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     super.dispose();
   }
 
+  final FocusNode _focusNode = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     var navigationProvider = context.watch<NavigationProvider>();
@@ -295,67 +301,83 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     //   }
     // }
     bool isDark = appTheme.windowEffect == flutter_acrylic.WindowEffect.mica;
-    return NavigationView(
-      key: navigationProvider.viewKey,
-      appBar: NavigationAppBar(
-        automaticallyImplyLeading: false,
-        actions: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            const AddChatButton(),
-            const ClearChatButton(),
-            const PinAppButton(),
-            Padding(
-              padding: const EdgeInsets.only(left: 4, right: 16),
-              child: Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: ToggleButton(
-                  checked: isDark,
-                  onChanged: (v) {
-                    if (v) {
-                      appTheme.setEffect(flutter_acrylic.WindowEffect.mica);
-                    } else {
-                      appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
-                    }
-                  },
-                  child: const Icon(FluentIcons.sunny),
+    return KeyboardListener(
+      focusNode: _focusNode,
+      onKeyEvent: (event) {
+        if (event is KeyRepeatEvent) return;
+        if (!mounted) return;
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+          shiftPressedStream.add(true);
+        }
+        if (event is KeyUpEvent &&
+            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+          shiftPressedStream.add(false);
+        }
+      },
+      child: NavigationView(
+        key: navigationProvider.viewKey,
+        appBar: NavigationAppBar(
+          automaticallyImplyLeading: false,
+          actions: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const AddChatButton(),
+              const ClearChatButton(),
+              const PinAppButton(),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, right: 16),
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: ToggleButton(
+                    checked: isDark,
+                    onChanged: (v) {
+                      if (v) {
+                        appTheme.setEffect(flutter_acrylic.WindowEffect.mica);
+                      } else {
+                        appTheme
+                            .setEffect(flutter_acrylic.WindowEffect.acrylic);
+                      }
+                    },
+                    child: const Icon(FluentIcons.sunny),
+                  ),
                 ),
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: CollapseAppButton(),
-            ),
+              const Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: CollapseAppButton(),
+              ),
 
-            // if (!kIsWeb) const WindowButtons(),
-          ],
+              // if (!kIsWeb) const WindowButtons(),
+            ],
+          ),
         ),
+        paneBodyBuilder: (item, child) {
+          final name =
+              item?.key is ValueKey ? (item!.key as ValueKey).value : null;
+          return FocusTraversalGroup(
+            key: ValueKey('body$name'),
+            child: child ?? const ChatRoomPage(),
+          );
+        },
+        pane: NavigationPane(
+          selected: navigationProvider.index,
+          displayMode: appTheme.displayMode,
+          indicator: () {
+            switch (appTheme.indicator) {
+              case NavigationIndicators.end:
+                return const EndNavigationIndicator();
+              case NavigationIndicators.sticky:
+              default:
+                return const StickyNavigationIndicator();
+            }
+          }(),
+          items: navigationProvider.originalItems,
+          autoSuggestBoxReplacement: const Icon(FluentIcons.search),
+          footerItems: navigationProvider.footerItems,
+        ),
+        onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
       ),
-      paneBodyBuilder: (item, child) {
-        final name =
-            item?.key is ValueKey ? (item!.key as ValueKey).value : null;
-        return FocusTraversalGroup(
-          key: ValueKey('body$name'),
-          child: child ?? const ChatRoomPage(),
-        );
-      },
-      pane: NavigationPane(
-        selected: navigationProvider.index,
-        displayMode: appTheme.displayMode,
-        indicator: () {
-          switch (appTheme.indicator) {
-            case NavigationIndicators.end:
-              return const EndNavigationIndicator();
-            case NavigationIndicators.sticky:
-            default:
-              return const StickyNavigationIndicator();
-          }
-        }(),
-        items: navigationProvider.originalItems,
-        autoSuggestBoxReplacement: const Icon(FluentIcons.search),
-        footerItems: navigationProvider.footerItems,
-      ),
-      onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
     );
   }
 

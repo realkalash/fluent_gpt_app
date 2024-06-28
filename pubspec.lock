@@ -173,10 +173,10 @@ packages:
     dependency: transitive
     description:
       name: device_info_plus
-      sha256: "77f757b789ff68e4eaf9c56d1752309bd9f7ad557cb105b938a7f8eb89e59110"
+      sha256: eead12d1a1ed83d8283ab4c2f3fca23ac4082f29f25f29dff0f758f57d06ec91
       url: "https://pub.dev"
     source: hosted
-    version: "9.1.2"
+    version: "10.1.0"
   device_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -297,6 +297,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.9.3+1"
+  fixnum:
+    dependency: transitive
+    description:
+      name: fixnum
+      sha256: "25517a4deb0c03aa0f32fd12db525856438902d9c16536311e76cdc57b31d7d1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.0"
   fluent_ui:
     dependency: "direct main"
     description:
@@ -481,18 +489,18 @@ packages:
     dependency: transitive
     description:
       name: irondash_engine_context
-      sha256: "0e803321935ca7af1a88f1391be9edfdb940df800353670bfc694934c7643ff3"
+      sha256: cd7b769db11a2b5243b037c8a9b1ecaef02e1ae27a2d909ffa78c1dad747bb10
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.1"
+    version: "0.5.4"
   irondash_message_channel:
     dependency: transitive
     description:
       name: irondash_message_channel
-      sha256: "500daa1fbe679f7d28a5258df3ff47dab6de352e680dc93c1ca9eae1555d8db5"
+      sha256: b4101669776509c76133b8917ab8cfc704d3ad92a8c450b92934dd8884a2f060
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.1"
+    version: "0.7.0"
   js:
     dependency: transitive
     description:
@@ -978,6 +986,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.0"
+  sprintf:
+    dependency: transitive
+    description:
+      name: sprintf
+      sha256: "1fc9ffe69d4df602376b52949af107d8f5703b77cda567c4d7d86a0693120f23"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.0.0"
   stack_trace:
     dependency: transitive
     description:
@@ -1006,26 +1022,26 @@ packages:
     dependency: "direct main"
     description:
       name: super_clipboard
-      sha256: "10774204b35b68f8dc5884ab620f83220d2c12620a8dcf4e6f39c94666f3549f"
+      sha256: cdab725bac26655ebd189f4d202d694a8cbc1c21e0f0478ccd7829c71716f09b
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.0"
+    version: "0.8.17"
   super_drag_and_drop:
     dependency: "direct main"
     description:
       name: super_drag_and_drop
-      sha256: cb884e24f75127ddfba7908808ac265249075511c72584148345b259ca99788c
+      sha256: "8e00c6082646076f80b972b39d9c27b5311082ea1e8add5fa370ce11c410f7de"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.0"
+    version: "0.8.17"
   super_native_extensions:
     dependency: transitive
     description:
       name: super_native_extensions
-      sha256: b2fb454a90308f4f25e8ab928272490883d87a28d362307678c76989287cae43
+      sha256: fa55d452d34b7112453afbb9fa4d13c0527ff201630d10d86546497179030544
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.0"
+    version: "0.8.17"
   synchronized:
     dependency: transitive
     description:
@@ -1163,13 +1179,13 @@ packages:
     source: hosted
     version: "3.1.1"
   uuid:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: uuid
-      sha256: "648e103079f7c64a36dc7d39369cabb358d377078a051d6ae2ad3aa539519313"
+      sha256: "814e9e88f21a176ae1359149021870e87f7cddaf633ab678a5d2b0bff7fd1ba8"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.7"
+    version: "4.4.0"
   vector_math:
     dependency: transitive
     description:

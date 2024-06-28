@@ -747,7 +747,7 @@ class _MessageCardState extends State<MessageCard> {
                             final imageBytes = base64.decode(imageBytesString);
                            
                             item.add(Formats.png(imageBytes));
-                            await ClipboardWriter.instance.write([item]);
+                            await SystemClipboard.instance!.write([item]);
                             displayCopiedToClipboard(context);
                           },
                           child: const Text('Copy image data'),

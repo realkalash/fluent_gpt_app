@@ -1,7 +1,9 @@
 import 'dart:io';
 
+import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:system_tray/system_tray.dart';
@@ -15,8 +17,9 @@ import 'common/window_listener.dart';
 final trayButtonStream = BehaviorSubject<String?>();
 
 Future<void> initSystemTray() async {
-  String path =
-      Platform.isWindows ? 'assets/app_icon.ico' : 'assets/transparent_app_icon_32x32.png';
+  String path = Platform.isWindows
+      ? 'assets/app_icon.ico'
+      : 'assets/transparent_app_icon_32x32.png';
 
   final AppWindow appWindow = AppWindow();
   final SystemTray systemTray = SystemTray();

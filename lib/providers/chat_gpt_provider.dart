@@ -38,20 +38,7 @@ ChatModel get selectedModel =>
 ChatRoom get selectedChatRoom =>
     chatRooms[selectedChatRoomName] ??
     (chatRooms.values.isEmpty == true
-        ? ChatRoom(
-            chatRoomName: 'Default',
-            model: selectedModel,
-            messages: messages,
-            temp: temp,
-            topk: topk,
-            promptBatchSize: promptBatchSize,
-            repeatPenaltyTokens: repeatPenaltyTokens,
-            topP: topP,
-            maxTokenLength: maxLenght,
-            repeatPenalty: repeatPenalty,
-            token: openAI.token,
-            orgID: openAI.orgId,
-          )
+        ? _generateDefaultChatroom()
         : chatRooms.values.first);
 double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
 get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
@@ -121,20 +108,7 @@ class ChatGPTProvider with ChangeNotifier {
       }
     }
     if (chatRooms.isEmpty) {
-      chatRooms[selectedChatRoomName] = ChatRoom(
-        chatRoomName: 'Default',
-        model: selectedModel,
-        messages: messages,
-        temp: temp,
-        topk: topk,
-        promptBatchSize: promptBatchSize,
-        repeatPenaltyTokens: repeatPenaltyTokens,
-        topP: topP,
-        maxTokenLength: maxLenght,
-        repeatPenalty: repeatPenalty,
-        token: token,
-        orgID: orgID,
-      );
+      chatRooms[selectedChatRoomName] = _generateDefaultChatroom();
     } else {
       selectedChatRoomName =
           prefs?.getString('selectedChatRoomName') ?? 'Default';
@@ -155,7 +129,8 @@ class ChatGPTProvider with ChangeNotifier {
     trayButtonStream.listen((value) async {
       var command = '';
       var text = '';
-      if (value?.contains('fluentgpt:///') == true) {
+      if (value?.contains('fluentgpt:///') == true ||
+          value?.contains('fluentgpt://') == true) {
         final uri = Uri.parse(value!);
         command = uri.queryParameters['command'] ?? '';
         text = uri.queryParameters['text'] ?? '';
@@ -506,7 +481,7 @@ class ChatGPTProvider with ChangeNotifier {
     }
   }
 
-  void deleteChat() {
+  void clearChatMessages() {
     messages.clear();
     saveToDisk();
     notifyRoomsStream();
@@ -597,6 +572,18 @@ class ChatGPTProvider with ChangeNotifier {
 
   void deleteChatRoom(String chatRoomName) {
     chatRooms.remove(chatRoomName);
+    // if last one - create a default one
+    if (chatRooms.isEmpty) {
+      chatRooms['Default'] = _generateDefaultChatroom();
+      selectedChatRoomName = 'Default';
+    }
+    notifyListeners();
+    saveToDisk();
+  }
+
+  /// Will remove all chat rooms with selected name
+  void deleteChatRoomHard(String chatRoomName) {
+    chatRooms.removeWhere((key, value) => value.chatRoomName == chatRoomName);
     notifyListeners();
     saveToDisk();
   }
@@ -961,4 +948,22 @@ class ChatGPTProvider with ChangeNotifier {
     useSecondRequestForNamingChats = !useSecondRequestForNamingChats;
     notifyListeners();
   }
+}
+
+ChatRoom _generateDefaultChatroom() {
+  return ChatRoom(
+    chatRoomName: 'Default',
+    model: selectedModel,
+    messages: messages,
+    temp: temp,
+    topk: topk,
+    promptBatchSize: promptBatchSize,
+    repeatPenaltyTokens: repeatPenaltyTokens,
+    topP: topP,
+    maxTokenLength: maxLenght,
+    repeatPenalty: repeatPenalty,
+    token: openAI.token,
+    orgID: openAI.orgId,
+    systemMessage: defaultSystemMessage,
+  );
 }
