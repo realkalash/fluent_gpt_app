@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   hotkey_manager_windows
   irondash_engine_context
   pasteboard
+  permission_handler_windows
   protocol_handler_windows
   screen_retriever
   super_native_extensions

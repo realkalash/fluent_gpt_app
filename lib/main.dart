@@ -5,10 +5,12 @@ import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/common/window_listener.dart';
+import 'package:chatgpt_windows_flutter_app/native_channels.dart';
+import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/add_chat_button.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +26,7 @@ import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'navigation_provider.dart';
+import 'overlay_ui.dart';
 import 'providers/chat_gpt_provider.dart';
 
 var openAI = OpenAI.instance.build(
@@ -62,6 +65,7 @@ Future<void> initWindow() async {
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
   await windowManager.setSkipTaskbar(AppCache.showAppInDock.value ?? true);
+  await windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
   if (lastWindowWidth != null && lastWindowHeight != null) {
@@ -80,6 +84,49 @@ Future<void> initWindow() async {
 
 String appVersion = '-';
 BehaviorSubject<bool> shiftPressedStream = BehaviorSubject<bool>.seeded(false);
+final navigatorKey = GlobalKey<NavigatorState>();
+
+void setupMethodChannel() {
+  overlayChannel.setMethodCallHandler((call) async {
+    switch (call.method) {
+      case 'onTextSelected':
+        final argsNative = call.arguments as Map;
+        final args = argsNative.map<String, dynamic>(
+          (key, value) => MapEntry(key.toString(), value),
+        );
+        // log('onTextSelected: $args');
+        final selectedText = args['selectedText'] as String?;
+        if (selectedText == null || selectedText.isEmpty) {
+          return;
+        }
+        final isAppForegrounded = await windowManager.isFocused();
+        if (isAppForegrounded) {
+          return;
+        }
+        final positionX = args['positionX'] as double?;
+        final positionY = args['positionY'] as double?;
+        final resolution = AppCache.resolution.value ?? '500x700';
+        final screenHeight = double.parse(resolution.split('x').last);
+        final screenWidth = double.parse(resolution.split('x').first);
+        OverlayManager.showOverlay(
+          navigatorKey.currentContext!,
+          positionX: positionX,
+          positionY: positionY,
+          resolution: Size(screenWidth, screenHeight),
+        );
+      case 'onMouseUp':
+        break;
+      case 'onTimerFired':
+        break;
+      case 'showOverlay':
+        break;
+      default:
+        throw PlatformException(
+            code: 'Unimplemented',
+            details: '${call.method} is not implemented');
+    }
+  });
+}
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,6 +138,8 @@ void main(List<String> args) async {
     return true;
   };
   await protocolHandler.register('fluentgpt');
+  setupMethodChannel();
+
   SystemTheme.accentColor.load();
   await WindowsSingleInstance.ensureSingleInstance(
       args, "chatgpt_windows_flutter_app", onSecondWindow: (secondWindowArgs) {
@@ -131,9 +180,20 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
       final size = _appTheme.resolution;
       log('size: $size');
       if (size != null) {
-        await windowManager.setSize(Size(500, size.height - 100),
+        await windowManager.setSize(Size(650, size.height - 100),
             animate: true);
         await windowManager.setAlignment(Alignment.centerRight, animate: true);
+      } else {
+        final result = await overlayChannel.invokeMethod('getScreenSize');
+        log('screen result: $result');
+        if (result != null) {
+          final screenSize = Size(result['width'], result['height']);
+          await windowManager.setSize(Size(500, screenSize.height - 100),
+              animate: true);
+          await windowManager.setAlignment(Alignment.centerRight,
+              animate: true);
+          _appTheme.setResolution(screenSize, notify: false);
+        }
       }
       if (mounted) {
         await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
@@ -166,6 +226,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
             final appTheme = ctx.watch<AppTheme>();
             return FluentApp(
               title: '',
+              navigatorKey: navigatorKey,
               onGenerateTitle: (context) => 'ChatGPT',
               themeMode: appTheme.mode,
               debugShowCheckedModeBanner: false,
@@ -294,13 +355,6 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     var navigationProvider = context.watch<NavigationProvider>();
     navigationProvider.context = context;
     final appTheme = context.watch<AppTheme>();
-    // final theme = FluentTheme.of(context);
-    // if (widget.shellContext != null) {
-    //   if (Navigator.of(context).canPop() == false) {
-    //     setState(() {});
-    //   }
-    // }
-    bool isDark = appTheme.windowEffect == flutter_acrylic.WindowEffect.mica;
     return KeyboardListener(
       focusNode: _focusNode,
       onKeyEvent: (event) {
@@ -315,69 +369,47 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
           shiftPressedStream.add(false);
         }
       },
-      child: NavigationView(
-        key: navigationProvider.viewKey,
-        appBar: NavigationAppBar(
-          automaticallyImplyLeading: false,
-          actions: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              const AddChatButton(),
-              const ClearChatButton(),
-              const PinAppButton(),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, right: 16),
-                child: Align(
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: ToggleButton(
-                    checked: isDark,
-                    onChanged: (v) {
-                      if (v) {
-                        appTheme.setEffect(flutter_acrylic.WindowEffect.mica);
-                      } else {
-                        appTheme
-                            .setEffect(flutter_acrylic.WindowEffect.acrylic);
-                      }
-                    },
-                    child: const Icon(FluentIcons.sunny),
-                  ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(right: 16),
-                child: CollapseAppButton(),
-              ),
-
-              // if (!kIsWeb) const WindowButtons(),
-            ],
-          ),
-        ),
-        paneBodyBuilder: (item, child) {
-          final name =
-              item?.key is ValueKey ? (item!.key as ValueKey).value : null;
-          return FocusTraversalGroup(
-            key: ValueKey('body$name'),
-            child: child ?? const ChatRoomPage(),
-          );
-        },
-        pane: NavigationPane(
-          selected: navigationProvider.index,
-          displayMode: appTheme.displayMode,
-          indicator: () {
-            switch (appTheme.indicator) {
-              case NavigationIndicators.end:
-                return const EndNavigationIndicator();
-              case NavigationIndicators.sticky:
-              default:
-                return const StickyNavigationIndicator();
+      child: StreamBuilder<bool>(
+          stream: isShowingOverlay,
+          builder: (context, snapshot) {
+            final isNeedToHide = snapshot.data ?? false;
+            if (isNeedToHide) {
+              return const OverlayUI();
             }
-          }(),
-          items: navigationProvider.originalItems,
-          autoSuggestBoxReplacement: const Icon(FluentIcons.search),
-          footerItems: navigationProvider.footerItems,
-        ),
-        onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
-      ),
+            return NavigationView(
+              key: navigationProvider.viewKey,
+              appBar: const NavigationAppBar(
+                automaticallyImplyLeading: false,
+                actions: MainAppHeaderButtons(),
+              ),
+              paneBodyBuilder: (item, child) {
+                final name = item?.key is ValueKey
+                    ? (item!.key as ValueKey).value
+                    : null;
+                return FocusTraversalGroup(
+                  key: ValueKey('body$name'),
+                  child: child ?? const ChatRoomPage(),
+                );
+              },
+              pane: NavigationPane(
+                selected: navigationProvider.index,
+                displayMode: appTheme.displayMode,
+                indicator: () {
+                  switch (appTheme.indicator) {
+                    case NavigationIndicators.end:
+                      return const EndNavigationIndicator();
+                    case NavigationIndicators.sticky:
+                    default:
+                      return const StickyNavigationIndicator();
+                  }
+                }(),
+                items: navigationProvider.originalItems,
+                autoSuggestBoxReplacement: const Icon(FluentIcons.search),
+                footerItems: navigationProvider.footerItems,
+              ),
+              onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
+            );
+          }),
     );
   }
 

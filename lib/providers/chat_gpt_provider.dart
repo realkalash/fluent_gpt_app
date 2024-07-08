@@ -154,6 +154,10 @@ class ChatGPTProvider with ChangeNotifier {
         sendMessage('Translate to Rus: "$text"', false);
       } else if (command == 'to_eng') {
         sendMessage('Translate to English: "$text"', false);
+      } else if (command == 'impove_writing') {
+        sendMessage('Improve writing: "$text"', false);
+      } else if (command == 'summarize_markdown_short') {
+        sendMessage('Summarize using markdown. Use short summary: "$text"', false);
       } else if (command == 'answer_with_tags') {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
       } else if (command == 'create_new_chat') {
@@ -359,7 +363,7 @@ class ChatGPTProvider with ChangeNotifier {
     final toolArgsString = toolFunction['arguments'] as String;
     final toolArgs = jsonDecode(toolArgsString) as Map<String, dynamic>;
     if (toolName == 'search_files') {
-      final fileName = '${toolArgs!['filename']}';
+      final fileName = '${toolArgs['filename']}';
       toolArgs.remove('filename');
 
       final result =
@@ -367,7 +371,7 @@ class ChatGPTProvider with ChangeNotifier {
       addBotMessageToList(result, assistantLastEmptyResponse.id);
     } else if (toolName == 'get_current_weather') {
       final location = toolArgs['location'];
-      final unit = toolArgs['unit'];
+      // final unit = toolArgs['unit'];
       final result = await ShellDriver.runShellCommand(
           'curl wttr.in/$location?format="%C+%t+%w+%h+%p"');
       addBotMessageToList(result, assistantLastEmptyResponse.id);

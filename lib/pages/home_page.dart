@@ -13,7 +13,6 @@ import 'package:chatgpt_windows_flutter_app/system_messages.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/markdown_builders/md_code_builder.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -404,6 +403,7 @@ class IncludeConversationSwitcher extends StatelessWidget {
             checked: AppCache.gptToolSearchEnabled.value!,
             onChanged: (value) {
               AppCache.gptToolSearchEnabled.value = value;
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
               chatProvider.notifyListeners();
             },
           ),
@@ -415,6 +415,7 @@ class IncludeConversationSwitcher extends StatelessWidget {
             checked: AppCache.gptToolPythonEnabled.value!,
             onChanged: (value) {
               AppCache.gptToolPythonEnabled.value = value;
+              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
               chatProvider.notifyListeners();
             },
           ),
@@ -745,9 +746,10 @@ class _MessageCardState extends State<MessageCard> {
                             final item = DataWriterItem();
                             final imageBytesString = widget.message['image']!;
                             final imageBytes = base64.decode(imageBytesString);
-                           
+
                             item.add(Formats.png(imageBytes));
                             await SystemClipboard.instance!.write([item]);
+                            // ignore: use_build_context_synchronously
                             displayCopiedToClipboard(context);
                           },
                           child: const Text('Copy image data'),

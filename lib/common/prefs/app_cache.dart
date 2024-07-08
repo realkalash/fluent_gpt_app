@@ -6,6 +6,9 @@ class AppCache {
   static const resolution = StringPref("resolution");
   static const preventClose = BoolPref("preventClose");
   static const showAppInDock = BoolPref("showAppInDock", true);
+  static const enableOverlay = BoolPref("enableOverlay", false);
+  static const alwaysOnTop = BoolPref("alwaysOnTop", false);
+
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
   static const windowWidth = IntPref("windowWidth");

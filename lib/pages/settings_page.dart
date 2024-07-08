@@ -2,19 +2,21 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/native_channels.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/wiget_constants.dart';
-import 'package:flutter/foundation.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import '../theme.dart';
 import 'home_page.dart';
@@ -73,8 +75,6 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> with PageMixin {
   @override
   Widget build(BuildContext context) {
-    assert(debugCheckHasMediaQuery(context));
-
     return ScaffoldPage.scrollable(
       header: const PageHeader(title: Text('Settings')),
       children: [
@@ -86,16 +86,99 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         ),
         const EnabledGptTools(),
         const _FilesSection(),
+        const AccessibilityPermissionButton(),
         const _CacheSection(),
         const _HotKeySection(),
+        Text('Appearance', style: FluentTheme.of(context).typography.title),
         const _ThemeModeSection(),
-        biggerSpacer,
-        const _LocaleSection(),
-        biggerSpacer,
+        // biggerSpacer,
+        // const _LocaleSection(),
         const _ResolutionsSelector(),
         biggerSpacer,
         const _OtherSettings(),
       ],
+    );
+  }
+}
+
+class AccessibilityPermissionButton extends StatelessWidget {
+  const AccessibilityPermissionButton({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        spacer,
+        AccessebilityStatus(),
+        spacer,
+        ToggleOverlayButton(),
+      ],
+    );
+  }
+}
+
+class ToggleOverlayButton extends StatefulWidget {
+  const ToggleOverlayButton({super.key});
+
+  @override
+  State<ToggleOverlayButton> createState() => _ToggleOverlayButtonState();
+}
+
+class _ToggleOverlayButtonState extends State<ToggleOverlayButton> {
+  @override
+  Widget build(BuildContext context) {
+    return FlyoutListTile(
+      text: const Text(
+          'Show overlay on tap (needs accessibility permission on macOS)'),
+      trailing: Checkbox(
+        checked: AppCache.enableOverlay.value,
+        onChanged: (value) {
+          setState(() {
+            AppCache.enableOverlay.value = value;
+          });
+        },
+      ),
+    );
+  }
+}
+
+class AccessebilityStatus extends StatefulWidget {
+  const AccessebilityStatus({super.key});
+
+  @override
+  State<AccessebilityStatus> createState() => _AccessebilityStatusState();
+}
+
+class _AccessebilityStatusState extends State<AccessebilityStatus> {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: overlayChannel.invokeMethod('isAccessabilityGranted'),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final isGranted = snapshot.data as bool? ?? false;
+          return Button(
+            onPressed: () {
+              const url =
+                  'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+              launchUrlString(url);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Accessibility granted'),
+                const SizedBox(width: 10.0),
+                if (isGranted)
+                  Icon(FluentIcons.check_mark, color: Colors.green)
+                else
+                  Icon(FluentIcons.clear, color: Colors.red)
+              ],
+            ),
+          );
+        }
+        return const Text('Checking accessibility status...');
+      },
     );
   }
 }
@@ -260,27 +343,6 @@ class _OtherSettings extends StatelessWidget {
 
 class _ResolutionsSelector extends StatelessWidget {
   const _ResolutionsSelector({super.key});
-  static const resolutions = [
-    /// 4k
-    Size(3840, 2160),
-
-    /// 2k
-    Size(2560, 1440),
-
-    /// 1080p
-    Size(1920, 1080),
-
-    /// 720p
-    Size(1280, 720),
-    Size(1024, 768),
-    Size(800, 600),
-    Size(640, 480),
-    Size(640, 360),
-    Size(480, 360),
-    Size(480, 320),
-    Size(320, 240),
-    Size(320, 180),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -289,28 +351,17 @@ class _ResolutionsSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Resolution', style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        SizedBox(
-          width: 200.0,
-          child: ComboBox<Size>(
-            items: resolutions.map((e) {
-              final isCurrent = e == appTheme.resolution;
-              final string = '${e.width}x${e.height}';
-              final selectedString = '$string (current)';
-              return ComboBoxItem(
-                value: e,
-                child: Text(isCurrent ? selectedString : string),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                appTheme.setResolution(value);
-              }
-            },
-            value: appTheme.resolution,
-            placeholder: const Text('Select a resolution'),
-          ),
+        ListTile(
+          title: const Text('Resolution'),
+          subtitle: Text(
+              '${appTheme.resolution?.width}x${appTheme.resolution?.height}'),
+          trailing: kDebugMode
+              ? IconButton(
+                  icon: const Icon(FluentIcons.delete),
+                  onPressed: () async {
+                    await AppCache.resolution.remove();
+                  })
+              : null,
         ),
         const SizedBox(height: 8.0),
         Text('Text size', style: FluentTheme.of(context).typography.subtitle),

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -126,6 +126,11 @@ HotKey resetChat = HotKey(
   modifiers: [HotKeyModifier.control],
   scope: HotKeyScope.inapp,
 );
+HotKey showOverlayForText = HotKey(
+  key: LogicalKeyboardKey.keyY,
+  modifiers: [HotKeyModifier.control],
+  scope: HotKeyScope.system,
+);
 Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     openWindowHotkey,
@@ -161,6 +166,15 @@ Future<void> initShortcuts(AppWindow appWindow) async {
     escapeCancelSelectKey,
     keyDownHandler: (hotKey) async {
       onTrayButtonTap('escape_cancel_select');
+    },
+  );
+  await hotKeyManager.register(
+    showOverlayForText,
+    keyDownHandler: (hotKey) async {
+      const channel =
+          MethodChannel('com.example.chatgpt_windows_flutter_app/overlay');
+      final result = await channel.invokeMethod('getSelectedText');
+      log('Selected Text: $result');
     },
   );
 }

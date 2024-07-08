@@ -25,6 +25,9 @@ end
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
 flutter_macos_podfile_setup
+use_frameworks!
+
+pod "FluentIcons", "1.1.179"
 
 target 'Runner' do
   use_frameworks!

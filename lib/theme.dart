@@ -6,7 +6,6 @@ import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:system_theme/system_theme.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'main.dart';
@@ -63,6 +62,7 @@ class AppTheme extends ChangeNotifier {
     isPinned = !isPinned;
     notifyListeners();
     windowManager.setAlwaysOnTop(isPinned);
+    AppCache.alwaysOnTop.set(isPinned);
   }
 
   /// We should ignore the system theme mode!
