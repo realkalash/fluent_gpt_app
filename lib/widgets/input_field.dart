@@ -4,8 +4,9 @@ import 'dart:async';
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
+import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -190,27 +191,6 @@ class _InputFieldState extends State<InputField> {
                   autofocus: true,
                   autocorrect: true,
                   focusNode: promptTextFocusNode,
-                  prefix: (selectedChatRoom.systemMessage == null ||
-                          selectedChatRoom.systemMessage == '')
-                      ? null
-                      : GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => EditChatRoomDialog(
-                                room: selectedChatRoom,
-                                onOkPressed: () {},
-                              ),
-                            );
-                          },
-                          child: Tooltip(
-                            message: selectedChatRoom.systemMessage,
-                            child: const Card(
-                                margin: EdgeInsets.all(4),
-                                padding: EdgeInsets.all(4),
-                                child: Text('SMART')),
-                          ),
-                        ),
                   prefixMode: OverlayVisibilityMode.always,
                   controller: chatProvider.messageController,
                   minLines: 2,
@@ -391,72 +371,47 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
           runSpacing: 4,
           children: [
             if (textFromClipboard.trim().isNotEmpty)
-              Tooltip(
-                message: 'Paste:\n$textFromClipboard',
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 200),
-                  child: Button(
-                    style: ButtonStyle(
-                        backgroundColor: ButtonState.all(Colors.blue)),
-                    onPressed: () {
-                      chatProvider.sendMessage(textFromClipboard);
-                    },
-                    child: Text(
-                      textFromClipboard.replaceAll('\n', '').trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Container(
+                constraints: const BoxConstraints(maxWidth: 200),
+                child: Button(
+                  style: ButtonStyle(
+                      backgroundColor: ButtonState.all(Colors.blue)),
+                  onPressed: () {
+                    chatProvider.sendMessage(textFromClipboard);
+                  },
+                  child: Text(
+                    textFromClipboard.replaceAll('\n', '').trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
-            Button(
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(ic.FluentIcons.info_16_regular, size: 16),
-                    Text('Explain'),
-                  ],
+            for (final prompt in customPrompts.value)
+              if (prompt.showInChatField)
+                Button(
+                  onPressed: () async {
+                    final inputText = txtController.text;
+                    if (inputText.trim().isNotEmpty) {
+                      const urlScheme = 'fluentgpt';
+                      final uri = Uri(
+                          scheme: urlScheme,
+                          path: '///',
+                          queryParameters: {
+                            'command': 'custom',
+                            'text': prompt.getPromptText(inputText)
+                          });
+                      onTrayButtonTap(uri.toString());
+                    }
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(prompt.icon),
+                      const SizedBox(width: 4),
+                      Text(prompt.title),
+                    ],
+                  ),
                 ),
-                onPressed: () {
-                  final text = txtController.text.trim().isEmpty
-                      ? textFromClipboard
-                      : txtController.text;
-                  chatProvider.sendMessage('Explain: "$text"');
-                  txtController.clear();
-                }),
-            Button(
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(ic.FluentIcons.book_16_regular, size: 16),
-                    Text('Check grammar'),
-                  ],
-                ),
-                onPressed: () {
-                  final text = txtController.text.trim().isEmpty
-                      ? textFromClipboard
-                      : txtController.text;
-                  chatProvider.sendCheckGrammar(text);
-                  txtController.clear();
-                }),
-            Button(
-                child: const Text('Translate to English'),
-                onPressed: () {
-                  final text = txtController.text.trim().isEmpty
-                      ? textFromClipboard
-                      : txtController.text;
-                  chatProvider.sendMessage('Translate to English: "$text"');
-                  txtController.clear();
-                }),
-            Button(
-                child: const Text('Translate to Rus'),
-                onPressed: () {
-                  final text = txtController.text.trim().isEmpty
-                      ? textFromClipboard
-                      : txtController.text;
-                  chatProvider.sendMessage('Translate to Rus: "$text"');
-                  txtController.clear();
-                }),
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () {

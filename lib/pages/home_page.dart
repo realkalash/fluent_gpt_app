@@ -600,6 +600,9 @@ class _MessageCardState extends State<MessageCard> {
     if (widget.message['role'] == 'user') {
       tileWidget = ListTile(
         leading: leading,
+        tileColor: widget.message['commandMessage'] == 'true'
+            ? ButtonState.all(Colors.blue.withOpacity(0.5))
+            : null,
         contentPadding: EdgeInsets.zero,
         onPressed: () {
           final provider = context.read<ChatGPTProvider>();
@@ -616,12 +619,35 @@ class _MessageCardState extends State<MessageCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText(
-              '${widget.message['content']}',
-              style: FluentTheme.of(context).typography.body?.copyWith(
-                    fontSize: widget.textSize.toDouble(),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.message['commandMessage'] == 'true')
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Command prompt'),
+                      IconButton(
+                        icon: Icon(widget.message['hidePrompt'] == 'true'
+                            ? FluentIcons.chevron_down
+                            : FluentIcons.chevron_up),
+                        onPressed: () {
+                          final provider = context.read<ChatGPTProvider>();
+                          provider.toggleHidePrompt(widget.id);
+                        },
+                      ),
+                    ],
                   ),
-              selectionControls: fluentTextSelectionControls,
+                if (widget.message['hidePrompt'] != 'true')
+                  SelectableText(
+                    '${widget.message['content']}',
+                    style: FluentTheme.of(context).typography.body?.copyWith(
+                          fontSize: widget.textSize.toDouble(),
+                        ),
+                    selectionControls: fluentTextSelectionControls,
+                  ),
+              ],
             ),
             if (widget.message['image'] != null)
               GestureDetector(
@@ -1212,7 +1238,7 @@ List<String> getCodeFromMarkdown(String assistantContent) {
     shellCommandRegex,
     pythonCommandRegex,
     everythingSearchCommandRegex,
-    grammarCheckRegex,
+    copyToCliboardRegex,
   ];
 
   for (final regex in regexList) {

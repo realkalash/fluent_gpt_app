@@ -1,0 +1,218 @@
+import 'dart:convert';
+
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/widgets.dart' as widgets;
+import 'package:rxdart/rxdart.dart';
+
+BehaviorSubject<String> lang = BehaviorSubject.seeded('en');
+const List<CustomPrompt> baseArchivedPromptsTemplate = [
+  // Continue writing
+  CustomPrompt(
+    icon: FluentIcons.edit_24_filled,
+    index: 0,
+    title: 'Continue writing',
+    prompt: '''"""\${input}""" 
+Continue writing that begins with the text above and keeping the same voice and style. Stay on the same topic.
+Only give me the output and nothing else. Respond in the same language variety or dialect of the text above. Clipboard access: \${clipboardAccess}''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+];
+const List<CustomPrompt> basePromptsTemplate = [
+  CustomPrompt(
+    title: 'Explain this',
+    icon: FluentIcons.info_24_filled,
+    index: 0,
+    prompt:
+        'Please explain clearly and concisely using:"\${lang}" language: "\${input}"',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+  CustomPrompt(
+    title: 'Summarize this',
+    icon: FluentIcons.text_paragraph_24_regular,
+    index: 1,
+    prompt:
+        '''You are a highly skilled AI trained in language comprehension and summarization. I would like you to read the text delimited by triple quotes and summarize it into a concise abstract paragraph. Aim to retain the most important points, providing a coherent and readable summary that could help a person understand the main points of the discussion without needing to read the entire text. Please avoid unnecessary details or tangential points.
+Only give me the output and nothing else. Respond in the \${lang} language. Clipboard access: \${clipboardAccess}
+"""
+\${input}
+"""''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+  // I realy likes my car
+  CustomPrompt(
+    title: 'Check grammar',
+    icon: FluentIcons.text_grammar_wand_24_filled,
+    index: 2,
+    prompt:
+        '''Correct any spelling, syntax, or grammar mistakes in the text delimited by triple quotes without making any improvements or changes to the original meaning or style. In other words, only correct spelling, syntax, or grammar mistakes, do not make improvements.
+If the original text has no mistake, just output the original text and nothing else. Copy to clipboard: \${clipboardAccess}. 
+"""
+\${input}
+"""''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+  CustomPrompt(
+    title: 'Translate this',
+    icon: FluentIcons.translate_24_regular,
+    prompt:
+        '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
+    "\${input}"''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [
+      CustomPrompt(
+        title: 'Translate to English',
+        prompt:
+            '''Please translate the following text to English. Only give me the output and nothing else:
+    "\${input}"''',
+      ),
+      CustomPrompt(
+        title: 'Translate to Russian',
+        prompt:
+            '''Please translate the following text to Russian. Only give me the output and nothing else:
+    "\${input}"''',
+      ),
+      CustomPrompt(
+        title: 'Translate to Ukrainian',
+        prompt:
+            '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
+    "\${input}"''',
+      ),
+    ],
+  ),
+];
+
+class CustomPrompt {
+  /// The name of the prompt
+  final String title;
+
+  /// Index for sorting
+  final int index;
+
+  /// User can paste a custon prompt for chatGPT here
+  /// He can use ${input} to refer to the selected text in the chat field
+  final String prompt;
+
+  /// Icon. The default is chat_20_filled
+  final widgets.IconData icon;
+
+  /// If true will be shown above the chat input field as a button
+  final bool showInChatField;
+
+  /// If true will be shown in the overlay
+  final bool showInOverlay;
+
+  /// If not empty, this prompt will be shown as a dropdown
+  final List<CustomPrompt> children;
+
+  const CustomPrompt({
+    required this.title,
+    required this.prompt,
+    this.index = 0,
+    this.showInChatField = false,
+    this.showInOverlay = false,
+    this.children = const [],
+    this.icon = FluentIcons.chat_20_filled,
+  });
+
+  /// Returns the prompt text with the selected text
+  /// If selectedText is null, it will be replaced with '<nothing selected>'
+  /// The prompt also use the language from the lang BehaviorSubject
+  String getPromptText([String? selectedText]) => prompt
+      .replaceAll('\${lang}', lang.value)
+      .replaceAll(
+        '\${clipboardAccess}',
+        AppCache.gptToolCopyToClipboardEnabled.value == true ? 'YES' : 'NO',
+      )
+      .replaceAll('\${input}', selectedText ?? '<nothing selected>');
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is CustomPrompt &&
+        other.title == title &&
+        other.prompt == prompt &&
+        other.showInChatField == showInChatField &&
+        other.showInOverlay == showInOverlay;
+  }
+
+  @override
+  int get hashCode {
+    return title.hashCode ^
+        prompt.hashCode ^
+        showInChatField.hashCode ^
+        showInOverlay.hashCode;
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'title': title,
+      'prompt': prompt,
+      'showInChatField': showInChatField,
+      'showInOverlay': showInOverlay,
+      'children': children.map((e) => e.toJson()).toList(),
+      'icon': icon.codePoint,
+      'fontPackage': icon.fontPackage,
+      'iconFamily': icon.fontFamily,
+    };
+  }
+
+  static CustomPrompt fromJson(Map<dynamic, dynamic> json) {
+    return CustomPrompt(
+      title: json['title'],
+      prompt: json['prompt'],
+      showInChatField: json['showInChatField'],
+      showInOverlay: json['showInOverlay'],
+      children: (json['children'] is List)
+          ? (json['children'] as List)
+              .map((e) => CustomPrompt.fromJson(e))
+              .toList()
+          : [],
+      icon: widgets.IconData(
+        json['icon'] is int
+            ? json['icon']
+            : FluentIcons.chat_20_filled.codePoint,
+        fontPackage: json['fontPackage'],
+        fontFamily: json['iconFamily'],
+      ),
+    );
+  }
+
+  String toJsonString() {
+    return jsonEncode(toJson());
+  }
+
+  static CustomPrompt fromJsonString(String jsonString) {
+    return fromJson(jsonDecode(jsonString));
+  }
+
+  CustomPrompt copyWith({
+    String? title,
+    String? prompt,
+    int? index,
+    widgets.IconData? icon,
+    bool? showInChatField,
+    bool? showInOverlay,
+    List<CustomPrompt>? children,
+  }) {
+    return CustomPrompt(
+      title: title ?? this.title,
+      prompt: prompt ?? this.prompt,
+      index: index ?? this.index,
+      icon: icon ?? this.icon,
+      showInChatField: showInChatField ?? this.showInChatField,
+      showInOverlay: showInOverlay ?? this.showInOverlay,
+      children: children ?? this.children,
+    );
+  }
+}

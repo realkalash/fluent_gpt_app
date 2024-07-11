@@ -52,10 +52,11 @@ class AppDelegate: FlutterAppDelegate {
       case "testResultFromSwift":
         result(["Result from Swift": "Hello from Swift"])
       case "getSelectedText":
-        getSelectedTextOverrideClipboard { selectedText in
-          print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
-          result(selectedText)
-        }
+        // getSelectedTextOverrideClipboard { selectedText in
+        //   print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
+        //   result(selectedText)
+        // }
+        result(nil)
       case "showOverlay":
         self.handleShowOverlay(call: call, result: result)
       case "requestNativePermissions":
@@ -123,6 +124,8 @@ class AppDelegate: FlutterAppDelegate {
     return focusedElement?.selectedText
   }
 
+  // I should find a better way to get the selected text
+  // This method is causing too many unnecessary clipboard changes for each mouse click event
   func getSelectedTextOverrideClipboard(completion: @escaping (String?) -> Void) {
     // Get initial clipboard text
     let initialClipboardText = NSPasteboard.general.readObjects(forClasses: [NSString.self], options: nil)?.first as? String ?? ""
@@ -165,21 +168,21 @@ class AppDelegate: FlutterAppDelegate {
         "focusedApp": nameApp ?? "",
       ])
     } else {
-      print("[Swift] No text finded via reader. Trying to get text from clipboard.")
-      getSelectedTextOverrideClipboard { selectedText in
-        print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
-        // if selected text in clipboard is the same as previous
+      // print("[Swift] No text finded via reader. Trying to get text from clipboard.")
+      // getSelectedTextOverrideClipboard { selectedText in
+      //   print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
+      //   // if selected text in clipboard is the same as previous
         
-        // if selectedText is not nil then send it to flutter
-        if let selectedText = selectedText {
-          self.methodChannel?.invokeMethod("onTextSelected", arguments: [
-            "selectedText": selectedText,
-            "positionX": cursorPosition.x,
-            "positionY": cursorPosition.y,
-            "focusedApp": nameApp ?? "",
-          ])
-        }
-      }
+      //   // if selectedText is not nil then send it to flutter
+      //   if let selectedText = selectedText {
+      //     self.methodChannel?.invokeMethod("onTextSelected", arguments: [
+      //       "selectedText": selectedText,
+      //       "positionX": cursorPosition.x,
+      //       "positionY": cursorPosition.y,
+      //       "focusedApp": nameApp ?? "",
+      //     ])
+      //   }
+      // }
     }
 
     // old code
@@ -190,6 +193,7 @@ class AppDelegate: FlutterAppDelegate {
   }
 }
 
+// Will be removed in the future
 func performGlobalCopyShortcut() {
   func keyEvents(forPressAndReleaseVirtualKey virtualKey: Int) -> [CGEvent] {
     let eventSource = CGEventSource(stateID: .hidSystemState)

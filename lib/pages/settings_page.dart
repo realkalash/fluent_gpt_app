@@ -3,6 +3,7 @@ import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/native_channels.dart';
+import 'package:chatgpt_windows_flutter_app/pages/overlay_settings_page.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -102,17 +104,26 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
 }
 
 class AccessibilityPermissionButton extends StatelessWidget {
-  const AccessibilityPermissionButton({Key? key}) : super(key: key);
+  const AccessibilityPermissionButton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         spacer,
-        AccessebilityStatus(),
+        const AccessebilityStatus(),
         spacer,
-        ToggleOverlayButton(),
+        // const ToggleOverlayButton(),
+        Button(
+          child: const Text('Overlay settings'),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => const OverlaySettingsDialog(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -129,8 +140,7 @@ class _ToggleOverlayButtonState extends State<ToggleOverlayButton> {
   @override
   Widget build(BuildContext context) {
     return FlyoutListTile(
-      text: const Text(
-          'Show overlay on tap (needs accessibility permission on macOS)'),
+      text: const Text('Enable overlay'),
       trailing: Checkbox(
         checked: AppCache.enableOverlay.value,
         onChanged: (value) {
@@ -200,6 +210,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             style: FluentTheme.of(context).typography.subtitle),
         Wrap(
           children: [
+            const ToggleOverlayButton(),
             FlyoutListTile(
               text: const Text('Search files'),
               trailing: Checkbox(
@@ -207,6 +218,17 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 onChanged: (value) {
                   setState(() {
                     AppCache.gptToolSearchEnabled.value = value;
+                  });
+                },
+              ),
+            ),
+            FlyoutListTile(
+              text: const Text('Auto copy to clipboard'),
+              trailing: Checkbox(
+                checked: AppCache.gptToolCopyToClipboardEnabled.value!,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolCopyToClipboardEnabled.value = value;
                   });
                 },
               ),

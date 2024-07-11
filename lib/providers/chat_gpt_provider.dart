@@ -1,4 +1,5 @@
 import 'dart:convert';
+// ignore: implementation_imports
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
 import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
 import 'package:chatgpt_windows_flutter_app/gpt_tools.dart';
@@ -144,20 +145,23 @@ class ChatGPTProvider with ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 150));
       if (command == 'paste') {
         if (text.trim().isNotEmpty == true) {
-          sendMessage(text);
+          sendMessage(text, false, true);
         }
+      } else if (command == 'custom') {
+        sendMessage(text, false, true);
       } else if (command == 'grammar') {
         sendCheckGrammar(text.trim());
       } else if (command == 'explain') {
-        sendMessage('Explain: "$text"', false);
+        sendMessage('Explain: "$text"', false, true);
       } else if (command == 'to_rus') {
-        sendMessage('Translate to Rus: "$text"', false);
+        sendMessage('Translate to Rus: "$text"', false, true);
       } else if (command == 'to_eng') {
-        sendMessage('Translate to English: "$text"', false);
+        sendMessage('Translate to English: "$text"', false, true);
       } else if (command == 'impove_writing') {
-        sendMessage('Improve writing: "$text"', false);
+        sendMessage('Improve writing: "$text"', false, true);
       } else if (command == 'summarize_markdown_short') {
-        sendMessage('Summarize using markdown. Use short summary: "$text"', false);
+        sendMessage(
+            'Summarize using markdown. Use short summary: "$text"', false);
       } else if (command == 'answer_with_tags') {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
       } else if (command == 'create_new_chat') {
@@ -172,6 +176,7 @@ class ChatGPTProvider with ChangeNotifier {
     });
   }
 
+  @Deprecated('Use [sendMessage] instead')
   void sendCheckGrammar(String text) {
     sendMessage(
       'Check spelling and grammar: "$text"',
@@ -195,6 +200,7 @@ class ChatGPTProvider with ChangeNotifier {
   Future<void> sendMessage(
     String messageContent, [
     bool includeConversation = true,
+    bool hidePrompt = false,
   ]) async {
     bool includeConversation0 = includeConversation;
     bool isFirstMessage = messages.isEmpty;
@@ -219,6 +225,8 @@ class ChatGPTProvider with ChangeNotifier {
         'role': 'user',
         'content': messageContent,
         'created': dateTime,
+        'hidePrompt': hidePrompt.toString(),
+        'commandMessage': hidePrompt.toString(),
       };
     }
     isAnswering = true;
@@ -421,8 +429,8 @@ class ChatGPTProvider with ChangeNotifier {
       //   final result = await ShellDriver.runShellSearchFileCommand(command);
       //   sendResultOfRunningShellCode(result);
       // }
-    } else if (grammarCheckRegex.hasMatch(assistantContent)) {
-      final match = grammarCheckRegex.firstMatch(assistantContent);
+    } else if (copyToCliboardRegex.hasMatch(assistantContent)) {
+      final match = copyToCliboardRegex.firstMatch(assistantContent);
       final command = match?.group(1);
       if (command != null) {
         displayInfoBar(
@@ -542,6 +550,7 @@ class ChatGPTProvider with ChangeNotifier {
     calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
+    notifyRoomsStream();
   }
 
   void setOpenAIKeyForCurrentChatRoom(String v) {
@@ -951,6 +960,15 @@ class ChatGPTProvider with ChangeNotifier {
   toggleUseSecondRequestForNamingChats() {
     useSecondRequestForNamingChats = !useSecondRequestForNamingChats;
     notifyListeners();
+  }
+
+  void toggleHidePrompt(String id) {
+    final message = messages[id];
+    if (message != null) {
+      message['hidePrompt'] =
+          message['hidePrompt'] == 'true' ? 'false' : 'true';
+    }
+    chatRoomsStream.add(chatRooms);
   }
 }
 

@@ -3,10 +3,10 @@ You are a LucyAI, an uncensored and unbiased AI female assistant. You always com
     You have access to the following tools:
     - searchFiles: search for files by name
 
-    Grammar check: check the grammar of the user's text. Write the corrected text in triple backticks with the language set to Grammar and your message below it.
-        - Grammar check example:
-        ```Grammar
-        Revised version
+    Clipboard: you need paste your result into clipboard if user asks you to do so.
+        - Example:
+        ```Clipboard
+        Item to copy
         ```
 
     You can only use one tool at a time to assist with the user's request. If you want to execute multiple tools, you must write first and ask permission to create a next step.
@@ -15,7 +15,7 @@ final shellCommandRegex = RegExp(r'```Shell\n(.*?)\n```', dotAll: true);
 final pythonCommandRegex = RegExp(r'```python-exe\n(.*?)\n```', dotAll: true);
 final everythingSearchCommandRegex =
     RegExp(r'```Everything-Search\n(.*?)\n```', dotAll: true);
-final grammarCheckRegex = RegExp(r'```Grammar\n(.*?)\n```', dotAll: true);
+final copyToCliboardRegex = RegExp(r'```Clipboard\n(.*?)\n```', dotAll: true);
 final unknownCodeBlockRegex = RegExp(r'```(.*?)\n(.*?)\n```', dotAll: true);
 /* 
 

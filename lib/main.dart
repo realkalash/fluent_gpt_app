@@ -90,30 +90,31 @@ void setupMethodChannel() {
   overlayChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'onTextSelected':
-        final argsNative = call.arguments as Map;
-        final args = argsNative.map<String, dynamic>(
-          (key, value) => MapEntry(key.toString(), value),
-        );
-        // log('onTextSelected: $args');
-        final selectedText = args['selectedText'] as String?;
-        if (selectedText == null || selectedText.isEmpty) {
-          return;
-        }
-        final isAppForegrounded = await windowManager.isFocused();
-        if (isAppForegrounded) {
-          return;
-        }
-        final positionX = args['positionX'] as double?;
-        final positionY = args['positionY'] as double?;
-        final resolution = AppCache.resolution.value ?? '500x700';
-        final screenHeight = double.parse(resolution.split('x').last);
-        final screenWidth = double.parse(resolution.split('x').first);
-        OverlayManager.showOverlay(
-          navigatorKey.currentContext!,
-          positionX: positionX,
-          positionY: positionY,
-          resolution: Size(screenWidth, screenHeight),
-        );
+      // TODO: enable when ready
+      // final argsNative = call.arguments as Map;
+      // final args = argsNative.map<String, dynamic>(
+      //   (key, value) => MapEntry(key.toString(), value),
+      // );
+      // // log('onTextSelected: $args');
+      // final selectedText = args['selectedText'] as String?;
+      // if (selectedText == null || selectedText.isEmpty) {
+      //   return;
+      // }
+      // final isAppForegrounded = await windowManager.isFocused();
+      // if (isAppForegrounded) {
+      //   return;
+      // }
+      // final positionX = args['positionX'] as double?;
+      // final positionY = args['positionY'] as double?;
+      // final resolution = AppCache.resolution.value ?? '500x700';
+      // final screenHeight = double.parse(resolution.split('x').last);
+      // final screenWidth = double.parse(resolution.split('x').first);
+      // OverlayManager.showOverlay(
+      //   navigatorKey.currentContext!,
+      //   positionX: positionX,
+      //   positionY: positionY,
+      //   resolution: Size(screenWidth, screenHeight),
+      // );
       case 'onMouseUp':
         break;
       case 'onTimerFired':
@@ -154,8 +155,9 @@ void main(List<String> args) async {
   windowManager.waitUntilReadyToShow().then((_) {
     initWindow();
   });
-// For hot reload, `unregisterAll()` needs to be called.
+  // For hot reload, `unregisterAll()` needs to be called.
   await hotKeyManager.unregisterAll();
+  OverlayManager.init();
 
   runApp(const MyApp());
 }
