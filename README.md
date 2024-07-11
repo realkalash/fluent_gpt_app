@@ -80,7 +80,11 @@ We welcome contributions!
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE.md) - see the file for details.
+## License
+
+This project is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International License - see the [LICENSE.md](LICENSE.md) file for details.
+
+Copyright (c) 2024 Alex Kalashnikov.
 
 ## Acknowledgments
 
