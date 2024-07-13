@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/common/custom_prompt.dart';
@@ -164,6 +166,9 @@ class AccessebilityStatus extends StatefulWidget {
 class _AccessebilityStatusState extends State<AccessebilityStatus> {
   @override
   Widget build(BuildContext context) {
+    if (!Platform.isMacOS) {
+      return const SizedBox.shrink(); 
+    }
     return FutureBuilder(
       future: overlayChannel.invokeMethod('isAccessabilityGranted'),
       builder: (context, snapshot) {

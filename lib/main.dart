@@ -13,6 +13,7 @@ import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -50,7 +51,7 @@ void resetOpenAiUrl({String? url, required String token}) {
 }
 
 Future<void> initWindow() async {
-  if (Platform.isMacOS) {
+  if (Platform.isMacOS || Platform.isLinux) {
     // causes breaking of acrylic and mica effects on windows
     windowManager.setTitleBarStyle(
       TitleBarStyle.hidden,
@@ -64,7 +65,9 @@ Future<void> initWindow() async {
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
-  await windowManager.setSkipTaskbar(AppCache.showAppInDock.value ?? true);
+  if (Platform.isMacOS) {
+    await windowManager.setSkipTaskbar(AppCache.showAppInDock.value ?? true);
+  }
   await windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
@@ -140,8 +143,9 @@ void main(List<String> args) async {
   };
   await protocolHandler.register('fluentgpt');
   setupMethodChannel();
-
-  SystemTheme.accentColor.load();
+  if (Platform.isMacOS || Platform.isWindows) {
+    SystemTheme.accentColor.load();
+  }
   await WindowsSingleInstance.ensureSingleInstance(
       args, "chatgpt_windows_flutter_app", onSecondWindow: (secondWindowArgs) {
     AppWindow().show();
@@ -149,8 +153,10 @@ void main(List<String> args) async {
     log('onSecondWindow. args: $args');
   });
   prefs = await SharedPreferences.getInstance();
-  await flutter_acrylic.Window.initialize();
-  await flutter_acrylic.Window.hideWindowControls();
+  if (Platform.isMacOS || Platform.isWindows) {
+    await flutter_acrylic.Window.initialize();
+    await flutter_acrylic.Window.hideWindowControls();
+  }
   await WindowManager.instance.ensureInitialized();
   windowManager.waitUntilReadyToShow().then((_) {
     initWindow();
@@ -180,7 +186,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
     initSystemTray();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final size = _appTheme.resolution;
-      if (size == null) {
+      if (size == null && Platform.isMacOS) {
         final result = await overlayChannel.invokeMethod('getScreenSize');
         if (result != null) {
           final screenSize = Size(result['width'], result['height']);
@@ -253,11 +259,11 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                   textDirection: appTheme.textDirection,
                   child: NavigationPaneTheme(
                     data: NavigationPaneThemeData(
-                      backgroundColor: appTheme.windowEffect !=
-                              flutter_acrylic.WindowEffect.disabled
-                          ? Colors.transparent
-                          : null,
-                    ),
+                        // backgroundColor: appTheme.windowEffect !=
+                        //         flutter_acrylic.WindowEffect.disabled
+                        //     ? Colors.transparent
+                        //     : null,
+                        ),
                     child: child!,
                   ),
                 );
@@ -348,61 +354,66 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     var navigationProvider = context.watch<NavigationProvider>();
     navigationProvider.context = context;
     final appTheme = context.watch<AppTheme>();
-    return KeyboardListener(
-      focusNode: _focusNode,
-      onKeyEvent: (event) {
-        if (event is KeyRepeatEvent) return;
-        if (!mounted) return;
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-          shiftPressedStream.add(true);
-        }
-        if (event is KeyUpEvent &&
-            event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-          shiftPressedStream.add(false);
-        }
-      },
-      child: StreamBuilder<bool>(
-          stream: isShowingOverlay,
-          builder: (context, snapshot) {
-            final isNeedToHide = snapshot.data ?? false;
-            if (isNeedToHide) {
-              return const OverlayUI();
-            }
-            return NavigationView(
-              key: navigationProvider.viewKey,
-              appBar: const NavigationAppBar(
-                automaticallyImplyLeading: false,
-                actions: MainAppHeaderButtons(),
-              ),
-              paneBodyBuilder: (item, child) {
-                final name = item?.key is ValueKey
-                    ? (item!.key as ValueKey).value
-                    : null;
-                return FocusTraversalGroup(
-                  key: ValueKey('body$name'),
-                  child: child ?? const ChatRoomPage(),
-                );
-              },
-              pane: NavigationPane(
-                selected: navigationProvider.index,
-                displayMode: appTheme.displayMode,
-                indicator: () {
-                  switch (appTheme.indicator) {
-                    case NavigationIndicators.end:
-                      return const EndNavigationIndicator();
-                    case NavigationIndicators.sticky:
-                    default:
-                      return const StickyNavigationIndicator();
-                  }
-                }(),
-                items: navigationProvider.originalItems,
-                autoSuggestBoxReplacement: const Icon(FluentIcons.search),
-                footerItems: navigationProvider.footerItems,
-              ),
-              onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
-            );
-          }),
+    return GestureDetector(
+      onPanStart: (v) => WindowManager.instance.startDragging(),
+      dragStartBehavior: DragStartBehavior.start,
+      behavior: HitTestBehavior.translucent,
+      child: KeyboardListener(
+        focusNode: _focusNode,
+        onKeyEvent: (event) {
+          if (event is KeyRepeatEvent) return;
+          if (!mounted) return;
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+            shiftPressedStream.add(true);
+          }
+          if (event is KeyUpEvent &&
+              event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+            shiftPressedStream.add(false);
+          }
+        },
+        child: StreamBuilder<bool>(
+            stream: isShowingOverlay,
+            builder: (context, snapshot) {
+              final isNeedToHide = snapshot.data ?? false;
+              if (isNeedToHide) {
+                return const OverlayUI();
+              }
+              return NavigationView(
+                key: navigationProvider.viewKey,
+                appBar: const NavigationAppBar(
+                  automaticallyImplyLeading: false,
+                  actions: MainAppHeaderButtons(),
+                ),
+                paneBodyBuilder: (item, child) {
+                  final name = item?.key is ValueKey
+                      ? (item!.key as ValueKey).value
+                      : null;
+                  return FocusTraversalGroup(
+                    key: ValueKey('body$name'),
+                    child: child ?? const ChatRoomPage(),
+                  );
+                },
+                pane: NavigationPane(
+                  selected: navigationProvider.index,
+                  displayMode: appTheme.displayMode,
+                  indicator: () {
+                    switch (appTheme.indicator) {
+                      case NavigationIndicators.end:
+                        return const EndNavigationIndicator();
+                      case NavigationIndicators.sticky:
+                      default:
+                        return const StickyNavigationIndicator();
+                    }
+                  }(),
+                  items: navigationProvider.originalItems,
+                  autoSuggestBoxReplacement: const Icon(FluentIcons.search),
+                  footerItems: navigationProvider.footerItems,
+                ),
+                onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
+              );
+            }),
+      ),
     );
   }
 

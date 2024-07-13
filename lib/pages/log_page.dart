@@ -27,7 +27,7 @@ class _LogPageState extends State<LogPage> {
   Widget build(BuildContext context) {
     return ScaffoldPage(
       header: PageHeader(
-        title: const Text('Log'),
+        title: Text('Log (${logs.length} items)'),
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

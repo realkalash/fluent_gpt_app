@@ -97,29 +97,33 @@ class ChatGPTProvider with ChangeNotifier {
     var orgID = prefs?.getString('orgID') ?? '';
     openAI.setOrgId(orgID);
     openAI.setToken(token);
-    final chatRoomsinSP = prefs?.getString('chatRooms');
-    if (chatRoomsinSP != null) {
-      final map = jsonDecode(chatRoomsinSP) as Map;
-      for (var chatRoom in map.entries) {
-        var timeRaw = chatRoom.key;
-        var chatRoomRaw = chatRoom.value as Map<String, dynamic>;
-        chatRooms[timeRaw] = ChatRoom.fromMap(chatRoomRaw);
+    AppCache.chatRooms.value().then((chatRoomsinSP) {
+      if (chatRoomsinSP != null && chatRoomsinSP.isNotEmpty) {
+        final map = jsonDecode(chatRoomsinSP) as Map;
+        for (var chatRoom in map.entries) {
+          var timeRaw = chatRoom.key;
+          var chatRoomRaw = chatRoom.value as Map<String, dynamic>;
+          chatRooms[timeRaw] = ChatRoom.fromMap(chatRoomRaw);
+        }
       }
-    }
-    if (chatRooms.isEmpty) {
-      chatRooms[selectedChatRoomName] = _generateDefaultChatroom();
-    } else {
-      selectedChatRoomName =
-          prefs?.getString('selectedChatRoomName') ?? 'Default';
-    }
-    if (selectedChatRoom.token != 'empty') {
-      openAI.setToken(selectedChatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
-    }
-    if (selectedChatRoom.orgID != '') {
-      openAI.setOrgId(selectedChatRoom.orgID ?? '');
-      log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
-    }
+      if (chatRooms.isEmpty) {
+        chatRooms[selectedChatRoomName] = _generateDefaultChatroom();
+      } else {
+        // notify stream
+        chatRoomsStream.add(chatRooms);
+        selectedChatRoomName =
+            prefs?.getString('selectedChatRoomName') ?? 'Default';
+      }
+      if (selectedChatRoom.token != 'empty') {
+        openAI.setToken(selectedChatRoom.token);
+        log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
+      }
+      if (selectedChatRoom.orgID != '') {
+        openAI.setOrgId(selectedChatRoom.orgID ?? '');
+        log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
+      }
+    });
+
     listenTray();
   }
 
@@ -749,6 +753,11 @@ class ChatGPTProvider with ChangeNotifier {
   bool isRetrievingFiles = false;
   List<FileData> filesInOpenAi = [];
   Future retrieveFiles() async {
+    if (isRetrievingFiles) return;
+    if (openAI.token.trim().isEmpty) {
+      return;
+    }
+    return;
     isRetrievingFiles = true;
     notifyListeners();
     try {

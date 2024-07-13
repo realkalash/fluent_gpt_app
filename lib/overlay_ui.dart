@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'pages/home_page.dart';
 import 'providers/chat_gpt_provider.dart';
 import 'widgets/input_field.dart';
 import 'widgets/message_list_tile.dart';

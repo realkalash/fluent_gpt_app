@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:ffi';
 
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
@@ -119,7 +121,7 @@ class _MessageCardState extends State<MessageCard> {
   @override
   void initState() {
     super.initState();
-    _isMarkdownView = prefs!.getBool('isMarkdownView') ?? true;
+    _isMarkdownView = AppCache.isMarkdownView.value ?? true;
   }
 
   @override

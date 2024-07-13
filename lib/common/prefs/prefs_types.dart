@@ -1,4 +1,8 @@
+import 'dart:io';
+
+import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:path_provider/path_provider.dart';
 
 abstract class _Pref<T> {
   final String key;
@@ -11,10 +15,11 @@ abstract class _Pref<T> {
 }
 
 class StringPref extends _Pref<String> {
-  const StringPref(super.key);
+  const StringPref(super.key, [this.defaultValue]);
+  final String? defaultValue;
 
   @override
-  String? get value => prefs?.get(key) as String?;
+  String? get value => prefs?.get(key) as String? ?? defaultValue;
   @override
   Future<void> set(String value) async => (prefs)?.setString(key, value);
 
@@ -24,6 +29,67 @@ class StringPref extends _Pref<String> {
       remove();
     } else {
       set(value);
+    }
+  }
+}
+
+// File String pref for saving a file into a app folder
+class FileStringPref {
+  const FileStringPref(this.key);
+  final String key;
+  Future<String> appDirectoryPath() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      return dir.path;
+    } catch (e) {
+      print('Error getting app getApplicationDocumentsDirectory path: $e');
+    }
+    try {
+      final dir = await getApplicationSupportDirectory();
+      return dir.path;
+    } catch (e) {
+      print('Error getting app getApplicationSupportDirectory path: $e');
+    }
+    try {
+      final dir = await getDownloadsDirectory();
+      return dir!.path;
+    } catch (e) {
+      print('Error getting app getDownloadsDirectory path: $e');
+    }
+    return '';
+  }
+
+  Future<String?> value() async {
+    final path = await appDirectoryPath();
+    final filePath = '$path/$key';
+    //if not exist, create file and return empty string
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      try {
+        file.create(recursive: true);
+      } catch (e) {
+        log('Error creating file: $e');
+      }
+      return '';
+    }
+    return file.readAsStringSync();
+  }
+
+  Future<void> set(String value) async {
+    final path = await appDirectoryPath();
+    final filePath = '$path/$key';
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      try {
+        file.create(recursive: true);
+      } catch (e) {
+        log('Error creating file: $e');
+      }
+    }
+    try {
+      file.writeAsStringSync(value);
+    } catch (e) {
+      log('Error writing file: $e');
     }
   }
 }

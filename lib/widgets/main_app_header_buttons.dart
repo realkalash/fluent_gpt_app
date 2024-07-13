@@ -101,6 +101,9 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
               // AppCache.windowY.set(offset.dy.toInt());
               // final x = AppCache.windowX.value;
               // final y = AppCache.windowY.value;
+              if (AppCache.enableOverlay.value == false) {
+                AppCache.enableOverlay.value = true;
+              }
               OverlayManager.showOverlay(context);
             }
           },

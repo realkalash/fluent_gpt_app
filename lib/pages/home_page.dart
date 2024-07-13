@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/drop_region.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/message_list_tile.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -15,7 +18,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 
 import '../providers/chat_gpt_provider.dart';
@@ -27,13 +29,16 @@ class ChatRoomPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ScaffoldPage(
-      header: PageHeader(title: PageHeaderText()),
+    return ScaffoldPage(
+      header: const PageHeader(title: PageHeaderText()),
       content: Stack(
+        fit: StackFit.expand,
         children: [
-          ChatGPTContent(),
-          HomeDropOverlay(),
-          HomeDropRegion(),
+          const ChatGPTContent(),
+          if (!Platform.isLinux) ...[
+            const HomeDropOverlay(),
+            const HomeDropRegion(),
+          ]
         ],
       ),
     );
@@ -80,64 +85,6 @@ class HomeDropOverlay extends StatelessWidget {
   }
 }
 
-class HomeDropRegion extends StatelessWidget {
-  const HomeDropRegion({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
-    return DropRegion(
-      // Formats this region can accept.
-      formats: Formats.standardFormats,
-      hitTestBehavior: HitTestBehavior.translucent,
-      onDropOver: (event) {
-        // This drop region only supports copy operation.
-        if (event.session.allowedOperations.contains(DropOperation.copy)) {
-          return DropOperation.copy;
-        } else {
-          return DropOperation.none;
-        }
-      },
-      onDropEnter: (event) {
-        // This is called when region first accepts a drag. You can use this
-        // to display a visual indicator that the drop is allowed.
-        isDropOverlayVisible.add(true);
-      },
-      onDropLeave: (event) {
-        // Called when drag leaves the region. Will also be called after
-        // drag completion.
-        // This is a good place to remove any visual indicators.
-        isDropOverlayVisible.add(false);
-      },
-      onPerformDrop: (event) async {
-        // Called when user dropped the item. You can now request the data.
-        // Note that data must be requested before the performDrop callback
-        // is over.
-        final item = event.session.items.first;
-
-        // data reader is available now
-        final reader = item.dataReader!;
-
-        if (reader.canProvide(Formats.png)) {
-          reader.getFile(Formats.png, (file) async {
-            final data = await file.readAll();
-            final xfile = XFile.fromData(
-              data,
-              name: file.fileName,
-              mimeType: 'image/png',
-              length: data.length,
-            );
-            log('File dropped: ${xfile.mimeType} ${data.length} bytes');
-            provider.addFileToInput(xfile);
-          }, onError: (error) {
-            log('Error reading value $error');
-          });
-        }
-      },
-      child: const SizedBox.expand(),
-    );
-  }
-}
 
 class ModelChooserCards extends StatelessWidget {
   const ModelChooserCards({super.key});
