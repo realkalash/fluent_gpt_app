@@ -29,16 +29,14 @@ class ChatRoomPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
-      header: const PageHeader(title: PageHeaderText()),
+    return const ScaffoldPage(
+      header: PageHeader(title: PageHeaderText()),
       content: Stack(
         fit: StackFit.expand,
         children: [
-          const ChatGPTContent(),
-          if (!Platform.isLinux) ...[
-            const HomeDropOverlay(),
-            const HomeDropRegion(),
-          ]
+          ChatGPTContent(),
+          HomeDropOverlay(),
+          HomeDropRegion(),
         ],
       ),
     );
@@ -84,7 +82,6 @@ class HomeDropOverlay extends StatelessWidget {
     );
   }
 }
-
 
 class ModelChooserCards extends StatelessWidget {
   const ModelChooserCards({super.key});
