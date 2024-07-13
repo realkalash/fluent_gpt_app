@@ -180,20 +180,11 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
     initSystemTray();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final size = _appTheme.resolution;
-      log('size: $size');
-      if (size != null) {
-        await windowManager.setSize(Size(650, size.height - 100),
-            animate: true);
-        await windowManager.setAlignment(Alignment.centerRight, animate: true);
-      } else {
+      if (size == null) {
         final result = await overlayChannel.invokeMethod('getScreenSize');
-        log('screen result: $result');
         if (result != null) {
           final screenSize = Size(result['width'], result['height']);
-          await windowManager.setSize(Size(500, screenSize.height - 100),
-              animate: true);
-          await windowManager.setAlignment(Alignment.centerRight,
-              animate: true);
+
           _appTheme.setResolution(screenSize, notify: false);
         }
       }

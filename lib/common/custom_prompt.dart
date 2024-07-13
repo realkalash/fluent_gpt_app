@@ -5,7 +5,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:rxdart/rxdart.dart';
 
-BehaviorSubject<String> lang = BehaviorSubject.seeded('en');
+BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing
   CustomPrompt(
@@ -128,7 +128,7 @@ class CustomPrompt {
   /// If selectedText is null, it will be replaced with '<nothing selected>'
   /// The prompt also use the language from the lang BehaviorSubject
   String getPromptText([String? selectedText]) => prompt
-      .replaceAll('\${lang}', lang.value)
+      .replaceAll('\${lang}', defaultGPTLanguage.value)
       .replaceAll(
         '\${clipboardAccess}',
         AppCache.gptToolCopyToClipboardEnabled.value == true ? 'YES' : 'NO',

@@ -6,6 +6,7 @@ import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'common/custom_prompt.dart';
+import 'overlay_ui.dart';
 
 BehaviorSubject<bool> isShowingOverlay = BehaviorSubject<bool>.seeded(false);
 BehaviorSubject<List<CustomPrompt>> customPrompts =
@@ -14,16 +15,12 @@ BehaviorSubject<List<CustomPrompt>> archivedPrompts =
     BehaviorSubject.seeded([...baseArchivedPromptsTemplate]);
 
 class OverlayManager {
-  static var oldScreenWidth = 0.0;
-  static var oldScreenHeight = 0.0;
-
   static void init() {
     final customPromptsJson = AppCache.customPrompts.value;
     if (customPromptsJson != null && customPromptsJson.isNotEmpty) {
       final customPromptsList = jsonDecode(customPromptsJson) as List<dynamic>;
-      final customPromptsListDecoded = customPromptsList
-          .map((e) => CustomPrompt.fromJson(e))
-          .toList();
+      final customPromptsListDecoded =
+          customPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
       customPrompts.add(customPromptsListDecoded);
     }
     final archivedPromptsJson = AppCache.archivedPrompts.value;
@@ -51,37 +48,33 @@ class OverlayManager {
     }
     isShowingOverlay.add(true);
     await windowManager.setAlwaysOnTop(true);
+    final compactOverlaySize = OverlayUI.defaultWindowSize();
+    await windowManager.setSize(compactOverlaySize, animate: true);
     await windowManager.setResizable(false);
-    await windowManager.setSize(const Size(340, 64), animate: true);
-    final resolutionString = AppCache.resolution.value ?? '500x700';
-    final screenHeight = double.parse(resolutionString.split('x').last);
-    final screenWidth = double.parse(resolutionString.split('x').first);
-    final resolution = Size(screenWidth, screenHeight);
+    // final resolutionString = AppCache.resolution.value ?? '500x700';
+    // final screenHeight = double.parse(resolutionString.split('x').last);
+    // final screenWidth = double.parse(resolutionString.split('x').first);
+    // final resolution = Size(screenWidth, screenHeight);
 
     // Invert positionY to start from the bottom
-    if (positionY != null) {
-      positionY = resolution.height - positionY;
+    // if (positionY != null) {
+    //   positionY = resolution.height - positionY - compactOverlaySize.height;
+    // }
 
-      // Ensure the overlay does not go off-screen
+    // Ensure the overlay does not go off-screen
+    if (positionX != null && positionY != null) {
       if (positionY < 0) {
         positionY = 0;
       }
-    }
-    if (positionX != null) {
       // Ensure the overlay does not go off-screen
       if (positionX < 0) {
         positionX = 0;
       }
+      await windowManager.setPosition(
+        Offset((positionX) + 16, (positionY) + 16),
+        animate: true,
+      );
     }
-    await windowManager.setPosition(
-      Offset(
-        (positionX ?? 20) + 16,
-        (positionY ?? 100) + 16,
-      ),
-    );
-
-    oldScreenHeight = AppCache.windowHeight.value?.toDouble() ?? 700.0;
-    oldScreenWidth = AppCache.windowWidth.value?.toDouble() ?? 500.0;
   }
 
   static Future<void> hideOverlay() async {
@@ -95,15 +88,18 @@ class OverlayManager {
     windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
     await windowManager.setResizable(true);
     isShowingOverlay.add(false);
-    final oldPositionX = AppCache.windowX.value;
-    final oldPositionY = AppCache.windowY.value;
     await windowManager.setPosition(
-      Offset(oldPositionX!.toDouble(), oldPositionY!.toDouble()),
+      Offset(
+        AppCache.windowX.value!.toDouble(),
+        AppCache.windowY.value!.toDouble(),
+      ),
       animate: true,
     );
+    // delay due to macos bug. We can't do it simulteniously
     await Future.delayed(const Duration(milliseconds: 60));
     await windowManager.setSize(
-      Size(oldScreenWidth, oldScreenHeight),
+      Size(AppCache.windowWidth.value?.toDouble() ?? 600.0,
+          AppCache.windowHeight.value?.toDouble() ?? 700.0),
       animate: true,
     );
   }

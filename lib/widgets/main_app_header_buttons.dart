@@ -7,7 +7,6 @@ import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as icons;
-import 'package:window_manager/window_manager.dart';
 
 class MainAppHeaderButtons extends StatelessWidget {
   const MainAppHeaderButtons({super.key});
@@ -100,10 +99,9 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
             if (v == true) {
               // AppCache.windowX.set(offset.dx.toInt());
               // AppCache.windowY.set(offset.dy.toInt());
-              final x = AppCache.windowX.value;
-              final y = AppCache.windowY.value;
-              OverlayManager.showOverlay(context,
-                  positionX: x?.toDouble(), positionY: y?.toDouble());
+              // final x = AppCache.windowX.value;
+              // final y = AppCache.windowY.value;
+              OverlayManager.showOverlay(context);
             }
           },
           child: const Icon(

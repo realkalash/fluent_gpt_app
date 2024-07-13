@@ -1,5 +1,6 @@
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
+import 'package:chatgpt_windows_flutter_app/common/custom_prompt.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
 import 'package:chatgpt_windows_flutter_app/native_channels.dart';
@@ -7,6 +8,7 @@ import 'package:chatgpt_windows_flutter_app/pages/overlay_settings_page.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
+import 'package:chatgpt_windows_flutter_app/widgets/message_list_tile.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/wiget_constants.dart';
 
@@ -16,12 +18,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../theme.dart';
-import 'home_page.dart';
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -96,6 +96,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         // biggerSpacer,
         // const _LocaleSection(),
         const _ResolutionsSelector(),
+        const _LocaleSection(),
         biggerSpacer,
         const _OtherSettings(),
       ],
@@ -428,6 +429,7 @@ class MessageSamplePreviewCard extends StatelessWidget {
               id: '1234',
               isError: false,
               textSize: provider.textSize,
+              isCompactMode: false,
             ),
           ],
         ),
@@ -518,7 +520,22 @@ class _LocaleSection extends StatelessWidget {
     final appTheme = context.watch<AppTheme>();
 
     // const supportedLocales = FluentLocalizations.supportedLocales;
-    const supportedLocales = [Locale('en')];
+    const supportedLocales = [
+      Locale('en'),
+    ];
+    const gptLocales = [
+      Locale('en'),
+      Locale('ru'),
+      Locale('uk'),
+      Locale('es'),
+      Locale('fr'),
+      Locale('de'),
+      Locale('it'),
+      Locale('ja'),
+      Locale('ko'),
+      Locale('pt'),
+      Locale('zh'),
+    ];
     final currentLocale =
         appTheme.locale ?? Localizations.maybeLocaleOf(context);
     return Column(
@@ -533,18 +550,37 @@ class _LocaleSection extends StatelessWidget {
             supportedLocales.length,
             (index) {
               final locale = supportedLocales[index];
-
-              return Padding(
-                padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-                child: RadioButton(
-                  checked: currentLocale == locale,
-                  onChanged: (value) {
-                    if (value) {
-                      appTheme.locale = locale;
-                    }
-                  },
-                  content: Text('$locale'),
-                ),
+              return RadioButton(
+                checked: currentLocale == locale,
+                onChanged: (value) {
+                  if (value) {
+                    appTheme.locale = locale;
+                  }
+                },
+                content: Text('$locale'),
+              );
+            },
+          ),
+        ),
+        spacer,
+        Text('GPT Locale', style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Wrap(
+          spacing: 15.0,
+          runSpacing: 10.0,
+          children: List.generate(
+            gptLocales.length,
+            (index) {
+              final locale = gptLocales[index];
+              return RadioButton(
+                checked: defaultGPTLanguage.value == locale.languageCode,
+                onChanged: (value) {
+                  if (value) {
+                    defaultGPTLanguage.add(locale.languageCode);
+                    appTheme.updateUI();
+                  }
+                },
+                content: Text('$locale'),
               );
             },
           ),

@@ -62,8 +62,6 @@ class ChatGPTProvider with ChangeNotifier {
   bool includeConversationGlobal = true;
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
-  int countWordsInAllMessages = 0;
-
   final dialogApiKeyController = TextEditingController();
   final selectedMessages = <String>{};
   bool isAnswering = false;
@@ -122,7 +120,6 @@ class ChatGPTProvider with ChangeNotifier {
       openAI.setOrgId(selectedChatRoom.orgID ?? '');
       log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
     }
-    calcWordsInAllMessages();
     listenTray();
   }
 
@@ -182,13 +179,6 @@ class ChatGPTProvider with ChangeNotifier {
       'Check spelling and grammar: "$text"',
       false,
     );
-  }
-
-  void calcWordsInAllMessages() {
-    countWordsInAllMessages = 0;
-    for (var message in messages.entries) {
-      countWordsInAllMessages += message.value['content']!.split(' ').length;
-    }
   }
 
   XFile? fileInput;
@@ -335,7 +325,6 @@ class ChatGPTProvider with ChangeNotifier {
     );
 
     fileInput = null;
-    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
   }
@@ -434,7 +423,7 @@ class ChatGPTProvider with ChangeNotifier {
       final command = match?.group(1);
       if (command != null) {
         displayInfoBar(
-          context!,
+          navigatorKey.currentContext!,
           builder: (context, close) => const InfoBar(
             title: Text('The result is copied to clipboard'),
             severity: InfoBarSeverity.info,
@@ -547,7 +536,6 @@ class ChatGPTProvider with ChangeNotifier {
       navProvider.index = chatRooms.length - 1;
       navProvider.refreshNavItems();
     }
-    calcWordsInAllMessages();
     notifyListeners();
     saveToDisk();
     notifyRoomsStream();
@@ -618,14 +606,12 @@ class ChatGPTProvider with ChangeNotifier {
     if (switchToForeground) {
       selectedChatRoomName = chatRoom.chatRoomName;
     }
-    calcWordsInAllMessages();
     notifyRoomsStream();
     saveToDisk();
   }
 
   void clearConversation() {
     messages.clear();
-    calcWordsInAllMessages();
     calcUsageTokens(null);
     notifyRoomsStream();
     saveToDisk();
@@ -639,7 +625,6 @@ class ChatGPTProvider with ChangeNotifier {
           'Result: \n${result.trim().isEmpty ? 'Done. No output' : result}',
     });
     notifyRoomsStream();
-    calcWordsInAllMessages();
     saveToDisk();
     // scroll to bottom
     listItemsScrollController.animateTo(
@@ -651,7 +636,6 @@ class ChatGPTProvider with ChangeNotifier {
 
   void deleteMessage(String id) {
     messages.remove(id);
-    calcWordsInAllMessages();
     notifyRoomsStream();
     saveToDisk();
   }
@@ -679,7 +663,6 @@ class ChatGPTProvider with ChangeNotifier {
       messages.remove(message.key);
       selectedMessages.remove(message.key);
     }
-    calcWordsInAllMessages();
     disableSelectionMode();
     saveToDisk();
   }
@@ -729,7 +712,6 @@ class ChatGPTProvider with ChangeNotifier {
       'role': Role.system.name,
       'content': message,
     });
-    calcWordsInAllMessages();
     notifyRoomsStream();
     saveToDisk();
     scrollToEnd();
@@ -889,7 +871,6 @@ class ChatGPTProvider with ChangeNotifier {
   void editMessage(Map<String, String> message, String text) {
     message['content'] = text;
     notifyListeners();
-    calcWordsInAllMessages();
     saveToDisk();
   }
 

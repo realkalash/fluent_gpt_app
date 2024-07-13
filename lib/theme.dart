@@ -134,6 +134,10 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
+  updateUI(){
+    notifyListeners();
+  }
+
   buildInfoBarDecoration(InfoBarSeverity severity) {
     if (severity == InfoBarSeverity.warning) {
       return BoxDecoration(
