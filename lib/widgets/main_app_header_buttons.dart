@@ -1,5 +1,5 @@
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -89,30 +89,52 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Show overlay on tap',
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: ToggleButton(
-          checked: isShowingOverlay.value,
-          onChanged: (v) {
-            if (v == true) {
-              // AppCache.windowX.set(offset.dx.toInt());
-              // AppCache.windowY.set(offset.dy.toInt());
-              // final x = AppCache.windowX.value;
-              // final y = AppCache.windowY.value;
-              if (AppCache.enableOverlay.value == false) {
-                AppCache.enableOverlay.value = true;
-              }
-              OverlayManager.showOverlay(context);
-            }
-          },
-          child: const Icon(
-            icons.FluentIcons.cursor_hover_24_regular,
-            size: 20,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Tooltip(
+          message: 'Switch to overlay',
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ToggleButton(
+              checked: overlayVisibility.value.isShowingOverlay,
+              onChanged: (v) {
+                if (v == true) {
+                  if (AppCache.enableOverlay.value == false) {
+                    AppCache.enableOverlay.value = true;
+                  }
+                  OverlayManager.showOverlay(context);
+                }
+              },
+              child: const Icon(
+                icons.FluentIcons.cursor_hover_24_regular,
+                size: 20,
+              ),
+            ),
           ),
         ),
-      ),
+        Tooltip(
+          message: 'Switch to sidebar',
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ToggleButton(
+              checked: overlayVisibility.value.isShowingSidebarOverlay,
+              onChanged: (v) {
+                if (v == true) {
+                  if (AppCache.enableOverlay.value == false) {
+                    AppCache.enableOverlay.value = true;
+                  }
+                  OverlayManager.showSidebarOverlay(context);
+                }
+              },
+              child: const Icon(
+                icons.FluentIcons.panel_right_32_filled,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -136,7 +158,7 @@ class AddChatButton extends StatelessWidget {
             // navProvider.refreshNavItems(chatProvider);
           },
           child: const Icon(
-            icons.FluentIcons.add_24_regular,
+            icons.FluentIcons.compose_24_regular,
             size: 20,
           ),
         ),

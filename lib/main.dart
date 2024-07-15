@@ -6,7 +6,7 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/common/window_listener.dart';
 import 'package:chatgpt_windows_flutter_app/native_channels.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/theme.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
@@ -27,7 +27,8 @@ import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'navigation_provider.dart';
-import 'overlay_ui.dart';
+import 'overlay/overlay_ui.dart';
+import 'overlay/sidebar_overlay_ui.dart';
 import 'providers/chat_gpt_provider.dart';
 
 var openAI = OpenAI.instance.build(
@@ -242,6 +243,10 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 focusTheme: FocusThemeData(
                   glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
                 ),
+                iconTheme: const IconThemeData(
+                  size: 20,
+                  color: Colors.white,
+                ),
               ),
               theme: FluentThemeData(
                 accentColor: appTheme.color,
@@ -252,13 +257,14 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 focusTheme: FocusThemeData(
                   glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
                 ),
+                iconTheme: const IconThemeData(size: 20),
               ),
               locale: appTheme.locale,
               builder: (ctx, child) {
                 return Directionality(
                   textDirection: appTheme.textDirection,
                   child: NavigationPaneTheme(
-                    data: NavigationPaneThemeData(
+                    data: const NavigationPaneThemeData(
                         // backgroundColor: appTheme.windowEffect !=
                         //         flutter_acrylic.WindowEffect.disabled
                         //     ? Colors.transparent
@@ -372,12 +378,14 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
             shiftPressedStream.add(false);
           }
         },
-        child: StreamBuilder<bool>(
-            stream: isShowingOverlay,
+        child: StreamBuilder<OverlayStatus>(
+            stream: overlayVisibility,
             builder: (context, snapshot) {
-              final isNeedToHide = snapshot.data ?? false;
-              if (isNeedToHide) {
+              if (snapshot.data?.isShowingOverlay == true) {
                 return const OverlayUI();
+              }
+              if (snapshot.data?.isShowingSidebarOverlay == true) {
+                return const SidebarOverlayUI();
               }
               return NavigationView(
                 key: navigationProvider.viewKey,

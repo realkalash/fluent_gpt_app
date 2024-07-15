@@ -1,6 +1,6 @@
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:window_manager/window_manager.dart';
@@ -21,7 +21,7 @@ class AppWindowListener extends WindowListener {
 
   @override
   Future<void> onWindowMoved() async {
-    if (isShowingOverlay.value) {
+    if (overlayVisibility.value.isEnabled) {
       return;
     }
     final offset = await windowManager.getPosition();
@@ -32,7 +32,7 @@ class AppWindowListener extends WindowListener {
 
   @override
   Future<void> onWindowResized() async {
-    if (isShowingOverlay.value) {
+    if (overlayVisibility.value.isEnabled) {
       return;
     }
     final size = await windowManager.getSize();

@@ -1,6 +1,6 @@
 import 'package:chatgpt_windows_flutter_app/common/custom_prompt.dart';
 import 'package:chatgpt_windows_flutter_app/fluent_icons_list.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 

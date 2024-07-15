@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
 import 'package:chatgpt_windows_flutter_app/file_utils.dart';
 import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:file_picker/file_picker.dart';
@@ -365,14 +365,13 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
       child: SizedBox(
         width: double.infinity,
         child: Wrap(
-          /// align to the left start
           alignment: WrapAlignment.start,
           spacing: 4,
           runSpacing: 4,
           children: [
             if (textFromClipboard.trim().isNotEmpty)
               Container(
-                constraints: const BoxConstraints(maxWidth: 200),
+                constraints: const BoxConstraints(maxWidth: 180),
                 child: Button(
                   style: ButtonStyle(
                       backgroundColor: ButtonState.all(Colors.blue)),
@@ -382,7 +381,8 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   child: Text(
                     textFromClipboard.replaceAll('\n', '').trim(),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.clip,
+                    textAlign: TextAlign.start,
                   ),
                 ),
               ),
@@ -406,7 +406,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(prompt.icon),
+                      Icon(prompt.icon, size: 18),
                       const SizedBox(width: 4),
                       Text(prompt.title),
                     ],

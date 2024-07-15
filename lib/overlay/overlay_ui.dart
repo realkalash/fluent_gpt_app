@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:chatgpt_windows_flutter_app/common/custom_prompt.dart';
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/overlay_manager.dart';
+import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
 import 'package:chatgpt_windows_flutter_app/tray.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -10,9 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'providers/chat_gpt_provider.dart';
-import 'widgets/input_field.dart';
-import 'widgets/message_list_tile.dart';
+import '../providers/chat_gpt_provider.dart';
+import '../widgets/input_field.dart';
+import '../widgets/message_list_tile.dart';
 
 class OverlayUI extends StatefulWidget {
   const OverlayUI({super.key});
@@ -239,46 +239,7 @@ class _OverlayUIState extends State<OverlayUI> {
       );
     }
     await Future.delayed(const Duration(milliseconds: 300));
-    await checkAndRepositionOverOffsetWindow();
-  }
-
-  Future checkAndRepositionOverOffsetWindow() async {
-    try {
-      final currentPosition = await windowManager.getPosition();
-      final windowSize = await windowManager.getSize();
-      final resolutionString = AppCache.resolution.value ?? '500x700';
-      final resList = resolutionString.split('x');
-      if (resList.length != 2) {
-        throw const FormatException('Invalid resolution format');
-      }
-      final resolutionSize =
-          Size(double.parse(resList[0]), double.parse(resList[1]));
-
-      double newX = currentPosition.dx;
-      double newY = currentPosition.dy;
-
-      // Adjust X if out of bounds
-      if (newX + windowSize.width > resolutionSize.width) {
-        // 70 is the additional padding for the window by width
-        newX = resolutionSize.width - windowSize.width + 70;
-      }
-      newX = max(0, newX); // Ensure newX is not negative
-
-      // Adjust Y if out of bounds
-      if (newY + windowSize.height > resolutionSize.height) {
-        // 24 is the additional padding for the window by height
-        newY = resolutionSize.height - windowSize.height + 24;
-      }
-      newY = max(0, newY); // Ensure newY is not negative
-
-      // Reposition only if necessary
-      if (newX != currentPosition.dx || newY != currentPosition.dy) {
-        await windowManager.setPosition(Offset(newX, newY), animate: true);
-      }
-    } catch (e) {
-      // Handle or log the error
-      print('Error repositioning window: $e');
-    }
+    await OverlayManager.checkAndRepositionOverOffsetWindow();
   }
 
   bool isShowChatUI = false;
@@ -314,7 +275,7 @@ class _OverlayUIState extends State<OverlayUI> {
       }
     }
     await Future.delayed(const Duration(milliseconds: 300));
-    await checkAndRepositionOverOffsetWindow();
+    await OverlayManager.checkAndRepositionOverOffsetWindow();
   }
 
   void _showSubPrompts(CustomPrompt prompt, BuildContext context) {

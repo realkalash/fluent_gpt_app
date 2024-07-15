@@ -6,7 +6,8 @@ import 'package:chatgpt_windows_flutter_app/pages/about_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/log_page.dart';
 import 'package:chatgpt_windows_flutter_app/pages/settings_page.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/chat_gpt_provider.dart';
@@ -42,14 +43,14 @@ class NavigationProvider with ChangeNotifier {
       children: [
         const Expanded(child: Text('Chat rooms')),
         IconButton(
-            icon: const Icon(FluentIcons.add),
+            icon: const Icon(FluentIcons.compose_24_regular, size: 20),
             onPressed: () {
               final provider = context.read<ChatGPTProvider>();
               provider.createNewChatRoom();
               refreshNavItems();
             }),
         IconButton(
-            icon: const Icon(FluentIcons.refresh),
+            icon: const Icon(FluentIcons.arrow_clockwise_24_regular, size: 20),
             onPressed: () {
               refreshNavItems();
             })
@@ -61,27 +62,27 @@ class NavigationProvider with ChangeNotifier {
   late final List<PaneItem> footerItems = [
     PaneItem(
       key: const ValueKey('/settings'),
-      icon: const Icon(FluentIcons.settings),
+      icon: const Icon(FluentIcons.settings_24_regular),
       title: const Text('Settings'),
       body: const SettingsPage(),
       onTap: () => _openSubRoute('/settings'),
     ),
     PaneItem(
       key: const ValueKey('/about'),
-      icon: const Icon(FluentIcons.info),
+      icon: const Icon(FluentIcons.info_24_regular),
       title: const Text('About'),
       body: const AboutPage(),
       onTap: () => _openSubRoute('/about'),
     ),
     PaneItem(
       key: const ValueKey('/log'),
-      icon: const Icon(FluentIcons.developer_tools),
+      icon: const Icon(FluentIcons.bug_24_regular),
       title: const Text('Log'),
       body: const LogPage(),
       onTap: () => _openSubRoute('/log'),
     ),
     LinkPaneItemAction(
-      icon: const Icon(FluentIcons.open_source),
+      icon: const Icon(FluentIcons.link_24_regular),
       title: const Text('Source code'),
       link: 'https://github.com/realkalash/chatgpt_windows_flutter_app',
       body: const SizedBox.shrink(),
@@ -126,18 +127,20 @@ class NavigationProvider with ChangeNotifier {
     for (var room in chatRooms.values) {
       addPaneItem(PaneItem(
         key: ValueKey(room.chatRoomName),
-        icon: const Icon(FluentIcons.chat_solid),
+        icon: const Icon(FluentIcons.chat_24_filled, size: 24),
         title: Text(room.chatRoomName),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-                icon: const Icon(FluentIcons.edit),
+                icon:
+                    const Icon(FluentIcons.chat_settings_24_regular, size: 18),
                 onPressed: () {
                   editChatRoomDialog(context, room);
                 }),
             IconButton(
-                icon: const Icon(FluentIcons.delete),
+                icon: Icon(FluentIcons.delete_24_filled,
+                    color: Colors.red, size: 18),
                 onPressed: () {
                   final provider = context.read<ChatGPTProvider>();
                   // check shift key is pressed

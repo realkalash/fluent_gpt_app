@@ -1,11 +1,7 @@
-import 'dart:io';
-
 import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/dialogs/cost_dialog.dart';
-import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/drop_region.dart';
 import 'package:chatgpt_windows_flutter_app/widgets/message_list_tile.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
 import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
@@ -378,46 +374,55 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     var chatProvider = context.watch<ChatGPTProvider>();
     chatProvider.context = context;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Column(
-          children: <Widget>[
-            Expanded(
-              child: StreamBuilder(
-                  stream: chatRoomsStream,
-                  builder: (context, snapshot) {
-                    return ListView.builder(
-                      controller: chatProvider.listItemsScrollController,
-                      itemCount: messages.entries.length,
-                      itemBuilder: (context, index) {
-                        final message = messages.entries.elementAt(index).value;
-                        final dateTimeRaw =
-                            messages.entries.elementAt(index).value['created'];
+    return GestureDetector(
+      onTap: () {
+        promptTextFocusNode.requestFocus();
+      },
+      behavior: HitTestBehavior.translucent,
+      excludeFromSemantics: true,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Column(
+            children: <Widget>[
+              Expanded(
+                child: StreamBuilder(
+                    stream: chatRoomsStream,
+                    builder: (context, snapshot) {
+                      return ListView.builder(
+                        controller: chatProvider.listItemsScrollController,
+                        itemCount: messages.entries.length,
+                        itemBuilder: (context, index) {
+                          final message =
+                              messages.entries.elementAt(index).value;
+                          final dateTimeRaw = messages.entries
+                              .elementAt(index)
+                              .value['created'];
 
-                        return MessageCard(
-                          id: messages.entries.elementAt(index).key,
-                          message: message,
-                          dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
-                          selectionMode: chatProvider.selectionModeEnabled,
-                          isError: message['error'] == 'true',
-                          textSize: chatProvider.textSize,
-                          isCompactMode: false,
-                        );
-                      },
-                    );
-                  }),
-            ),
-            const HotShurtcutsWidget(),
-            const InputField()
-          ],
-        ),
-        const Positioned(
-          bottom: 128,
-          right: 16,
-          child: _ScrollToBottomButton(),
-        ),
-      ],
+                          return MessageCard(
+                            id: messages.entries.elementAt(index).key,
+                            message: message,
+                            dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
+                            selectionMode: chatProvider.selectionModeEnabled,
+                            isError: message['error'] == 'true',
+                            textSize: chatProvider.textSize,
+                            isCompactMode: false,
+                          );
+                        },
+                      );
+                    }),
+              ),
+              const HotShurtcutsWidget(),
+              const InputField()
+            ],
+          ),
+          const Positioned(
+            bottom: 128,
+            right: 16,
+            child: _ScrollToBottomButton(),
+          ),
+        ],
+      ),
     );
   }
 }
