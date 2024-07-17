@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -10,6 +11,7 @@ import 'package:fluent_gpt/pages/overlay_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
@@ -24,6 +26,8 @@ import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../theme.dart';
+
+
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -451,65 +455,36 @@ class _HotKeySection extends StatefulWidget {
 }
 
 class _HotKeySectionState extends State<_HotKeySection> {
-  bool isChoosingHotkey = false;
-
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final appTheme = context.watch<AppTheme>();
-
-    /// a button to add a new hotkey
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Hotkeys', style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        if (isChoosingHotkey)
-          Text(
-            'Press a key combination to set a new hotkey (escape to cancel)',
-            style: FluentTheme.of(context).typography.caption,
+        Button(
+          onPressed: () async {
+            final key = await KeybindingDialog.show(
+              context,
+              initHotkey: openWindowHotkey,
+              title: const Text('Open the window keybinding'),
+            );
+            if (key != null && key != openWindowHotkey) {
+              setState(() {
+                openWindowHotkey = key;
+              });
+              await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
+              initShortcuts(AppWindow());
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Open the window'),
+              const SizedBox(width: 10.0),
+              HotKeyVirtualView(hotKey: openWindowHotkey),
+            ],
           ),
-        Row(
-          children: [
-            Button(
-              onPressed: () {
-                setState(() {
-                  isChoosingHotkey = true;
-                });
-              },
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Open the window'),
-                  const SizedBox(width: 10.0),
-                  isChoosingHotkey
-                      ? HotKeyRecorder(
-                          onHotKeyRecorded: (v) async {
-                            // print('onHotKeyRecorded: $v');
-
-                            /// if escape is pressed, the value will be null
-                            if (v.physicalKey == PhysicalKeyboardKey.escape) {
-                              setState(() {
-                                isChoosingHotkey = false;
-                              });
-                              return;
-                            }
-                            if (mounted) {
-                              await hotKeyManager.unregister(openWindowHotkey);
-                              setState(() {
-                                openWindowHotkey = v;
-                                isChoosingHotkey = false;
-                              });
-                              initShortcuts(AppWindow());
-                            }
-                          },
-                          initalHotKey: openWindowHotkey,
-                        )
-                      : HotKeyVirtualView(hotKey: openWindowHotkey),
-                ],
-              ),
-            ),
-          ],
         ),
         spacer,
       ],
@@ -901,3 +876,4 @@ class __CacheSectionState extends State<_CacheSection> {
     );
   }
 }
+
