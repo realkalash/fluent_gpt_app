@@ -18,7 +18,6 @@ import 'package:fluent_gpt/widgets/wiget_constants.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
@@ -26,8 +25,6 @@ import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../theme.dart';
-
-
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -97,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         const AccessibilityPermissionButton(),
         const _CacheSection(),
         const _HotKeySection(),
+        const CustomPromptsButton(),
         Text('Appearance', style: FluentTheme.of(context).typography.title),
         const _ThemeModeSection(),
         // biggerSpacer,
@@ -115,15 +113,31 @@ class AccessibilityPermissionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        spacer,
+        AccessebilityStatus(),
+        spacer,
+      ],
+    );
+  }
+}
+
+class CustomPromptsButton extends StatelessWidget {
+  const CustomPromptsButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         spacer,
-        const AccessebilityStatus(),
+        Text('Custom prompts',
+            style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        // const ToggleOverlayButton(),
         Button(
-          child: const Text('Overlay settings'),
+          child: const Text('Customize custom prompts'),
           onPressed: () {
             showDialog(
               context: context,
@@ -131,6 +145,7 @@ class AccessibilityPermissionButton extends StatelessWidget {
             );
           },
         ),
+        biggerSpacer
       ],
     );
   }
@@ -876,4 +891,3 @@ class __CacheSectionState extends State<_CacheSection> {
     );
   }
 }
-

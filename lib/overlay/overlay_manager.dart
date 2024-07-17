@@ -18,6 +18,28 @@ BehaviorSubject<List<CustomPrompt>> customPrompts =
 BehaviorSubject<List<CustomPrompt>> archivedPrompts =
     BehaviorSubject.seeded([...baseArchivedPromptsTemplate]);
 
+int calcAllPromptsForChild(CustomPrompt prompt) {
+  int count = 1;
+  for (var child in prompt.children) {
+    count += calcAllPromptsForChild(child);
+  }
+  return count;
+}
+
+int calcAllPromptsLenght() {
+  final archivedList = archivedPrompts.value.toList();
+  final customList = customPrompts.value.toList();
+  int count = 0;
+  for (var prompt in customList) {
+    count += calcAllPromptsForChild(prompt);
+  }
+  for (var prompt in archivedList) {
+    count += calcAllPromptsForChild(prompt);
+  }
+  print(count);
+  return count;
+}
+
 class OverlayStatus {
   final bool isShowingOverlay;
   final bool isShowingSidebarOverlay;

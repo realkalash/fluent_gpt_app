@@ -9,6 +9,7 @@ BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing
   CustomPrompt(
+    id: 0,
     icon: FluentIcons.edit_24_filled,
     index: 0,
     title: 'Continue writing',
@@ -22,6 +23,7 @@ Only give me the output and nothing else. Respond in the same language variety o
 ];
 const List<CustomPrompt> basePromptsTemplate = [
   CustomPrompt(
+    id: 1,
     title: 'Explain this',
     icon: FluentIcons.info_24_filled,
     index: 0,
@@ -32,6 +34,7 @@ const List<CustomPrompt> basePromptsTemplate = [
     children: [],
   ),
   CustomPrompt(
+    id: 2,
     title: 'Summarize this',
     icon: FluentIcons.text_paragraph_24_regular,
     index: 1,
@@ -47,6 +50,7 @@ Only give me the output and nothing else. Respond in the \${lang} language. Clip
   ),
   // I realy likes my car
   CustomPrompt(
+    id: 3,
     title: 'Check grammar',
     icon: FluentIcons.text_grammar_wand_24_filled,
     index: 2,
@@ -61,6 +65,7 @@ If the original text has no mistake, just output the original text and nothing e
     children: [],
   ),
   CustomPrompt(
+    id: 4,
     title: 'Translate this',
     icon: FluentIcons.translate_24_regular,
     prompt:
@@ -70,18 +75,21 @@ If the original text has no mistake, just output the original text and nothing e
     showInOverlay: true,
     children: [
       CustomPrompt(
+        id: 5,
         title: 'Translate to English',
         prompt:
             '''Please translate the following text to English. Only give me the output and nothing else:
     "\${input}"''',
       ),
       CustomPrompt(
+        id: 6,
         title: 'Translate to Russian',
         prompt:
             '''Please translate the following text to Russian. Only give me the output and nothing else:
     "\${input}"''',
       ),
       CustomPrompt(
+        id: 7,
         title: 'Translate to Ukrainian',
         prompt:
             '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
@@ -92,6 +100,9 @@ If the original text has no mistake, just output the original text and nothing e
 ];
 
 class CustomPrompt {
+  /// The id of the prompt
+  final int id;
+
   /// The name of the prompt
   final String title;
 
@@ -115,6 +126,7 @@ class CustomPrompt {
   final List<CustomPrompt> children;
 
   const CustomPrompt({
+    required this.id,
     required this.title,
     required this.prompt,
     this.index = 0,
@@ -139,23 +151,20 @@ class CustomPrompt {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is CustomPrompt &&
-        other.title == title &&
-        other.prompt == prompt &&
-        other.showInChatField == showInChatField &&
-        other.showInOverlay == showInOverlay;
+    return other is CustomPrompt && other.id == id;
   }
 
   @override
-  int get hashCode {
-    return title.hashCode ^
-        prompt.hashCode ^
-        showInChatField.hashCode ^
-        showInOverlay.hashCode;
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() {
+    return 'CustomPrompt(id: $id, title: $title, showInChatField: $showInChatField, showInOverlay: $showInOverlay, children: $children, icon: $icon)';
   }
 
   Map<String, Object?> toJson() {
     return {
+      'id': id,
       'title': title,
       'prompt': prompt,
       'showInChatField': showInChatField,
@@ -169,6 +178,7 @@ class CustomPrompt {
 
   static CustomPrompt fromJson(Map<dynamic, dynamic> json) {
     return CustomPrompt(
+      id: json['id'] ?? -1,
       title: json['title'],
       prompt: json['prompt'],
       showInChatField: json['showInChatField'],
@@ -197,6 +207,7 @@ class CustomPrompt {
   }
 
   CustomPrompt copyWith({
+    int? id,
     String? title,
     String? prompt,
     int? index,
@@ -206,6 +217,7 @@ class CustomPrompt {
     List<CustomPrompt>? children,
   }) {
     return CustomPrompt(
+      id: id ?? this.id,
       title: title ?? this.title,
       prompt: prompt ?? this.prompt,
       index: index ?? this.index,
