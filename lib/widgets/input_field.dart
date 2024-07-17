@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:fluent_gpt/common/app_intents.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -387,31 +388,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                 ),
               ),
             for (final prompt in customPrompts.value)
-              if (prompt.showInChatField)
-                Button(
-                  onPressed: () async {
-                    final inputText = txtController.text;
-                    if (inputText.trim().isNotEmpty) {
-                      const urlScheme = 'fluentgpt';
-                      final uri = Uri(
-                          scheme: urlScheme,
-                          path: '///',
-                          queryParameters: {
-                            'command': 'custom',
-                            'text': prompt.getPromptText(inputText)
-                          });
-                      onTrayButtonTap(uri.toString());
-                    }
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(prompt.icon, size: 18),
-                      const SizedBox(width: 4),
-                      Text(prompt.title),
-                    ],
-                  ),
-                ),
+              if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () {
@@ -424,6 +401,107 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class PromptChipWidget extends StatelessWidget {
+  const PromptChipWidget({
+    super.key,
+    required this.prompt,
+  });
+
+  final CustomPrompt prompt;
+
+  Future<void> _onTap(BuildContext context, CustomPrompt child) async {
+    final contr = context.read<ChatGPTProvider>().messageController;
+
+    if (contr.text.trim().isNotEmpty) {
+      const urlScheme = 'fluentgpt';
+      final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
+        'command': 'custom',
+        'text': child.getPromptText(contr.text)
+      });
+      onTrayButtonTap(uri.toString());
+      contr.clear();
+    } else {
+      final clipboard = await Clipboard.getData('text/plain');
+      final selectedText = clipboard?.text?.trim() ?? '';
+      if (selectedText.isNotEmpty) {
+        const urlScheme = 'fluentgpt';
+        final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
+          'command': 'custom',
+          'text': child.getPromptText(selectedText)
+        });
+        onTrayButtonTap(uri.toString());
+        contr.clear();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Button(
+      onPressed: () => _onTap(context, prompt),
+      onLongPress: () => _onLongPress(context),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(prompt.icon, size: 18),
+          const SizedBox(width: 4),
+          Text(prompt.title),
+          if (prompt.children.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: DropDownButton(
+                items: [
+                  for (final child in prompt.children)
+                    MenuFlyoutItem(
+                      leading: Icon(child.icon),
+                      text: Text(child.title),
+                      onPressed: () => _onTap(context, child),
+                    )
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _onLongPress(BuildContext context) {
+    final text = context.read<ChatGPTProvider>().messageController.text;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return ContentDialog(
+          title: Row(
+            children: [
+              Text(prompt.title),
+              const Spacer(),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icon(ic.FluentIcons.dismiss_24_filled, color: Colors.red),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var child in prompt.children)
+                ListTile(
+                  title: Text(child.title),
+                  onPressed: () {
+                    _onTap(context, child);
+                    Navigator.of(context).pop();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
