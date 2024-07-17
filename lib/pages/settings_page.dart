@@ -457,10 +457,6 @@ class _HotKeySection extends StatefulWidget {
 class _HotKeySectionState extends State<_HotKeySection> {
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final appTheme = context.watch<AppTheme>();
-
-    /// a button to add a new hotkey
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
