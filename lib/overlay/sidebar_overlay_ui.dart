@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
@@ -208,7 +209,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
       }
     } catch (e) {
       // Handle or log the error
-      print('Error repositioning window: $e');
+      logError('Error repositioning window: $e');
     }
   }
 

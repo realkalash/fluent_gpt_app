@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
@@ -36,7 +37,6 @@ int calcAllPromptsLenght() {
   for (var prompt in archivedList) {
     count += calcAllPromptsForChild(prompt);
   }
-  print(count);
   return count;
 }
 
@@ -230,7 +230,7 @@ class OverlayManager {
       }
     } catch (e) {
       // Handle or log the error
-      print('Error repositioning window: $e');
+      logError('Error repositioning window: $e');
     }
   }
 }
