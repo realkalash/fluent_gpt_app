@@ -1,7 +1,7 @@
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/log.dart';
-import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:window_manager/window_manager.dart';
 

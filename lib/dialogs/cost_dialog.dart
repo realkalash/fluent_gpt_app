@@ -1,5 +1,5 @@
-import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/cost_calculator.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class CostDialog extends StatefulWidget {
@@ -26,7 +26,8 @@ class _CostDialogState extends State<CostDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Cost per token for all models in current Chat:'),
-                  ...CostCalculator.calculateCostPerTokenForAllModels(widget.tokens)
+                  ...CostCalculator.calculateCostPerTokenForAllModels(
+                          widget.tokens)
                       .entries
                       .map((entry) => Text(
                           '${entry.key}: \$${entry.value.toStringAsFixed(3)}')),
@@ -40,8 +41,7 @@ class _CostDialogState extends State<CostDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Total'),
-                Text(
-                    'Tokens used: ${AppCache.tokensUsedTotal.value ?? 0}'),
+                Text('Tokens used: ${AppCache.tokensUsedTotal.value ?? 0}'),
                 Text('Cost: \$${AppCache.costTotal.value?.toStringAsFixed(3)}'),
                 const SizedBox(height: 8),
                 Button(
@@ -49,9 +49,7 @@ class _CostDialogState extends State<CostDialog> {
                     onPressed: () {
                       AppCache.costTotal.value = 0.0;
                       AppCache.tokensUsedTotal.value = 0;
-                      setState(() {
-                        
-                      });
+                      setState(() {});
                     }),
               ],
             ),

@@ -1,4 +1,4 @@
-package com.example.chatgpt_windows_flutter_app
+package com.realk.fluent_gpt
 
 import io.flutter.embedding.android.FlutterActivity
 

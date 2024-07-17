@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/log.dart';
 
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:system_theme/system_theme.dart';
@@ -91,7 +91,8 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  WindowEffect _windowEffect = Platform.isLinux ? WindowEffect.disabled : WindowEffect.acrylic;
+  WindowEffect _windowEffect =
+      Platform.isLinux ? WindowEffect.disabled : WindowEffect.acrylic;
   WindowEffect get windowEffect => _windowEffect;
 
   /// By default is blue with 5% opacity
@@ -141,7 +142,7 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  updateUI(){
+  updateUI() {
     notifyListeners();
   }
 

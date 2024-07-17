@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "chatgpt_windows_flutter_app" "\0"
+            VALUE "FileDescription", "fluent_gpt" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "chatgpt_windows_flutter_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "chatgpt_windows_flutter_app.exe" "\0"
-            VALUE "ProductName", "chatgpt_windows_flutter_app" "\0"
+            VALUE "InternalName", "fluent_gpt" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2023 com.realk. All rights reserved." "\0"
+            VALUE "OriginalFilename", "fluent_gpt.exe" "\0"
+            VALUE "ProductName", "fluent_gpt" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

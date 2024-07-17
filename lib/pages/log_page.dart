@@ -1,4 +1,4 @@
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class LogPage extends StatefulWidget {

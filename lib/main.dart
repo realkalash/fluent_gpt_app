@@ -1,16 +1,16 @@
 import 'dart:io';
 
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/common/window_listener.dart';
-import 'package:chatgpt_windows_flutter_app/native_channels.dart';
-import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/theme.dart';
-import 'package:chatgpt_windows_flutter_app/tray.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/main_app_header_buttons.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/window_listener.dart';
+import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/theme.dart';
+import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -60,7 +60,7 @@ Future<void> initWindow() async {
     );
   }
 
-  await windowManager.setTitle('chatgpt_windows_flutter_app');
+  await windowManager.setTitle('fluent_gpt');
   await windowManager.setMinimumSize(const Size(500, 600));
   await windowManager.show();
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
@@ -147,8 +147,8 @@ void main(List<String> args) async {
   if (Platform.isMacOS || Platform.isWindows) {
     SystemTheme.accentColor.load();
   }
-  await WindowsSingleInstance.ensureSingleInstance(
-      args, "chatgpt_windows_flutter_app", onSecondWindow: (secondWindowArgs) {
+  await WindowsSingleInstance.ensureSingleInstance(args, "fluent_gpt",
+      onSecondWindow: (secondWindowArgs) {
     AppWindow().show();
 
     log('onSecondWindow. args: $args');

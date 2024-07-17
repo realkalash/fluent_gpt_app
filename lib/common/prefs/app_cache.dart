@@ -1,4 +1,4 @@
-import 'package:chatgpt_windows_flutter_app/common/prefs/prefs_types.dart';
+import 'package:fluent_gpt/common/prefs/prefs_types.dart';
 
 class AppCache {
   static const currentFileIndex = IntPref("currentFileIndex");

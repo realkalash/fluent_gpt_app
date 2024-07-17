@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/file_utils.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
-import 'package:chatgpt_windows_flutter_app/theme.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
