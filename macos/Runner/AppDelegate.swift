@@ -22,7 +22,7 @@ class AppDelegate: FlutterAppDelegate {
       fatalError("[Swift] Flutter view controller not found")
     }
 
-    methodChannel = FlutterMethodChannel(name: "com.example.chatgpt_windows_flutter_app/overlay", binaryMessenger: controller.engine.binaryMessenger)
+    methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt/overlay", binaryMessenger: controller.engine.binaryMessenger)
     let checkOptPrompt = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as NSString
 
     let options = [checkOptPrompt: true]

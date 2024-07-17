@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:chatgpt_windows_flutter_app/log.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:path_provider/path_provider.dart';
 
 abstract class _Pref<T> {

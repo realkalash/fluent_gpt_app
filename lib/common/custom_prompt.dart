@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:rxdart/rxdart.dart';

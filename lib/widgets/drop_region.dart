@@ -1,8 +1,7 @@
-
 import 'dart:developer';
 
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';

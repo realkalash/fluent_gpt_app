@@ -1,18 +1,18 @@
 import 'dart:io';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
-import 'package:chatgpt_windows_flutter_app/common/custom_prompt.dart';
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/native_channels.dart';
-import 'package:chatgpt_windows_flutter_app/pages/overlay_settings_page.dart';
-import 'package:chatgpt_windows_flutter_app/providers/chat_gpt_provider.dart';
-import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
-import 'package:chatgpt_windows_flutter_app/tray.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/message_list_tile.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/page.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/wiget_constants.dart';
+import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/pages/overlay_settings_page.dart';
+import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/shell_driver.dart';
+import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/message_list_tile.dart';
+import 'package:fluent_gpt/widgets/page.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -167,7 +167,7 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
   @override
   Widget build(BuildContext context) {
     if (!Platform.isMacOS) {
-      return const SizedBox.shrink(); 
+      return const SizedBox.shrink();
     }
     return FutureBuilder(
       future: overlayChannel.invokeMethod('isAccessabilityGranted'),

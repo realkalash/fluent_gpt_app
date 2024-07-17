@@ -1,20 +1,20 @@
 import 'dart:convert';
 // ignore: implementation_imports
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
-import 'package:chatgpt_windows_flutter_app/common/cost_calculator.dart';
-import 'package:chatgpt_windows_flutter_app/gpt_tools.dart';
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/common/cost_calculator.dart';
+import 'package:fluent_gpt/gpt_tools.dart';
+import 'package:fluent_gpt/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/file_utils.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/navigation_provider.dart';
-import 'package:chatgpt_windows_flutter_app/shell_driver.dart';
-import 'package:chatgpt_windows_flutter_app/system_messages.dart';
-import 'package:chatgpt_windows_flutter_app/tray.dart';
-import 'package:chatgpt_windows_flutter_app/widgets/input_field.dart';
+import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/navigation_provider.dart';
+import 'package:fluent_gpt/shell_driver.dart';
+import 'package:fluent_gpt/system_messages.dart';
+import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';

@@ -1,11 +1,11 @@
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/log.dart';
 
-import 'package:chatgpt_windows_flutter_app/common/chat_room.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/pages/about_page.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/pages/log_page.dart';
-import 'package:chatgpt_windows_flutter_app/pages/settings_page.dart';
+import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/pages/about_page.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/log_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
@@ -84,7 +84,7 @@ class NavigationProvider with ChangeNotifier {
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.link_24_regular),
       title: const Text('Source code'),
-      link: 'https://github.com/realkalash/chatgpt_windows_flutter_app',
+      link: 'https://github.com/realkalash/fluent_gpt',
       body: const SizedBox.shrink(),
     ),
   ];

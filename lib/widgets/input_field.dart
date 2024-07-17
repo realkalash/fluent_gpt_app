@@ -1,12 +1,12 @@
 // import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'dart:async';
 
-import 'package:chatgpt_windows_flutter_app/common/app_intents.dart';
-import 'package:chatgpt_windows_flutter_app/file_utils.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
-import 'package:chatgpt_windows_flutter_app/overlay/overlay_manager.dart';
-import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
-import 'package:chatgpt_windows_flutter_app/tray.dart';
+import 'package:fluent_gpt/common/app_intents.dart';
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;

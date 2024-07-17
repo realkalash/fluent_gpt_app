@@ -10,7 +10,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
 
   // Replace protocol_handler_example with your_window_title.
-  HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"chatgpt_windows_flutter_app");
+  HWND hwnd = ::FindWindow(L"FLUTTER_RUNNER_WIN32_WINDOW", L"fluent_gpt");
   if (hwnd != NULL) {
     DispatchToProtocolHandler(hwnd);
     ::ShowWindow(hwnd, SW_NORMAL);
@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"chatgpt_windows_flutter_app", origin, size)) {
+  if (!window.Create(L"fluent_gpt", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

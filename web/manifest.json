@@ -1,6 +1,6 @@
 {
-    "name": "chatgpt_windows_flutter_app",
-    "short_name": "chatgpt_windows_flutter_app",
+    "name": "fluent_gpt",
+    "short_name": "fluent_gpt",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

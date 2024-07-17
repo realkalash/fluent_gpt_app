@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:chatgpt_windows_flutter_app/log.dart';
+import 'package:fluent_gpt/log.dart';
 import 'dart:io';
-import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
-import 'package:chatgpt_windows_flutter_app/main.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:file/local.dart';
 import 'package:shell/shell.dart';
 
