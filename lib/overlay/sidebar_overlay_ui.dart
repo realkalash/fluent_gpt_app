@@ -241,7 +241,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
     if (isShowChatUI == false) {
       toggleShowChatUI();
     }
-    final selectedText = await fluent.showDialog<String>(
+    final promptText = await fluent.showDialog<String>(
       context: context,
       barrierDismissible: true,
       builder: (context) {
@@ -257,7 +257,8 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                     final clipboard = await Clipboard.getData('text/plain');
                     final selectedText = clipboard?.text ?? '';
                     // ignore: use_build_context_synchronously
-                    Navigator.of(context).pop(selectedText);
+                    Navigator.of(context)
+                        .pop(child.getPromptText(selectedText));
                   },
                 ),
               const fluent.Padding(
@@ -277,8 +278,8 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
         );
       },
     );
-    if (selectedText != null && selectedText.trim().isNotEmpty) {
-      _onButtonTap(prompt.getPromptText(selectedText), 'custom');
+    if (promptText != null && promptText.trim().isNotEmpty) {
+      _onButtonTap(promptText, 'custom');
     } else {
       toggleShowChatUI();
     }

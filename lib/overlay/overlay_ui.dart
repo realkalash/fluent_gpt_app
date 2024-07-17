@@ -287,6 +287,17 @@ class _OverlayUIState extends State<OverlayUI> {
       barrierDismissible: true,
       builder: (context) {
         return fluent.ContentDialog(
+          title: Row(
+            children: [
+              Text(prompt.title),
+              const Spacer(),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(FluentIcons.dismiss_24_filled),
+                color: Colors.red,
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

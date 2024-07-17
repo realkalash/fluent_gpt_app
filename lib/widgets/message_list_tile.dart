@@ -167,20 +167,23 @@ class _MessageCardState extends State<MessageCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (widget.message['commandMessage'] == 'true')
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Command prompt'),
-                      IconButton(
-                        icon: Icon(widget.message['hidePrompt'] == 'true'
-                            ? FluentIcons.chevron_down
-                            : FluentIcons.chevron_up),
-                        onPressed: () {
-                          final provider = context.read<ChatGPTProvider>();
-                          provider.toggleHidePrompt(widget.id);
-                        },
-                      ),
-                    ],
+                  Button(
+                    onPressed: () {
+                      final provider = context.read<ChatGPTProvider>();
+                      provider.toggleHidePrompt(widget.id);
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Command prompt'),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Icon(widget.message['hidePrompt'] == 'true'
+                              ? FluentIcons.chevron_down
+                              : FluentIcons.chevron_up),
+                        ),
+                      ],
+                    ),
                   ),
                 if (widget.message['hidePrompt'] != 'true')
                   SelectableText(
