@@ -4,13 +4,19 @@ import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
-class OverlaySettingsDialog extends StatelessWidget {
+class OverlaySettingsDialog extends StatefulWidget {
   const OverlaySettingsDialog({super.key});
 
   @override
+  State<OverlaySettingsDialog> createState() => _OverlaySettingsDialogState();
+}
+
+class _OverlaySettingsDialogState extends State<OverlaySettingsDialog> {
+  bool archivedOpened = false;
+  @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Overlay settings'),
+      title: const Text('Custom prompts'),
       constraints: const BoxConstraints(maxWidth: 800),
       actions: [
         Button(
@@ -20,44 +26,188 @@ class OverlaySettingsDialog extends StatelessWidget {
           child: const Text('Close'),
         ),
       ],
-      content: ListView(
+      content: StreamBuilder(
+          stream: customPrompts,
+          builder: (context, snapshot) {
+            return ListView(
+              children: [
+                for (var prompt in customPrompts.value)
+                  _PromptListTile(
+                    prompt: prompt,
+                    isArchived: false,
+                    isSubprompt: false,
+                  ),
+                ListTile(
+                  leading: const Icon(FluentIcons.add_24_filled),
+                  title: const Text('Add new prompt'),
+                  onPressed: () {
+                    final newPrompt = CustomPrompt(
+                      id: customPrompts.value.length,
+                      icon: FluentIcons.info_24_filled,
+                      title: 'New prompt ${customPrompts.value.length}',
+                      prompt: 'Prompt',
+                      index: customPrompts.value.length,
+                    );
+                    final list = customPrompts.value.toList();
+                    list.add(newPrompt);
+                    customPrompts.add(list);
+                  },
+                ),
+                Expander(
+                  header: const Text('Archived prompts'),
+                  initiallyExpanded: archivedOpened,
+                  onStateChanged: (value) {
+                    archivedOpened = value;
+                  },
+                  content: StreamBuilder(
+                      stream: archivedPrompts,
+                      builder: (context, snapshot) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (var prompt in archivedPrompts.value)
+                              _PromptListTile(
+                                prompt: prompt,
+                                isArchived: true,
+                                isSubprompt: false,
+                              ),
+                          ],
+                        );
+                      }),
+                ),
+              ],
+            );
+          }),
+    );
+  }
+}
+
+class EditPromptDialog extends StatefulWidget {
+  const EditPromptDialog({super.key, required this.prompt});
+  final CustomPrompt prompt;
+  @override
+  State<EditPromptDialog> createState() => _EditPromptDialogState();
+}
+
+class _EditPromptDialogState extends State<EditPromptDialog> {
+  late CustomPrompt item;
+  final promptCtr = TextEditingController();
+  final indexCtr = TextEditingController();
+  final titleCtr = TextEditingController();
+  @override
+  void initState() {
+    item = widget.prompt;
+    promptCtr.text = item.prompt;
+    indexCtr.text = item.index.toString();
+    titleCtr.text = item.title;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ContentDialog(
+      title: const Text('Edit prompt'),
+      constraints: const BoxConstraints(maxWidth: 600),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var prompt in customPrompts.value)
-            _PromptListTile(prompt: prompt, isArchived: false),
-          ListTile(
-            leading: const Icon(FluentIcons.add_24_filled),
-            title: const Text('Add new prompt'),
-            onPressed: () {
-              final newPrompt = CustomPrompt(
-                icon: FluentIcons.info_24_filled,
-                title: 'New prompt',
-                prompt: 'Prompt',
-                index: customPrompts.value.length,
-              );
-              final list = customPrompts.value.toList();
-              list.add(newPrompt);
-              customPrompts.add(list);
-              Navigator.of(context).pop();
-              showDialog(
-                context: context,
-                builder: (ctx) => const OverlaySettingsDialog(),
-              );
+          Text(
+            '''Helpers:
+                \${lang} - the language of the selected text
+                \${input} - the selected text''',
+            style: TextStyle(fontSize: 12, color: Colors.blue),
+          ),
+          const SizedBox(height: 8),
+          // icon dropdown
+          const Text('Icon:'),
+          DropDownButton(
+            title: Icon(item.icon),
+            items: [
+              for (var icon in fluentIconsList)
+                MenuFlyoutItem(
+                  text: Icon(icon),
+                  onPressed: () {
+                    final newItem = item.copyWith(icon: icon);
+                    updateItem(newItem, context);
+                  },
+                ),
+            ],
+          ),
+          const Text('Title:'),
+          TextBox(
+            controller: titleCtr,
+            placeholder: 'Title',
+            onChanged: (value) {
+              final newItem = item.copyWith(title: value);
+              updateItem(newItem, context);
             },
           ),
-          Expander(
-            header: const Text('Archived prompts'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var prompt in archivedPrompts.value)
-                  _PromptListTile(prompt: prompt, isArchived: true),
-              ],
-            ),
+          const Text('Index for sorting:'),
+          TextBox(
+            controller: indexCtr,
+            placeholder: '0',
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              final newItem = item.copyWith(index: int.tryParse(value));
+              updateItem(newItem, context);
+            },
+          ),
+          const SizedBox(height: 8),
+          const Text('Prompt:'),
+          TextBox(
+            controller: promptCtr,
+            placeholder: 'Prompt',
+            maxLines: 20,
+            minLines: 1,
+            onChanged: (value) {
+              final newItem = item.copyWith(prompt: value);
+              updateItem(newItem, context);
+            },
           ),
         ],
       ),
+      actions: [
+        Button(
+          onPressed: () {
+            Navigator.of(context).pop(widget.prompt);
+          },
+          child: const Text('Close'),
+        ),
+        Button(
+          onPressed: () {
+            final lenght = calcAllPromptsLenght();
+            item = item.copyWith(
+              children: [
+                ...item.children,
+                CustomPrompt(
+                  id: lenght,
+                  icon: FluentIcons.info_24_filled,
+                  title: 'New sub-prompt $lenght',
+                  prompt: 'Sub-prompt',
+                  index: customPrompts.value.length,
+                ),
+              ],
+            );
+            Navigator.of(context).pop(item);
+          },
+          child: const Text('Add sub-prompt list'),
+        ),
+        Button(
+          onPressed: () {
+            Navigator.of(context).pop(item);
+          },
+          child: const Text('Apply'),
+        ),
+      ],
     );
+  }
+
+  void updateItem(CustomPrompt newItem, BuildContext context) {
+    setState(() {
+      item = newItem;
+    });
   }
 }
 
@@ -66,107 +216,43 @@ class _PromptListTile extends StatelessWidget {
     super.key,
     required this.prompt,
     required this.isArchived,
+    required this.isSubprompt,
   });
   final CustomPrompt prompt;
   final bool isArchived;
-  void updateItem(CustomPrompt item, CustomPrompt oldItem, ctx) {
-    final list = customPrompts.value.toList();
-    final foundedItem = list.where((e) => e == oldItem);
-    if (foundedItem.isNotEmpty) {
-      list.remove(foundedItem.first);
+  final bool isSubprompt;
+  void updateItem(CustomPrompt item, CustomPrompt oldItem) {
+    final list = (isArchived ? archivedPrompts : customPrompts).value.toList();
+
+    if (isSubprompt) {
+      final index = list.indexWhere(
+          (element) => element.children.any((child) => child.id == oldItem.id));
+      if (index != -1) {
+        final parentItem = list[index];
+        final updatedChildren = parentItem.children
+            .where((child) => child.id != oldItem.id)
+            .toList()
+          ..add(item);
+        list[index] = parentItem.copyWith(children: updatedChildren);
+      }
+    } else {
+      list.removeWhere((element) => element.id == oldItem.id);
       list.add(item);
-      list.sort((a, b) => a.index.compareTo(b.index));
-      customPrompts.add(list);
     }
+
+    list.sort((a, b) => a.index.compareTo(b.index));
+    (isArchived ? archivedPrompts : customPrompts).add(list);
   }
 
-  showEditItemDialog(CustomPrompt item, BuildContext context) {
-    Navigator.of(context).pop();
-    showDialog(
+  showEditItemDialog(CustomPrompt item, BuildContext context) async {
+    final prompt = await showDialog<CustomPrompt?>(
       context: context,
-      builder: (context) {
-        return ContentDialog(
-          title: const Text('Edit prompt'),
-          constraints: const BoxConstraints(maxWidth: 600),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '''Helpers:
-                \${lang} - the language of the selected text
-                \${input} - the selected text''',
-                style: TextStyle(fontSize: 12, color: Colors.blue),
-              ),
-              const SizedBox(height: 8),
-              // icon dropdown
-              const Text('Icon:'),
-              DropDownButton(
-                title: Icon(item.icon),
-                items: [
-                  for (var icon in fluentIconsList)
-                    MenuFlyoutItem(
-                      text: Icon(icon),
-                      onPressed: () {
-                        final newItem = item.copyWith(icon: icon);
-                        Navigator.of(context).pop();
-                        updateItem(newItem, prompt, context);
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => const OverlaySettingsDialog(),
-                        );
-                      },
-                    ),
-                ],
-              ),
-              const Text('Title:'),
-              TextBox(
-                controller: TextEditingController(text: item.title),
-                placeholder: 'Title',
-                onChanged: (value) {
-                  final newItem = item.copyWith(title: value);
-                  updateItem(newItem, prompt, context);
-                },
-              ),
-              const Text('Index for sorting:'),
-              TextBox(
-                controller: TextEditingController(text: item.index.toString()),
-                placeholder: '0',
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  final newItem = item.copyWith(index: int.tryParse(value));
-                  updateItem(newItem, prompt, context);
-                },
-              ),
-              const SizedBox(height: 8),
-              const Text('Prompt:'),
-              TextBox(
-                controller: TextEditingController(text: item.prompt),
-                placeholder: 'Prompt',
-                maxLines: 20,
-                minLines: 1,
-                onChanged: (value) {
-                  final newItem = item.copyWith(prompt: value);
-                  updateItem(newItem, prompt, context);
-                },
-              ),
-            ],
-          ),
-          actions: [
-            Button(
-              onPressed: () {
-                Navigator.of(context).pop();
-                showDialog(
-                  context: context,
-                  builder: (ctx) => const OverlaySettingsDialog(),
-                );
-              },
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => EditPromptDialog(prompt: item),
     );
+    if (prompt != null) {
+      // ignore: use_build_context_synchronously
+      updateItem(prompt, item);
+    }
   }
 
   @override
@@ -193,7 +279,32 @@ class _PromptListTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var child in prompt.children)
-                    _PromptListTile(prompt: child, isArchived: isArchived),
+                    _PromptListTile(
+                      prompt: child,
+                      isArchived: isArchived,
+                      isSubprompt: true,
+                    ),
+                  // add new sub-prompt
+                  ListTile(
+                    leading: const Icon(FluentIcons.add_24_filled),
+                    title: const Text('Add new sub-prompt'),
+                    onPressed: () {
+                      final lenght = calcAllPromptsLenght();
+                      final newPrompt = CustomPrompt(
+                        id: lenght,
+                        icon: FluentIcons.info_24_filled,
+                        title: 'New sub-prompt $lenght',
+                        prompt: 'Sub-prompt',
+                        index: customPrompts.value.length,
+                      );
+                      final list = customPrompts.value.toList();
+                      list.remove(prompt);
+                      list.add(prompt.copyWith(
+                        children: [...prompt.children, newPrompt],
+                      ));
+                      customPrompts.add(list);
+                    },
+                  ),
                 ],
               ),
             )
@@ -212,7 +323,7 @@ class _PromptListTile extends StatelessWidget {
                   checked: prompt.showInChatField,
                   onChanged: (value) {
                     final newPrompt = prompt.copyWith(showInChatField: value!);
-                    updateItem(newPrompt, prompt, context);
+                    updateItem(newPrompt, prompt);
                   },
                 ),
                 const Text('Chat field', style: TextStyle(fontSize: 10)),
@@ -229,7 +340,7 @@ class _PromptListTile extends StatelessWidget {
                   checked: prompt.showInOverlay,
                   onChanged: (value) {
                     final newPrompt = prompt.copyWith(showInOverlay: value!);
-                    updateItem(newPrompt, prompt, context);
+                    updateItem(newPrompt, prompt);
                   },
                 ),
                 const Text('Overlay', style: TextStyle(fontSize: 10)),
@@ -250,15 +361,17 @@ class _PromptListTile extends StatelessWidget {
                   customPrompts.add([...customPrompts.value, prompt]);
                 } else {
                   final list = customPrompts.value.toList();
-                  list.remove(prompt);
+                  list.removeWhere((element) {
+                    if (element.children.isNotEmpty) {
+                      element.children.removeWhere((element) {
+                        return element.id == prompt.id;
+                      });
+                    }
+                    return element.id == prompt.id;
+                  });
                   customPrompts.add(list);
                   archivedPrompts.add([...archivedPrompts.value, prompt]);
                 }
-                Navigator.of(context).pop();
-                showDialog(
-                  context: context,
-                  builder: (ctx) => const OverlaySettingsDialog(),
-                );
               },
             ),
           ),
@@ -271,11 +384,6 @@ class _PromptListTile extends StatelessWidget {
                   final list = archivedPrompts.value.toList();
                   list.remove(prompt);
                   archivedPrompts.add(list);
-                  Navigator.of(context).pop();
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => const OverlaySettingsDialog(),
-                  );
                 },
               ),
             ),
