@@ -10,6 +10,8 @@ class AppCache {
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const isMarkdownView = BoolPref("isMarkdownView", false);
 
+  static const openWindowKey = StringPref("openWindowKey");
+
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
   static const windowWidth = IntPref("windowWidth");

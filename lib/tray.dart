@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:chatgpt_windows_flutter_app/common/prefs/app_cache.dart';
 import 'package:chatgpt_windows_flutter_app/log.dart';
 import 'package:chatgpt_windows_flutter_app/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -135,15 +137,8 @@ Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     openWindowHotkey,
     keyDownHandler: (hotKey) async {
-      // print('onKeyDown+${hotKey.toJson()}');
       final isAppVisible = await windowManager.isVisible();
-
-      if (isAppVisible) {
-        appWindow.hide();
-      } else {
-        appWindow.show();
-        promptTextFocusNode.requestFocus();
-      }
+      isAppVisible ? appWindow.hide() : appWindow.show();
     },
   );
   await hotKeyManager.register(
@@ -177,4 +172,20 @@ Future<void> initShortcuts(AppWindow appWindow) async {
       log('Selected Text: $result');
     },
   );
+  initCachedHotKeys();
+}
+
+Future<void> initCachedHotKeys() async {
+  final openWindowKey = AppCache.openWindowKey.value;
+  if (openWindowKey != null) {
+    await hotKeyManager.unregister(openWindowHotkey);
+    openWindowHotkey = HotKey.fromJson(jsonDecode(openWindowKey));
+    await hotKeyManager.register(
+      openWindowHotkey,
+      keyDownHandler: (hotKey) async {
+        final isAppVisible = await windowManager.isVisible();
+        isAppVisible ? AppWindow().hide() : AppWindow().show();
+      },
+    );
+  }
 }
