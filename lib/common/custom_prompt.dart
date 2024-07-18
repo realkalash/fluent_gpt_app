@@ -159,7 +159,7 @@ class CustomPrompt {
 
   @override
   String toString() {
-    return 'CustomPrompt(id: $id, title: $title, showInChatField: $showInChatField, showInOverlay: $showInOverlay, children: $children, icon: $icon)';
+    return 'CustomPrompt(id: $id, index:$index, title: $title, showInChatField: $showInChatField, showInOverlay: $showInOverlay, children: $children, icon: $icon)';
   }
 
   Map<String, Object?> toJson() {

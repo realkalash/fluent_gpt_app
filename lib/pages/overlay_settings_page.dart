@@ -1,18 +1,18 @@
+import 'package:animated_list_plus/animated_list_plus.dart';
+import 'package:animated_list_plus/transitions.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
-class OverlaySettingsDialog extends StatefulWidget {
-  const OverlaySettingsDialog({super.key});
+import '../widgets/custom_buttons.dart';
 
-  @override
-  State<OverlaySettingsDialog> createState() => _OverlaySettingsDialogState();
-}
+class CustomPromptsSettingsDialog extends StatelessWidget {
+  const CustomPromptsSettingsDialog({super.key});
 
-class _OverlaySettingsDialogState extends State<OverlaySettingsDialog> {
-  bool archivedOpened = false;
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
@@ -28,51 +28,124 @@ class _OverlaySettingsDialogState extends State<OverlaySettingsDialog> {
       ],
       content: StreamBuilder(
           stream: customPrompts,
-          builder: (context, snapshot) {
-            return ListView(
+          builder: (context, snap) {
+            final customPromptsValue = snap.requireData;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var prompt in customPrompts.value)
-                  _PromptListTile(
-                    prompt: prompt,
-                    isArchived: false,
-                    isSubprompt: false,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 200,
+                    child: FilledRedButton(
+                      child: const Text('Reset to default template'),
+                      onPressed: () async {
+                        final accept = await ConfirmationDialog.show(
+                            context: context, isDelete: true);
+                        if (accept) {
+                          const customTemplate = basePromptsTemplate;
+                          const archivedTemplate = baseArchivedPromptsTemplate;
+                          customPrompts.add(customTemplate);
+                          archivedPrompts.add(archivedTemplate);
+                        }
+                      },
+                    ),
                   ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Divider(),
+                ),
+                Expanded(
+                  child: ImplicitlyAnimatedReorderableList<CustomPrompt>(
+                    items: customPromptsValue,
+                    areItemsTheSame: (oldItem, newItem) =>
+                        oldItem.index == newItem.index,
+                    itemBuilder: (context, anim, item, index) {
+                      item = customPromptsValue.length <= index
+                          ? item
+                          : customPromptsValue[index];
+                      return Reorderable(
+                        key: ValueKey('${item.id}-reorderable'),
+                        child: SizeFadeTransition(
+                          animation: anim,
+                          curve: Curves.easeInOut,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Handle(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: context.theme.accentColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(item.index.toString()),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _PromptListTile(
+                                  prompt: item,
+                                  isArchived: false,
+                                  isSubprompt: false,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    onReorderFinished: (CustomPrompt item, int from, int to,
+                        List<CustomPrompt> newItems) async {
+                      for (var i = 0; i < newItems.length; i++) {
+                        newItems[i] = newItems[i].copyWith(index: i);
+                      }
+                      customPrompts.add(newItems);
+                    },
+                  ),
+                ),
                 ListTile(
                   leading: const Icon(FluentIcons.add_24_filled),
                   title: const Text('Add new prompt'),
                   onPressed: () {
+                    final lenght = calcAllPromptsLenght();
                     final newPrompt = CustomPrompt(
-                      id: customPrompts.value.length,
+                      id: lenght,
                       icon: FluentIcons.info_24_filled,
-                      title: 'New prompt ${customPrompts.value.length}',
+                      title: 'New prompt $lenght',
                       prompt: 'Prompt',
-                      index: customPrompts.value.length,
+                      index: lenght,
                     );
-                    final list = customPrompts.value.toList();
+                    final list = customPromptsValue.toList();
                     list.add(newPrompt);
                     customPrompts.add(list);
                   },
                 ),
                 Expander(
                   header: const Text('Archived prompts'),
-                  initiallyExpanded: archivedOpened,
-                  onStateChanged: (value) {
-                    archivedOpened = value;
-                  },
                   content: StreamBuilder(
                       stream: archivedPrompts,
                       builder: (context, snapshot) {
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            for (var prompt in archivedPrompts.value)
-                              _PromptListTile(
-                                prompt: prompt,
-                                isArchived: true,
-                                isSubprompt: false,
-                              ),
-                          ],
+                        return SizedBox(
+                          height: 400,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var prompt in archivedPrompts.value)
+                                  _PromptListTile(
+                                    prompt: prompt,
+                                    isArchived: true,
+                                    isSubprompt: false,
+                                  ),
+                              ],
+                            ),
+                          ),
                         );
                       }),
                 ),
@@ -115,8 +188,9 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
         children: [
           Text(
             '''Helpers:
-                \${lang} - the language of the selected text
-                \${input} - the selected text''',
+\${lang} - the language of the selected text
+\${clipboardAccess} - if you want to enable the clipboard access for LLM
+\${input} - the selected text''',
             style: TextStyle(fontSize: 12, color: Colors.blue),
           ),
           const SizedBox(height: 8),
@@ -144,16 +218,6 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               updateItem(newItem, context);
             },
           ),
-          const Text('Index for sorting:'),
-          TextBox(
-            controller: indexCtr,
-            placeholder: '0',
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              final newItem = item.copyWith(index: int.tryParse(value));
-              updateItem(newItem, context);
-            },
-          ),
           const SizedBox(height: 8),
           const Text('Prompt:'),
           TextBox(
@@ -165,6 +229,32 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               final newItem = item.copyWith(prompt: value);
               updateItem(newItem, context);
             },
+          ),
+          const Text('Add data to prompt:'),
+          Wrap(
+            children: [
+              Button(
+                child: const Text('User input'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${input} ''';
+                },
+              ),
+              Button(
+                child: const Text('Current language'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${lang} ''';
+                },
+              ),
+              Button(
+                child: const Text('Clipboard access'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${clipboardAccess} ''';
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -260,6 +350,7 @@ class _PromptListTile extends StatelessWidget {
     return ListTile(
       leading: Icon(prompt.icon),
       title: Text(prompt.title),
+      tileColor: ButtonState.all(context.theme.scaffoldBackgroundColor),
       onPressed: () => showEditItemDialog(prompt, context),
       subtitle: Column(
         mainAxisSize: MainAxisSize.min,
@@ -313,39 +404,45 @@ class _PromptListTile extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox.square(
-            dimension: 48,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  checked: prompt.showInChatField,
-                  onChanged: (value) {
-                    final newPrompt = prompt.copyWith(showInChatField: value!);
-                    updateItem(newPrompt, prompt);
-                  },
+          Column(
+            children: [
+              SizedBox.square(
+                dimension: 48,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      checked: prompt.showInChatField,
+                      onChanged: (value) {
+                        final newPrompt =
+                            prompt.copyWith(showInChatField: value!);
+                        updateItem(newPrompt, prompt);
+                      },
+                    ),
+                    const Text('Chat field', style: TextStyle(fontSize: 10)),
+                  ],
                 ),
-                const Text('Chat field', style: TextStyle(fontSize: 10)),
-              ],
-            ),
-          ),
-          SizedBox.square(
-            dimension: 48,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  checked: prompt.showInOverlay,
-                  onChanged: (value) {
-                    final newPrompt = prompt.copyWith(showInOverlay: value!);
-                    updateItem(newPrompt, prompt);
-                  },
+              ),
+              SizedBox.square(
+                dimension: 48,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      checked: prompt.showInOverlay,
+                      onChanged: (value) {
+                        final newPrompt =
+                            prompt.copyWith(showInOverlay: value!);
+                        updateItem(newPrompt, prompt);
+                      },
+                    ),
+                    const Text('Overlay', style: TextStyle(fontSize: 10)),
+                  ],
                 ),
-                const Text('Overlay', style: TextStyle(fontSize: 10)),
-              ],
-            ),
+              ),
+            ],
           ),
           Tooltip(
             message: isArchived == false

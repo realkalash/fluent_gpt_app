@@ -141,7 +141,7 @@ class CustomPromptsButton extends StatelessWidget {
           onPressed: () {
             showDialog(
               context: context,
-              builder: (ctx) => const OverlaySettingsDialog(),
+              builder: (ctx) => const CustomPromptsSettingsDialog(),
             );
           },
         ),
