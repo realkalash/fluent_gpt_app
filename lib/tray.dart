@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -96,9 +97,26 @@ Future<void> initSystemTray() async {
   await initShortcuts(appWindow);
 }
 
+@Deprecated('Use onTrayButtonTapCommand instead')
 onTrayButtonTap(String item) {
   trayButtonStream.add(item);
   AppWindow().show();
+}
+
+Future<void> onTrayButtonTapCommand(String promptText,
+    [String? command]) async {
+  /// generate a command with prompt uri
+  const urlScheme = 'fluentgpt';
+  final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
+    'command': command ?? 'custom',
+    'text': promptText,
+  });
+
+  trayButtonStream.add(uri.toString());
+  final visible = await windowManager.isVisible();
+  if (!visible) {
+    AppWindow().show();
+  }
 }
 
 /// If the window is visible or not
@@ -166,9 +184,7 @@ Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     showOverlayForText,
     keyDownHandler: (hotKey) async {
-      const channel =
-          MethodChannel('com.example.chatgpt_windows_flutter_app/overlay');
-      final result = await channel.invokeMethod('getSelectedText');
+      final result = await NativeChannelUtils.getSelectedText();
       log('Selected Text: $result');
     },
   );
@@ -189,4 +205,3 @@ Future<void> initCachedHotKeys() async {
     );
   }
 }
-

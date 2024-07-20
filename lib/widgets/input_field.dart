@@ -417,23 +417,13 @@ class PromptChipWidget extends StatelessWidget {
     final contr = context.read<ChatGPTProvider>().messageController;
 
     if (contr.text.trim().isNotEmpty) {
-      const urlScheme = 'fluentgpt';
-      final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
-        'command': 'custom',
-        'text': child.getPromptText(contr.text)
-      });
-      onTrayButtonTap(uri.toString());
+      onTrayButtonTapCommand(child.getPromptText(contr.text));
       contr.clear();
     } else {
       final clipboard = await Clipboard.getData('text/plain');
       final selectedText = clipboard?.text?.trim() ?? '';
       if (selectedText.isNotEmpty) {
-        const urlScheme = 'fluentgpt';
-        final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
-          'command': 'custom',
-          'text': child.getPromptText(selectedText)
-        });
-        onTrayButtonTap(uri.toString());
+        onTrayButtonTapCommand(child.getPromptText(selectedText));
         contr.clear();
       }
     }

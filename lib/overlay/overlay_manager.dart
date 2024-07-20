@@ -2,8 +2,14 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
+import 'package:fluent_gpt/theme.dart';
+import 'package:fluent_gpt/tray.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
@@ -73,13 +79,14 @@ class OverlayStatus {
 }
 
 class OverlayManager {
-  static void init() {
-    final customPromptsJson = AppCache.customPrompts.value;
+  static Future<void> init() async {
+    final customPromptsJson = await AppCache.customPrompts.value();
     if (customPromptsJson != null && customPromptsJson.isNotEmpty) {
       final customPromptsList = jsonDecode(customPromptsJson) as List<dynamic>;
       final customPromptsListDecoded =
           customPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
       customPrompts.add(customPromptsListDecoded);
+      bindHotkeys(customPromptsListDecoded);
     }
     final archivedPromptsJson = AppCache.archivedPrompts.value;
     if (archivedPromptsJson != null && archivedPromptsJson.isNotEmpty) {
@@ -99,7 +106,6 @@ class OverlayManager {
     BuildContext rootContext, {
     double? positionX,
     double? positionY,
-    String? command,
   }) async {
     if (overlayVisibility.value.isShowingOverlay ||
         AppCache.enableOverlay.value == false) {
@@ -112,6 +118,10 @@ class OverlayManager {
     await windowManager.setResizable(false);
     // Ensure the overlay does not go off-screen
     if (positionX != null && positionY != null) {
+      // we need to invert Y because the overlay is from the bottom to top
+      final resolutionStr = AppCache.resolution.value ?? '500x700';
+      final resHeight = double.tryParse(resolutionStr.split('x')[1]) ?? 700;
+      positionY = resHeight - positionY;
       if (positionY < 0) {
         positionY = 0;
       }
@@ -119,9 +129,11 @@ class OverlayManager {
       if (positionX < 0) {
         positionX = 0;
       }
+      // because if chatUI is opening it can try to use previous position, we need to wait until the animation is done
+      await Future.delayed(const Duration(milliseconds: 500));
       await windowManager.setPosition(
         Offset((positionX) + 16, (positionY) + 16),
-        animate: true,
+        animate: false,
       );
     }
   }
@@ -149,7 +161,7 @@ class OverlayManager {
         animate: false,
       );
     } else {
-// Ensure the overlay does not go off-screen
+      // Ensure the overlay does not go off-screen
       if (positionX != null && positionY != null) {
         if (positionY < 0) {
           positionY = 0;
@@ -232,5 +244,54 @@ class OverlayManager {
       // Handle or log the error
       logError('Error repositioning window: $e');
     }
+  }
+
+  static void bindHotkeys(List<CustomPrompt> customPromptsList) {
+    for (var prompt in customPromptsList) {
+      if (prompt.hotkey != null) {
+        _bindHotkey(prompt, prompt.hotkey!);
+      }
+    }
+  }
+
+  static Future<void> _bindHotkey(CustomPrompt prompt, HotKey key) async {
+    // each prompt can have multiple children
+    for (var child in prompt.children) {
+      if (child.hotkey != null) {
+        await _bindHotkey(child, child.hotkey!);
+      }
+    }
+    await hotKeyManager.unregister(key);
+    await hotKeyManager.register(
+      key,
+      keyDownHandler: (hotKey) async {
+        String? selectedText = await NativeChannelUtils.getSelectedText();
+        selectedText ??= (await Clipboard.getData('text/plain'))?.text;
+        final isAppVisible = await windowManager.isVisible();
+        final Offset? mouseCoord = await NativeChannelUtils.getMousePosition();
+
+        /// show app window
+        if (!isAppVisible) {
+          await AppWindow().show();
+        }
+
+        /// show mini overlay
+        if (!overlayVisibility.value.isEnabled) {
+          await showOverlay(
+            navigatorKey.currentContext!,
+            positionX: mouseCoord?.dx,
+            positionY: mouseCoord?.dy,
+          );
+        }
+
+        /// if already open show chat UI inside the overlay
+        if (overlayVisibility.value.isShowingSidebarOverlay) {
+          SidebarOverlayUI.isChatVisible.add(true);
+        } else if (overlayVisibility.value.isShowingOverlay) {
+          OverlayUI.isChatVisible.add(true);
+        }
+        onTrayButtonTapCommand(prompt.getPromptText(selectedText));
+      },
+    );
   }
 }

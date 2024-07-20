@@ -52,10 +52,10 @@ class AppDelegate: FlutterAppDelegate {
       case "testResultFromSwift":
         result(["Result from Swift": "Hello from Swift"])
       case "getSelectedText":
-        // getSelectedTextOverrideClipboard { selectedText in
-        //   print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
-        //   result(selectedText)
-        // }
+        getSelectedTextOverrideClipboard { selectedText in
+          print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
+          result(selectedText)
+        }
         result(nil)
       case "showOverlay":
         self.handleShowOverlay(call: call, result: result)
@@ -69,6 +69,9 @@ class AppDelegate: FlutterAppDelegate {
         self.handleInitAccessibility(result: result)
       case "getScreenSize":
         self.handleGetScreenSize(result: result)
+      case "getMousePosition":
+        let cursorPosition = getCurrentCursorPosition()
+        result(["positionX": cursorPosition.x, "positionY": cursorPosition.y])
       default:
         result("not implemented")
       }
@@ -124,6 +127,12 @@ class AppDelegate: FlutterAppDelegate {
     return focusedElement?.selectedText
   }
 
+  // Function to get current mouse cursor position on screen
+  func getCurrentCursorPosition() -> NSPoint {
+    let mouseLocation = NSEvent.mouseLocation
+    return mouseLocation
+  }
+
   // I should find a better way to get the selected text
   // This method is causing too many unnecessary clipboard changes for each mouse click event
   func getSelectedTextOverrideClipboard(completion: @escaping (String?) -> Void) {
@@ -172,7 +181,7 @@ class AppDelegate: FlutterAppDelegate {
       // getSelectedTextOverrideClipboard { selectedText in
       //   print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
       //   // if selected text in clipboard is the same as previous
-        
+
       //   // if selectedText is not nil then send it to flutter
       //   if let selectedText = selectedText {
       //     self.methodChannel?.invokeMethod("onTextSelected", arguments: [

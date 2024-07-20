@@ -6,8 +6,11 @@ import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
+import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 
 import '../widgets/custom_buttons.dart';
 
@@ -30,7 +33,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
       content: StreamBuilder(
           stream: customPrompts,
           builder: (context, snap) {
-            final customPromptsValue = snap.requireData;
+            final customPromptsValue = snap.data ?? [];
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -263,6 +266,29 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
             ],
           ),
+          biggerSpacer,
+          Row(
+            children: [
+              const Text('Keybinding:'),
+              const SizedBox(width: 8),
+              Button(
+                onPressed: () async {
+                  final hotkey = await KeybindingDialog.show(context);
+                  final newItem = item.copyWith(hotkey: hotkey);
+                  // ignore: use_build_context_synchronously
+                  updateItem(newItem, context);
+                  if (hotkey != null) {
+                    rebindKeys();
+                  } else {
+                    hotKeyManager.unregister(item.hotkey!);
+                  }
+                },
+                child: item.hotkey == null
+                    ? const Text('Set keybinding')
+                    : HotKeyVirtualView(hotKey: item.hotkey!),
+              ),
+            ],
+          ),
         ],
       ),
       actions: [
@@ -305,6 +331,10 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
     setState(() {
       item = newItem;
     });
+  }
+
+  void rebindKeys() {
+    OverlayManager.bindHotkeys(customPrompts.value);
   }
 }
 
@@ -408,7 +438,12 @@ class _PromptListTile extends StatelessWidget {
                   ),
                 ],
               ),
-            )
+            ),
+          if (prompt.hotkey != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: HotKeyVirtualView(hotKey: prompt.hotkey!),
+            ),
         ],
       ),
       trailing: Row(

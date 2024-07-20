@@ -24,7 +24,7 @@ class AppCache {
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 
-  static const customPrompts = StringPref("customPrompts");
+  static const customPrompts = FileStringPref("customPrompts");
   static const archivedPrompts = StringPref("archivedPrompts");
 
   static const gptToolSearchEnabled = BoolPref("gptToolSearchEnabled", true);
