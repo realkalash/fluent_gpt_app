@@ -5,6 +5,7 @@ import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
@@ -70,31 +71,37 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
                         child: SizeFadeTransition(
                           animation: anim,
                           curve: Curves.easeInOut,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Handle(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
+                          child: Card(
+                            backgroundColor:
+                                context.theme.inactiveBackgroundColor,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Handle(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: context.theme.accentColor,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(item.index.toString()),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: context.theme.accentColor,
-                                    borderRadius: BorderRadius.circular(4),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _PromptListTile(
+                                    prompt: item,
+                                    isArchived: false,
+                                    isSubprompt: false,
                                   ),
-                                  child: Text(item.index.toString()),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _PromptListTile(
-                                  prompt: item,
-                                  isArchived: false,
-                                  isSubprompt: false,
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -347,11 +354,14 @@ class _PromptListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(prompt.icon),
-      title: Text(prompt.title),
-      tileColor: ButtonState.all(context.theme.scaffoldBackgroundColor),
-      onPressed: () => showEditItemDialog(prompt, context),
+    return BasicListTile(
+      leading:
+          Padding(padding: const EdgeInsets.all(8.0), child: Icon(prompt.icon)),
+      title: Text(
+        prompt.title,
+        style: FluentTheme.of(context).typography.bodyLarge,
+      ),
+      onTap: () => showEditItemDialog(prompt, context),
       subtitle: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,7 +369,7 @@ class _PromptListTile extends StatelessWidget {
           Text(
             prompt.prompt,
             style: FluentTheme.of(context).typography.body,
-            maxLines: 3,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
           if (prompt.children.isNotEmpty)
@@ -405,6 +415,7 @@ class _PromptListTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox.square(
                 dimension: 48,

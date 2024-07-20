@@ -1,5 +1,7 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -129,6 +131,26 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
               },
               child: const Icon(
                 icons.FluentIcons.panel_right_32_filled,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+        Tooltip(
+          message: 'Settings',
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ToggleButton(
+              checked: false,
+              onChanged: (_) {
+                Navigator.of(context).push(
+                  FluentPageRoute(
+                    builder: (context) => const SettingsPage(),
+                  ),
+                );
+              },
+              child: const Icon(
+                icons.FluentIcons.settings_24_regular,
                 size: 20,
               ),
             ),

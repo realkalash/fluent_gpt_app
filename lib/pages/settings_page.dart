@@ -7,7 +7,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
-import 'package:fluent_gpt/pages/overlay_settings_page.dart';
+import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -80,8 +80,16 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> with PageMixin {
   @override
   Widget build(BuildContext context) {
+    final canGoBack = Navigator.of(context).canPop();
     return ScaffoldPage.scrollable(
-      header: const PageHeader(title: Text('Settings')),
+      header: PageHeader(
+          title: const Text('Settings'),
+          leading: canGoBack
+              ? IconButton(
+                  icon: const Icon(FluentIcons.back),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              : null),
       children: [
         Text('GPT model', style: FluentTheme.of(context).typography.subtitle),
         GptModelChooser(
