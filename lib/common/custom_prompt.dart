@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/widgets.dart' as widgets;
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/rxdart.dart';
 
 BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
@@ -67,6 +68,7 @@ If the original text has no mistake, just output the original text and nothing e
   CustomPrompt(
     id: 4,
     title: 'Translate this',
+    index: 3,
     icon: FluentIcons.translate_24_regular,
     prompt:
         '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
@@ -125,6 +127,9 @@ class CustomPrompt {
   /// If not empty, this prompt will be shown as a dropdown
   final List<CustomPrompt> children;
 
+  /// Shortcut for using this custom prompt
+  final HotKey? hotkey;
+
   const CustomPrompt({
     required this.id,
     required this.title,
@@ -134,6 +139,7 @@ class CustomPrompt {
     this.showInOverlay = false,
     this.children = const [],
     this.icon = FluentIcons.chat_20_filled,
+    this.hotkey,
   });
 
   /// Returns the prompt text with the selected text
@@ -173,6 +179,7 @@ class CustomPrompt {
       'icon': icon.codePoint,
       'fontPackage': icon.fontPackage,
       'iconFamily': icon.fontFamily,
+      'hotkey': hotkey?.toJson(),
     };
   }
 
@@ -195,6 +202,8 @@ class CustomPrompt {
         fontPackage: json['fontPackage'],
         fontFamily: json['iconFamily'],
       ),
+      hotkey:
+          json['hotkey'] != null ? HotKey.fromJson(json['hotkey']) : null,
     );
   }
 
@@ -215,6 +224,7 @@ class CustomPrompt {
     bool? showInChatField,
     bool? showInOverlay,
     List<CustomPrompt>? children,
+    HotKey? hotkey,
   }) {
     return CustomPrompt(
       id: id ?? this.id,
@@ -225,6 +235,7 @@ class CustomPrompt {
       showInChatField: showInChatField ?? this.showInChatField,
       showInOverlay: showInOverlay ?? this.showInOverlay,
       children: children ?? this.children,
+      hotkey: hotkey ?? this.hotkey,
     );
   }
 }

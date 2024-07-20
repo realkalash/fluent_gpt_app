@@ -39,7 +39,6 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-
       title: widget.title ?? const Text('Choose a hotkey'),
       constraints: const BoxConstraints(maxWidth: 400, maxHeight: 280),
       actions: [

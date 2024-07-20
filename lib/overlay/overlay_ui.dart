@@ -8,6 +8,7 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_gpt_provider.dart';
@@ -18,8 +19,16 @@ class OverlayUI extends StatefulWidget {
   const OverlayUI({super.key});
   static const _maxWidth = 6 * (50 + 8 + 8);
 
+  /// stream to trigger changing chat ui
+  static BehaviorSubject<bool> isChatVisible =
+      BehaviorSubject<bool>.seeded(false);
+
   static Size defaultWindowSize() {
-    final elementsLength = customPrompts.value.length;
+    final elementsLength = customPrompts.value
+        .where(
+          (element) => element.showInOverlay,
+        )
+        .length;
     // each element width is 50 + padding 8 + main button 36. Max 6 elements
     // we need to choose minimal width for the window
     final width = elementsLength * (50 + 8 + 8);
@@ -37,117 +46,127 @@ class _OverlayUIState extends State<OverlayUI> {
   bool isSuperCompact = false;
 
   @override
+  void initState() {
+    super.initState();
+    OverlayUI.isChatVisible.listen((value) {
+      toggleShowChatUI();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanStart: (v) => WindowManager.instance.startDragging(),
-      child: Material(
-        color: Colors.transparent,
-        type: MaterialType.transparency,
-        child: Container(
-          color: Colors.transparent,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              if (isShowChatUI)
-                const Positioned.fill(
-                  top: 64,
-                  child: ChatPageOverlayUI(),
-                ),
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
+    return StreamBuilder(
+        stream: OverlayUI.isChatVisible,
+        builder: (context, snapshot) {
+          return GestureDetector(
+            onPanStart: (v) => WindowManager.instance.startDragging(),
+            child: Material(
+              color: Colors.transparent,
+              type: MaterialType.transparency,
+              child: Container(
+                color: Colors.transparent,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
                   children: [
-                    if (isSuperCompact == false)
-                      const IconButton(
-                        visualDensity: VisualDensity.compact,
-                        icon: Icon(Icons.close),
-                        onPressed: OverlayManager.hideOverlay,
+                    if (isShowChatUI)
+                      const Positioned.fill(
+                        top: 64,
+                        child: ChatPageOverlayUI(),
                       ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.align_horizontal_left_rounded),
-                      onPressed: _toggleSuperCompactMode,
-                    )
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (isSuperCompact == false)
+                            const IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: Icon(Icons.close),
+                              onPressed: OverlayManager.hideOverlay,
+                            ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon:
+                                const Icon(Icons.align_horizontal_left_rounded),
+                            onPressed: _toggleSuperCompactMode,
+                          )
+                        ],
+                      ),
+                    ),
+                    if (isSuperCompact == false)
+                      Positioned(
+                          left: 0,
+                          bottom: 0,
+                          child: IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: isShowChatUI
+                                ? const Icon(Icons.arrow_circle_up_rounded)
+                                : const Icon(Icons.arrow_circle_down_rounded),
+                            onPressed: () => toggleChatVisibilityStream(),
+                          )),
+                    if (isShowChatUI == true)
+                      Positioned(
+                          left: 0,
+                          bottom: 24,
+                          child: IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(FluentIcons.chat_add_20_filled),
+                            onPressed: () => onTrayButtonTap('create_new_chat'),
+                          )),
+                    Positioned(
+                      top: isSuperCompact ? 7.0 : 0,
+                      left: 4.0,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            IconButton.filled(
+                                visualDensity: isSuperCompact
+                                    ? VisualDensity.compact
+                                    : VisualDensity.standard,
+                                onPressed: () =>
+                                    OverlayManager.switchToMainWindow(),
+                                icon: Image.asset(
+                                  'assets/transparent_app_icon.png',
+                                  fit: BoxFit.contain,
+                                  cacheHeight: 60,
+                                  cacheWidth: 60,
+                                ),
+                                tooltip: 'Show App',
+                                padding: const EdgeInsets.all(0),
+                                constraints: isSuperCompact
+                                    ? const BoxConstraints(
+                                        maxHeight: 20, maxWidth: 20)
+                                    : const BoxConstraints(
+                                        maxHeight: 36, maxWidth: 36)),
+                            if (isSuperCompact == false) ...[
+                              ...customPrompts.value
+                                  .where((element) => element.showInOverlay)
+                                  .map((prompt) =>
+                                      _buildTextOption(prompt, 'custom')),
+                            ]
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              if (isSuperCompact == false)
-                Positioned(
-                    left: 0,
-                    bottom: 0,
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: isShowChatUI
-                          ? const Icon(Icons.arrow_circle_up_rounded)
-                          : const Icon(Icons.arrow_circle_down_rounded),
-                      onPressed: () => toggleShowChatUI(),
-                    )),
-              if (isShowChatUI == true)
-                Positioned(
-                    left: 0,
-                    bottom: 24,
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(FluentIcons.chat_add_20_filled),
-                      onPressed: () => onTrayButtonTap('create_new_chat'),
-                    )),
-              Positioned(
-                top: isSuperCompact ? 7.0 : 0,
-                left: 4.0,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      IconButton.filled(
-                          visualDensity: isSuperCompact
-                              ? VisualDensity.compact
-                              : VisualDensity.standard,
-                          onPressed: () => OverlayManager.switchToMainWindow(),
-                          icon: Image.asset(
-                            'assets/transparent_app_icon.png',
-                            fit: BoxFit.contain,
-                            cacheHeight: 60,
-                            cacheWidth: 60,
-                          ),
-                          tooltip: 'Show App',
-                          padding: const EdgeInsets.all(0),
-                          constraints: isSuperCompact
-                              ? const BoxConstraints(
-                                  maxHeight: 20, maxWidth: 20)
-                              : const BoxConstraints(
-                                  maxHeight: 36, maxWidth: 36)),
-                      if (isSuperCompact == false) ...[
-                        ...customPrompts.value
-                            .where((element) => element.showInOverlay)
-                            .map(
-                                (prompt) => _buildTextOption(prompt, 'custom')),
-                      ]
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+            ),
+          );
+        });
   }
 
   void _onButtonTap(String selectedText, String command) {
-    const urlScheme = 'fluentgpt';
-
-    final uri = Uri(
-        scheme: urlScheme,
-        path: '///',
-        queryParameters: {'command': command, 'text': selectedText});
-    if (isShowChatUI == false) toggleShowChatUI();
-    onTrayButtonTap(uri.toString());
+    if (isShowChatUI == false) {
+      toggleShowChatUI();
+    }
+    onTrayButtonTapCommand(selectedText, command);
   }
 
   /// Builds a text option button. Size is 30x30
@@ -157,7 +176,7 @@ class _OverlayUIState extends State<OverlayUI> {
     return InkWell(
       onTap: () async {
         // final selectedText =
-        //     await overlayChannel.invokeMethod('getSelectedText') as String?;
+        //     await NativeChannelUtils.getSelectedText();
         final clipboard = await Clipboard.getData('text/plain');
         final selectedText = clipboard?.text;
         if (selectedText != null && selectedText.trim().isNotEmpty) {
@@ -214,8 +233,8 @@ class _OverlayUIState extends State<OverlayUI> {
     final defaultWidth = defaultWindowSize.width;
     if (!isSuperCompact) {
       setState(() {
+        OverlayUI.isChatVisible.add(false);
         isSuperCompact = true;
-        isShowChatUI = false;
       });
       await windowManager.setSize(OverlayUI.superCompactWindowSize,
           animate: true);
@@ -242,10 +261,15 @@ class _OverlayUIState extends State<OverlayUI> {
     await OverlayManager.checkAndRepositionOverOffsetWindow();
   }
 
-  bool isShowChatUI = false;
+  void toggleChatVisibilityStream() {
+    OverlayUI.isChatVisible.value == false
+        ? OverlayUI.isChatVisible.add(true)
+        : OverlayUI.isChatVisible.add(false);
+  }
+
+  bool get isShowChatUI => OverlayUI.isChatVisible.value;
 
   Future<void> toggleShowChatUI() async {
-    isShowChatUI = !isShowChatUI;
     final windowSize = await windowManager.getSize();
     final defaultWindowSize = OverlayUI.defaultWindowSize();
     final resolutionStr = AppCache.resolution.value ?? '500x700';
@@ -260,7 +284,6 @@ class _OverlayUIState extends State<OverlayUI> {
             : defaultWindowSize.height;
 
     await windowManager.setSize(Size(currentWidth, newHeight), animate: true);
-    setState(() {});
     await Future.delayed(const Duration(milliseconds: 400));
     // if the window is near bottom we should make effect of moving the window down when chat is being closed (and up when it opens to avoid overflow)
     final currentPosition = await windowManager.getPosition();
@@ -280,7 +303,7 @@ class _OverlayUIState extends State<OverlayUI> {
 
   void _showSubPrompts(CustomPrompt prompt, BuildContext context) {
     if (isShowChatUI == false) {
-      toggleShowChatUI();
+      toggleChatVisibilityStream();
     }
     fluent.showDialog(
       context: context,
