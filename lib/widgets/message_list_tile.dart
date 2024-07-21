@@ -19,6 +19,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import 'markdown_builders/md_code_builder.dart';
 
@@ -224,59 +225,75 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 ),
               ),
+            // tags
+            Wrap(
+              children: [
+                for (final tag in widget.message['tags']?.split(';') ?? [])
+                  if (tag != 'normal')
+                    Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: Button(
+                          onPressed: null,
+                          child: Text(tag),
+                        )),
+              ],
+            ),
           ],
         ),
       );
     } else {
-      tileWidget = _MessageListTile(
-        leading: leading,
-        tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
-        onPressed: () {
-          final provider = context.read<ChatGPTProvider>();
-          provider.toggleSelectMessage(widget.id);
-        },
-        title: Row(
-          children: [
-            Text('$formatDateTime ',
-                style: FluentTheme.of(context).typography.caption!),
-            Text('${widget.message['role']}:', style: botMessageStyle),
-          ],
-        ),
-        subtitle: !_isMarkdownView
-            ? SelectableText(
-                '${widget.message['content']}',
-                style: FluentTheme.of(context).typography.body?.copyWith(
-                      fontSize: widget.textSize.toDouble(),
+      tileWidget = SelectionArea(
+        selectionControls: fluentTextSelectionControls,
+        child: _MessageListTile(
+          leading: leading,
+          tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
+          onPressed: () {
+            final provider = context.read<ChatGPTProvider>();
+            provider.toggleSelectMessage(widget.id);
+          },
+          title: Row(
+            children: [
+              Text('$formatDateTime ',
+                  style: FluentTheme.of(context).typography.caption!),
+              Text('${widget.message['role']}:', style: botMessageStyle),
+            ],
+          ),
+          subtitle: !_isMarkdownView
+              ? Text(
+                  '${widget.message['content']}',
+                  style: FluentTheme.of(context).typography.body?.copyWith(
+                        fontSize: widget.textSize.toDouble(),
+                      ),
+                )
+              : Markdown(
+                  data: widget.message['content'] ?? '',
+                  softLineBreak: true,
+                  selectable: true,
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  styleSheet: MarkdownStyleSheet(
+                    p: TextStyle(fontSize: widget.textSize.toDouble()),
+                    code: TextStyle(
+                      fontSize: widget.textSize.toDouble() + 2,
+                      backgroundColor: Colors.transparent,
                     ),
-              )
-            : Markdown(
-                data: widget.message['content'] ?? '',
-                softLineBreak: true,
-                selectable: true,
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                styleSheet: MarkdownStyleSheet(
-                  p: TextStyle(fontSize: widget.textSize.toDouble()),
-                  code: TextStyle(
-                    fontSize: widget.textSize.toDouble() + 2,
-                    backgroundColor: Colors.transparent,
+                  ),
+                  builders: {
+                    'code': CodeElementBuilder(
+                        isDarkTheme: FluentTheme.of(context).brightness ==
+                            Brightness.dark),
+                  },
+                  onTapLink: (text, href, title) => launchUrlString(href!),
+                  extensionSet: md.ExtensionSet(
+                    md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                    <md.InlineSyntax>[
+                      md.EmojiSyntax(),
+                      ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
+                    ],
                   ),
                 ),
-                builders: {
-                  'code': CodeElementBuilder(
-                      isDarkTheme: FluentTheme.of(context).brightness ==
-                          Brightness.dark),
-                },
-                onTapLink: (text, href, title) => launchUrlString(href!),
-                extensionSet: md.ExtensionSet(
-                  md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                  <md.InlineSyntax>[
-                    md.EmojiSyntax(),
-                    ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
-                  ],
-                ),
-              ),
+        ),
       );
     }
     _containsCode = widget.message['content'].toString().contains('```');

@@ -8,6 +8,7 @@ class AppCache {
   static const showAppInDock = BoolPref("showAppInDock", true);
   static const enableOverlay = BoolPref("enableOverlay", false);
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
+  static const hideTitleBar = BoolPref("hideTitleBar", false);
   static const isMarkdownView = BoolPref("isMarkdownView", false);
 
   static const openWindowKey = StringPref("openWindowKey");

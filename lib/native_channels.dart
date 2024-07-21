@@ -5,31 +5,7 @@ import 'package:flutter/services.dart';
 const overlayChannel = MethodChannel('com.realk.fluent_gpt/overlay');
 
 class NativeChannelUtils {
-  /* 
-  from swift:
-  case "testResultFromSwift":
-        result(["Result from Swift": "Hello from Swift"])
-      case "getSelectedText":
-        getSelectedTextOverrideClipboard { selectedText in
-          print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
-          result(selectedText)
-        }
-        result(nil)
-      case "showOverlay":
-        self.handleShowOverlay(call: call, result: result)
-      case "requestNativePermissions":
-        self.requestAccessibilityPermissions()
-        result(nil)
-      case "isAccessabilityGranted":
-        result(self.checkAccessibilityPermissions())
-      case "initAccessibility":
-        print("[Swift] initAccessibility called")
-        self.handleInitAccessibility(result: result)
-      case "getScreenSize":
-        self.handleGetScreenSize(result: result)
-   */
-
-  static void testResultFromSwift() async {
+  static void testChannel() async {
     try {
       final result = await overlayChannel.invokeMethod('testResultFromSwift');
       print('Result from Swift: $result');
@@ -44,6 +20,9 @@ class NativeChannelUtils {
           await overlayChannel.invokeMethod('getSelectedText');
       print(
           '[Dart] Selected text from clipboard: ${selectedText ?? "No text selected"}');
+      if (selectedText == null || selectedText.isEmpty) {
+        return null;
+      }
       return selectedText;
     } on PlatformException catch (e) {
       print("Failed to get selected text: '${e.message}'.");
@@ -87,10 +66,10 @@ class NativeChannelUtils {
     }
   }
 
-  static Future<Map<String, double>?> getScreenSize() async {
+  static Future<Map<String, num>?> getScreenSize() async {
     try {
-      final Map<String, double>? screenSize =
-          await overlayChannel.invokeMapMethod<String, double>('getScreenSize');
+      final Map<String, num>? screenSize =
+          await overlayChannel.invokeMapMethod('getScreenSize');
       return screenSize;
     } on PlatformException catch (e) {
       print("Failed to get screen size: '${e.message}'.");
@@ -104,7 +83,7 @@ class NativeChannelUtils {
       final mousePosition =
           await overlayChannel.invokeMethod('getMousePosition');
       return mousePosition != null
-          ? Offset(mousePosition['positionX']!, mousePosition['positionY']!)
+          ? Offset(mousePosition['positionX']!.toDouble(), mousePosition['positionY']!.toDouble())
           : null;
     } on PlatformException catch (e) {
       print("Failed to get mouse position: '${e.message}'.");

@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:nanoid2/nanoid2.dart';
+
+String generateChatID() => nanoid(length: 16);
 
 extension ThemeExtension on BuildContext {
   FluentThemeData get theme => FluentTheme.of(this);

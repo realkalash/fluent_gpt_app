@@ -5,7 +5,6 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
-import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -113,7 +112,9 @@ class OverlayManager {
     }
     overlayVisibility.add(OverlayStatus.enabled);
     await windowManager.setAlwaysOnTop(true);
+
     final compactOverlaySize = OverlayUI.defaultWindowSize();
+    await windowManager.setMinimumSize(compactOverlaySize);
     await windowManager.setSize(compactOverlaySize, animate: true);
     await windowManager.setResizable(false);
     // Ensure the overlay does not go off-screen
@@ -151,6 +152,7 @@ class OverlayManager {
     overlayVisibility.add(OverlayStatus.sidebarEnabled);
     await windowManager.setAlwaysOnTop(true);
     final compactOverlaySize = SidebarOverlayUI.defaultWindowSize();
+    await windowManager.setMinimumSize(compactOverlaySize);
     await windowManager.setSize(compactOverlaySize, animate: true);
     // wait for the window to be resized
     await Future.delayed(const Duration(milliseconds: 100));
@@ -181,6 +183,7 @@ class OverlayManager {
   static Future<void> hideOverlay() async {
     windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
     await windowManager.setResizable(true);
+    await windowManager.setMinimumSize(defaultMinimumWindowSize);
     overlayVisibility.add(OverlayStatus.disabled);
     await AppWindow().hide();
   }
@@ -188,6 +191,7 @@ class OverlayManager {
   static Future<void> switchToMainWindow() async {
     windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
     await windowManager.setResizable(true);
+    await windowManager.setMinimumSize(defaultMinimumWindowSize);
     overlayVisibility.add(OverlayStatus.disabled);
     await windowManager.setPosition(
       Offset(

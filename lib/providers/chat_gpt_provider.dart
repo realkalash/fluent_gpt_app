@@ -1,6 +1,7 @@
 import 'dart:convert';
 // ignore: implementation_imports
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
+import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/cost_calculator.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
@@ -14,6 +15,7 @@ import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -53,6 +55,46 @@ get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
 /// the key is (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2) the answer is message
 Map<String, Map<String, String>> get messages =>
     chatRooms[selectedChatRoomName]?.messages ?? {};
+
+/// conversation lenght style. Will be appended to the prompt
+BehaviorSubject<ConversationLengthStyleEnum> conversationLenghtStyleStream =
+    BehaviorSubject.seeded(ConversationLengthStyleEnum.normal);
+
+/// conversation style. Will be appended to the prompt
+BehaviorSubject<ConversationStyleEnum> conversationStyleStream =
+    BehaviorSubject.seeded(ConversationStyleEnum.normal);
+
+String modifyMessageStyle(String prompt) {
+  if (conversationLenghtStyleStream.value !=
+      ConversationLengthStyleEnum.normal) {
+    prompt += ' ${conversationLenghtStyleStream.value.prompt}';
+  }
+
+  if (conversationStyleStream.value != ConversationStyleEnum.normal) {
+    prompt += ' ${conversationStyleStream.value.prompt}';
+  }
+  return prompt;
+}
+
+String removeMessageTagsFromPrompt(String message, String tagsStr) {
+  String newContent = message;
+  final tags = tagsStr.split(';');
+  if (tags.isEmpty) return message;
+  for (var tag in tags) {
+    final lenghtStyle = ConversationLengthStyleEnum.fromName(tag);
+    final style = ConversationStyleEnum.fromName(tag);
+    if (lenghtStyle != null) {
+      newContent = newContent.replaceAll(lenghtStyle.prompt ?? '', '');
+      continue;
+    }
+    if (style != null) {
+      newContent = newContent.replaceAll(style.prompt ?? '', '');
+      continue;
+    }
+    newContent = newContent.replaceAll(tag, '');
+  }
+  return newContent;
+}
 
 class ChatGPTProvider with ChangeNotifier {
   final listItemsScrollController = ScrollController();
@@ -201,6 +243,12 @@ class ChatGPTProvider with ChangeNotifier {
     if (includeConversationGlobal == false) {
       includeConversation0 = false;
     }
+
+    /// add additional styles to the message
+    messageContent = modifyMessageStyle(messageContent);
+    final lenghtStyle = conversationLenghtStyleStream.value;
+    final conversationStyle = conversationStyleStream.value;
+
     final dateTime = DateTime.now().toIso8601String();
     final isImageAttached =
         fileInput != null && fileInput!.mimeType?.contains('image') == true;
@@ -216,11 +264,12 @@ class ChatGPTProvider with ChangeNotifier {
       return;
     } else if (!isImageAttached) {
       messages[dateTime] = {
-        'role': 'user',
+        'role': Role.user.name,
         'content': messageContent,
         'created': dateTime,
         'hidePrompt': hidePrompt.toString(),
         'commandMessage': hidePrompt.toString(),
+        'tags': '$lenghtStyle;$conversationStyle',
       };
     }
     isAnswering = true;
@@ -237,12 +286,19 @@ class ChatGPTProvider with ChangeNotifier {
             {
               'role': message.value['role'],
               'content': message.value['content'],
+              'created': message.value['created'],
+              'hidePrompt': message.value['hidePrompt'],
+              'commandMessage': message.value['commandMessage'],
+              'tags': message.value['tags'],
             },
         if (!includeConversation0)
           {
             'role': Role.user.name,
             'content': messageContent,
             'created': dateTime,
+            'hidePrompt': hidePrompt.toString(),
+            'commandMessage': hidePrompt.toString(),
+            'tags': '$lenghtStyle;$conversationStyle',
           },
       ],
       maxToken: maxLenght,
@@ -262,6 +318,17 @@ class ChatGPTProvider with ChangeNotifier {
         cancelToken = cancelData.cancelToken;
       },
     );
+    final clearedUserMessage = removeMessageTagsFromPrompt(
+        messageContent, messages[dateTime]!['tags'] ?? '');
+    // swap user message with the cleared one
+    messages[dateTime] = {
+      'role': Role.user.name,
+      'content': clearedUserMessage,
+      'created': dateTime,
+      'hidePrompt': hidePrompt.toString(),
+      'commandMessage': hidePrompt.toString(),
+      'tags': '$lenghtStyle;$conversationStyle',
+    };
     lastTimeAnswer = DateTime.now().toIso8601String();
 
     Map<String, dynamic>? toolResponseJson;
@@ -338,6 +405,7 @@ class ChatGPTProvider with ChangeNotifier {
       'role': Role.assistant.name,
       'content': appendedText,
       'created': DateTime.now().toIso8601String(),
+      'id': id ?? '',
     };
     chatRoomsStream.add(chatRooms);
   }
@@ -395,6 +463,31 @@ class ChatGPTProvider with ChangeNotifier {
   ) async {
     isAnswering = false;
     lastTimeAnswer = DateTime.now().toIso8601String();
+    final messageId = response.id;
+    final message = messages[messageId];
+
+    // remove everything related to tags from the user message
+    if (message != null) {
+      final tagsStr = message['tags'];
+      if (tagsStr != null) {
+        message['tags'] = '';
+        String newContent = '';
+        // split message by words
+        final words = assistantContent.split(' ');
+        for (var word in words) {
+          for (var tag in tagsStr.split(';')) {
+            if (word.contains(tag)) {
+              word = '';
+            }
+          }
+          newContent += '$word ';
+        }
+        assistantContent = newContent;
+      }
+    }
+
+    /// set the message to the list
+    addBotMessageToList(assistantContent, messageId);
 
     calcUsageTokens(response.usage);
     notifyListeners();
@@ -439,6 +532,7 @@ class ChatGPTProvider with ChangeNotifier {
 
     saveToDisk();
     if (isFirstMessage) {
+      // name chat
       if (useSecondRequestForNamingChats) {
         _requestForTitleChat(userContent);
       } else {
@@ -500,6 +594,12 @@ class ChatGPTProvider with ChangeNotifier {
     chatRooms[selectedChatRoomName]!.model = model;
     notifyListeners();
     saveToDisk();
+    if (model is LocalChatModel) {
+      AppCache.llmUrl.set(model.url);
+      resetOpenAiUrl(url: model.url, token: selectedChatRoom.token);
+    } else {
+      resetOpenAiUrl(token: selectedChatRoom.token);
+    }
   }
 
   void selectModelForChat(String chatRoomName, ChatModel model) {
@@ -522,6 +622,9 @@ class ChatGPTProvider with ChangeNotifier {
     } catch (e) {}
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
     chatRooms[chatRoomName] = ChatRoom(
+      id: generateChatID(),
+      costUSD: 0,
+      tokens: 0,
       token: openAI.token,
       chatRoomName: chatRoomName,
       model: selectedModel,
@@ -754,9 +857,7 @@ class ChatGPTProvider with ChangeNotifier {
   List<FileData> filesInOpenAi = [];
   Future retrieveFiles() async {
     if (isRetrievingFiles) return;
-    if (openAI.token.trim().isEmpty) {
-      return;
-    }
+    if (openAI.token.trim().isEmpty) return;
     return;
     isRetrievingFiles = true;
     notifyListeners();
@@ -964,6 +1065,7 @@ class ChatGPTProvider with ChangeNotifier {
 
 ChatRoom _generateDefaultChatroom() {
   return ChatRoom(
+    id: generateChatID(),
     chatRoomName: 'Default',
     model: selectedModel,
     messages: messages,

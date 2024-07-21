@@ -126,7 +126,7 @@ class NavigationProvider with ChangeNotifier {
     originalItems.addAll(originalTopItems);
     for (var room in chatRooms.values) {
       addPaneItem(PaneItem(
-        key: ValueKey(room.chatRoomName),
+        key: ValueKey(room.id),
         icon: const Icon(FluentIcons.chat_24_filled, size: 24),
         title: Text(room.chatRoomName),
         trailing: Row(
@@ -150,7 +150,7 @@ class NavigationProvider with ChangeNotifier {
                     provider.deleteChatRoom(room.chatRoomName);
                   }
                   originalItems.removeWhere(
-                      (element) => element.key == ValueKey(room.chatRoomName));
+                      (element) => element.key == ValueKey(room.id));
                   if (chatRooms.length == 1) {
                     refreshNavItems();
                   } else {
@@ -162,8 +162,8 @@ class NavigationProvider with ChangeNotifier {
         body: const ChatRoomPage(),
         onTap: () {
           final provider = context.read<ChatGPTProvider>();
-          var index = originalItems.indexWhere(
-              (element) => element.key == ValueKey(room.chatRoomName));
+          var index = originalItems
+              .indexWhere((element) => element.key == ValueKey(room.id));
           if (index == -1) {
             log('Could not find chat room ${room.chatRoomName}');
             return;
@@ -232,9 +232,7 @@ class EditChatRoomDialog extends StatelessWidget {
           child: const Text('Cancel'),
         ),
       ],
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      content: ListView(
         children: [
           const Text('Chat room name'),
           TextBox(

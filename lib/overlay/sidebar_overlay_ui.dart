@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -10,7 +11,6 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
@@ -41,6 +41,9 @@ class SidebarOverlayUI extends StatefulWidget {
     final allHeight = elementsLength * (30 + 8 + 8.5);
     final maxAllowedHeight = min(allHeight, _maxCompactHeight).toDouble();
     final height = max(maxAllowedHeight, _minChatHeight).toDouble();
+    if (Platform.isWindows) {
+      return Size(64.9, height);
+    }
     return Size(48, height);
   }
 
@@ -82,33 +85,37 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                         const SizedBox(height: 4),
                         Flexible(
                           fit: FlexFit.loose,
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                InkWell(
-                                  onTap: OverlayManager.switchToMainWindow,
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.blue),
-                                    padding: const EdgeInsets.all(2),
-                                    width: 40,
-                                    height: 30,
-                                    child: Image.asset(
-                                      'assets/transparent_app_icon.png',
-                                      fit: BoxFit.contain,
-                                      cacheHeight: 50,
-                                      cacheWidth: 50,
+                          child: ScrollConfiguration(
+                            behavior: const ScrollBehavior()
+                                .copyWith(overscroll: false, scrollbars: false),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  InkWell(
+                                    onTap: OverlayManager.switchToMainWindow,
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.blue),
+                                      padding: const EdgeInsets.all(2),
+                                      width: 40,
+                                      height: 30,
+                                      child: Image.asset(
+                                        'assets/transparent_app_icon.png',
+                                        fit: BoxFit.contain,
+                                        cacheHeight: 50,
+                                        cacheWidth: 50,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                ...customPrompts.value
-                                    .where((element) => element.showInOverlay)
-                                    .map((prompt) =>
-                                        _buildTextOption(prompt, 'custom'))
-                              ],
+                                  ...customPrompts.value
+                                      .where((element) => element.showInOverlay)
+                                      .map((prompt) =>
+                                          _buildTextOption(prompt, 'custom'))
+                                ],
+                              ),
                             ),
                           ),
                         ),

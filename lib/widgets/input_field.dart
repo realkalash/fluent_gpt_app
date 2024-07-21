@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:fluent_gpt/common/app_intents.dart';
+import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -106,87 +107,9 @@ class _InputFieldState extends State<InputField> {
               //           .sendMessage('Can you search for file named "1.png?');
               //     }),
               if (chatProvider.fileInput == null)
-                SizedBox.square(
-                  dimension: 48,
-                  child: IconButton(
-                    onPressed: () async {
-                      FilePickerResult? result =
-                          await FilePicker.platform.pickFiles();
-                      if (result != null && result.files.isNotEmpty) {
-                        chatProvider
-                            .addFileToInput(result.files.first.toXFile());
-                        windowManager.focus();
-                        promptTextFocusNode.requestFocus();
-                      }
-                    },
-                    icon: chatProvider.isSendingFile
-                        ? const ProgressRing()
-                        : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
-                  ),
-                ),
+                _AddFileButton(chatProvider: chatProvider),
               if (chatProvider.fileInput != null)
-                SizedBox.square(
-                  dimension: 48,
-                  child: Stack(
-                    children: [
-                      IconButton(
-                        onPressed: () async {
-                          if (chatProvider.isSendingFile) {
-                            return;
-                          }
-                          FilePickerResult? result =
-                              await FilePicker.platform.pickFiles();
-                          if (result != null && result.files.isNotEmpty) {
-                            chatProvider
-                                .addFileToInput(result.files.first.toXFile());
-                            windowManager.focus();
-                            promptTextFocusNode.requestFocus();
-                          }
-                        },
-                        icon: const Icon(
-                            ic.FluentIcons.document_number_1_16_regular,
-                            size: 24),
-                      ),
-                      if (chatProvider.fileInput!.mimeType?.contains('image') ==
-                          true)
-                        Positioned.fill(
-                          bottom: 0,
-                          right: 0,
-                          child: FutureBuilder<Uint8List>(
-                              future: chatProvider.fileInput!.readAsBytes(),
-                              builder: (context, snapshot) {
-                                if (snapshot.data == null) {
-                                  return const SizedBox.shrink();
-                                }
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Image.memory(
-                                    snapshot.data as Uint8List,
-                                    fit: BoxFit.cover,
-                                  ),
-                                );
-                              }),
-                        ),
-                      if (chatProvider.isSendingFile)
-                        const Positioned.fill(
-                          child: Center(child: ProgressRing()),
-                        ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton(
-                          style: ButtonStyle(
-                            backgroundColor:
-                                ButtonState.all(Colors.black.withOpacity(0.5)),
-                          ),
-                          onPressed: () => chatProvider.removeFileFromInput(),
-                          icon: Icon(FluentIcons.chrome_close,
-                              size: 12, color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _FileThumbnail(chatProvider: chatProvider),
               Expanded(
                 child: TextBox(
                   autofocus: true,
@@ -196,6 +119,7 @@ class _InputFieldState extends State<InputField> {
                   controller: chatProvider.messageController,
                   minLines: 2,
                   maxLines: 30,
+                  prefix: const _ChooseModelButton(),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) {
                     if (value.trim().isEmpty) {
@@ -241,6 +165,150 @@ class _InputFieldState extends State<InputField> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ChooseModelButton extends StatelessWidget {
+  const _ChooseModelButton({super.key});
+
+  Widget getModelIcon(String model) {
+    if (model.contains('gpt')) {
+      return Image.asset(
+        'assets/openai_icon.png',
+        fit: BoxFit.contain,
+      );
+    }
+    return const Icon(ic.FluentIcons.chat_24_regular);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<ChatGPTProvider>();
+    final models = [...allModels, LocalChatModel()];
+    final selectedModel = selectedChatRoom.model;
+    return StreamBuilder(
+        stream: chatRoomsStream,
+        builder: (context, snapshot) {
+          return DropDownButton(
+              items: models
+                  .map(
+                    (e) => MenuFlyoutItem(
+                      selected: e.model == selectedModel.model,
+                      trailing: e.model == selectedModel.model
+                          ? const Icon(ic.FluentIcons.checkmark_16_filled)
+                          : null,
+                      leading: SizedBox.square(
+                          dimension: 24, child: getModelIcon(e.model)),
+                      text: Text(e.model),
+                      onPressed: () {
+                        provider.selectNewModel(e);
+                      },
+                    ),
+                  )
+                  .toList(),
+              title: SizedBox.square(
+                dimension: 20,
+                child: getModelIcon(selectedModel.model),
+              ));
+        });
+  }
+}
+
+class _AddFileButton extends StatelessWidget {
+  const _AddFileButton({
+    super.key,
+    required this.chatProvider,
+  });
+
+  final ChatGPTProvider chatProvider;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 48,
+      child: IconButton(
+        onPressed: () async {
+          FilePickerResult? result = await FilePicker.platform.pickFiles();
+          if (result != null && result.files.isNotEmpty) {
+            chatProvider.addFileToInput(result.files.first.toXFile());
+            windowManager.focus();
+            promptTextFocusNode.requestFocus();
+          }
+        },
+        icon: chatProvider.isSendingFile
+            ? const ProgressRing()
+            : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
+      ),
+    );
+  }
+}
+
+class _FileThumbnail extends StatelessWidget {
+  const _FileThumbnail({
+    super.key,
+    required this.chatProvider,
+  });
+
+  final ChatGPTProvider chatProvider;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 48,
+      child: Stack(
+        children: [
+          IconButton(
+            onPressed: () async {
+              if (chatProvider.isSendingFile) {
+                return;
+              }
+              FilePickerResult? result = await FilePicker.platform.pickFiles();
+              if (result != null && result.files.isNotEmpty) {
+                chatProvider.addFileToInput(result.files.first.toXFile());
+                windowManager.focus();
+                promptTextFocusNode.requestFocus();
+              }
+            },
+            icon: const Icon(ic.FluentIcons.document_number_1_16_regular,
+                size: 24),
+          ),
+          if (chatProvider.fileInput!.mimeType?.contains('image') == true)
+            Positioned.fill(
+              bottom: 0,
+              right: 0,
+              child: FutureBuilder<Uint8List>(
+                  future: chatProvider.fileInput!.readAsBytes(),
+                  builder: (context, snapshot) {
+                    if (snapshot.data == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.memory(
+                        snapshot.data as Uint8List,
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  }),
+            ),
+          if (chatProvider.isSendingFile)
+            const Positioned.fill(
+              child: Center(child: ProgressRing()),
+            ),
+          Positioned(
+            top: 0,
+            right: 0,
+            child: IconButton(
+              style: ButtonStyle(
+                backgroundColor: ButtonState.all(Colors.black.withOpacity(0.5)),
+              ),
+              onPressed: () => chatProvider.removeFileFromInput(),
+              icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -460,7 +528,6 @@ class PromptChipWidget extends StatelessWidget {
   }
 
   void _onLongPress(BuildContext context) {
-    final text = context.read<ChatGPTProvider>().messageController.text;
     showDialog(
       context: context,
       barrierDismissible: true,

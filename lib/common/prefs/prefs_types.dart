@@ -94,6 +94,19 @@ class FileStringPref {
       log('Error writing file: $e');
     }
   }
+
+  Future remove() async {
+    final path = await appDirectoryPath();
+    final filePath = '$path/$key';
+    final file = File(filePath);
+    if (file.existsSync()) {
+      try {
+        file.delete();
+      } catch (e) {
+        log('Error deleting file: $e');
+      }
+    }
+  }
 }
 
 class IntPref extends _Pref<int> {

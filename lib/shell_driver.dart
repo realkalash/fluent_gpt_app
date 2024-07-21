@@ -265,5 +265,6 @@ class ShellDriver {
     }
     currentFileIndex = 0;
     await AppCache.currentFileIndex.set(currentFileIndex);
+    await AppCache.customPrompts.remove();
   }
 }

@@ -1,13 +1,15 @@
+import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
+import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/md_code_builder.dart';
+import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -15,6 +17,7 @@ import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
+import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_gpt_provider.dart';
 
@@ -79,82 +82,72 @@ class HomeDropOverlay extends StatelessWidget {
   }
 }
 
-class ModelChooserCards extends StatelessWidget {
-  const ModelChooserCards({super.key});
-  static const textStyle = TextStyle(fontSize: 15, fontWeight: FontWeight.bold);
-
-  Color applyOpacityIfSelected(bool isSelected, Color color) {
-    if (!isSelected) {
-      return color.withOpacity(0.2);
-    }
-    return color;
-  }
+class ConversationStyleRow extends StatelessWidget {
+  const ConversationStyleRow({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
-    return StreamBuilder<Map<String, ChatRoom>>(
-        stream: chatRoomsStream,
-        builder: (context, snapshot) {
-          final currentChat = selectedChatRoomName;
-          bool isGPT4O = selectedModel.model == 'gpt-4o';
-          bool isGPT4 = selectedModel.model == 'gpt-4';
-          bool isGPT3_5 = selectedModel.model == 'gpt-3.5-turbo';
-          bool isLocal = selectedModel.model == 'local';
-          return SizedBox(
-            width: 400,
-            height: 46,
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () =>
-                        provider.selectModelForChat(currentChat, GPT4OModel()),
-                    child: Card(
-                      backgroundColor:
-                          applyOpacityIfSelected(isGPT4O, Colors.blue),
-                      child: const Text('GPT-4o',
-                          style: textStyle, textAlign: TextAlign.center),
+    return Expander(
+      contentPadding: EdgeInsets.zero,
+      header: const Text(
+        'Conversation style',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
+      content: StreamBuilder(
+        stream: conversationLenghtStyleStream,
+        builder: (_, __) => StreamBuilder<Object>(
+            stream: conversationStyleStream,
+            builder: (context, snapshot) {
+              final lenghtStyle = conversationLenghtStyleStream.value;
+              final style = conversationStyleStream.value;
+              return Column(
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ConversationStyleEnum.values
+                          .map((e) => SelectableColorContainer(
+                                selectedColor:
+                                    FluentTheme.of(context).accentColor,
+                                unselectedColor: FluentTheme.of(context)
+                                    .accentColor
+                                    .withOpacity(0.5),
+                                isSelected: style == e,
+                                onTap: () => conversationStyleStream.add(e),
+                                child: Text(e.name,
+                                    style: const TextStyle(fontSize: 12)),
+                              ))
+                          .toList(),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      provider.selectModelForChat(currentChat, Gpt4ChatModel());
-                    },
-                    child: Card(
-                        backgroundColor:
-                            applyOpacityIfSelected(isGPT4, Colors.yellow),
-                        child: const Text('GPT-4',
-                            style: textStyle, textAlign: TextAlign.center)),
+                  Text(
+                    'Conversation length',
+                    style: FluentTheme.of(context).typography.subtitle,
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => provider.selectModelForChat(
-                        currentChat, GptTurboChatModel()),
-                    child: Card(
-                        backgroundColor:
-                            applyOpacityIfSelected(isGPT3_5, Colors.green),
-                        child: const Text('GPT-3.5',
-                            style: textStyle, textAlign: TextAlign.center)),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: ConversationLengthStyleEnum.values
+                          .map((e) => SelectableColorContainer(
+                                selectedColor:
+                                    FluentTheme.of(context).accentColor,
+                                unselectedColor: FluentTheme.of(context)
+                                    .accentColor
+                                    .withOpacity(0.5),
+                                isSelected: lenghtStyle == e,
+                                onTap: () =>
+                                    conversationLenghtStyleStream.add(e),
+                                child: Text(e.name,
+                                    style: const TextStyle(fontSize: 12)),
+                              ))
+                          .toList(),
+                    ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () => provider.selectModelForChat(
-                      currentChat, LocalChatModel()),
-                  child: Card(
-                    backgroundColor:
-                        applyOpacityIfSelected(isLocal, Colors.purple),
-                    child: const Text('Local',
-                        style: textStyle, textAlign: TextAlign.center),
-                  ),
-                ),
-              ],
-            ),
-          );
-        });
+                ],
+              );
+            }),
+      ),
+    );
   }
 }
 
@@ -163,98 +156,35 @@ class PageHeaderText extends StatelessWidget {
 
   Future<void> editChatRoomDialog(
       BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
-    var roomName = room.chatRoomName;
-    var commandPrefix = room.systemMessage;
-    var maxLength = room.maxTokenLength;
-    var token = room.token;
-    var orgID = room.orgID;
     await showDialog(
       context: context,
-      builder: (ctx) => ContentDialog(
-        title: const Text('Edit chat room'),
-        actions: [
-          Button(
-            onPressed: () {
-              provider.editChatRoom(
-                room.chatRoomName,
-                room.copyWith(
-                  chatRoomName: roomName,
-                  commandPrefix: commandPrefix,
-                  maxLength: maxLength,
-                  token: token,
-                  orgID: orgID,
-                ),
-                switchToForeground: true,
-              );
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Save'),
-          ),
-          Button(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-        content: ListView(
-          shrinkWrap: true,
-          children: [
-            const Text('Chat room name'),
-            TextBox(
-              controller: TextEditingController(text: room.chatRoomName),
-              onChanged: (value) {
-                roomName = value;
-              },
-            ),
-            const Text('Command prefix'),
-            TextBox(
-              controller: TextEditingController(text: room.systemMessage),
-              onChanged: (value) {
-                commandPrefix = value;
-              },
-            ),
-            const Text('Max length'),
-            TextBox(
-              controller:
-                  TextEditingController(text: room.maxTokenLength.toString()),
-              onChanged: (value) {
-                maxLength = int.parse(value);
-              },
-            ),
-            const Text('Token'),
-            TextBox(
-              controller: TextEditingController(text: room.token),
-              obscureText: true,
-              onChanged: (value) {
-                token = value;
-              },
-            ),
-            const Text('Org ID'),
-            TextBox(
-              controller: TextEditingController(text: room.orgID),
-              onChanged: (value) {
-                orgID = value;
-              },
-            ),
-          ],
-        ),
+      builder: (ctx) => EditChatRoomDialog(
+        room: room,
+        onOkPressed: () {
+          final navigationProvider = context.read<NavigationProvider>();
+          navigationProvider.refreshNavItems();
+        },
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.watch<ChatGPTProvider>();
-    final selectedRoom = selectedChatRoomName;
+    var chatProvider = context.read<ChatGPTProvider>();
     return Column(
       children: [
-        GestureDetector(
-          onTap: () => editChatRoomDialog(
-              context, chatRooms[selectedRoom]!, chatProvider),
-          child: Text(selectedRoom, maxLines: 2),
+        StreamBuilder(
+          stream: selectedChatRoomNameStream,
+          builder: (_, __) {
+            final selectedRoom = selectedChatRoomNameStream.value;
+            return GestureDetector(
+              onTap: () => editChatRoomDialog(
+                  context, chatRooms[selectedRoom]!, chatProvider),
+              child: TextAnimator(selectedRoom, maxLines: 2),
+            );
+          },
         ),
-        const ModelChooserCards(),
+        const ConversationStyleRow(),
         Row(
           children: [
             HyperlinkButton(

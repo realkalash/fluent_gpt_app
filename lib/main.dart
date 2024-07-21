@@ -51,8 +51,9 @@ void resetOpenAiUrl({String? url, required String token}) {
   );
 }
 
+const defaultMinimumWindowSize = Size(500, 600);
 Future<void> initWindow() async {
-  if (Platform.isMacOS || Platform.isLinux) {
+  if (AppCache.hideTitleBar.value!) {
     // causes breaking of acrylic and mica effects on windows
     windowManager.setTitleBarStyle(
       TitleBarStyle.hidden,
@@ -61,7 +62,7 @@ Future<void> initWindow() async {
   }
 
   await windowManager.setTitle('fluent_gpt');
-  await windowManager.setMinimumSize(const Size(500, 600));
+  await windowManager.setMinimumSize(defaultMinimumWindowSize);
   await windowManager.show();
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
@@ -187,10 +188,11 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
     initSystemTray();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final size = _appTheme.resolution;
-      if (size == null && Platform.isMacOS) {
-        final result = await overlayChannel.invokeMethod('getScreenSize');
+      if (size == null && (Platform.isMacOS || Platform.isWindows)) {
+        final result = await NativeChannelUtils.getScreenSize();
         if (result != null) {
-          final screenSize = Size(result['width'], result['height']);
+          final screenSize =
+              Size(result['width']!.toDouble(), result['height']!.toDouble());
 
           _appTheme.setResolution(screenSize, notify: false);
         }

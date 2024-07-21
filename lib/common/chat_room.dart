@@ -1,6 +1,8 @@
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
+import 'package:fluent_gpt/utils.dart';
 
 class ChatRoom {
+  String id;
   String chatRoomName;
   ChatModel model;
   double temp;
@@ -30,6 +32,7 @@ class ChatRoom {
   String? systemMessage;
 
   ChatRoom({
+    required this.id,
     required this.chatRoomName,
     required this.messages,
     required this.model,
@@ -48,20 +51,19 @@ class ChatRoom {
   });
 
   @override
-  int get hashCode => chatRoomName.hashCode;
+  int get hashCode => id.hashCode;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ChatRoom &&
-          runtimeType == other.runtimeType &&
-          chatRoomName == other.chatRoomName;
+  bool operator ==(Object other) {
+    return other is ChatRoom && other.id == id;
+  }
 
   ChatRoom.fromMap(Map<String, dynamic> map)
       : model = allModels.firstWhere(
           (element) => element.toString() == map['model'],
           orElse: () => allModels.first,
         ),
+        id = map['id'] ?? generateChatID(),
         chatRoomName = map['chatRoomName'],
         temp = map['temp'],
         topk = map['topk'],
@@ -82,6 +84,7 @@ class ChatRoom {
         );
 
   Map<String, dynamic> toJson() => {
+        'id': id,
         'model': model.model.toString(),
         'chatRoomName': chatRoomName,
         'messages': messages,
@@ -100,6 +103,7 @@ class ChatRoom {
       };
 
   ChatRoom copyWith({
+    String? id,
     String? chatRoomName,
     Map<String, Map<String, String>>? messages,
     ChatModel? model,
@@ -117,6 +121,7 @@ class ChatRoom {
     int? tokens,
   }) {
     return ChatRoom(
+      id: id ?? this.id,
       chatRoomName: chatRoomName ?? this.chatRoomName,
       messages: messages ?? this.messages,
       model: model ?? this.model,

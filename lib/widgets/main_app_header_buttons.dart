@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';

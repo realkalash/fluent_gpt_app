@@ -5,16 +5,19 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -23,6 +26,7 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
 
@@ -91,26 +95,129 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
                 )
               : null),
       children: [
-        Text('GPT model', style: FluentTheme.of(context).typography.subtitle),
-        GptModelChooser(
-          onChanged: (model) {
-            context.read<ChatGPTProvider>().selectNewModel(model);
-          },
-        ),
         const EnabledGptTools(),
         const _FilesSection(),
         const AccessibilityPermissionButton(),
         const _CacheSection(),
+        if (kDebugMode) const _DebugSection(),
         const _HotKeySection(),
         const CustomPromptsButton(),
         Text('Appearance', style: FluentTheme.of(context).typography.title),
         const _ThemeModeSection(),
+        spacer,
+        _WindowTitleButton(),
         // biggerSpacer,
         // const _LocaleSection(),
         const _ResolutionsSelector(),
         const _LocaleSection(),
         biggerSpacer,
         const _OtherSettings(),
+      ],
+    );
+  }
+}
+
+class _WindowTitleButton extends StatefulWidget {
+  const _WindowTitleButton({super.key});
+
+  @override
+  State<_WindowTitleButton> createState() => _WindowTitleButtonState();
+}
+
+class _WindowTitleButtonState extends State<_WindowTitleButton> {
+  toggleTitleBarVisibility() {
+    setState(() {
+      AppCache.hideTitleBar.value = !AppCache.hideTitleBar.value!;
+    });
+    if (AppCache.hideTitleBar.value == true) {
+      windowManager.setTitleBarStyle(TitleBarStyle.hidden,
+          windowButtonVisibility: false);
+    } else {
+      windowManager.setTitleBarStyle(TitleBarStyle.normal,
+          windowButtonVisibility: false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FlyoutListTile(
+      text: const Text('Hide window title'),
+      tooltip: Platform.isWindows
+          ? 'Will disable acrylic effect due to a bug'
+          : null,
+      icon: Platform.isWindows
+          ? Icon(FluentIcons.warning, color: Colors.yellow)
+          : null,
+      onPressed: toggleTitleBarVisibility,
+      trailing: Checkbox(
+        checked: AppCache.hideTitleBar.value,
+        onChanged: (value) => toggleTitleBarVisibility(),
+      ),
+    );
+  }
+}
+
+class _DebugSection extends StatelessWidget {
+  const _DebugSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        biggerSpacer,
+        Text('Debug', style: FluentTheme.of(context).typography.subtitle),
+        Wrap(
+          children: [
+            FilledRedButton(
+                child: const Text('test native hello world'),
+                onPressed: () {
+                  NativeChannelUtils.testChannel();
+                }),
+            FilledRedButton(
+                child: const Text('get selected text'),
+                onPressed: () async {
+                  final text = await NativeChannelUtils.getSelectedText();
+                  log('Selected text: $text');
+                }),
+            FilledRedButton(
+                child: const Text('show overlay'),
+                onPressed: () {
+                  NativeChannelUtils.showOverlay();
+                }),
+            FilledRedButton(
+                child: const Text('request native permissions'),
+                onPressed: () {
+                  NativeChannelUtils.requestNativePermissions();
+                }),
+            FilledRedButton(
+                child: const Text('init accessibility'),
+                onPressed: () {
+                  NativeChannelUtils.initAccessibility();
+                }),
+            FilledRedButton(
+                child: const Text('is accessibility granted'),
+                onPressed: () async {
+                  final isGranted =
+                      await NativeChannelUtils.isAccessibilityGranted();
+                  log('isAccessibilityGranted: $isGranted');
+                }),
+            FilledRedButton(
+                child: const Text('get screen size'),
+                onPressed: () async {
+                  final screenSize = await NativeChannelUtils.getScreenSize();
+                  log('screenSize: $screenSize');
+                }),
+            FilledRedButton(
+                child: const Text('get mouse position'),
+                onPressed: () async {
+                  final mousePosition =
+                      await NativeChannelUtils.getMousePosition();
+                  log('mousePosition: $mousePosition');
+                }),
+          ],
+        ),
+        biggerSpacer,
       ],
     );
   }
@@ -855,6 +962,7 @@ class __CacheSectionState extends State<_CacheSection> {
             Button(
                 child: const Text('Clear all data'),
                 onPressed: () async {
+                  prefs = await SharedPreferences.getInstance();
                   await ShellDriver.deleteAllTempFiles();
                   await prefs!.clear();
 
