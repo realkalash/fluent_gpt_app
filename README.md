@@ -38,7 +38,20 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 
 (optional)
 
-3. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
+### Guide how to use keybindings:
+1. Open settings page
+2. Click Custom prompts button
+3. Select custom prompt
+4. Tap on a button "Select keybinding"
+5. Create your shortcut (avoid shortcuts that already been created and using, e.x. ctrl+shift+1, ctrl+y)
+6. Click Apply
+7. Select any text in any app.
+8. Copy it to clipboard (I will remove this step later. It will send the text to the app automatically)
+9. Press your shortcut combination
+10. mini window of FluentGPT will appear near cursor
+11. It will start to use your command using the prompt+selected text
+
+3. (Only windows) For using Search files functionality. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
 4. Download and install python from [here](https://www.python.org/downloads/).
 
 ### Using ChatGPT from OpenAI
@@ -57,7 +70,7 @@ Fluent GPT App allows the integration of custom GPT models. To use your own mode
 3. Check "Custom GPT" and enter your URL in the "Custom GPT URL" field.
 4. Click "Save" to save your changes.
 
-### Specific Instructions for gpt4All (COMING SOON!)
+### Specific Instructions for gpt4All
 
 If you're using [gpt4All](https://github.com/nomic-ai/gpt4all), follow these steps:
 
@@ -111,4 +124,4 @@ Copyright (c) 2024 Alex Kalashnikov.
 - hotkey_manager
 
 ---
-Generated with ChatGPT-4
+Generated with ChatGPT-4o
