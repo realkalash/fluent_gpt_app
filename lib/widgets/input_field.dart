@@ -83,86 +83,100 @@ class _InputFieldState extends State<InputField> {
   Widget build(BuildContext context) {
     final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
 
-    return Actions(
-      actions: {
-        PasteIntent: pasteAction,
+    return Focus(
+      onKeyEvent: (_, event) {
+        if (event is KeyRepeatEvent) {
+          return KeyEventResult.ignored;
+        }
+        if (chatProvider.messageController.value.text.trim().isEmpty) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            FocusScope.of(context).previousFocus();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
       },
-      child: Shortcuts(
-        shortcuts: <LogicalKeySet, Intent>{
-          /// CTRL + V should paste image or text from clipboard
-          LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.control):
-              getPasteIntent(context),
-          // for mac
-          LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.meta):
-              getPasteIntent(context),
+      child: Actions(
+        actions: {
+          PasteIntent: pasteAction,
         },
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              // Button(
-              //     child: const Text('Search test'),
-              //     onPressed: () async {
-              //       chatProvider
-              //           .sendMessage('Can you search for file named "1.png?');
-              //     }),
-              if (chatProvider.fileInput == null)
-                _AddFileButton(chatProvider: chatProvider),
-              if (chatProvider.fileInput != null)
-                _FileThumbnail(chatProvider: chatProvider),
-              Expanded(
-                child: TextBox(
-                  autofocus: true,
-                  autocorrect: true,
-                  focusNode: promptTextFocusNode,
-                  prefixMode: OverlayVisibilityMode.always,
-                  controller: chatProvider.messageController,
-                  minLines: 2,
-                  maxLines: 30,
-                  prefix: const _ChooseModelButton(),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (value) {
-                    if (value.trim().isEmpty) {
-                      promptTextFocusNode.requestFocus();
-                      return;
-                    }
-                    if (_isShiftPressed == false) {
-                      onSubmit(value, chatProvider);
-                    }
-                    if (_isShiftPressed) {
-                      chatProvider.messageController.text =
-                          '${chatProvider.messageController.text}\n';
-                      // refocus
-                      promptTextFocusNode.requestFocus();
-                    }
-                  },
-                  placeholder: 'Type your message here',
-                ),
-              ),
-              if (_isShiftPressed)
-                const Icon(ic.FluentIcons.arrow_down_12_filled),
-              if (wordCountInField != 0)
-                Text(
-                  '$wordCountInField words',
-                  style: FluentTheme.of(context).typography.caption,
-                ),
-              if (chatProvider.isAnswering)
-                IconButton(
-                  icon: const Icon(ic.FluentIcons.stop_16_filled),
-                  onPressed: () {
-                    chatProvider.stopAnswering();
-                  },
-                )
-              else
-                SizedBox.square(
-                  dimension: 48,
-                  child: IconButton(
-                    onPressed: () => onSubmit(
-                        chatProvider.messageController.text, chatProvider),
-                    icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
+        child: Shortcuts(
+          shortcuts: <LogicalKeySet, Intent>{
+            /// CTRL + V should paste image or text from clipboard
+            LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.control):
+                getPasteIntent(context),
+            // for mac
+            LogicalKeySet(LogicalKeyboardKey.keyV, LogicalKeyboardKey.meta):
+                getPasteIntent(context),
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                // Button(
+                //     child: const Text('Search test'),
+                //     onPressed: () async {
+                //       chatProvider
+                //           .sendMessage('Can you search for file named "1.png?');
+                //     }),
+                if (chatProvider.fileInput == null)
+                  _AddFileButton(chatProvider: chatProvider),
+                if (chatProvider.fileInput != null)
+                  _FileThumbnail(chatProvider: chatProvider),
+                Expanded(
+                  child: TextBox(
+                    autofocus: true,
+                    autocorrect: true,
+                    focusNode: promptTextFocusNode,
+                    prefixMode: OverlayVisibilityMode.always,
+                    controller: chatProvider.messageController,
+                    minLines: 2,
+                    maxLines: 30,
+                    prefix: const _ChooseModelButton(),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (value) {
+                      if (value.trim().isEmpty) {
+                        promptTextFocusNode.requestFocus();
+                        return;
+                      }
+                      if (_isShiftPressed == false) {
+                        onSubmit(value, chatProvider);
+                      }
+                      if (_isShiftPressed) {
+                        chatProvider.messageController.text =
+                            '${chatProvider.messageController.text}\n';
+                        // refocus
+                        promptTextFocusNode.requestFocus();
+                      }
+                    },
+                    placeholder: 'Type your message here',
                   ),
                 ),
-            ],
+                if (_isShiftPressed)
+                  const Icon(ic.FluentIcons.arrow_down_12_filled),
+                if (wordCountInField != 0)
+                  Text(
+                    '$wordCountInField words',
+                    style: FluentTheme.of(context).typography.caption,
+                  ),
+                if (chatProvider.isAnswering)
+                  IconButton(
+                    icon: const Icon(ic.FluentIcons.stop_16_filled),
+                    onPressed: () {
+                      chatProvider.stopAnswering();
+                    },
+                  )
+                else
+                  SizedBox.square(
+                    dimension: 48,
+                    child: IconButton(
+                      onPressed: () => onSubmit(
+                          chatProvider.messageController.text, chatProvider),
+                      icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -170,49 +184,83 @@ class _InputFieldState extends State<InputField> {
   }
 }
 
-class _ChooseModelButton extends StatelessWidget {
+class _ChooseModelButton extends StatefulWidget {
   const _ChooseModelButton({super.key});
 
+  @override
+  State<_ChooseModelButton> createState() => _ChooseModelButtonState();
+}
+
+class _ChooseModelButtonState extends State<_ChooseModelButton> {
   Widget getModelIcon(String model) {
     if (model.contains('gpt')) {
       return Image.asset(
         'assets/openai_icon.png',
         fit: BoxFit.contain,
+        // width: 24,
+        // height: 24,
+        // cacheHeight: 24,
+        // cacheWidth: 24,
       );
     }
     return const Icon(ic.FluentIcons.chat_24_regular);
   }
 
+  final FlyoutController flyoutController = FlyoutController();
+
   @override
   Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreTraversable: false,
+      child: StreamBuilder(
+          stream: chatRoomsStream,
+          builder: (context, snapshot) {
+            return FlyoutTarget(
+              controller: flyoutController,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: FluentTheme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                width: 30,
+                height: 30,
+                padding: const EdgeInsets.all(2),
+                child: GestureDetector(
+                  onTap: () => openFlyout(context),
+                  child: SizedBox.square(
+                    dimension: 20,
+                    child: getModelIcon(selectedModel.model),
+                  ),
+                ),
+              ),
+            );
+          }),
+    );
+  }
+
+  void openFlyout(BuildContext context) {
     final provider = context.read<ChatGPTProvider>();
     final models = [...allModels, LocalChatModel()];
     final selectedModel = selectedChatRoom.model;
-    return StreamBuilder(
-        stream: chatRoomsStream,
-        builder: (context, snapshot) {
-          return DropDownButton(
-              items: models
-                  .map(
-                    (e) => MenuFlyoutItem(
-                      selected: e.model == selectedModel.model,
-                      trailing: e.model == selectedModel.model
-                          ? const Icon(ic.FluentIcons.checkmark_16_filled)
-                          : null,
-                      leading: SizedBox.square(
-                          dimension: 24, child: getModelIcon(e.model)),
-                      text: Text(e.model),
-                      onPressed: () {
-                        provider.selectNewModel(e);
-                      },
-                    ),
-                  )
-                  .toList(),
-              title: SizedBox.square(
-                dimension: 20,
-                child: getModelIcon(selectedModel.model),
-              ));
-        });
+    flyoutController.showFlyout(builder: (ctx) {
+      return MenuFlyout(
+        items: models
+            .map(
+              (e) => MenuFlyoutItem(
+                selected: e.model == selectedModel.model,
+                trailing: e.model == selectedModel.model
+                    ? const Icon(ic.FluentIcons.checkmark_16_filled)
+                    : null,
+                leading: SizedBox.square(
+                    dimension: 24, child: getModelIcon(e.model)),
+                text: Text(e.model),
+                onPressed: () => provider.selectNewModel(e),
+              ),
+            )
+            .toList(),
+      );
+    });
   }
 }
 
@@ -430,7 +478,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
     final txtController = chatProvider.messageController;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: SizedBox(
         width: double.infinity,
         child: Wrap(

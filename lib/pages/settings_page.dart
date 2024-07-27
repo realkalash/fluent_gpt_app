@@ -96,6 +96,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
               : null),
       children: [
         const EnabledGptTools(),
+        const OverlaySettings(),
         const _FilesSection(),
         const AccessibilityPermissionButton(),
         const _CacheSection(),
@@ -266,26 +267,68 @@ class CustomPromptsButton extends StatelessWidget {
   }
 }
 
-class ToggleOverlayButton extends StatefulWidget {
-  const ToggleOverlayButton({super.key});
+class OverlaySettings extends StatefulWidget {
+  const OverlaySettings({super.key});
 
   @override
-  State<ToggleOverlayButton> createState() => _ToggleOverlayButtonState();
+  State<OverlaySettings> createState() => _OverlaySettingsState();
 }
 
-class _ToggleOverlayButtonState extends State<ToggleOverlayButton> {
+class _OverlaySettingsState extends State<OverlaySettings> {
   @override
   Widget build(BuildContext context) {
-    return FlyoutListTile(
-      text: const Text('Enable overlay'),
-      trailing: Checkbox(
-        checked: AppCache.enableOverlay.value,
-        onChanged: (value) {
-          setState(() {
-            AppCache.enableOverlay.value = value;
-          });
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Overlay settings',
+            style: FluentTheme.of(context).typography.subtitle),
+        FlyoutListTile(
+          text: const Text('Enable overlay'),
+          trailing: Checkbox(
+            checked: AppCache.enableOverlay.value,
+            onChanged: (value) {
+              setState(() {
+                AppCache.enableOverlay.value = value;
+              });
+            },
+          ),
+        ),
+        FlyoutListTile(
+          text: const Text('Show settings icon in overlay'),
+          trailing: Checkbox(
+            checked: AppCache.showSettingsInOverlay.value,
+            onChanged: (value) {
+              setState(() {
+                AppCache.showSettingsInOverlay.value = value;
+              });
+            },
+          ),
+        ),
+        spacer,
+        NumberBox(
+          value: AppCache.overlayVisibleElements.value,
+          placeholder:
+              AppCache.overlayVisibleElements.value == null ? 'Adaptive' : null,
+          onChanged: (value) {
+            AppCache.overlayVisibleElements.value = value;
+          },
+          min: 4,
+          mode: SpinButtonPlacementMode.inline,
+        ),
+        Text('compactMessageTextSize',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        NumberBox(
+          value: AppCache.compactMessageTextSize.value,
+          onChanged: (value) {
+            AppCache.compactMessageTextSize.value = value ?? 10;
+            Provider.of<ChatGPTProvider>(context, listen: false).updateUI();
+          },
+          mode: SpinButtonPlacementMode.inline,
+        ),
+        const MessageSamplePreviewCard(isCompact: true),
+        biggerSpacer,
+      ],
     );
   }
 }
@@ -350,18 +393,18 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             style: FluentTheme.of(context).typography.subtitle),
         Wrap(
           children: [
-            const ToggleOverlayButton(),
-            FlyoutListTile(
-              text: const Text('Search files'),
-              trailing: Checkbox(
-                checked: AppCache.gptToolSearchEnabled.value!,
-                onChanged: (value) {
-                  setState(() {
-                    AppCache.gptToolSearchEnabled.value = value;
-                  });
-                },
+            if (Platform.isWindows)
+              FlyoutListTile(
+                text: const Text('Search files'),
+                trailing: Checkbox(
+                  checked: AppCache.gptToolSearchEnabled.value!,
+                  onChanged: (value) {
+                    setState(() {
+                      AppCache.gptToolSearchEnabled.value = value;
+                    });
+                  },
+                ),
               ),
-            ),
             FlyoutListTile(
               text: const Text('Auto copy to clipboard'),
               trailing: Checkbox(
@@ -384,6 +427,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 },
               ),
             ),
+            biggerSpacer,
           ],
         ),
       ],
@@ -538,14 +582,15 @@ class _ResolutionsSelector extends StatelessWidget {
             mode: SpinButtonPlacementMode.inline,
           ),
         ),
-        const MessageSamplePreviewCard(),
+        const MessageSamplePreviewCard(isCompact: false),
       ],
     );
   }
 }
 
 class MessageSamplePreviewCard extends StatelessWidget {
-  const MessageSamplePreviewCard({super.key});
+  const MessageSamplePreviewCard({super.key, required this.isCompact});
+  final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
@@ -567,8 +612,10 @@ class MessageSamplePreviewCard extends StatelessWidget {
               dateTime: DateTime.now(),
               id: '1234',
               isError: false,
-              textSize: provider.textSize,
-              isCompactMode: false,
+              textSize: isCompact
+                  ? AppCache.compactMessageTextSize.value!
+                  : provider.textSize,
+              isCompactMode: isCompact,
             ),
           ],
         ),

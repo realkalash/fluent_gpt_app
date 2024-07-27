@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
@@ -171,51 +173,56 @@ class PageHeaderText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.read<ChatGPTProvider>();
-    return Column(
-      children: [
-        StreamBuilder(
-          stream: selectedChatRoomNameStream,
-          builder: (_, __) {
-            final selectedRoom = selectedChatRoomNameStream.value;
-            return GestureDetector(
-              onTap: () => editChatRoomDialog(
-                  context, chatRooms[selectedRoom]!, chatProvider),
-              child: TextAnimator(selectedRoom, maxLines: 2),
-            );
-          },
-        ),
-        const ConversationStyleRow(),
-        Row(
-          children: [
-            HyperlinkButton(
-              style: ButtonStyle(
-                padding: ButtonState.all(EdgeInsets.zero),
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreTraversable: false,
+      child: Column(
+        children: [
+          StreamBuilder(
+            stream: selectedChatRoomNameStream,
+            builder: (_, __) {
+              final selectedRoom = selectedChatRoomNameStream.value;
+              return GestureDetector(
+                onTap: () => editChatRoomDialog(
+                    context, chatRooms[selectedRoom]!, chatProvider),
+                child: TextAnimator(selectedRoom, maxLines: 2),
+              );
+            },
+          ),
+          const ConversationStyleRow(),
+          Row(
+            children: [
+              HyperlinkButton(
+                style: ButtonStyle(
+                  padding: ButtonState.all(EdgeInsets.zero),
+                ),
+                onPressed: () => showCostCalculatorDialog(context),
+                child: Text(
+                  ' Tokens: ${selectedChatRoom.tokens ?? 0} | ${(selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
-              onPressed: () => showCostCalculatorDialog(context),
-              child: Text(
-                ' Tokens: ${selectedChatRoom.tokens ?? 0} | ${(selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ),
-            const Spacer(),
-            const IncludeConversationSwitcher(),
-            if (chatProvider.selectionModeEnabled) ...[
-              IconButton(
-                icon: Icon(ic.FluentIcons.delete_16_filled, color: Colors.red),
-                onPressed: () {
-                  chatProvider.deleteSelectedMessages();
-                },
-              ),
-              IconButton(
-                icon: const Icon(FluentIcons.cancel),
-                onPressed: () {
-                  chatProvider.disableSelectionMode();
-                },
-              ),
-            ]
-          ],
-        ),
-      ],
+              const Spacer(),
+              const IncludeConversationSwitcher(),
+              if (chatProvider.selectionModeEnabled) ...[
+                IconButton(
+                  icon:
+                      Icon(ic.FluentIcons.delete_16_filled, color: Colors.red),
+                  onPressed: () {
+                    chatProvider.deleteSelectedMessages();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(FluentIcons.cancel),
+                  onPressed: () {
+                    chatProvider.disableSelectionMode();
+                  },
+                ),
+              ]
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -247,18 +254,19 @@ class IncludeConversationSwitcher extends StatelessWidget {
             },
           ),
         ),
-        FlyoutListTile(
-          text: const Icon(FluentIcons.search_data),
-          tooltip: 'Tool Search files',
-          trailing: Checkbox(
-            checked: AppCache.gptToolSearchEnabled.value!,
-            onChanged: (value) {
-              AppCache.gptToolSearchEnabled.value = value;
-              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-              chatProvider.notifyListeners();
-            },
+        if (Platform.isWindows)
+          FlyoutListTile(
+            text: const Icon(FluentIcons.search_data),
+            tooltip: 'Tool Search files',
+            trailing: Checkbox(
+              checked: AppCache.gptToolSearchEnabled.value!,
+              onChanged: (value) {
+                AppCache.gptToolSearchEnabled.value = value;
+                // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
+                chatProvider.notifyListeners();
+              },
+            ),
           ),
-        ),
         FlyoutListTile(
           text: const Icon(FluentIcons.python_language),
           tooltip: 'Tool Python code execution',

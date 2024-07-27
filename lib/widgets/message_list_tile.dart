@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -19,7 +20,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import 'markdown_builders/md_code_builder.dart';
 
@@ -118,6 +118,9 @@ class MessageCard extends StatefulWidget {
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
   bool _containsCode = false;
+  bool _isFocused = false;
+  List<LogicalKeyboardKey> pressedKeybinding = [];
+
   @override
   void initState() {
     super.initState();
@@ -142,7 +145,7 @@ class _MessageCardState extends State<MessageCard> {
             checked: widget.message['selected'] == 'true',
           )
         : null;
-    if (widget.message['role'] == 'user') {
+    if (widget.message['role'] == Role.user.name) {
       tileWidget = _MessageListTile(
         leading: leading,
         tileColor: widget.message['commandMessage'] == 'true'
@@ -275,7 +278,7 @@ class _MessageCardState extends State<MessageCard> {
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(fontSize: widget.textSize.toDouble()),
                     code: TextStyle(
-                      fontSize: widget.textSize.toDouble() + 2,
+                      fontSize: widget.textSize.toDouble() + 1,
                       backgroundColor: Colors.transparent,
                     ),
                   ),
@@ -298,235 +301,152 @@ class _MessageCardState extends State<MessageCard> {
     }
     _containsCode = widget.message['content'].toString().contains('```');
 
-    return Stack(
-      children: [
-        GestureDetector(
-          onSecondaryTap: () {
-            showDialog(
-                context: context,
-                builder: (ctx) {
-                  final provider = context.read<ChatGPTProvider>();
-                  return ContentDialog(
-                    title: const Text('Message options'),
-                    content: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.message['image'] != null)
-                          Container(
-                            width: 100,
-                            height: 100,
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.0)),
-                            child: Image.memory(
-                              decodeImage(widget.message['image']!),
-                              fit: BoxFit.fitHeight,
-                              gaplessPlayback: true,
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        Button(
-                          onPressed: () async {
-                            Navigator.of(context).maybePop();
+    return Focus(
+      onFocusChange: (isFocused) {
+        setState(() {
+          _isFocused = isFocused;
+        });
+      },
+      onKeyEvent: (node, event) {
+        if (event is KeyRepeatEvent) {
+          return KeyEventResult.handled;
+        }
 
-                            final item = DataWriterItem();
-                            final imageBytesString = widget.message['image']!;
-                            final imageBytes = base64.decode(imageBytesString);
+        if (event is KeyDownEvent) {
+          pressedKeybinding.add(event.logicalKey);
+        }
+        if (event is KeyUpEvent) {
+          pressedKeybinding.remove(event.logicalKey);
+        }
+        final containsC = pressedKeybinding.contains(LogicalKeyboardKey.keyC);
+        final containsControl =
+            pressedKeybinding.contains(LogicalKeyboardKey.controlLeft) ||
+                pressedKeybinding.contains(LogicalKeyboardKey.controlRight);
+        final containsMeta =
+            pressedKeybinding.contains(LogicalKeyboardKey.meta);
 
-                            item.add(Formats.png(imageBytes));
-                            await SystemClipboard.instance!.write([item]);
-                            // ignore: use_build_context_synchronously
-                            displayCopiedToClipboard(context);
-                          },
-                          child: const Text('Copy image data'),
-                        ),
-                        const SizedBox(height: 8),
-                        Button(
-                          onPressed: () async {
-                            final fileBytesString = widget.message['image']!;
-                            final fileBytes = base64.decode(fileBytesString);
-                            final file = XFile.fromData(
-                              fileBytes,
-                              name: 'image.png',
-                              mimeType: 'image/png',
-                              length: fileBytes.lengthInBytes,
-                            );
-
-                            final FileSaveLocation? location =
-                                await getSaveLocation(
-                              suggestedName: '${fileBytes.lengthInBytes}.png',
-                              acceptedTypeGroups: [
-                                const XTypeGroup(
-                                  label: 'images',
-                                  extensions: ['png', 'jpg', 'jpeg'],
-                                ),
-                              ],
-                            );
-
-                            if (location != null) {
-                              await file.saveTo(location.path);
-                              displayInfoBar(
-                                // ignore: use_build_context_synchronously
-                                context,
-                                builder: (context, close) => const InfoBar(
-                                  title: Text('Image saved to file'),
-                                  severity: InfoBarSeverity.success,
-                                ),
-                              );
-                              // ignore: use_build_context_synchronously
-                              Navigator.of(context).maybePop();
-                            }
-                          },
-                          child: const Text('Save image to file'),
-                        ),
-                        const SizedBox(height: 8),
-                        Button(
-                          onPressed: () {
-                            Navigator.of(context).maybePop();
-                            provider.toggleSelectMessage(widget.id);
-                          },
-                          child: const Text('Select'),
-                        ),
-                        const SizedBox(height: 8),
-                        Button(
-                          onPressed: () {
-                            Navigator.of(context).maybePop();
-                            _showRawMessageDialog(context, widget.message);
-                          },
-                          child: const Text('Show raw message'),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: Divider(),
-                        ),
-                        if (provider.selectionModeEnabled)
-                          Button(
-                            onPressed: () {
-                              Navigator.of(context).maybePop();
-                              provider.mergeSelectedMessagesToAssistant();
-                            },
-                            child: Text(
-                                'Merge ${provider.selectedMessages.length} messages'),
-                          ),
-                        const SizedBox(height: 8),
-                        Button(
-                            onPressed: () {
-                              Navigator.of(context).maybePop();
-                              if (provider.selectionModeEnabled) {
-                                provider.deleteSelectedMessages();
-                                provider.disableSelectionMode();
-                              } else {
-                                provider.deleteMessage(widget.id);
-                              }
-                            },
-                            style: ButtonStyle(
-                                backgroundColor: ButtonState.all(Colors.red)),
-                            child: provider.selectionModeEnabled
-                                ? Text(
-                                    'Delete ${provider.selectedMessages.length}')
-                                : const Text('Delete')),
-                      ],
-                    ),
-                    actions: [
-                      Button(
-                        onPressed: () {
-                          Navigator.of(context).maybePop();
+        if (containsC && (containsControl || containsMeta)) {
+          displayInfoBar(context, builder: (c, _) {
+            final shortMessage = widget.message['content'].toString();
+            Clipboard.setData(ClipboardData(text: shortMessage));
+            return InfoBar(
+              title: Text(shortMessage),
+              severity: InfoBarSeverity.info,
+            );
+          });
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          FocusScope.of(context).nextFocus();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          FocusScope.of(context).previousFocus();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Stack(
+        children: [
+          GestureDetector(
+            onSecondaryTap: () {
+              _onSecondaryTap(context, widget.message);
+            },
+            child: Card(
+              margin: const EdgeInsets.all(4),
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(8.0),
+              borderColor: _isFocused ? Colors.blue : Colors.transparent,
+              child: tileWidget,
+            ),
+          ),
+          Positioned(
+            right: 16,
+            top: 8,
+            child: Focus(
+              canRequestFocus: false,
+              descendantsAreFocusable: false,
+              descendantsAreTraversable: false,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: _isMarkdownView ? 'Show text' : 'Show markdown',
+                    child: SizedBox.square(
+                      dimension: 30,
+                      child: ToggleButton(
+                        onChanged: (_) {
+                          setState(() {
+                            _isMarkdownView = !_isMarkdownView;
+                          });
+                          prefs!.setBool('isMarkdownView', _isMarkdownView);
                         },
-                        child: const Text('Dismiss'),
+                        checked: false,
+                        child: const Icon(FluentIcons.format_painter, size: 10),
                       ),
-                    ],
-                  );
-                });
-          },
-          child: Card(
-            margin: const EdgeInsets.all(4),
-            padding: EdgeInsets.zero,
-            borderRadius: BorderRadius.circular(8.0),
-            child: tileWidget,
-          ),
-        ),
-        Positioned(
-          right: 16,
-          top: 8,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Tooltip(
-                message: _isMarkdownView ? 'Show text' : 'Show markdown',
-                child: SizedBox.square(
-                  dimension: 30,
-                  child: ToggleButton(
-                    onChanged: (_) {
-                      setState(() {
-                        _isMarkdownView = !_isMarkdownView;
-                      });
-                      prefs!.setBool('isMarkdownView', _isMarkdownView);
-                    },
-                    checked: false,
-                    child: const Icon(FluentIcons.format_painter, size: 10),
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: 'Edit message',
-                child: SizedBox.square(
-                  dimension: 30,
-                  child: ToggleButton(
-                    onChanged: (_) {
-                      _showEditMessageDialog(context, widget.message);
-                    },
-                    checked: false,
-                    child: const Icon(FluentIcons.edit, size: 10),
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: 'Copy text to clipboard',
-                child: SizedBox.square(
-                  dimension: 30,
-                  child: ToggleButton(
-                    onChanged: (_) {
-                      Clipboard.setData(
-                        ClipboardData(text: '${widget.message['content']}'),
-                      );
-                      displayCopiedToClipboard(context);
-                    },
-                    checked: false,
-                    child: const Icon(FluentIcons.copy, size: 10),
-                  ),
-                ),
-              ),
-              if (_containsCode)
-                Tooltip(
-                  message: 'Copy python code to clipboard',
-                  child: SizedBox.square(
-                    dimension: 30,
-                    child: ToggleButton(
-                      onChanged: (_) {
-                        _copyCodeToClipboard(
-                            widget.message['content'].toString());
-                      },
-                      checked: false,
-                      style: ToggleButtonThemeData(
-                        uncheckedButtonStyle: ButtonStyle(
-                            backgroundColor: ButtonState.all(Colors.blue)),
-                      ),
-                      child: const Icon(FluentIcons.code, size: 10),
                     ),
                   ),
-                ),
-              if (_containsCode)
-                Tooltip(
-                  message: 'Run python code',
-                  child: RunCodeButton(
-                    code: widget.message['content'].toString(),
+                  Tooltip(
+                    message: 'Edit message',
+                    child: SizedBox.square(
+                      dimension: 30,
+                      child: ToggleButton(
+                        onChanged: (_) {
+                          _showEditMessageDialog(context, widget.message);
+                        },
+                        checked: false,
+                        child: const Icon(FluentIcons.edit, size: 10),
+                      ),
+                    ),
                   ),
-                ),
-            ],
+                  Tooltip(
+                    message: 'Copy text to clipboard',
+                    child: SizedBox.square(
+                      dimension: 30,
+                      child: ToggleButton(
+                        onChanged: (_) {
+                          Clipboard.setData(
+                            ClipboardData(text: '${widget.message['content']}'),
+                          );
+                          displayCopiedToClipboard(context);
+                        },
+                        checked: false,
+                        child: const Icon(FluentIcons.copy, size: 10),
+                      ),
+                    ),
+                  ),
+                  if (_containsCode)
+                    Tooltip(
+                      message: 'Copy python code to clipboard',
+                      child: SizedBox.square(
+                        dimension: 30,
+                        child: ToggleButton(
+                          onChanged: (_) {
+                            _copyCodeToClipboard(
+                                widget.message['content'].toString());
+                          },
+                          checked: false,
+                          style: ToggleButtonThemeData(
+                            uncheckedButtonStyle: ButtonStyle(
+                                backgroundColor: ButtonState.all(Colors.blue)),
+                          ),
+                          child: const Icon(FluentIcons.code, size: 10),
+                        ),
+                      ),
+                    ),
+                  if (_containsCode)
+                    Tooltip(
+                      message: 'Run python code',
+                      child: RunCodeButton(
+                        code: widget.message['content'].toString(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -717,5 +637,142 @@ class _MessageCardState extends State<MessageCard> {
         ],
       ),
     );
+  }
+
+  void _onSecondaryTap(BuildContext context, Map<String, String> message) {
+    showDialog(
+        context: context,
+        builder: (ctx) {
+          final provider = context.read<ChatGPTProvider>();
+          return ContentDialog(
+            title: const Text('Message options'),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.message['image'] != null)
+                  Container(
+                    width: 100,
+                    height: 100,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.0)),
+                    child: Image.memory(
+                      decodeImage(widget.message['image']!),
+                      fit: BoxFit.fitHeight,
+                      gaplessPlayback: true,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Button(
+                  onPressed: () async {
+                    Navigator.of(context).maybePop();
+
+                    final item = DataWriterItem();
+                    final imageBytesString = widget.message['image']!;
+                    final imageBytes = base64.decode(imageBytesString);
+
+                    item.add(Formats.png(imageBytes));
+                    await SystemClipboard.instance!.write([item]);
+                    // ignore: use_build_context_synchronously
+                    displayCopiedToClipboard(context);
+                  },
+                  child: const Text('Copy image data'),
+                ),
+                const SizedBox(height: 8),
+                Button(
+                  onPressed: () async {
+                    final fileBytesString = widget.message['image']!;
+                    final fileBytes = base64.decode(fileBytesString);
+                    final file = XFile.fromData(
+                      fileBytes,
+                      name: 'image.png',
+                      mimeType: 'image/png',
+                      length: fileBytes.lengthInBytes,
+                    );
+
+                    final FileSaveLocation? location = await getSaveLocation(
+                      suggestedName: '${fileBytes.lengthInBytes}.png',
+                      acceptedTypeGroups: [
+                        const XTypeGroup(
+                          label: 'images',
+                          extensions: ['png', 'jpg', 'jpeg'],
+                        ),
+                      ],
+                    );
+
+                    if (location != null) {
+                      await file.saveTo(location.path);
+                      displayInfoBar(
+                        // ignore: use_build_context_synchronously
+                        context,
+                        builder: (context, close) => const InfoBar(
+                          title: Text('Image saved to file'),
+                          severity: InfoBarSeverity.success,
+                        ),
+                      );
+                      // ignore: use_build_context_synchronously
+                      Navigator.of(context).maybePop();
+                    }
+                  },
+                  child: const Text('Save image to file'),
+                ),
+                const SizedBox(height: 8),
+                Button(
+                  onPressed: () {
+                    Navigator.of(context).maybePop();
+                    provider.toggleSelectMessage(widget.id);
+                  },
+                  child: const Text('Select'),
+                ),
+                const SizedBox(height: 8),
+                Button(
+                  onPressed: () {
+                    Navigator.of(context).maybePop();
+                    _showRawMessageDialog(context, widget.message);
+                  },
+                  child: const Text('Show raw message'),
+                ),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Divider(),
+                ),
+                if (provider.selectionModeEnabled)
+                  Button(
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                      provider.mergeSelectedMessagesToAssistant();
+                    },
+                    child: Text(
+                        'Merge ${provider.selectedMessages.length} messages'),
+                  ),
+                const SizedBox(height: 8),
+                Button(
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                      if (provider.selectionModeEnabled) {
+                        provider.deleteSelectedMessages();
+                        provider.disableSelectionMode();
+                      } else {
+                        provider.deleteMessage(widget.id);
+                      }
+                    },
+                    style: ButtonStyle(
+                        backgroundColor: ButtonState.all(Colors.red)),
+                    child: provider.selectionModeEnabled
+                        ? Text('Delete ${provider.selectedMessages.length}')
+                        : const Text('Delete')),
+              ],
+            ),
+            actions: [
+              Button(
+                onPressed: () {
+                  Navigator.of(context).maybePop();
+                },
+                child: const Text('Dismiss'),
+              ),
+            ],
+          );
+        });
   }
 }

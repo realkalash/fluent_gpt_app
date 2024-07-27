@@ -112,15 +112,16 @@ class ChatGPTProvider with ChangeNotifier {
   /// It's not a good practice to use [context] directly in the provider...
   BuildContext? context;
 
-  int _textSize = 14;
+  int _messageTextSize = 14;
 
   bool useSecondRequestForNamingChats = true;
   set textSize(int v) {
-    _textSize = v;
+    _messageTextSize = v;
+    AppCache.messageTextSize.set(v);
     notifyListeners();
   }
 
-  int get textSize => _textSize;
+  int get textSize => _messageTextSize;
 
   void saveToDisk() {
     var rooms = {};
@@ -135,10 +136,11 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   ChatGPTProvider() {
-    var token = prefs?.getString('token') ?? 'empty';
-    var orgID = prefs?.getString('orgID') ?? '';
+    final token = AppCache.token.value ?? 'empty';
+    final orgID = AppCache.orgID.value ?? '';
     openAI.setOrgId(orgID);
     openAI.setToken(token);
+    _messageTextSize = AppCache.messageTextSize.value ?? 14;
     AppCache.chatRooms.value().then((chatRoomsinSP) {
       if (chatRoomsinSP != null && chatRoomsinSP.isNotEmpty) {
         final map = jsonDecode(chatRoomsinSP) as Map;
@@ -1060,6 +1062,10 @@ class ChatGPTProvider with ChangeNotifier {
           message['hidePrompt'] == 'true' ? 'false' : 'true';
     }
     chatRoomsStream.add(chatRooms);
+  }
+
+  void updateUI() {
+    notifyListeners();
   }
 }
 

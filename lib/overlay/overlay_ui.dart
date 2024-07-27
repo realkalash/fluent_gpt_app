@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -24,11 +26,17 @@ class OverlayUI extends StatefulWidget {
       BehaviorSubject<bool>.seeded(false);
 
   static Size defaultWindowSize() {
-    final elementsLength = customPrompts.value
-        .where(
-          (element) => element.showInOverlay,
-        )
-        .length;
+    var elementsLength = 5;
+    if (AppCache.overlayVisibleElements.value != null) {
+      elementsLength = AppCache.overlayVisibleElements.value!;
+    } else {
+      customPrompts.value
+          .where(
+            (element) => element.showInOverlay,
+          )
+          .length;
+    }
+
     // each element width is 50 + padding 8 + main button 36. Max 6 elements
     // we need to choose minimal width for the window
     final width = elementsLength * (50 + 8 + 8);
@@ -149,7 +157,23 @@ class _OverlayUIState extends State<OverlayUI> {
                                   .where((element) => element.showInOverlay)
                                   .map((prompt) =>
                                       _buildTextOption(prompt, 'custom')),
-                            ]
+                            ],
+                            if (AppCache.showSettingsInOverlay.value == true)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon:
+                                    const Icon(FluentIcons.settings_28_filled),
+                                onPressed: () async {
+                                  await OverlayManager.switchToMainWindow();
+                                  // ignore: use_build_context_synchronously
+                                  Navigator.of(navigatorKey.currentContext!)
+                                      .push(
+                                    fluent.FluentPageRoute(
+                                        builder: (context) =>
+                                            const SettingsPage()),
+                                  );
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -398,7 +422,7 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                         dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
                         selectionMode: false,
                         isError: message['error'] == 'true',
-                        textSize: 10,
+                        textSize: AppCache.compactMessageTextSize.value!,
                         isCompactMode: true,
                       );
                     },

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
+import 'package:flutter/gestures.dart';
 import 'package:path_provider/path_provider.dart';
 
 abstract class _Pref<T> {
@@ -119,6 +120,33 @@ class IntPref extends _Pref<int> {
 
   @override
   set value(int? value) {
+    if (value == null) {
+      remove();
+    } else {
+      set(value);
+    }
+  }
+}
+
+class OffsetPref extends _Pref<Offset> {
+  const OffsetPref(super.key, [this.defaultValue]);
+  final Offset? defaultValue;
+  @override
+  Offset? get value {
+    final value = prefs?.get(key) as String?;
+    if (value == null) {
+      return defaultValue;
+    }
+    final parts = value.split(',');
+    return Offset(double.parse(parts[0]), double.parse(parts[1]));
+  }
+
+  @override
+  Future<void> set(Offset value) =>
+      prefs!.setString(key, '${value.dx},${value.dy}');
+
+  @override
+  set value(Offset? value) {
     if (value == null) {
       remove();
     } else {

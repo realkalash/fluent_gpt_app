@@ -277,6 +277,8 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   final newItem = item.copyWith(hotkey: hotkey);
                   // ignore: use_build_context_synchronously
                   updateItem(newItem, context);
+                  /// wait for the dialog to close and stream to apply the changes
+                  await Future.delayed(const Duration(milliseconds: 400));
                   if (hotkey != null) {
                     rebindKeys();
                   } else {

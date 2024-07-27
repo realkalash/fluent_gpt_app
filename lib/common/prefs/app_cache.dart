@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
+import 'package:flutter/gestures.dart';
 
 class AppCache {
   static const currentFileIndex = IntPref("currentFileIndex");
@@ -10,11 +11,16 @@ class AppCache {
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const hideTitleBar = BoolPref("hideTitleBar", false);
   static const isMarkdownView = BoolPref("isMarkdownView", false);
+  static const overlayVisibleElements = IntPref("overlayVisibleElements");
+  static const messageTextSize = IntPref("messageTextSize", 14);
+  static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
+  static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
 
   static const openWindowKey = StringPref("openWindowKey");
 
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
+  static const previousCompactOffset = OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
   static const chatRooms = FileStringPref("chatRooms");

@@ -157,9 +157,9 @@ class OverlayManager {
     // wait for the window to be resized
     await Future.delayed(const Duration(milliseconds: 100));
     await windowManager.setResizable(false);
-    if (SidebarOverlayUI.previousCompactOffset != Offset.zero) {
+    if (AppCache.previousCompactOffset.value != Offset.zero) {
       await windowManager.setPosition(
-        SidebarOverlayUI.previousCompactOffset,
+        AppCache.previousCompactOffset.value!,
         animate: false,
       );
     } else {

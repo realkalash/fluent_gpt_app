@@ -143,9 +143,7 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
               checked: false,
               onChanged: (_) {
                 Navigator.of(context).push(
-                  FluentPageRoute(
-                    builder: (context) => const SettingsPage(),
-                  ),
+                  FluentPageRoute(builder: (context) => const SettingsPage()),
                 );
               },
               child: const Icon(

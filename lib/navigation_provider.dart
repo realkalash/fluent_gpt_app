@@ -65,21 +65,21 @@ class NavigationProvider with ChangeNotifier {
       icon: const Icon(FluentIcons.settings_24_regular),
       title: const Text('Settings'),
       body: const SettingsPage(),
-      onTap: () => _openSubRoute('/settings'),
+      onTap: () => openSubRoute('/settings'),
     ),
     PaneItem(
       key: const ValueKey('/about'),
       icon: const Icon(FluentIcons.info_24_regular),
       title: const Text('About'),
       body: const AboutPage(),
-      onTap: () => _openSubRoute('/about'),
+      onTap: () => openSubRoute('/about'),
     ),
     PaneItem(
       key: const ValueKey('/log'),
       icon: const Icon(FluentIcons.bug_24_regular),
       title: const Text('Log'),
       body: const LogPage(),
-      onTap: () => _openSubRoute('/log'),
+      onTap: () => openSubRoute('/log'),
     ),
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.link_24_regular),
@@ -104,7 +104,7 @@ class NavigationProvider with ChangeNotifier {
     return index - 1;
   }
 
-  void _openSubRoute(String route) {
+  void openSubRoute(String route) {
     final newIndex = getIndexPage(route);
     if (index == -1) {
       log('Could not find route $route');

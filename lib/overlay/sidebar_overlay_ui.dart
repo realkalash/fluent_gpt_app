@@ -4,7 +4,9 @@ import 'dart:math';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
@@ -26,18 +28,25 @@ class SidebarOverlayUI extends StatefulWidget {
   static const double _maxCompactHeight = 6 * (36 + 8 + 8.5);
   static const double _minChatHeight = 2 * (36 + 8 + 8.5);
   static const double _maxChatHeight = 10 * (36 + 8 + 8.5);
-  static Offset previousCompactOffset = Offset.zero;
 
   /// stream to trigger changing chat ui
   static BehaviorSubject<bool> isChatVisible =
       BehaviorSubject<bool>.seeded(false);
 
   static Size defaultWindowSize() {
-    final elementsLength = customPrompts.value
-        .where(
-          (element) => element.showInOverlay,
-        )
-        .length;
+    var elementsLength = 5;
+    if (AppCache.overlayVisibleElements.value != null) {
+      elementsLength = AppCache.overlayVisibleElements.value!;
+    } else {
+      elementsLength = customPrompts.value
+          .where(
+            (element) => element.showInOverlay,
+          )
+          .length;
+    }
+    if (AppCache.showSettingsInOverlay.value == true) {
+      elementsLength++;
+    }
     final allHeight = elementsLength * (30 + 8 + 8.5);
     final maxAllowedHeight = min(allHeight, _maxCompactHeight).toDouble();
     final height = max(maxAllowedHeight, _minChatHeight).toDouble();
@@ -113,7 +122,26 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                                   ...customPrompts.value
                                       .where((element) => element.showInOverlay)
                                       .map((prompt) =>
-                                          _buildTextOption(prompt, 'custom'))
+                                          _buildTextOption(prompt, 'custom')),
+                                  if (AppCache.showSettingsInOverlay.value ==
+                                      true)
+                                    IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(
+                                          FluentIcons.settings_28_filled),
+                                      onPressed: () async {
+                                        await OverlayManager
+                                            .switchToMainWindow();
+                                        // ignore: use_build_context_synchronously
+                                        Navigator.of(
+                                                navigatorKey.currentContext!)
+                                            .push(
+                                          fluent.FluentPageRoute(
+                                              builder: (context) =>
+                                                  const SettingsPage()),
+                                        );
+                                      },
+                                    ),
                                 ],
                               ),
                             ),
@@ -277,14 +305,13 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
         isShowChatUI ? SidebarOverlayUI._maxChatHeight : currentHeight;
     final newWidth = isShowChatUI ? 500.0 : defaultWindowSize.width;
     if (isShowChatUI) {
-      SidebarOverlayUI.previousCompactOffset =
-          await windowManager.getPosition();
+      AppCache.previousCompactOffset.value = await windowManager.getPosition();
     }
 
     await windowManager.setSize(Size(newWidth, newHeight), animate: true);
     await Future.delayed(const Duration(milliseconds: 200));
     if (isShowChatUI == false) {
-      await windowManager.setPosition(SidebarOverlayUI.previousCompactOffset,
+      await windowManager.setPosition(AppCache.previousCompactOffset.value!,
           animate: true);
     }
     await Future.delayed(const Duration(milliseconds: 200));
@@ -395,7 +422,7 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                         dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
                         selectionMode: false,
                         isError: message['error'] == 'true',
-                        textSize: 10,
+                        textSize: AppCache.compactMessageTextSize.value!,
                         isCompactMode: true,
                       );
                     },
