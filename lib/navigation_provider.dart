@@ -1,3 +1,5 @@
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:fluent_gpt/common/chat_room.dart';
@@ -6,15 +8,18 @@ import 'package:fluent_gpt/pages/about_page.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/log_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
+import 'pages/welcome/welcome_llm_screen.dart';
+import 'pages/welcome/welcome_permissions_page.dart';
+import 'pages/welcome/welcome_screen.dart';
 import 'providers/chat_gpt_provider.dart';
 
 class NavigationProvider with ChangeNotifier {
-  bool value = false;
-
   /// The index of the selected item
   /// THE LAST ITEM IS A LINK THAT SHOULD NOT BE USED AS A NAVIGATION ITEM
   int index = 0;
@@ -189,98 +194,36 @@ class NavigationProvider with ChangeNotifier {
       ),
     );
   }
-}
 
-class EditChatRoomDialog extends StatelessWidget {
-  const EditChatRoomDialog(
-      {super.key, required this.room, required this.onOkPressed});
-  final ChatRoom room;
-  final VoidCallback onOkPressed;
+  void welcomeScreenEnd() {
+    AppCache.isWelcomeShown.value = true;
+    // restore title bar because on the [WelcomePage] we hide it
+    if (AppCache.hideTitleBar.value == false) {
+      windowManager.setTitleBarStyle(TitleBarStyle.normal,
+          windowButtonVisibility: false);
+    }
+    notifyListeners();
+  }
 
-  @override
-  Widget build(BuildContext ctx) {
-    final provider = ctx.read<ChatGPTProvider>();
-    var roomName = room.chatRoomName;
-    var systemMessage = room.systemMessage;
-    var maxLength = room.maxTokenLength;
-    var token = room.token;
-    var orgID = room.orgID;
-    return ContentDialog(
-      title: const Text('Edit chat room'),
-      constraints: const BoxConstraints(maxWidth: 800),
-      actions: [
-        Button(
-          onPressed: () {
-            provider.editChatRoom(
-                room.chatRoomName,
-                room.copyWith(
-                  chatRoomName: roomName,
-                  commandPrefix: systemMessage,
-                  maxLength: maxLength,
-                  token: token,
-                  orgID: orgID,
-                ));
-            Navigator.of(ctx).pop();
-            onOkPressed();
-          },
-          child: const Text('Save'),
-        ),
-        Button(
-          onPressed: () {
-            Navigator.of(ctx).pop();
-          },
-          child: const Text('Cancel'),
-        ),
-      ],
-      content: ListView(
-        children: [
-          const Text('Chat room name'),
-          TextBox(
-            controller: TextEditingController(text: room.chatRoomName),
-            onChanged: (value) {
-              roomName = value;
-            },
-          ),
-          const Text('System message'),
-          TextBox(
-            controller: TextEditingController(text: room.systemMessage),
-            maxLines: 30,
-            minLines: 3,
-            onChanged: (value) {
-              systemMessage = value;
-            },
-          ),
-          const Text('Model'),
-          GptModelChooser(
-            onChanged: (model) {
-              provider.selectModelForChat(room.chatRoomName, model);
-            },
-          ),
-          const Text('Max length'),
-          TextBox(
-            controller:
-                TextEditingController(text: room.maxTokenLength.toString()),
-            onChanged: (value) {
-              maxLength = int.parse(value);
-            },
-          ),
-          const Text('Token'),
-          TextBox(
-            controller: TextEditingController(text: room.token),
-            obscureText: true,
-            onChanged: (value) {
-              token = value;
-            },
-          ),
-          const Text('Org ID'),
-          TextBox(
-            controller: TextEditingController(text: room.orgID),
-            onChanged: (value) {
-              orgID = value;
-            },
-          ),
-        ],
-      ),
+  PageController welcomeScreenPageController = PageController(keepPage: false);
+  final welcomeScreens = const [
+    WelcomePage(),
+    WelcomePermissionsPage(),
+    WelcomeLLMConfigPage(),
+    WelcomeShortcutsHelper()
+  ];
+  void welcomeScreenNext() {
+    if (welcomeScreenPageController.page == welcomeScreens.length - 1) {
+      welcomeScreenEnd();
+      return;
+    }
+    welcomeScreenPageController.nextPage(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
     );
+  }
+
+  void updateUI() {
+    notifyListeners();
   }
 }

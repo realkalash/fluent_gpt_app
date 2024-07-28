@@ -57,7 +57,7 @@ class NativeChannelUtils {
     }
   }
 
-  static void initAccessibility() async {
+  static Future<void> initAccessibility() async {
     try {
       await overlayChannel.invokeMethod('initAccessibility');
       print('[Dart] initAccessibility called');
@@ -83,11 +83,27 @@ class NativeChannelUtils {
       final mousePosition =
           await overlayChannel.invokeMethod('getMousePosition');
       return mousePosition != null
-          ? Offset(mousePosition['positionX']!.toDouble(), mousePosition['positionY']!.toDouble())
+          ? Offset(mousePosition['positionX']!.toDouble(),
+              mousePosition['positionY']!.toDouble())
           : null;
     } on PlatformException catch (e) {
       print("Failed to get mouse position: '${e.message}'.");
       return null;
     }
+  }
+
+  // Currenlty only used for macOS
+  static Future<bool> requestMicrophonePermissions() async {
+    try {
+      final result =
+          await overlayChannel.invokeMethod('requestMicrophonePermissions');
+      if (result == true) {
+        return true;
+      }
+      return false;
+    } on PlatformException catch (e) {
+      print("Failed to request microphone permissions: '${e.message}'.");
+    }
+    return false;
   }
 }

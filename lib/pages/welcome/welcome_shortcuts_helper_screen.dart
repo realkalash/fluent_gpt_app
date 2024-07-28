@@ -1,0 +1,165 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:adaptive_layout/adaptive_layout.dart';
+import 'package:fluent_gpt/tray.dart';
+import 'package:flutter/material.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
+
+import 'welcome_screen.dart';
+
+class WelcomeShortcutsHelper extends StatefulWidget {
+  const WelcomeShortcutsHelper({super.key});
+
+  @override
+  State<WelcomeShortcutsHelper> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomeShortcutsHelper> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const AnimatedGradientBackgroundMovingCircles(),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  // Center side
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Shortcuts',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'This is our quick shortcuts you can use anytime.',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.7), fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: AdaptiveLayout(
+                        smallLayout: ListView(
+                          children: [
+                            KeyBindingText(
+                              title: 'Open/Close Window',
+                              hotKey: openWindowHotkey,
+                              textColor: Colors.white,
+                            ),
+                            KeyBindingText(
+                              title: 'Show overlay for selected text',
+                              hotKey: showOverlayForText,
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                        mediumLayout: SingleChildScrollView(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    KeyBindingText(
+                                      title: 'Open/Close Window',
+                                      hotKey: openWindowHotkey,
+                                      textColor: Colors.white,
+                                    ),
+                                    KeyBindingText(
+                                      title: 'Show overlay for selected text',
+                                      hotKey: showOverlayForText,
+                                      textColor: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  // crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    KeyBindingText(
+                                      title: 'Create new chat (only in chat)',
+                                      hotKey: createNewChat,
+                                      textColor: Colors.white,
+                                    ),
+                                    KeyBindingText(
+                                      title: 'Reset chat (only in chat)',
+                                      hotKey: resetChat,
+                                      textColor: Colors.white,
+                                    ),
+                                    KeyBindingText(
+                                      title:
+                                          'Escape/Cancel selection (only in chat)',
+                                      hotKey: escapeCancelSelectKey,
+                                      textColor: Colors.white,
+                                    ),
+                                    KeyBindingText(
+                                      title: 'Reset chat (only in chat)',
+                                      hotKey: resetChat,
+                                      textColor: Colors.white,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class KeyBindingText extends StatelessWidget {
+  const KeyBindingText({
+    super.key,
+    required this.title,
+    required this.hotKey,
+    this.textColor,
+    this.buttonColor,
+  });
+  final String title;
+  final HotKey hotKey;
+  final Color? textColor;
+  final Color? buttonColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: buttonColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style: TextStyle(color: textColor),
+          ),
+          const SizedBox(width: 16),
+          HotKeyVirtualView(hotKey: hotKey),
+        ],
+      ),
+    );
+  }
+}

@@ -16,11 +16,16 @@ class AppCache {
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
 
+  /// related to the very first welcome screen
+  static const isWelcomeShown = BoolPref("isWelcomeShown", false);
+  static const isFoldersAccessGranted = BoolPref("isFoldersAccessGranted", false);
+
   static const openWindowKey = StringPref("openWindowKey");
 
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
-  static const previousCompactOffset = OffsetPref("previousCompactOffset", Offset.zero);
+  static const previousCompactOffset =
+      OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
   static const chatRooms = FileStringPref("chatRooms");
@@ -39,5 +44,3 @@ class AppCache {
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
 }
-
-

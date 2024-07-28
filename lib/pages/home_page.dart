@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';

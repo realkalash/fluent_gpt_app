@@ -5,7 +5,9 @@ import 'dart:ui';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:mime_type/mime_type.dart';
+import 'package:path_provider/path_provider.dart';
 
 Future<String> encodeImage(XFile file) async {
   final Uint8List imageBytes = await file.readAsBytes();
@@ -67,6 +69,29 @@ extension XFileUint8ListExtension on Uint8List {
 }
 
 class FileUtils {
+  static Future _createTestFileInDir(Future<Directory?> dirFuture) async {
+    final dir = await dirFuture;
+    if (dir == null) return;
+    final path = '${(dir).path}/test.txt';
+    await FileUtils.saveFile(path, 'Test');
+    await FileUtils.deleteFile(path);
+  }
+
+  /// usefull for macos to access permission to all folders
+  static Future touchAccessAllFolders() async {
+    try {
+      /// touch access to Documents, Downloads, Desktop, Pictures
+      await _createTestFileInDir(getTemporaryDirectory());
+      await _createTestFileInDir(getApplicationDocumentsDirectory());
+      await _createTestFileInDir(getApplicationSupportDirectory());
+      await _createTestFileInDir(getDownloadsDirectory());
+      return true;
+    } catch (e) {
+      log('touchAccessAllFolders error: $e');
+      return false;
+    }
+  }
+
   /// Saves the provided [data] to a file at the given [path].
   ///
   /// If the file does not exist, it will be created recursively.
@@ -82,5 +107,19 @@ class FileUtils {
     } catch (e) {
       return e.toString();
     }
+  }
+
+  /// Delete file
+  static Future<bool> deleteFile(String path, {bool recursive = false}) async {
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        await file.delete(recursive: recursive);
+      }
+    } catch (e) {
+      log('deleteFile error: $e');
+    }
+
+    return false;
   }
 }

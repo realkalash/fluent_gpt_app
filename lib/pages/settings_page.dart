@@ -8,10 +8,13 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -29,6 +32,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
+import '../widgets/confirmation_dialog.dart';
 
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
@@ -106,7 +110,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         Text('Appearance', style: FluentTheme.of(context).typography.title),
         const _ThemeModeSection(),
         spacer,
-        _WindowTitleButton(),
+        const _WindowTitleButton(),
         // biggerSpacer,
         // const _LocaleSection(),
         const _ResolutionsSelector(),
@@ -639,29 +643,59 @@ class _HotKeySectionState extends State<_HotKeySection> {
       children: [
         Text('Hotkeys', style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        Button(
-          onPressed: () async {
-            final key = await KeybindingDialog.show(
-              context,
-              initHotkey: openWindowHotkey,
-              title: const Text('Open the window keybinding'),
-            );
-            if (key != null && key != openWindowHotkey) {
-              setState(() {
-                openWindowHotkey = key;
-              });
-              await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
-              initShortcuts(AppWindow());
-            }
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Open the window'),
-              const SizedBox(width: 10.0),
-              HotKeyVirtualView(hotKey: openWindowHotkey),
-            ],
-          ),
+        Wrap(
+          spacing: 12,
+          children: [
+            Button(
+              onPressed: () async {
+                final key = await KeybindingDialog.show(
+                  context,
+                  initHotkey: openWindowHotkey,
+                  title: const Text('Open the window keybinding'),
+                );
+                if (key != null && key != openWindowHotkey) {
+                  setState(() {
+                    openWindowHotkey = key;
+                  });
+                  await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
+                  initShortcuts(AppWindow());
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Open the window'),
+                  const SizedBox(width: 10.0),
+                  HotKeyVirtualView(hotKey: openWindowHotkey),
+                ],
+              ),
+            ),
+            Button(
+                child: const Text('Show all keybindings'),
+                onPressed: () {
+                  Navigator.of(context).push(FluentPageRoute(
+                      builder: (context) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                alignment: AlignmentDirectional.centerStart,
+                                padding: const EdgeInsets.all(4.0),
+                                color: context.theme.cardColor,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const SmallIconButton(
+                                    child: Icon(FluentIcons.page_left),
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: WelcomeShortcutsHelper()),
+                            ],
+                          )));
+                }),
+          ],
         ),
         spacer,
       ],
@@ -1006,17 +1040,25 @@ class __CacheSectionState extends State<_CacheSection> {
                   AppCache.costTotal.value = 0.0;
                   AppCache.tokensUsedTotal.value = 0;
                 }),
-            Button(
+            FilledRedButton(
                 child: const Text('Clear all data'),
                 onPressed: () async {
+                  final navProvider = context.read<NavigationProvider>();
+                  final res = await ConfirmationDialog.show(context: context);
+                  if (!res) return;
+
                   prefs = await SharedPreferences.getInstance();
                   await ShellDriver.deleteAllTempFiles();
                   await prefs!.clear();
-
-                  /// info to show restart the app banner
                   // ignore: use_build_context_synchronously
-                  // showSnackbar(
-                  //     context, const InfoBar(title: Text('Restart the app')));
+                  navProvider.welcomeScreenPageController =
+                      PageController(keepPage: false);
+                  navProvider.updateUI();
+                  // ignore: use_build_context_synchronously
+                  final navigator = Navigator.of(context);
+                  if (navigator.canPop()) {
+                    navigator.pop();
+                  }
                 }),
             FutureBuilder(
               future: ShellDriver.calcTempFilesSize(),

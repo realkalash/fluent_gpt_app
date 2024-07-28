@@ -2,6 +2,7 @@ import Carbon.HIToolbox
 import Cocoa
 import FlutterMacOS
 import Foundation
+import AVFoundation
 
 @NSApplicationMain
 class AppDelegate: FlutterAppDelegate {
@@ -62,6 +63,12 @@ class AppDelegate: FlutterAppDelegate {
       case "requestNativePermissions":
         self.requestAccessibilityPermissions()
         result(nil)
+      case "requestMicrophonePermissions":
+        print("[Swift] requestMicrophonePermissions called")
+        self.requestMicrophonePermissions { granted in
+        print("[Swift] Permission granted: \(granted)")
+        result(granted)
+      }
       case "isAccessabilityGranted":
         result(self.checkAccessibilityPermissions())
       case "initAccessibility":
@@ -77,6 +84,19 @@ class AppDelegate: FlutterAppDelegate {
       }
     }
   }
+  /// Request mic permission and return result(true) if granted
+  func requestMicrophonePermissions(completion: @escaping (Bool) -> Void) {
+    let mediaType = AVMediaType.audio
+    AVCaptureDevice.requestAccess(for: mediaType) { granted in
+        if granted {
+            print("[Swift] Microphone permission granted")
+        } else {
+            print("[Swift] Microphone permission denied")
+        }
+        completion(granted)
+    }
+}
+  
 
   func handleShowOverlay(call _: FlutterMethodCall, result: @escaping FlutterResult) {
     // Implementation of showOverlay

@@ -8,6 +8,8 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
@@ -304,45 +306,6 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       final navigationProvider = context.read<NavigationProvider>();
       navigationProvider.refreshNavItems();
-
-      if (openAI.token == 'empty') {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          dismissWithEsc: false,
-          builder: (ctx) {
-            final provider = context.watch<ChatGPTProvider>();
-            final textController = provider.dialogApiKeyController;
-            return ContentDialog(
-              title: const Text('OpenAI API key'),
-              actions: [
-                Button(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Done'),
-                ),
-              ],
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('OpenAI key'),
-                  TextBox(
-                    controller: textController,
-                    onChanged: (v) {
-                      provider.setOpenAIKeyForCurrentChatRoom(v);
-                    },
-                  ),
-                  const Text('OpenAI group ID (optional)'),
-                  TextBox(
-                    onChanged: (v) {
-                      provider.setOpenAIGroupIDForCurrentChatRoom(v);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      }
     });
   }
 
@@ -362,6 +325,15 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     var navigationProvider = context.watch<NavigationProvider>();
     navigationProvider.context = context;
     final appTheme = context.watch<AppTheme>();
+    if (AppCache.isWelcomeShown.value! == false) return const WelcomeTab();
+    if (openAI.token == 'empty') {
+      navigationProvider.welcomeScreenPageController.jumpToPage(
+        navigationProvider.welcomeScreens
+            .lastIndexWhere((page) => page is WelcomeLLMConfigPage),
+      );
+      return const WelcomeTab();
+    }
+
     return GestureDetector(
       onPanStart: (v) => WindowManager.instance.startDragging(),
       dragStartBehavior: DragStartBehavior.start,
