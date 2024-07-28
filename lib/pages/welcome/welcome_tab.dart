@@ -18,11 +18,9 @@ class WelcomeTab extends StatelessWidget {
       children: [
         const AnimatedGradientBackgroundMovingCircles(),
         GestureDetector(
-          // drag window
           onPanUpdate: (details) {
             windowManager.startDragging();
           },
-          // page view
           child: Scaffold(
             bottomNavigationBar: Padding(
               padding: const EdgeInsets.all(8.0),
@@ -57,7 +55,6 @@ class WelcomeTab extends StatelessWidget {
             ),
             body: PageView(
               controller: pageController,
-              // disable gestures for pageView
               physics: const NeverScrollableScrollPhysics(),
               children: navProvider.welcomeScreens,
             ),

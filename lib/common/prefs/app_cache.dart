@@ -19,6 +19,7 @@ class AppCache {
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);
   static const isFoldersAccessGranted = BoolPref("isFoldersAccessGranted", false);
+  static const isMicAccessGranted = BoolPref("isMicAccessGranted", false);
 
   static const openWindowKey = StringPref("openWindowKey");
 

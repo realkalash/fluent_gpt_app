@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_moving_background/enums/animation_types.dart';
 import 'package:simple_animations/simple_animations.dart';
@@ -18,14 +20,19 @@ class _WelcomePageState extends State<WelcomePage> {
     windowManager.setTitleBarStyle(TitleBarStyle.hidden,
         windowButtonVisibility: false);
     super.initState();
-    Future.delayed(const Duration(milliseconds: 500)).then((_) async {
-      await windowManager.setSize(
-        const Size(800, 500),
-        animate: true,
-      );
-      await Future.delayed(Durations.long1);
-      await windowManager.setAlignment(Alignment.center, animate: true);
-    });
+    if (Platform.isMacOS) {
+      Future.delayed(const Duration(milliseconds: 100)).then((_) async {
+        Size windowSize = await windowManager.getSize();
+        Offset position =
+            await calcWindowPosition(windowSize, Alignment.center);
+        await windowManager.setBounds(
+          null,
+          size: const Size(800, 500),
+          position: position.translate(0, 0),
+          animate: true,
+        );
+      });
+    }
   }
 
   @override

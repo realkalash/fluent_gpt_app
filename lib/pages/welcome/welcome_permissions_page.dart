@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:window_manager/window_manager.dart';
@@ -17,18 +19,40 @@ class WelcomePermissionsPage extends StatefulWidget {
   State<WelcomePermissionsPage> createState() => _WelcomePermissionsPageState();
 }
 
-class _WelcomePermissionsPageState extends State<WelcomePermissionsPage> {
+class _WelcomePermissionsPageState extends State<WelcomePermissionsPage>
+    with WidgetsBindingObserver {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      log('App resumed. Rechecking permissions');
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1000)).then((_) async {
-      await windowManager.setSize(
-        const Size(800 * 1.5, 500 * 1.5),
-        animate: true,
-      );
-      await Future.delayed(Durations.medium4);
-      await windowManager.center();
-    });
+    WidgetsBinding.instance.addObserver(this);
+
+    if (Platform.isMacOS) {
+      Future.delayed(const Duration(milliseconds: 1000)).then((_) async {
+        Size windowSize = await windowManager.getSize();
+        Offset position =
+            await calcWindowPosition(windowSize, Alignment.center);
+        await windowManager.setBounds(
+          null,
+          size: const Size(800 * 1.5, 500 * 1.5),
+          position: position.translate(-200, -200),
+          animate: true,
+        );
+      });
+    }
   }
 
   @override
@@ -126,10 +150,12 @@ class _WelcomePermissionsPageState extends State<WelcomePermissionsPage> {
                             title: 'Microphone',
                             description:
                                 'Allows you to record your voice and send it to LLM',
-                            isGranted: false,
+                            isGranted: AppCache.isMicAccessGranted.value!,
                             onGrantAccessTap: () async {
-                              await NativeChannelUtils
+                              final result = await NativeChannelUtils
                                   .requestMicrophonePermissions();
+                              if (result == false) return;
+                              AppCache.isMicAccessGranted.value = true;
                               setState(() {});
                             },
                           ),
@@ -158,18 +184,25 @@ class _WelcomePermissionsPageState extends State<WelcomePermissionsPage> {
                                 }),
                           const SizedBox(height: 24),
                           if (Platform.isMacOS)
-                            FutureBuilder(
-                                future: Permission.notification.isGranted,
-                                initialData: false,
+                            FutureBuilder<NotificationsEnabledOptions?>(
+                                future: IOSFlutterLocalNotificationsPlugin()
+                                    .checkPermissions(),
                                 builder: (context, snap) {
+                                  final isGranted =
+                                      snap.data?.isEnabled == true;
                                   return PermissionItem(
                                     icon: Icons.notifications,
                                     title: 'Notifications',
                                     description:
                                         'Allows you to receive notifications from the app.',
-                                    isGranted: snap.data == true,
+                                    isGranted: isGranted,
                                     onGrantAccessTap: () async {
-                                      await Permission.notification.request();
+                                      await MacOSFlutterLocalNotificationsPlugin()
+                                          .requestPermissions(
+                                        alert: true,
+                                        sound: true,
+                                        badge: true,
+                                      );
                                       await Future.delayed(
                                           Durations.extralong4);
                                       setState(() {});

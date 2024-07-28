@@ -6,6 +6,7 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
@@ -145,6 +146,7 @@ void main(List<String> args) async {
     logError('[Platform] $error', stack);
     return true;
   };
+  initializeNotifications();
   await protocolHandler.register('fluentgpt');
   setupMethodChannel();
   if (Platform.isMacOS || Platform.isWindows) {
@@ -327,10 +329,9 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     final appTheme = context.watch<AppTheme>();
     if (AppCache.isWelcomeShown.value! == false) return const WelcomeTab();
     if (openAI.token == 'empty') {
-      navigationProvider.welcomeScreenPageController.jumpToPage(
-        navigationProvider.welcomeScreens
-            .lastIndexWhere((page) => page is WelcomeLLMConfigPage),
-      );
+      final indexTokenPage = navigationProvider.welcomeScreens
+          .lastIndexWhere((page) => page is WelcomeLLMConfigPage);
+      navigationProvider.initWelcomeScreenController(indexTokenPage);
       return const WelcomeTab();
     }
 

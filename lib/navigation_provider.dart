@@ -206,6 +206,9 @@ class NavigationProvider with ChangeNotifier {
   }
 
   PageController welcomeScreenPageController = PageController(keepPage: false);
+  void initWelcomeScreenController([int indexStartPage = 0]){
+    welcomeScreenPageController = PageController(keepPage: false, initialPage: indexStartPage);
+  }
   final welcomeScreens = const [
     WelcomePage(),
     WelcomePermissionsPage(),

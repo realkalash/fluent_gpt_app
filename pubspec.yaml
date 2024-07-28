@@ -53,6 +53,7 @@ dependencies:
   flutter_moving_background: ^0.0.5
   smooth_page_indicator: ^1.2.0+3
   adaptive_layout: ^0.1.7
+  flutter_local_notifications: ^17.2.1+2
   
 
 dev_dependencies:
