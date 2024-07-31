@@ -4,10 +4,8 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
-import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
-import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
@@ -157,20 +155,6 @@ class ConversationStyleRow extends StatelessWidget {
 class PageHeaderText extends StatelessWidget {
   const PageHeaderText({super.key});
 
-  Future<void> editChatRoomDialog(
-      BuildContext context, ChatRoom room, ChatGPTProvider provider) async {
-    await showDialog(
-      context: context,
-      builder: (ctx) => EditChatRoomDialog(
-        room: room,
-        onOkPressed: () {
-          final navigationProvider = context.read<NavigationProvider>();
-          navigationProvider.refreshNavItems();
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.read<ChatGPTProvider>();
@@ -180,13 +164,15 @@ class PageHeaderText extends StatelessWidget {
       child: Column(
         children: [
           StreamBuilder(
-            stream: selectedChatRoomNameStream,
+            stream: selectedChatRoomIdStream,
             builder: (_, __) {
-              final selectedRoom = selectedChatRoomNameStream.value;
               return GestureDetector(
-                onTap: () => editChatRoomDialog(
-                    context, chatRooms[selectedRoom]!, chatProvider),
-                child: TextAnimator(selectedRoom, maxLines: 2),
+                onTap: () => EditChatRoomDialog.show(
+                  context: context,
+                  room: selectedChatRoom,
+                  onOkPressed: () {},
+                ),
+                child: TextAnimator(selectedChatRoom.chatRoomName, maxLines: 2),
               );
             },
           ),

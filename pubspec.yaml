@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A chat gpt project for windows created with Flutter.
 publish_to: "none"
-version: 0.9.9+7
+version: 0.9.9+8
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
@@ -54,6 +54,8 @@ dependencies:
   smooth_page_indicator: ^1.2.0+3
   adaptive_layout: ^0.1.7
   flutter_local_notifications: ^17.2.1+2
+  cryptography: ^2.7.0
+  cryptography_flutter: ^2.3.2
   
 
 dev_dependencies:

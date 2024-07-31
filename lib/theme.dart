@@ -77,20 +77,6 @@ class AppTheme extends ChangeNotifier {
 
   bool get isDark => mode == ThemeMode.dark;
 
-  PaneDisplayMode _displayMode = PaneDisplayMode.auto;
-  PaneDisplayMode get displayMode => _displayMode;
-  set displayMode(PaneDisplayMode displayMode) {
-    _displayMode = displayMode;
-    notifyListeners();
-  }
-
-  NavigationIndicators _indicator = NavigationIndicators.sticky;
-  NavigationIndicators get indicator => _indicator;
-  set indicator(NavigationIndicators indicator) {
-    _indicator = indicator;
-    notifyListeners();
-  }
-
   WindowEffect _windowEffect =
       Platform.isLinux ? WindowEffect.disabled : WindowEffect.acrylic;
   WindowEffect get windowEffect => _windowEffect;

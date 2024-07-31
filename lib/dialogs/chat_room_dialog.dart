@@ -1,5 +1,5 @@
-
 import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -11,14 +11,28 @@ class EditChatRoomDialog extends StatelessWidget {
   final ChatRoom room;
   final VoidCallback onOkPressed;
 
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required ChatRoom room,
+    required VoidCallback onOkPressed,
+  }) {
+    return showDialog(
+      context: context,
+      builder: (ctx) =>
+          EditChatRoomDialog(room: room, onOkPressed: onOkPressed),
+    );
+  }
+
   @override
-  Widget build(BuildContext ctx) {
-    final provider = ctx.read<ChatGPTProvider>();
+  Widget build(BuildContext context) {
+    final provider = context.read<ChatGPTProvider>();
     var roomName = room.chatRoomName;
     var systemMessage = room.systemMessage;
     var maxLength = room.maxTokenLength;
-    var token = room.token;
+    var token = room.apiToken;
     var orgID = room.orgID;
+    var index = room.indexSort;
+    var ico = room.iconCodePoint;
     return ContentDialog(
       title: const Text('Edit chat room'),
       constraints: const BoxConstraints(maxWidth: 800),
@@ -26,22 +40,23 @@ class EditChatRoomDialog extends StatelessWidget {
         Button(
           onPressed: () {
             provider.editChatRoom(
-                room.chatRoomName,
+                room.id,
                 room.copyWith(
                   chatRoomName: roomName,
                   commandPrefix: systemMessage,
                   maxLength: maxLength,
                   token: token,
                   orgID: orgID,
+                  indexSort: index,
                 ));
-            Navigator.of(ctx).pop();
+            Navigator.of(context).pop();
             onOkPressed();
           },
           child: const Text('Save'),
         ),
         Button(
           onPressed: () {
-            Navigator.of(ctx).pop();
+            Navigator.of(context).pop();
           },
           child: const Text('Cancel'),
         ),
@@ -49,11 +64,28 @@ class EditChatRoomDialog extends StatelessWidget {
       content: ListView(
         children: [
           const Text('Chat room name'),
-          TextBox(
-            controller: TextEditingController(text: room.chatRoomName),
-            onChanged: (value) {
-              roomName = value;
-            },
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextBox(
+                controller: TextEditingController(text: room.chatRoomName),
+                onChanged: (value) {
+                  roomName = value;
+                },
+              ),
+              DropDownButton(
+                title: Icon(IconData(ico, fontFamily: 'FluentIcons')),
+                items: fluentIconsList.map((e) {
+                  return MenuFlyoutItem(
+                    text:
+                        Icon(IconData(e.codePoint, fontFamily: 'FluentIcons')),
+                    onPressed: () {
+                      ico = e.codePoint;
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
           ),
           const Text('System message'),
           TextBox(
@@ -70,6 +102,13 @@ class EditChatRoomDialog extends StatelessWidget {
               provider.selectModelForChat(room.chatRoomName, model);
             },
           ),
+          const Text('Number in list'),
+          NumberBox(
+              value: room.indexSort,
+              min: 1,
+              onChanged: (value) {
+                index = value ?? 1;
+              }),
           const Text('Max length'),
           TextBox(
             controller:
@@ -80,7 +119,7 @@ class EditChatRoomDialog extends StatelessWidget {
           ),
           const Text('Token'),
           TextBox(
-            controller: TextEditingController(text: room.token),
+            controller: TextEditingController(text: room.apiToken),
             obscureText: true,
             onChanged: (value) {
               token = value;

@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:fluent_gpt/utils.dart';
+import 'package:cryptography/cryptography.dart';
+import 'package:cryptography_flutter/cryptography_flutter.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 class ChatRoom {
   String id;
@@ -12,9 +16,12 @@ class ChatRoom {
   double topP;
   int maxTokenLength;
   double repeatPenalty;
+  int iconCodePoint;
+  int indexSort;
 
   /// Api key for the chat model
-  String token;
+  String apiToken;
+
   String? orgID;
 
   /// cost in USD
@@ -23,7 +30,8 @@ class ChatRoom {
   /// Tokens in all messages
   int? tokens;
 
-  String get securedToken => token.replaceAllMapped(RegExp(r'.{4}'), (match) {
+  String get securedToken =>
+      apiToken.replaceAllMapped(RegExp(r'.{4}'), (match) {
         return '*' * match.group(0)!.length;
       });
 
@@ -43,12 +51,38 @@ class ChatRoom {
     required this.topP,
     required this.maxTokenLength,
     required this.repeatPenalty,
-    required this.token,
+    required this.apiToken,
     this.orgID,
     this.systemMessage,
     this.costUSD,
     this.tokens,
+    this.indexSort = 1,
+
+    /// 62087 is the code point for the `chat_24_filled` from [FluentIcons]
+    this.iconCodePoint = 62087,
   });
+
+  /// Method to encrypt the apiToken
+  static Future<SecretBox> encryptApiToken(
+      String token, SecretKey secretKey) async {
+    final algo = FlutterCryptography.defaultInstance.aesGcm();
+    final secretBox = await algo.encrypt(
+      token.codeUnits,
+      secretKey: secretKey,
+    );
+    return secretBox;
+  }
+
+  /// Method to decrypt the apiToken
+  static Future<String> decryptApiToken(
+      SecretBox secretBox, SecretKey secretKey) async {
+    final algo = FlutterCryptography.defaultInstance.aesGcm();
+    final decrypted = await algo.decrypt(
+      secretBox,
+      secretKey: secretKey,
+    );
+    return String.fromCharCodes(decrypted);
+  }
 
   @override
   int get hashCode => id.hashCode;
@@ -58,49 +92,80 @@ class ChatRoom {
     return other is ChatRoom && other.id == id;
   }
 
-  ChatRoom.fromMap(Map<String, dynamic> map)
-      : model = allModels.firstWhere(
-          (element) => element.toString() == map['model'],
-          orElse: () => allModels.first,
-        ),
-        id = map['id'] ?? generateChatID(),
-        chatRoomName = map['chatRoomName'],
-        temp = map['temp'],
-        topk = map['topk'],
-        promptBatchSize = map['promptBatchSize'],
-        repeatPenaltyTokens = map['repeatPenaltyTokens'],
-        topP = map['topP'],
-        maxTokenLength = map['maxLength'],
-        repeatPenalty = map['repeatPenalty'],
-        token = map['token'],
-        orgID = map['orgID'],
-        systemMessage = map['commandPrefix'],
-        costUSD = map['costUSD'],
-        tokens = map['tokens'],
-        messages = (map['messages'] as Map).map(
-          (key, value) {
-            return MapEntry(key, Map<String, String>.from(value));
-          },
-        );
+  static Future<ChatRoom> fromMap(Map<String, dynamic> map) async {
+    String token = '';
+    if (map['token'] == null || map['nonce'] == null || map['token'] == '') {
+      /// List<int> Encrypted data
+      final encryptedToken = map['token'] as List<int>;
+      final nonce = map['nonce'] as List<int>;
+      final secretKey =
+          await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
+      final secretBox = SecretBox(
+        encryptedToken,
+        nonce: nonce,
+        mac: Mac.empty,
+      );
+      token = await decryptApiToken(secretBox, secretKey);
+    }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'model': model.model.toString(),
-        'chatRoomName': chatRoomName,
-        'messages': messages,
-        'temp': temp,
-        'topk': topk,
-        'promptBatchSize': promptBatchSize,
-        'repeatPenaltyTokens': repeatPenaltyTokens,
-        'topP': topP,
-        'maxLength': maxTokenLength,
-        'repeatPenalty': repeatPenalty,
-        'token': token,
-        'orgID': orgID,
-        'commandPrefix': systemMessage,
-        'costUSD': costUSD,
-        'tokens': tokens,
-      };
+    return ChatRoom(
+      model: allModels.firstWhere(
+        (element) => element.toString() == map['model'],
+        orElse: () => allModels.first,
+      ),
+      id: map['id'],
+      chatRoomName: map['chatRoomName'],
+      temp: map['temp'],
+      topk: map['topk'],
+      iconCodePoint: map['iconCodePoint'] as int? ?? 62087,
+      promptBatchSize: map['promptBatchSize'],
+      repeatPenaltyTokens: map['repeatPenaltyTokens'],
+      topP: map['topP'],
+      maxTokenLength: map['maxLength'],
+      repeatPenalty: map['repeatPenalty'],
+      apiToken: token,
+      orgID: map['orgID'],
+      systemMessage: map['commandPrefix'],
+      costUSD: map['costUSD'],
+      tokens: map['tokens'],
+      indexSort: map['indexSort'],
+      messages: (map['messages'] as Map).map(
+        (key, value) {
+          return MapEntry(key, Map<String, String>.from(value));
+        },
+      ),
+    );
+  }
+
+  Future<Map<String, dynamic>> toJson() async {
+    final secretKey =
+        await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
+    final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
+    return {
+      'id': id,
+      'model': model.model.toString(),
+      'chatRoomName': chatRoomName,
+      'messages': messages,
+      'temp': temp,
+      'topk': topk,
+      'iconCode': iconCodePoint,
+      'promptBatchSize': promptBatchSize,
+      'repeatPenaltyTokens': repeatPenaltyTokens,
+      'topP': topP,
+      'maxLength': maxTokenLength,
+      'repeatPenalty': repeatPenalty,
+
+      /// List<int> Encrypted data
+      'token': encryptedTokenBox.cipherText,
+      'orgID': orgID,
+      'commandPrefix': systemMessage,
+      'costUSD': costUSD,
+      'tokens': tokens,
+      'nonce': encryptedTokenBox.nonce,
+      'indexSort': indexSort,
+      'iconCodePoint': iconCodePoint,
+    };
+  }
 
   ChatRoom copyWith({
     String? id,
@@ -119,6 +184,8 @@ class ChatRoom {
     String? commandPrefix,
     double? costUSD,
     int? tokens,
+    int? iconCodePoint,
+    int? indexSort,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -130,14 +197,21 @@ class ChatRoom {
       promptBatchSize: promptBatchSize ?? this.promptBatchSize,
       repeatPenaltyTokens: repeatPenaltyTokens ?? this.repeatPenaltyTokens,
       topP: topP ?? this.topP,
-      maxTokenLength: maxLength ?? this.maxTokenLength,
+      maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
-      token: token ?? this.token,
+      apiToken: token ?? apiToken,
       orgID: orgID ?? this.orgID,
-      systemMessage: commandPrefix ?? this.systemMessage,
+      systemMessage: commandPrefix ?? systemMessage,
       costUSD: costUSD ?? this.costUSD,
       tokens: tokens ?? this.tokens,
+      indexSort: indexSort ?? this.indexSort,
+      iconCodePoint: iconCodePoint ?? this.iconCodePoint,
     );
+  }
+
+  static Future<ChatRoom> fromJson(String stringJson) {
+    final map = json.decode(stringJson) as Map<String, dynamic>;
+    return ChatRoom.fromMap(map);
   }
 }
 

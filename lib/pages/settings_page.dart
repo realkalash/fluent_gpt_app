@@ -47,7 +47,7 @@ class _GptModelChooserState extends State<GptModelChooser> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<String>(
-        stream: selectedChatRoomNameStream,
+        stream: selectedChatRoomIdStream,
         builder: (context, snapshot) {
           return Wrap(
             spacing: 15.0,
@@ -862,46 +862,6 @@ class _ThemeModeSection extends StatelessWidget {
             content: const Text('Dark'),
           ),
         ),
-        biggerSpacer,
-        Text(
-          'Navigation Pane Display Mode',
-          style: FluentTheme.of(context).typography.subtitle,
-        ),
-        spacer,
-        ...List.generate(PaneDisplayMode.values.length, (index) {
-          final mode = PaneDisplayMode.values[index];
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: appTheme.displayMode == mode,
-              onChanged: (value) {
-                if (value) appTheme.displayMode = mode;
-              },
-              content: Text(
-                mode.toString().replaceAll('PaneDisplayMode.', ''),
-              ),
-            ),
-          );
-        }),
-        biggerSpacer,
-        Text('Navigation Indicator',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        ...List.generate(NavigationIndicators.values.length, (index) {
-          final mode = NavigationIndicators.values[index];
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: appTheme.indicator == mode,
-              onChanged: (value) {
-                if (value) appTheme.indicator = mode;
-              },
-              content: Text(
-                mode.toString().replaceAll('NavigationIndicators.', ''),
-              ),
-            ),
-          );
-        }),
         biggerSpacer,
         Text('Accent Color',
             style: FluentTheme.of(context).typography.subtitle),

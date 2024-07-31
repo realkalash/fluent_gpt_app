@@ -69,6 +69,12 @@ extension XFileUint8ListExtension on Uint8List {
 }
 
 class FileUtils {
+  static String? documentDirectoryPath;
+
+  static Future<void> init() async {
+    documentDirectoryPath = (await getApplicationDocumentsDirectory()).path;
+  }
+
   static Future _createTestFileInDir(Future<Directory?> dirFuture) async {
     final dir = await dirFuture;
     if (dir == null) return;
@@ -121,5 +127,77 @@ class FileUtils {
     }
 
     return false;
+  }
+
+  static Future<String> getChatRoomPath() async {
+    final dir =
+        documentDirectoryPath ?? await getApplicationDocumentsDirectory();
+    return '$dir/fluent_gpt/chat_rooms';
+  }
+
+  static List<File> getFilesRecursive(String dirPath) {
+    final files = <File>[];
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) return files;
+    dir.listSync(recursive: true).forEach((element) {
+      if (element is File) {
+        files.add(element);
+      }
+    });
+    return files;
+  }
+
+  static Future<String> getArchivedChatRoomPath() async {
+    final dir =
+        documentDirectoryPath ?? await getApplicationDocumentsDirectory();
+    return '$dir/fluent_gpt/archived/chat_rooms';
+  }
+
+  static Future moveFile(String fromPath, String toPath) async {
+    final file = File(fromPath);
+    if (!file.existsSync()) {
+      throw Exception('File not found: $fromPath');
+    }
+
+    /// check if new path exists
+    final newFile = File(toPath);
+    if (newFile.existsSync()) {
+      await newFile.delete();
+    }
+
+    /// if no directory - create
+    final newDir = Directory(toPath).parent;
+    if (!newDir.existsSync()) {
+      await newDir.create(recursive: true);
+    }
+    await file.copy(toPath);
+    await file.delete();
+  }
+
+  /// Returns the size of the file at the given [dirPath].
+  static Future<double> calculateSizeRecursive(String dirPath) async {
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) return 0;
+    double size = 0;
+    await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      if (entity is File) {
+        size += await entity.length();
+      }
+    }
+    return size;
+  }
+
+  /// Returns the size of the file at the given [dirPath].
+  /// Can return KB/MB/bytes
+  String getBytesString(double value) {
+    // to kilobytes if needed
+    if (value > 1024) {
+      return '${(value / 1024).toStringAsFixed(2)} KB';
+    }
+    // to megabytes if needed
+    if (value > 1024 * 1024) {
+      return '${(value / (1024 * 1024)).toStringAsFixed(2)} MB';
+    }
+    return '${value.toStringAsFixed(2)} bytes';
   }
 }

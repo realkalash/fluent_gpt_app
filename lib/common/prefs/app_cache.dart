@@ -18,7 +18,8 @@ class AppCache {
 
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);
-  static const isFoldersAccessGranted = BoolPref("isFoldersAccessGranted", false);
+  static const isFoldersAccessGranted =
+      BoolPref("isFoldersAccessGranted", false);
   static const isMicAccessGranted = BoolPref("isMicAccessGranted", false);
 
   static const openWindowKey = StringPref("openWindowKey");
@@ -29,10 +30,8 @@ class AppCache {
       OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
-  static const chatRooms = FileStringPref("chatRooms");
-  static const selectedChatRoomName = StringPref("selectedChatRoomName");
-  static const token = StringPref("token");
-  static const orgID = StringPref("orgID");
+  static const archivedChatRooms = FileStringPref("archived/chatRooms");
+  static const selectedChatRoomId = StringPref("selectedChatRoomName");
   static const llmUrl = StringPref("llmUrl");
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");

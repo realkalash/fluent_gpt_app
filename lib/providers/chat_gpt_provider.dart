@@ -11,7 +11,6 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
-import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -23,38 +22,40 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:tiktoken/tiktoken.dart';
 
+/// First is ID, second is ChatRoom
 BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
     BehaviorSubject.seeded({});
+
+/// first is ID, second is ChatRoom
 Map<String, ChatRoom> get chatRooms => chatRoomsStream.value;
 
-BehaviorSubject<String> selectedChatRoomNameStream =
+BehaviorSubject<String> selectedChatRoomIdStream =
     BehaviorSubject.seeded('Default');
-String get selectedChatRoomName => selectedChatRoomNameStream.value;
-set selectedChatRoomName(String v) => selectedChatRoomNameStream.add(v);
+String get selectedChatRoomId => selectedChatRoomIdStream.value;
+set selectedChatRoomId(String v) => selectedChatRoomIdStream.add(v);
 
 ChatModel get selectedModel =>
-    chatRooms[selectedChatRoomName]?.model ?? allModels.first;
+    chatRooms[selectedChatRoomId]?.model ?? allModels.first;
 ChatRoom get selectedChatRoom =>
-    chatRooms[selectedChatRoomName] ??
+    chatRooms[selectedChatRoomId] ??
     (chatRooms.values.isEmpty == true
         ? _generateDefaultChatroom()
         : chatRooms.values.first);
-double get temp => chatRooms[selectedChatRoomName]?.temp ?? 0.9;
-get topk => chatRooms[selectedChatRoomName]?.topk ?? 40;
-get promptBatchSize => chatRooms[selectedChatRoomName]?.promptBatchSize ?? 128;
+double get temp => chatRooms[selectedChatRoomId]?.temp ?? 0.9;
+get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
+get promptBatchSize => chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
 get repeatPenaltyTokens =>
-    chatRooms[selectedChatRoomName]?.repeatPenaltyTokens ?? 64;
-get topP => chatRooms[selectedChatRoomName]?.topP ?? 0.4;
-get maxLenght => chatRooms[selectedChatRoomName]?.maxTokenLength ?? 512;
-get repeatPenalty => chatRooms[selectedChatRoomName]?.repeatPenalty ?? 1.18;
+    chatRooms[selectedChatRoomId]?.repeatPenaltyTokens ?? 64;
+get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
+get maxLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 512;
+get repeatPenalty => chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
 
 /// the key is (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2) the answer is message
 Map<String, Map<String, String>> get messages =>
-    chatRooms[selectedChatRoomName]?.messages ?? {};
+    chatRooms[selectedChatRoomId]?.messages ?? {};
 
 /// conversation lenght style. Will be appended to the prompt
 BehaviorSubject<ConversationLengthStyleEnum> conversationLenghtStyleStream =
@@ -123,52 +124,62 @@ class ChatGPTProvider with ChangeNotifier {
 
   int get textSize => _messageTextSize;
 
-  void saveToDisk() {
-    var rooms = {};
-    for (var chatRoom in chatRooms.entries) {
-      var timeRaw = chatRoom.key;
-      var chatRoomRaw = chatRoom.value.toJson();
-      rooms[timeRaw] = chatRoomRaw;
+  Future<void> saveToDisk([List<ChatRoom>? rooms]) async {
+    // ignore: no_leading_underscores_for_local_identifiers
+    final _chatRooms = rooms ?? chatRooms.values.toList();
+    for (var chatRoom in _chatRooms) {
+      var chatRoomRaw = await chatRoom.toJson();
+      final path = await FileUtils.getChatRoomPath();
+      FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
     }
-    final chatRoomsRaw = jsonEncode(rooms);
-    AppCache.chatRooms.set(chatRoomsRaw);
-    AppCache.selectedChatRoomName.set(selectedChatRoomName);
+    // final chatRoomsRaw = jsonEncode(rooms);
+    // AppCache.chatRooms.set(chatRoomsRaw);
+
+    AppCache.selectedChatRoomId.set(selectedChatRoomId);
+  }
+
+  Future<void> initChatsFromDisk() async {
+    final path = await FileUtils.getChatRoomPath();
+    final files = FileUtils.getFilesRecursive(path);
+    for (var file in files) {
+      try {
+        if (file.path.contains('.DS_Store')) continue;
+        final fileContent = await file.readAsString();
+        final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
+        final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
+        chatRooms[chatRoom.id] = chatRoom;
+        if (chatRoom.chatRoomName == selectedChatRoomId) {
+          initCurerrentChat();
+        }
+      } catch (e) {
+        log('initChatsFromDisk error: $e');
+      }
+    }
+    if (chatRooms.isEmpty) {
+      chatRooms['Default'] = _generateDefaultChatroom();
+      selectedChatRoomId = 'Default';
+    }
+    selectedChatRoomId = selectedChatRoomId;
+    notifyRoomsStream();
   }
 
   ChatGPTProvider() {
-    final token = AppCache.token.value ?? 'empty';
-    final orgID = AppCache.orgID.value ?? '';
-    openAI.setOrgId(orgID);
-    openAI.setToken(token);
     _messageTextSize = AppCache.messageTextSize.value ?? 14;
-    AppCache.chatRooms.value().then((chatRoomsinSP) {
-      if (chatRoomsinSP != null && chatRoomsinSP.isNotEmpty) {
-        final map = jsonDecode(chatRoomsinSP) as Map;
-        for (var chatRoom in map.entries) {
-          var timeRaw = chatRoom.key;
-          var chatRoomRaw = chatRoom.value as Map<String, dynamic>;
-          chatRooms[timeRaw] = ChatRoom.fromMap(chatRoomRaw);
-        }
-      }
-      if (chatRooms.isEmpty) {
-        chatRooms[selectedChatRoomName] = _generateDefaultChatroom();
-      } else {
-        // notify stream
-        chatRoomsStream.add(chatRooms);
-        selectedChatRoomName =
-            prefs?.getString('selectedChatRoomName') ?? 'Default';
-      }
-      if (selectedChatRoom.token != 'empty') {
-        openAI.setToken(selectedChatRoom.token);
-        log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
-      }
-      if (selectedChatRoom.orgID != '') {
-        openAI.setOrgId(selectedChatRoom.orgID ?? '');
-        log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
-      }
-    });
-
+    selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
+    initChatsFromDisk();
     listenTray();
+  }
+
+  /// Should be called after we load all chat rooms
+  void initCurerrentChat() {
+    if (selectedChatRoom.apiToken != 'empty') {
+      openAI.setToken(selectedChatRoom.apiToken);
+      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
+    }
+    if (selectedChatRoom.orgID != '') {
+      openAI.setOrgId(selectedChatRoom.orgID ?? '');
+      log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
+    }
   }
 
   void listenTray() {
@@ -195,7 +206,7 @@ class ChatGPTProvider with ChangeNotifier {
       } else if (command == 'custom') {
         sendMessage(text, false, true);
       } else if (command == 'grammar') {
-        sendCheckGrammar(text.trim());
+        sendMessage('Check spelling and grammar: "$text"', false, true);
       } else if (command == 'explain') {
         sendMessage('Explain: "$text"', false, true);
       } else if (command == 'to_rus') {
@@ -219,14 +230,6 @@ class ChatGPTProvider with ChangeNotifier {
         throw Exception('Unknown command: $command');
       }
     });
-  }
-
-  @Deprecated('Use [sendMessage] instead')
-  void sendCheckGrammar(String text) {
-    sendMessage(
-      'Check spelling and grammar: "$text"',
-      false,
-    );
   }
 
   XFile? fileInput;
@@ -399,7 +402,7 @@ class ChatGPTProvider with ChangeNotifier {
 
     fileInput = null;
     notifyListeners();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void addBotMessageToList(String appendedText, [String? id]) {
@@ -546,9 +549,9 @@ class ChatGPTProvider with ChangeNotifier {
             final titleShort = tilteWords.length > 5
                 ? tilteWords.sublist(0, 5).join(' ')
                 : title;
-            final chatRoom = chatRooms[selectedChatRoomName];
+            final chatRoom = chatRooms[selectedChatRoomId];
             chatRoom!.chatRoomName = titleShort;
-            chatRooms[selectedChatRoomName] = chatRoom;
+            chatRooms[selectedChatRoomId] = chatRoom;
             notifyRoomsStream();
             saveToDisk();
           }
@@ -575,7 +578,7 @@ class ChatGPTProvider with ChangeNotifier {
       final message =
           response.choices.last.message!.content.replaceAll('"', '');
       editChatRoom(
-        selectedChatRoomName,
+        selectedChatRoomId,
         selectedChatRoom.copyWith(chatRoomName: message),
         switchToForeground: true,
       );
@@ -593,14 +596,14 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   void selectNewModel(ChatModel model) {
-    chatRooms[selectedChatRoomName]!.model = model;
+    chatRooms[selectedChatRoomId]!.model = model;
     notifyListeners();
     saveToDisk();
     if (model is LocalChatModel) {
       AppCache.llmUrl.set(model.url);
-      resetOpenAiUrl(url: model.url, token: selectedChatRoom.token);
+      resetOpenAiUrl(url: model.url, token: selectedChatRoom.apiToken);
     } else {
-      resetOpenAiUrl(token: selectedChatRoom.token);
+      resetOpenAiUrl(token: selectedChatRoom.apiToken);
     }
   }
 
@@ -611,23 +614,20 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
     if (model is LocalChatModel) {
       AppCache.llmUrl.set(model.url);
-      resetOpenAiUrl(url: model.url, token: selectedChatRoom.token);
+      resetOpenAiUrl(url: model.url, token: selectedChatRoom.apiToken);
     } else {
-      resetOpenAiUrl(token: selectedChatRoom.token);
+      resetOpenAiUrl(token: selectedChatRoom.apiToken);
     }
   }
 
   void createNewChatRoom() {
-    NavigationProvider? navProvider;
-    try {
-      navProvider = Provider.of<NavigationProvider>(context!, listen: false);
-    } catch (e) {}
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
-    chatRooms[chatRoomName] = ChatRoom(
-      id: generateChatID(),
+    final id = generateChatID();
+    chatRooms[id] = ChatRoom(
+      id: id,
       costUSD: 0,
       tokens: 0,
-      token: openAI.token,
+      apiToken: openAI.token,
       chatRoomName: chatRoomName,
       model: selectedModel,
       messages: {},
@@ -640,32 +640,26 @@ class ChatGPTProvider with ChangeNotifier {
       repeatPenalty: repeatPenalty,
       systemMessage: defaultSystemMessage,
     );
-    selectedChatRoomName = chatRoomName;
-    if (navProvider != null) {
-      navProvider.index = chatRooms.length - 1;
-      navProvider.refreshNavItems();
-    }
     notifyListeners();
-    saveToDisk();
     notifyRoomsStream();
+    selectedChatRoomId = id;
+    saveToDisk([chatRooms[selectedChatRoomId]!]);
   }
 
   void setOpenAIKeyForCurrentChatRoom(String v) {
     final trimmed = v.trim();
-    chatRooms[selectedChatRoomName]!.token = trimmed;
+    chatRooms[selectedChatRoomId]!.apiToken = trimmed;
     openAI.setToken(trimmed);
-    AppCache.token.set(trimmed);
-    log('setOpenAIKeyForCurrentChatRoom: ${chatRooms[selectedChatRoomName]!.securedToken}');
+    log('setOpenAIKeyForCurrentChatRoom: ${chatRooms[selectedChatRoomId]!.securedToken}');
     notifyListeners();
-    saveToDisk();
+    saveToDisk([chatRooms[selectedChatRoomId]!]);
   }
 
   void setOpenAIGroupIDForCurrentChatRoom(String v) {
-    chatRooms[selectedChatRoomName]!.orgID = v;
+    chatRooms[selectedChatRoomId]!.orgID = v;
     openAI.setOrgId(v);
-    AppCache.orgID.set(v);
     notifyListeners();
-    saveToDisk();
+    saveToDisk([chatRooms[selectedChatRoomId]!]);
   }
 
   void deleteAllChatRooms() {
@@ -676,19 +670,26 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   void selectChatRoom(ChatRoom room) {
-    selectedChatRoomName = room.chatRoomName;
-    saveToDisk();
+    selectedChatRoomId = room.id;
+    notifyListeners();
   }
 
-  void deleteChatRoom(String chatRoomName) {
-    chatRooms.remove(chatRoomName);
+  void deleteChatRoom(String chatRoomId) {
+    chatRooms.remove(chatRoomId);
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       chatRooms['Default'] = _generateDefaultChatroom();
-      selectedChatRoomName = 'Default';
+      selectedChatRoomId = 'Default';
     }
+    if (chatRoomId == selectedChatRoomId) {
+      selectedChatRoomId = chatRooms.keys.last;
+    }
+    FileUtils.getChatRoomPath().then((dir) async {
+      final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
+      FileUtils.moveFile(
+          '$dir/$chatRoomId.json', '$archivedChatRoomsPath/$chatRoomId.json');
+    });
     notifyListeners();
-    saveToDisk();
   }
 
   /// Will remove all chat rooms with selected name
@@ -698,22 +699,24 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk();
   }
 
-  void editChatRoom(String oldChatRoomName, ChatRoom chatRoom,
+  void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
-    // if token is changed, update openAI
-    if (chatRoom.token != chatRooms[oldChatRoomName]?.token) {
-      openAI.setToken(chatRoom.token);
-      log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.securedToken}');
+    if (selectedChatRoomId == oldChatRoomId) {
+      // if token is changed, update openAI
+      if (chatRoom.apiToken != chatRooms[oldChatRoomId]?.apiToken) {
+        openAI.setToken(chatRoom.apiToken);
+        log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.securedToken}');
+      }
+      // if orgID is changed, update openAI
+      if (chatRoom.orgID != chatRooms[oldChatRoomId]?.orgID) {
+        openAI.setOrgId(chatRoom.orgID ?? '');
+        log('setOpenAIGroupIDForCurrentChatRoom: ${chatRoom.orgID}');
+      }
     }
-    // if orgID is changed, update openAI
-    if (chatRoom.orgID != chatRooms[oldChatRoomName]?.orgID) {
-      openAI.setOrgId(chatRoom.orgID ?? '');
-      log('setOpenAIGroupIDForCurrentChatRoom: ${chatRoom.orgID}');
-    }
-    chatRooms.remove(oldChatRoomName);
-    chatRooms[chatRoom.chatRoomName] = chatRoom;
+    chatRooms.remove(oldChatRoomId);
+    chatRooms[chatRoom.id] = chatRoom;
     if (switchToForeground) {
-      selectedChatRoomName = chatRoom.chatRoomName;
+      selectedChatRoomId = chatRoom.id;
     }
     notifyRoomsStream();
     saveToDisk();
@@ -861,17 +864,6 @@ class ChatGPTProvider with ChangeNotifier {
     if (isRetrievingFiles) return;
     if (openAI.token.trim().isEmpty) return;
     return;
-    isRetrievingFiles = true;
-    notifyListeners();
-    try {
-      final response = await OpenAI.instance.file.get();
-      filesInOpenAi = response.data;
-    } catch (e) {
-      log('Error while retrieving files: $e');
-    } finally {
-      isRetrievingFiles = false;
-      notifyListeners();
-    }
   }
 
   Future<void> downloadOpenFile(FileData file) async {
@@ -923,7 +915,7 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
     Map<String, String> headers = {
       "Content-Type": "application/json",
-      "Authorization": "Bearer ${selectedChatRoom.token}"
+      "Authorization": "Bearer ${selectedChatRoom.apiToken}"
     };
 
     Map<String, dynamic> payload = {
@@ -1067,6 +1059,31 @@ class ChatGPTProvider with ChangeNotifier {
   void updateUI() {
     notifyListeners();
   }
+
+  Future<void> archiveChatRoom(ChatRoom room) async {
+    final archived = await getArchivedChatRooms();
+    archived.add(room);
+    // TODO: save archived chat rooms
+    deleteChatRoom(room.id);
+  }
+
+  static Future<List<ChatRoom>> getArchivedChatRooms() async {
+    final json = await AppCache.archivedChatRooms.value();
+    if (json == null || json.isEmpty) return [];
+    final map = jsonDecode(json) as List;
+    final rooms = <ChatRoom>[];
+    for (var chatRoomRaw in map) {
+      final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
+      rooms.add(chatRoom);
+    }
+    return rooms;
+  }
+
+  static saveArchivedChatRooms(List<ChatRoom> rooms) {
+    final map = rooms.map((e) async => await e.toJson()).toList();
+    final json = jsonEncode(map);
+    AppCache.archivedChatRooms.set(json);
+  }
 }
 
 ChatRoom _generateDefaultChatroom() {
@@ -1082,7 +1099,7 @@ ChatRoom _generateDefaultChatroom() {
     topP: topP,
     maxTokenLength: maxLenght,
     repeatPenalty: repeatPenalty,
-    token: openAI.token,
+    apiToken: openAI.token,
     orgID: openAI.orgId,
     systemMessage: defaultSystemMessage,
   );

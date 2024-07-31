@@ -1,5 +1,9 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
+import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
+import 'package:fluent_gpt/dialogs/storage_usage.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -9,12 +13,12 @@ import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
-import 'package:fluent_ui/fluent_ui.dart' hide Page;
+import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -159,6 +163,9 @@ void main(List<String> args) async {
     log('onSecondWindow. args: $args');
   });
   prefs = await SharedPreferences.getInstance();
+  if (AppCache.isWelcomeShown.value == true) {
+    await FileUtils.init();
+  }
   if (Platform.isMacOS || Platform.isWindows) {
     await flutter_acrylic.Window.initialize();
     await flutter_acrylic.Window.hideWindowControls();
@@ -305,10 +312,6 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
   void initState() {
     windowManager.addListener(this);
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      final navigationProvider = context.read<NavigationProvider>();
-      navigationProvider.refreshNavItems();
-    });
   }
 
   @override
@@ -324,16 +327,8 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    var navigationProvider = context.watch<NavigationProvider>();
-    navigationProvider.context = context;
-    final appTheme = context.watch<AppTheme>();
+    context.watch<NavigationProvider>();
     if (AppCache.isWelcomeShown.value! == false) return const WelcomeTab();
-    if (openAI.token == 'empty') {
-      final indexTokenPage = navigationProvider.welcomeScreens
-          .lastIndexWhere((page) => page is WelcomeLLMConfigPage);
-      navigationProvider.initWelcomeScreenController(indexTokenPage);
-      return const WelcomeTab();
-    }
 
     return GestureDetector(
       onPanStart: (v) => WindowManager.instance.startDragging(),
@@ -362,39 +357,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
               if (snapshot.data?.isShowingSidebarOverlay == true) {
                 return const SidebarOverlayUI();
               }
-              return NavigationView(
-                key: navigationProvider.viewKey,
-                appBar: const NavigationAppBar(
-                  automaticallyImplyLeading: false,
-                  actions: MainAppHeaderButtons(),
-                ),
-                paneBodyBuilder: (item, child) {
-                  final name = item?.key is ValueKey
-                      ? (item!.key as ValueKey).value
-                      : null;
-                  return FocusTraversalGroup(
-                    key: ValueKey('body$name'),
-                    child: child ?? const ChatRoomPage(),
-                  );
-                },
-                pane: NavigationPane(
-                  selected: navigationProvider.index,
-                  displayMode: appTheme.displayMode,
-                  indicator: () {
-                    switch (appTheme.indicator) {
-                      case NavigationIndicators.end:
-                        return const EndNavigationIndicator();
-                      case NavigationIndicators.sticky:
-                      default:
-                        return const StickyNavigationIndicator();
-                    }
-                  }(),
-                  items: navigationProvider.originalItems,
-                  autoSuggestBoxReplacement: const Icon(FluentIcons.search),
-                  footerItems: navigationProvider.footerItems,
-                ),
-                onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
-              );
+              return const MainPageWithNavigation();
             }),
       ),
     );
@@ -429,6 +392,142 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
         },
       );
     }
+  }
+}
+
+class MainPageWithNavigation extends StatelessWidget {
+  const MainPageWithNavigation({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final navigationProvider = context.read<NavigationProvider>();
+    return StreamBuilder(
+        stream: selectedChatRoomIdStream,
+        builder: (context, _) {
+          return NavigationView(
+            key: navigationProvider.viewKey,
+            appBar: const NavigationAppBar(
+              automaticallyImplyLeading: false,
+              actions: MainAppHeaderButtons(),
+            ),
+            paneBodyBuilder: (item, child) {
+              final name =
+                  item?.key is ValueKey ? (item!.key as ValueKey).value : null;
+              return FocusTraversalGroup(
+                key: ValueKey('body$name'),
+                child: child ?? const ChatRoomPage(),
+              );
+            },
+            pane: NavigationPane(
+              // selected: selectedIndex,
+              displayMode: PaneDisplayMode.auto,
+              items: [
+                PaneItemHeader(
+                    header: Row(
+                  children: [
+                    const Expanded(child: Text('Chat rooms')),
+                    Tooltip(
+                      message: 'Create new chat',
+                      child: IconButton(
+                          icon: const Icon(FluentIcons.compose_24_regular,
+                              size: 20),
+                          onPressed: () {
+                            final provider = context.read<ChatGPTProvider>();
+                            provider.createNewChatRoom();
+                          }),
+                    ),
+                    Tooltip(
+                      message: 'Deleted chats',
+                      child: IconButton(
+                        icon: const Icon(FluentIcons.bin_recycle_24_regular,
+                            size: 20),
+                        onPressed: () => DeletedChatsDialog.show(context),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Storage usage',
+                      child: IconButton(
+                        icon: const Icon(FluentIcons.storage_24_regular,
+                            size: 20),
+                        onPressed: () => StorageUsage.show(context),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Refresh from disk',
+                      child: IconButton(
+                        icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
+                            size: 20),
+                        onPressed: () =>
+                            Provider.of<ChatGPTProvider>(context, listen: false)
+                                .initChatsFromDisk(),
+                      ),
+                    ),
+                  ],
+                )),
+                ...chatRoomsStream.value.values.map((room) => PaneItem(
+                      key: ValueKey(room.id),
+                      tileColor: WidgetStatePropertyAll(
+                        room.id == selectedChatRoomId
+                            ? FluentTheme.of(context).accentColor
+                            : Colors.transparent,
+                      ),
+                      icon: const Icon(FluentIcons.chat_24_filled, size: 24),
+                      title: Text(room.chatRoomName),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: 'Edit chat',
+                            child: IconButton(
+                                icon: const Icon(
+                                  FluentIcons.chat_settings_24_regular,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  EditChatRoomDialog.show(
+                                    context: context,
+                                    room: room,
+                                    onOkPressed: _updateUI,
+                                  );
+                                }),
+                          ),
+                          Tooltip(
+                            message: 'Delete chat',
+                            child: IconButton(
+                                icon: Icon(FluentIcons.delete_24_filled,
+                                    color: Colors.red, size: 18),
+                                onPressed: () {
+                                  final provider =
+                                      context.read<ChatGPTProvider>();
+                                  // check shift key is pressed
+                                  if (shiftPressedStream.value) {
+                                    provider.deleteChatRoomHard(room.id);
+                                  } else {
+                                    provider.archiveChatRoom(room);
+                                  }
+                                  _updateUI();
+                                }),
+                          ),
+                        ],
+                      ),
+                      body: const ChatRoomPage(),
+                      onTap: () {
+                        final provider = context.read<ChatGPTProvider>();
+                        provider.selectChatRoom(room);
+                      },
+                    )),
+              ],
+              autoSuggestBoxReplacement:
+                  const Icon(FluentIcons.search_24_regular),
+              footerItems: navigationProvider.footerItems,
+            ),
+            onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
+          );
+        });
+  }
+
+  void _updateUI() {
+    selectedChatRoomIdStream.add(selectedChatRoomId);
   }
 }
 

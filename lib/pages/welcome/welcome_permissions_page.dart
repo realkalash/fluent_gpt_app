@@ -6,7 +6,6 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -140,6 +139,7 @@ class _WelcomePermissionsPageState extends State<WelcomePermissionsPage>
                                   await FileUtils.touchAccessAllFolders();
                               if (res == true) {
                                 AppCache.isFoldersAccessGranted.value = true;
+                                await FileUtils.init();
                                 setState(() {});
                               }
                             },

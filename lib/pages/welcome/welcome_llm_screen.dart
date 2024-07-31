@@ -103,9 +103,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                               });
                             },
                           ),
-                          onChanged: (value) {
-                            provider.setOpenAIKeyForCurrentChatRoom(value);
-                          },
+                          onChanged: provider.setOpenAIKeyForCurrentChatRoom,
                         ),
                         const Wrap(
                           spacing: 8,

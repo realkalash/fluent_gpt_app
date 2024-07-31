@@ -38,8 +38,9 @@ class StringPref extends _Pref<String> {
 
 // File String pref for saving a file into a app folder
 class FileStringPref {
-  const FileStringPref(this.key);
-  final String key;
+  /// FileName can be a path+filename
+  const FileStringPref(this.fileName);
+  final String fileName;
   Future<String> appDirectoryPath() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -64,7 +65,7 @@ class FileStringPref {
 
   Future<String?> value() async {
     final path = await appDirectoryPath();
-    final filePath = '$path/$key';
+    final filePath = '$path/$fileName';
     //if not exist, create file and return empty string
     final file = File(filePath);
     if (!file.existsSync()) {
@@ -80,7 +81,7 @@ class FileStringPref {
 
   Future<void> set(String value) async {
     final path = await appDirectoryPath();
-    final filePath = '$path/$key';
+    final filePath = '$path/$fileName';
     final file = File(filePath);
     if (!file.existsSync()) {
       try {
@@ -98,7 +99,7 @@ class FileStringPref {
 
   Future remove() async {
     final path = await appDirectoryPath();
-    final filePath = '$path/$key';
+    final filePath = '$path/$fileName';
     final file = File(filePath);
     if (file.existsSync()) {
       try {
