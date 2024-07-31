@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart';
