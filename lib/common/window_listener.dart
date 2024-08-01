@@ -57,7 +57,7 @@ class AppWindowListener extends WindowListener {
   onWindowRestore() {
     log('Window restored');
     windowVisibilityStream.add(true);
-    windowManager.focus();
+    // windowManager.focus();
     promptTextFocusNode.requestFocus();
   }
 }

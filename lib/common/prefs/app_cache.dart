@@ -6,7 +6,7 @@ class AppCache {
   // ${resolution.width}x${resolution.height}
   static const resolution = StringPref("resolution", '500x700');
   static const preventClose = BoolPref("preventClose");
-  static const showAppInDock = BoolPref("showAppInDock", true);
+  static const showAppInDock = BoolPref("showAppInDock", false);
   static const enableOverlay = BoolPref("enableOverlay", false);
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const hideTitleBar = BoolPref("hideTitleBar", false);

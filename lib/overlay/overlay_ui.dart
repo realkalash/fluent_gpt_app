@@ -308,7 +308,7 @@ class _OverlayUIState extends State<OverlayUI> {
             : defaultWindowSize.height;
 
     await windowManager.setSize(Size(currentWidth, newHeight), animate: true);
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 250));
     // if the window is near bottom we should make effect of moving the window down when chat is being closed (and up when it opens to avoid overflow)
     final currentPosition = await windowManager.getPosition();
     if (isShowChatUI) {

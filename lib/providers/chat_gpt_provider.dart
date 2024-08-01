@@ -662,11 +662,15 @@ class ChatGPTProvider with ChangeNotifier {
     saveToDisk([chatRooms[selectedChatRoomId]!]);
   }
 
-  void deleteAllChatRooms() {
+  Future<void> deleteAllChatRooms() async {
     chatRooms.clear();
+    final path = await FileUtils.getChatRoomPath();
+    final files = FileUtils.getFilesRecursive(path);
+    for (var file in files) {
+      await file.delete();
+    }
     notifyListeners();
     notifyRoomsStream();
-    saveToDisk();
   }
 
   void selectChatRoom(ChatRoom room) {
@@ -765,6 +769,7 @@ class ChatGPTProvider with ChangeNotifier {
     }
     selectedMessages.clear();
     notifyListeners();
+    notifyRoomsStream();
   }
 
   void deleteSelectedMessages() {
@@ -1083,6 +1088,17 @@ class ChatGPTProvider with ChangeNotifier {
     final map = rooms.map((e) async => await e.toJson()).toList();
     final json = jsonEncode(map);
     AppCache.archivedChatRooms.set(json);
+  }
+
+  void selectAllMessages(Map<String, Map<String, String>> allMessages) {
+    selectionModeEnabled = true;
+    selectedMessages.clear();
+    for (var message in allMessages.entries) {
+      message.value['selected'] = 'true';
+      selectedMessages.add(message.key);
+    }
+    notifyListeners();
+    notifyRoomsStream();
   }
 }
 

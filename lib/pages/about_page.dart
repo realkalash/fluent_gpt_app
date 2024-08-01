@@ -1,4 +1,5 @@
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -8,17 +9,23 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScaffoldPage(
+      header: PageHeader(
+        title: Text(
+          'FluentGPT',
+          style: FluentTheme.of(context).typography.display,
+        ),
+        leading: IconButton(
+          icon: const Icon(FluentIcons.arrow_left_24_regular, size: 24),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       content: ListView(
         padding: const EdgeInsets.all(20.0),
-        children: [
-          Text(
-            'FluentGPT',
-            style: FluentTheme.of(context).typography.display,
-          ),
-          const AppVersion(),
-          const SizedBox(height: 16.0),
+        children: const [
+          AppVersion(),
+          SizedBox(height: 16.0),
           // description
-          const AppDescription(),
+          AppDescription(),
         ],
       ),
     );

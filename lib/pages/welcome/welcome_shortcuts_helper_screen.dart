@@ -2,6 +2,7 @@
 import 'package:adaptive_layout/adaptive_layout.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 import 'welcome_screen.dart';
@@ -14,6 +15,49 @@ class WelcomeShortcutsHelper extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomeShortcutsHelper> {
+  final _leftKeybindings = <Widget>[
+    KeyBindingText(
+      title: 'Create new chat (only in chat)',
+      hotKey: createNewChat,
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Reset chat (only in chat)',
+      hotKey: resetChat,
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Escape/Cancel selection (only in chat)',
+      hotKey: HotKey(key: LogicalKeyboardKey.escape),
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Reset chat (only in chat)',
+      hotKey: resetChat,
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Copy last message to clipboard (only in chat)',
+      hotKey: HotKey(
+        key: LogicalKeyboardKey.enter,
+        modifiers: [HotKeyModifier.meta],
+      ),
+      textColor: Colors.white,
+    ),
+  ];
+
+  final _rightKeybindings = <Widget>[
+    KeyBindingText(
+      title: 'Open/Close Window',
+      hotKey: openWindowHotkey,
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Show overlay for selected text',
+      hotKey: showOverlayForText,
+      textColor: Colors.white,
+    ),
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,16 +95,9 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
                       child: AdaptiveLayout(
                         smallLayout: ListView(
                           children: [
-                            KeyBindingText(
-                              title: 'Open/Close Window',
-                              hotKey: openWindowHotkey,
-                              textColor: Colors.white,
-                            ),
-                            KeyBindingText(
-                              title: 'Show overlay for selected text',
-                              hotKey: showOverlayForText,
-                              textColor: Colors.white,
-                            ),
+                            ..._leftKeybindings,
+                            const Divider(),
+                            ..._rightKeybindings,
                           ],
                         ),
                         mediumLayout: SingleChildScrollView(
@@ -69,46 +106,12 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
                             children: [
                               Expanded(
                                 child: Column(
-                                  children: [
-                                    KeyBindingText(
-                                      title: 'Open/Close Window',
-                                      hotKey: openWindowHotkey,
-                                      textColor: Colors.white,
-                                    ),
-                                    KeyBindingText(
-                                      title: 'Show overlay for selected text',
-                                      hotKey: showOverlayForText,
-                                      textColor: Colors.white,
-                                    ),
-                                  ],
+                                  children: _leftKeybindings,
                                 ),
                               ),
                               Expanded(
                                 child: Column(
-                                  // crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    KeyBindingText(
-                                      title: 'Create new chat (only in chat)',
-                                      hotKey: createNewChat,
-                                      textColor: Colors.white,
-                                    ),
-                                    KeyBindingText(
-                                      title: 'Reset chat (only in chat)',
-                                      hotKey: resetChat,
-                                      textColor: Colors.white,
-                                    ),
-                                    KeyBindingText(
-                                      title:
-                                          'Escape/Cancel selection (only in chat)',
-                                      hotKey: escapeCancelSelectKey,
-                                      textColor: Colors.white,
-                                    ),
-                                    KeyBindingText(
-                                      title: 'Reset chat (only in chat)',
-                                      hotKey: resetChat,
-                                      textColor: Colors.white,
-                                    ),
-                                  ],
+                                  children: _rightKeybindings,
                                 ),
                               ),
                             ],

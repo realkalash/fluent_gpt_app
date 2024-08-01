@@ -32,6 +32,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
       ],
       content: StreamBuilder(
           stream: customPrompts,
+          initialData: customPrompts.valueOrNull,
           builder: (context, snap) {
             final customPromptsValue = snap.data ?? [];
             return Column(
@@ -92,7 +93,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
                                       color: context.theme.accentColor,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text(item.index.toString()),
+                                    child: Text('${item.index + 1}'),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -277,17 +278,28 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   final newItem = item.copyWith(hotkey: hotkey);
                   // ignore: use_build_context_synchronously
                   updateItem(newItem, context);
+
                   /// wait for the dialog to close and stream to apply the changes
                   await Future.delayed(const Duration(milliseconds: 400));
                   if (hotkey != null) {
-                    rebindKeys();
-                  } else {
-                    hotKeyManager.unregister(item.hotkey!);
+                    if (item.hotkey != null)
+                      await hotKeyManager.unregister(item.hotkey!);
+
+                    /// to ensure it's unbinded
+                    await Future.delayed(const Duration(milliseconds: 400));
                   }
                 },
                 child: item.hotkey == null
                     ? const Text('Set keybinding')
                     : HotKeyVirtualView(hotKey: item.hotkey!),
+              ),
+              IconButton(
+                icon: const Icon(FluentIcons.delete_24_filled),
+                onPressed: () {
+                  final newItem = item.copyWith(hotkey: null);
+                  hotKeyManager.unregister(item.hotkey!);
+                  updateItem(newItem, context);
+                },
               ),
             ],
           ),
@@ -334,10 +346,6 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
       item = newItem;
     });
   }
-
-  void rebindKeys() {
-    OverlayManager.bindHotkeys(customPrompts.value);
-  }
 }
 
 class _PromptListTile extends StatelessWidget {
@@ -381,6 +389,13 @@ class _PromptListTile extends StatelessWidget {
     if (prompt != null) {
       // ignore: use_build_context_synchronously
       updateItem(prompt, item);
+      //unbind old hotkey
+      if (item.hotkey != null) {
+        await hotKeyManager.unregister(item.hotkey!);
+        /// wait native channel to finish
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+      OverlayManager.bindHotkeys(customPrompts.value);
     }
   }
 

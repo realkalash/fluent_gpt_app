@@ -141,7 +141,9 @@ class FileUtils {
     if (!dir.existsSync()) return files;
     dir.listSync(recursive: true).forEach((element) {
       if (element is File) {
-        files.add(element);
+        if (element.path.contains('.DS_Store') != true) {
+          files.add(element);
+        }
       }
     });
     return files;

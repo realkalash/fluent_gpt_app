@@ -133,7 +133,7 @@ class OverlayManager {
       // because if chatUI is opening it can try to use previous position, we need to wait until the animation is done
       await Future.delayed(const Duration(milliseconds: 500));
       await windowManager.setPosition(
-        Offset((positionX) + 16, (positionY) + 16),
+        Offset((positionX), (positionY)),
         animate: false,
       );
     }
@@ -265,28 +265,36 @@ class OverlayManager {
         await _bindHotkey(child, child.hotkey!);
       }
     }
-    await hotKeyManager.unregister(key);
+
     await hotKeyManager.register(
       key,
       keyDownHandler: (hotKey) async {
-        String? selectedText = await NativeChannelUtils.getSelectedText();
-        selectedText ??= (await Clipboard.getData('text/plain'))?.text;
+        final previousClipboard =
+            (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+
+        String? selectedText; //await NativeChannelUtils.getSelectedText();
+        // if (prompt.autoCopySelectedText) {
+        await simulateCtrlCKeyPress();
+        await Future.delayed(const Duration(milliseconds: 50));
+        // }
+        selectedText = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
         final isAppVisible = await windowManager.isVisible();
-        final Offset? mouseCoord = await NativeChannelUtils.getMousePosition();
 
         /// show app window
         if (!isAppVisible) {
-          await AppWindow().show();
-        }
+          final Offset? mouseCoord =
+              await NativeChannelUtils.getMousePosition();
 
-        /// show mini overlay
-        if (!overlayVisibility.value.isEnabled) {
-          await showOverlay(
-            navigatorKey.currentContext!,
-            positionX: mouseCoord?.dx,
-            positionY: mouseCoord?.dy,
-          );
+          /// show mini overlay
+          if (!overlayVisibility.value.isEnabled) {
+            await showOverlay(
+              navigatorKey.currentContext!,
+              positionX: mouseCoord?.dx,
+              positionY: mouseCoord?.dy,
+            );
+          }
         }
+        await AppWindow().show();
 
         /// if already open show chat UI inside the overlay
         if (overlayVisibility.value.isShowingSidebarOverlay) {
@@ -294,6 +302,10 @@ class OverlayManager {
         } else if (overlayVisibility.value.isShowingOverlay) {
           OverlayUI.isChatVisible.add(true);
         }
+        if (previousClipboard != null) {
+          Clipboard.setData(ClipboardData(text: previousClipboard));
+        }
+
         onTrayButtonTapCommand(prompt.getPromptText(selectedText));
       },
     );

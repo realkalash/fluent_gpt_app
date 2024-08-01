@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -132,10 +134,6 @@ HotKey openWindowHotkey = HotKey(
   modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
   scope: HotKeyScope.system,
 );
-HotKey escapeCancelSelectKey = HotKey(
-  key: LogicalKeyboardKey.escape,
-  scope: HotKeyScope.inapp,
-);
 HotKey createNewChat = HotKey(
   key: LogicalKeyboardKey.keyT,
   modifiers: [HotKeyModifier.control],
@@ -176,16 +174,19 @@ Future<void> initShortcuts(AppWindow appWindow) async {
     },
   );
   await hotKeyManager.register(
-    escapeCancelSelectKey,
-    keyDownHandler: (hotKey) async {
-      onTrayButtonTap('escape_cancel_select');
-    },
-  );
-  await hotKeyManager.register(
     showOverlayForText,
     keyDownHandler: (hotKey) async {
-      final result = await NativeChannelUtils.getSelectedText();
-      log('Selected Text: $result');
+      // final result = await NativeChannelUtils.getSelectedText();
+      // log('Selected Text: $result');
+      final Offset? mouseCoord = await NativeChannelUtils.getMousePosition();
+      log('Mouse Position: $mouseCoord');
+
+      /// show mini overlay
+      await OverlayManager.showOverlay(
+        navigatorKey.currentContext!,
+        positionX: mouseCoord?.dx,
+        positionY: mouseCoord?.dy ?? 0 + 1,
+      );
     },
   );
   initCachedHotKeys();

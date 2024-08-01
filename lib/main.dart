@@ -74,9 +74,6 @@ Future<void> initWindow() async {
   await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
-  if (Platform.isMacOS) {
-    await windowManager.setSkipTaskbar(AppCache.showAppInDock.value ?? true);
-  }
   await windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
@@ -91,6 +88,9 @@ Future<void> initWindow() async {
     await windowManager.setPosition(
       Offset(lastWindowX.toDouble(), lastWindowY.toDouble()),
     );
+  }
+  if (Platform.isMacOS) {
+    await windowManager.setSkipTaskbar(AppCache.showAppInDock.value == false);
   }
 }
 
@@ -144,7 +144,9 @@ void setupMethodChannel() {
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   FlutterError.onError = (details) {
-    logError(details.exceptionAsString(), details.stack);
+    if (kDebugMode) {
+      logError(details.exceptionAsString(), details.stack);
+    }
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     logError('[Platform] $error', stack);

@@ -31,21 +31,27 @@ class NavigationProvider with ChangeNotifier {
       icon: const Icon(FluentIcons.settings_24_regular),
       title: const Text('Settings'),
       body: const SettingsPage(),
-      onTap: () => Navigator.of(context!).pushNamed('/settings'),
+      onTap: () => Navigator.of(context!).push(
+        FluentPageRoute(builder: (context) => const SettingsPage()),
+      ),
     ),
     PaneItem(
       key: const ValueKey('/about'),
       icon: const Icon(FluentIcons.info_24_regular),
       title: const Text('About'),
       body: const AboutPage(),
-      onTap: () => Navigator.of(context!).pushNamed('/about'),
+      onTap: () => Navigator.of(context!).push(
+        FluentPageRoute(builder: (context) => const AboutPage()),
+      ),
     ),
     PaneItem(
       key: const ValueKey('/log'),
       icon: const Icon(FluentIcons.bug_24_regular),
       title: const Text('Log'),
       body: const LogPage(),
-      onTap: () => Navigator.of(context!).pushNamed('/log'),
+      onTap: () => Navigator.of(context!).push(
+        FluentPageRoute(builder: (context) => const LogPage()),
+      ),
     ),
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.link_24_regular),

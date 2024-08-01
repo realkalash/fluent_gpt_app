@@ -49,15 +49,29 @@ Only give me the output and nothing else. Respond in the \${lang} language. Clip
     showInOverlay: true,
     children: [],
   ),
-  // I realy likes my car
   CustomPrompt(
     id: 3,
     title: 'Check grammar',
     icon: FluentIcons.text_grammar_wand_24_filled,
     index: 2,
     prompt:
-        '''Correct any spelling, syntax, or grammar mistakes in the text delimited by triple quotes without making any improvements or changes to the original meaning or style. In other words, only correct spelling, syntax, or grammar mistakes, do not make improvements.
-If the original text has no mistake, just output the original text and nothing else. Copy to clipboard: \${clipboardAccess}. 
+        '''Check spelling and grammar in the following text.
+If the original text has no mistake, write "Original text has no mistake". 
+Copy to clipboard: \${clipboardAccess}. 
+"""
+\${input}
+"""''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+  CustomPrompt(
+    id: 3,
+    title: 'Improve writing',
+    icon: FluentIcons.text_grammar_wand_24_filled,
+    index: 3,
+    prompt: '''Please improve the writing in the following text. Make it more engaging and clear.
+Copy to clipboard: \${clipboardAccess}.
 """
 \${input}
 """''',
@@ -68,7 +82,7 @@ If the original text has no mistake, just output the original text and nothing e
   CustomPrompt(
     id: 4,
     title: 'Translate this',
-    index: 3,
+    index: 4,
     icon: FluentIcons.translate_24_regular,
     prompt:
         '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
@@ -130,6 +144,9 @@ class CustomPrompt {
   /// Shortcut for using this custom prompt
   final HotKey? hotkey;
 
+  /// If true will automatically copy the selected text to the clipboard
+  final bool autoCopySelectedText;
+
   const CustomPrompt({
     required this.id,
     required this.title,
@@ -140,6 +157,7 @@ class CustomPrompt {
     this.children = const [],
     this.icon = FluentIcons.chat_20_filled,
     this.hotkey,
+    this.autoCopySelectedText = false,
   });
 
   /// Returns the prompt text with the selected text
@@ -180,6 +198,8 @@ class CustomPrompt {
       'fontPackage': icon.fontPackage,
       'iconFamily': icon.fontFamily,
       'hotkey': hotkey?.toJson(),
+      'autoCopySelectedText': autoCopySelectedText,
+      'index': index,
     };
   }
 
@@ -189,6 +209,7 @@ class CustomPrompt {
       title: json['title'],
       prompt: json['prompt'],
       showInChatField: json['showInChatField'],
+      index: json['index'] ?? 0,
       showInOverlay: json['showInOverlay'],
       children: (json['children'] is List)
           ? (json['children'] as List)
@@ -202,8 +223,8 @@ class CustomPrompt {
         fontPackage: json['fontPackage'],
         fontFamily: json['iconFamily'],
       ),
-      hotkey:
-          json['hotkey'] != null ? HotKey.fromJson(json['hotkey']) : null,
+      hotkey: json['hotkey'] != null ? HotKey.fromJson(json['hotkey']) : null,
+      autoCopySelectedText: json['autoCopySelectedText'] ?? false,
     );
   }
 
@@ -225,6 +246,7 @@ class CustomPrompt {
     bool? showInOverlay,
     List<CustomPrompt>? children,
     HotKey? hotkey,
+    bool? autoCopySelectedText,
   }) {
     return CustomPrompt(
       id: id ?? this.id,
@@ -236,6 +258,7 @@ class CustomPrompt {
       showInOverlay: showInOverlay ?? this.showInOverlay,
       children: children ?? this.children,
       hotkey: hotkey ?? this.hotkey,
+      autoCopySelectedText: autoCopySelectedText ?? this.autoCopySelectedText,
     );
   }
 }

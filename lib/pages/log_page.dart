@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 class LogPage extends StatefulWidget {
   const LogPage({super.key});
@@ -27,12 +28,19 @@ class _LogPageState extends State<LogPage> {
   Widget build(BuildContext context) {
     return ScaffoldPage(
       header: PageHeader(
+        leading: IconButton(
+          icon: const Icon(
+            FluentIcons.arrow_left_24_regular,
+            size: 24,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text('Log (${logs.length} items)'),
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-                icon: const Icon(FluentIcons.delete),
+                icon: const Icon(FluentIcons.delete_24_filled),
                 onPressed: () {
                   logMessages.add([]);
                   log('Logs cleared');

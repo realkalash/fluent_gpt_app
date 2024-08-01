@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_acrylic
   hotkey_manager_windows
   irondash_engine_context
+  keypress_simulator_windows
   pasteboard
   permission_handler_windows
   protocol_handler_windows

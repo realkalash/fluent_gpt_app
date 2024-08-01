@@ -4,6 +4,7 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/shell_driver.dart';
@@ -294,59 +295,98 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     });
   }
 
+  void toggleSelectAllMessages() {
+    final allMessages = selectedChatRoom.messages;
+    final chatProvider = context.read<ChatGPTProvider>();
+    if (!chatProvider.selectionModeEnabled) {
+      chatProvider.selectAllMessages(allMessages);
+    } else {
+      chatProvider.disableSelectionMode();
+    }
+  }
+
+  Future<void> promptDeleteSelectedMessages() async {
+    final chatProvider = context.read<ChatGPTProvider>();
+    final result = await ConfirmationDialog.show(
+      context: context,
+      isDelete: true,
+    );
+    if (result) {
+      chatProvider.deleteSelectedMessages();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatGPTProvider>();
     chatProvider.context = context;
 
-    return GestureDetector(
-      onTap: () {
-        promptTextFocusNode.requestFocus();
+    return CallbackShortcuts(
+      bindings: {
+        if (Platform.isMacOS)
+          const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+              toggleSelectAllMessages
+        else
+          const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+              toggleSelectAllMessages,
+        if (chatProvider.selectionModeEnabled)
+          const SingleActivator(LogicalKeyboardKey.escape):
+              chatProvider.disableSelectionMode,
+        if (Platform.isMacOS)
+          const SingleActivator(LogicalKeyboardKey.backspace, meta: true):
+              promptDeleteSelectedMessages
+        else
+          const SingleActivator(LogicalKeyboardKey.delete, control: true):
+              promptDeleteSelectedMessages,
       },
-      behavior: HitTestBehavior.translucent,
-      excludeFromSemantics: true,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Column(
-            children: <Widget>[
-              Expanded(
-                child: StreamBuilder(
-                    stream: chatRoomsStream,
-                    builder: (context, snapshot) {
-                      return ListView.builder(
-                        controller: chatProvider.listItemsScrollController,
-                        itemCount: messages.entries.length,
-                        itemBuilder: (context, index) {
-                          final message =
-                              messages.entries.elementAt(index).value;
-                          final dateTimeRaw = messages.entries
-                              .elementAt(index)
-                              .value['created'];
+      child: GestureDetector(
+        onTap: promptTextFocusNode.requestFocus,
+        behavior: HitTestBehavior.translucent,
+        excludeFromSemantics: true,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Column(
+              children: <Widget>[
+                Expanded(
+                  child: StreamBuilder(
+                      stream: chatRoomsStream,
+                      builder: (context, snapshot) {
+                        return ListView.builder(
+                          controller: chatProvider.listItemsScrollController,
+                          itemCount: messages.entries.length,
+                          itemBuilder: (context, index) {
+                            final message =
+                                messages.entries.elementAt(index).value;
+                            final dateTimeRaw = messages.entries
+                                .elementAt(index)
+                                .value['created'];
 
-                          return MessageCard(
-                            id: messages.entries.elementAt(index).key,
-                            message: message,
-                            dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
-                            selectionMode: chatProvider.selectionModeEnabled,
-                            isError: message['error'] == 'true',
-                            textSize: chatProvider.textSize,
-                            isCompactMode: false,
-                          );
-                        },
-                      );
-                    }),
-              ),
-              const HotShurtcutsWidget(),
-              const InputField()
-            ],
-          ),
-          const Positioned(
-            bottom: 128,
-            right: 16,
-            child: _ScrollToBottomButton(),
-          ),
-        ],
+                            return MessageCard(
+                              key: ValueKey('message_$index'),
+                              id: messages.entries.elementAt(index).key,
+                              message: message,
+                              dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
+                              selectionMode: chatProvider.selectionModeEnabled,
+                              isError: message['error'] == 'true',
+                              textSize: chatProvider.textSize,
+                              isCompactMode: false,
+                            );
+                          },
+                        );
+                      }),
+                ),
+                const HotShurtcutsWidget(),
+                const InputField()
+              ],
+            ),
+            const Positioned(
+              bottom: 128,
+              right: 16,
+              child: _ScrollToBottomButton(),
+            ),
+          ],
+        ),
       ),
     );
   }

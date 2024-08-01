@@ -1,6 +1,10 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, deprecated_member_use
 
+import 'dart:io';
+
+import 'package:fluent_gpt/log.dart';
 import 'package:flutter/services.dart';
+import 'package:keypress_simulator/keypress_simulator.dart';
 
 const overlayChannel = MethodChannel('com.realk.fluent_gpt/overlay');
 
@@ -106,4 +110,23 @@ class NativeChannelUtils {
     }
     return false;
   }
+}
+
+Future<void> simulateCtrlCKeyPress() async {
+  const key = PhysicalKeyboardKey.keyC;
+  final modifiers = Platform.isMacOS
+      ? [ModifierKey.metaModifier]
+      : [ModifierKey.controlModifier];
+  await keyPressSimulator.simulateKeyDown(key, modifiers);
+  await keyPressSimulator.simulateKeyUp(key, modifiers);
+}
+
+Future<void> simulateCtrlVKeyPress() async {
+  const key = PhysicalKeyboardKey.keyV;
+  final modifiers = Platform.isMacOS
+      ? [ModifierKey.metaModifier]
+      : [ModifierKey.controlModifier];
+  await keyPressSimulator.simulateKeyDown(key, modifiers);
+  await keyPressSimulator.simulateKeyUp(key, modifiers);
+  log('Simulated Ctrl+V key press');
 }
