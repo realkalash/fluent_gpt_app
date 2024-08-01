@@ -1,5 +1,5 @@
 name: fluent_gpt
-description: A chat gpt project for windows created with Flutter.
+description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
 version: 0.9.9+9
 
