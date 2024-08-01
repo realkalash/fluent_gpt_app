@@ -792,11 +792,11 @@ class _ThemeModeSection extends StatelessWidget {
           appTheme.setWindowEffectColor(color);
         },
         style: ButtonStyle(
-          padding: ButtonState.all(EdgeInsets.zero),
-          backgroundColor: ButtonState.resolveWith((states) {
-            if (states.isPressing) {
+          padding: WidgetStateProperty.all(EdgeInsets.zero),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.isPressed) {
               return color.light;
-            } else if (states.isHovering) {
+            } else if (states.isHovered) {
               return color.lighter;
             }
             return color;
@@ -833,12 +833,7 @@ class _ThemeModeSection extends StatelessWidget {
             onChanged: (value) {
               if (value) {
                 appTheme.mode = ThemeMode.light;
-
-                if (kIsWindowEffectsSupported) {
-                  // some window effects require on [dark] to look good.
-                  // appTheme.setEffect(WindowEffect.disabled, context);
-                  appTheme.setEffect(appTheme.windowEffect);
-                }
+                appTheme.setEffect(appTheme.windowEffect);
               }
             },
             content: const Text('Light'),
@@ -851,12 +846,7 @@ class _ThemeModeSection extends StatelessWidget {
             onChanged: (value) {
               if (value) {
                 appTheme.mode = ThemeMode.dark;
-
-                if (kIsWindowEffectsSupported) {
-                  // some window effects require on [dark] to look good.
-                  // appTheme.setEffect(WindowEffect.disabled, context);
-                  appTheme.setEffect(appTheme.windowEffect);
-                }
+                appTheme.setEffect(appTheme.windowEffect);
               }
             },
             content: const Text('Dark'),
@@ -991,9 +981,12 @@ class __CacheSectionState extends State<_CacheSection> {
           children: [
             Button(
                 child: const Text('Delete all chat rooms'),
-                onPressed: () {
-                  context.read<ChatGPTProvider>().deleteAllChatRooms();
-                }),
+                onPressed: () => ConfirmationDialog(
+                      isDelete: true,
+                      onAcceptPressed: () {
+                        context.read<ChatGPTProvider>().deleteAllChatRooms();
+                      },
+                    )),
             Button(
                 child: const Text('Delete total costs cache'),
                 onPressed: () {

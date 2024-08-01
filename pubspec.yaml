@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A chat gpt project for windows created with Flutter.
 publish_to: "none"
-version: 0.9.9+8
+version: 0.9.9+9
 
 environment:
   sdk: ">=3.3.4 <4.0.0"

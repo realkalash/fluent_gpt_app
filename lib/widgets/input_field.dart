@@ -6,7 +6,6 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
-import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -93,7 +92,7 @@ class _InputFieldState extends State<InputField> {
     final lastMessage = selectedChatRoom.messages.values.last;
     // final previousClipboard = await Pasteboard.text;
     Pasteboard.writeText(lastMessage['content'] ?? '');
-    displayCopiedToClipboard(context);
+    displayCopiedToClipboard();
     // await windowManager.minimize();
     // // wait for the window to hideasdasd
     // Future.delayed(const Duration(milliseconds: 400));
@@ -360,7 +359,7 @@ class _FileThumbnail extends StatelessWidget {
             right: 0,
             child: IconButton(
               style: ButtonStyle(
-                backgroundColor: ButtonState.all(Colors.black.withOpacity(0.5)),
+                backgroundColor: WidgetStateProperty.all(Colors.black.withOpacity(0.5)),
               ),
               onPressed: () => chatProvider.removeFileFromInput(),
               icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),

@@ -10,13 +10,13 @@ BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing
   CustomPrompt(
-    id: 0,
+    id: 5,
     icon: FluentIcons.edit_24_filled,
-    index: 0,
+    index: 5,
     title: 'Continue writing',
     prompt: '''"""\${input}""" 
 Continue writing that begins with the text above and keeping the same voice and style. Stay on the same topic.
-Only give me the output and nothing else. Respond in the same language variety or dialect of the text above. Clipboard access: \${clipboardAccess}''',
+Only give me the output and nothing else. Respond in the same language variety or dialect of the text above. Answer only in clipboard quotes: \${clipboardAccess}''',
     showInChatField: true,
     showInOverlay: true,
     children: [],
@@ -144,8 +144,8 @@ class CustomPrompt {
   /// Shortcut for using this custom prompt
   final HotKey? hotkey;
 
-  /// If true will automatically copy the selected text to the clipboard
-  final bool autoCopySelectedText;
+  /// If true will automatically focus the window when the prompt is run
+  final bool focusTheWindowOnRun;
 
   const CustomPrompt({
     required this.id,
@@ -157,7 +157,7 @@ class CustomPrompt {
     this.children = const [],
     this.icon = FluentIcons.chat_20_filled,
     this.hotkey,
-    this.autoCopySelectedText = false,
+    this.focusTheWindowOnRun = false,
   });
 
   /// Returns the prompt text with the selected text
@@ -198,7 +198,7 @@ class CustomPrompt {
       'fontPackage': icon.fontPackage,
       'iconFamily': icon.fontFamily,
       'hotkey': hotkey?.toJson(),
-      'autoCopySelectedText': autoCopySelectedText,
+      'focusTheWindowOnRun': focusTheWindowOnRun,
       'index': index,
     };
   }
@@ -224,7 +224,7 @@ class CustomPrompt {
         fontFamily: json['iconFamily'],
       ),
       hotkey: json['hotkey'] != null ? HotKey.fromJson(json['hotkey']) : null,
-      autoCopySelectedText: json['autoCopySelectedText'] ?? false,
+      focusTheWindowOnRun: json['focusTheWindowOnRun'] ?? false,
     );
   }
 
@@ -246,7 +246,7 @@ class CustomPrompt {
     bool? showInOverlay,
     List<CustomPrompt>? children,
     HotKey? hotkey,
-    bool? autoCopySelectedText,
+    bool? focusTheWindowOnRun,
   }) {
     return CustomPrompt(
       id: id ?? this.id,
@@ -258,7 +258,7 @@ class CustomPrompt {
       showInOverlay: showInOverlay ?? this.showInOverlay,
       children: children ?? this.children,
       hotkey: hotkey ?? this.hotkey,
-      autoCopySelectedText: autoCopySelectedText ?? this.autoCopySelectedText,
+      focusTheWindowOnRun: focusTheWindowOnRun ?? this.focusTheWindowOnRun,
     );
   }
 }

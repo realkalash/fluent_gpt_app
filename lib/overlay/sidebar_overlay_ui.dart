@@ -163,8 +163,8 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                                 visualDensity: VisualDensity.compact,
                                 icon:
                                     const Icon(FluentIcons.chat_add_20_filled),
-                                onPressed: () =>
-                                    onTrayButtonTap('create_new_chat'),
+                                onPressed: () => onTrayButtonTapCommand(
+                                    '', 'create_new_chat'),
                               ),
                             IconButton(
                               visualDensity: VisualDensity.compact,
@@ -352,7 +352,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
               ),
               fluent.ListTile(
                 leading: const Icon(FluentIcons.dismiss_16_filled),
-                tileColor: fluent.ButtonState.all(Colors.red.withOpacity(0.4)),
+                tileColor: fluent.WidgetStateProperty.all(Colors.red.withOpacity(0.4)),
                 title: const Text('CLOSE'),
                 onPressed: () {
                   Navigator.of(context).pop();

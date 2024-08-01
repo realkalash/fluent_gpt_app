@@ -50,6 +50,7 @@ class ShellDriver {
         argsList.add('-${entry.key}');
         argsList.add('${entry.value}');
       }
+      // ignore: unnecessary_string_interpolations
       final argsShell = [...argsList, '$fileName'];
       print('Running shell command: es.exe $argsShell');
       var shellProcess = await shell.start('es.exe', arguments: argsShell);

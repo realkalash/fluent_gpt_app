@@ -13,6 +13,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -408,7 +409,7 @@ class _MessageCardState extends State<MessageCard> {
                           Clipboard.setData(
                             ClipboardData(text: '${widget.message['content']}'),
                           );
-                          displayCopiedToClipboard(context);
+                          displayCopiedToClipboard();
                         },
                         checked: false,
                         child: const Icon(FluentIcons.copy, size: 10),
@@ -428,7 +429,7 @@ class _MessageCardState extends State<MessageCard> {
                           checked: false,
                           style: ToggleButtonThemeData(
                             uncheckedButtonStyle: ButtonStyle(
-                                backgroundColor: ButtonState.all(Colors.blue)),
+                                backgroundColor: WidgetStateProperty.all(Colors.blue)),
                           ),
                           child: const Icon(FluentIcons.code, size: 10),
                         ),
@@ -465,7 +466,7 @@ class _MessageCardState extends State<MessageCard> {
     }
     if (code.length == 1) {
       Clipboard.setData(ClipboardData(text: code.first));
-      displayCopiedToClipboard(context);
+      displayCopiedToClipboard();
       return;
     }
     // if more than one code snippet is found, show a dialog to select one
@@ -590,10 +591,10 @@ class _MessageCardState extends State<MessageCard> {
             Button(
               onPressed: () {
                 Navigator.of(context).maybePop();
-                Clipboard.setData(
-                  ClipboardData(text: message['image']!),
+                Pasteboard.writeImage(
+                  decodeImage(message['image']!),
                 );
-                displayCopiedToClipboard(context);
+                displayCopiedToClipboard();
               },
               child: const Text('Copy image data'),
             ),
@@ -675,7 +676,7 @@ class _MessageCardState extends State<MessageCard> {
                     item.add(Formats.png(imageBytes));
                     await SystemClipboard.instance!.write([item]);
                     // ignore: use_build_context_synchronously
-                    displayCopiedToClipboard(context);
+                    displayCopiedToClipboard();
                   },
                   child: const Text('Copy image data'),
                 ),
@@ -758,7 +759,7 @@ class _MessageCardState extends State<MessageCard> {
                       }
                     },
                     style: ButtonStyle(
-                        backgroundColor: ButtonState.all(Colors.red)),
+                        backgroundColor: WidgetStateProperty.all(Colors.red)),
                     child: provider.selectionModeEnabled
                         ? Text('Delete ${provider.selectedMessages.length}')
                         : const Text('Delete')),

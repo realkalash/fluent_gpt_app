@@ -1,7 +1,6 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -58,6 +57,6 @@ class AppWindowListener extends WindowListener {
     log('Window restored');
     windowVisibilityStream.add(true);
     // windowManager.focus();
-    promptTextFocusNode.requestFocus();
+    // promptTextFocusNode.requestFocus();
   }
 }

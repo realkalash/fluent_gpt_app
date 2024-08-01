@@ -1,5 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:adaptive_layout/adaptive_layout.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +49,7 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
 
   final _rightKeybindings = <Widget>[
     KeyBindingText(
-      title: 'Open/Close Window',
+      title: 'Open/Focus/Hide window',
       hotKey: openWindowHotkey,
       textColor: Colors.white,
     ),
@@ -58,6 +59,25 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
       textColor: Colors.white,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final promptsList = customPrompts.value;
+    if (promptsList.isNotEmpty) {
+      _rightKeybindings.add(const Divider());
+    }
+    for (final prompt in promptsList) {
+      if (prompt.hotkey != null) {
+        _rightKeybindings.add(KeyBindingText(
+          title: prompt.title,
+          hotKey: prompt.hotkey!,
+          textColor: Colors.white,
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -83,7 +103,7 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
                             fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        'This is our quick shortcuts you can use anytime.',
+                        'This is your quick shortcuts you can use anytime',
                         style: TextStyle(
                             color: Colors.white.withOpacity(0.7), fontSize: 14),
                       ),

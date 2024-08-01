@@ -21,10 +21,10 @@ class FilledRedButton extends StatelessWidget {
       autofocus: autofocus,
       onLongPress: onLongPressed,
       style: ButtonStyle(
-        foregroundColor: ButtonState.all(Colors.white),
-        backgroundColor: ButtonState.resolveWith((states) {
+        foregroundColor: WidgetStateProperty.all(Colors.white),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.isDisabled) return Colors.red.withOpacity(0.25);
-          if (states.isHovering) return Colors.red['lighter'];
+          if (states.isHovered) return Colors.red['lighter'];
           if (states.isFocused) return Colors.red['light'];
           return Colors.red['normal'];
         }),

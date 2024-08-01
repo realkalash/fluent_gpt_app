@@ -6,11 +6,13 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/overlay/overlay_ui.dart';
+import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:rxdart/rxdart.dart';
@@ -63,22 +65,28 @@ Future<void> initSystemTray() async {
         menu.buildFrom([
           MenuItemLabel(
               label: 'Paste: "${first20CharIfPresent?.trim()}..."',
-              onClicked: (menuItem) => onTrayButtonTap('paste')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'paste')),
           MenuItemLabel(
               label: 'Grammar',
-              onClicked: (menuItem) => onTrayButtonTap('grammar')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'grammar')),
           MenuItemLabel(
               label: 'Explain',
-              onClicked: (menuItem) => onTrayButtonTap('explain')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'explain')),
           MenuItemLabel(
               label: 'Translate to Russian',
-              onClicked: (menuItem) => onTrayButtonTap('to_rus')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'to_rus')),
           MenuItemLabel(
               label: 'Translate to English',
-              onClicked: (menuItem) => onTrayButtonTap('to_eng')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'to_eng')),
           MenuItemLabel(
               label: 'Answer with Tags',
-              onClicked: (menuItem) => onTrayButtonTap('answer_with_tags')),
+              onClicked: (menuItem) async => onTrayButtonTapCommand(
+                  '${(await Pasteboard.text)}', 'answer_with_tags')),
           MenuSeparator(),
           MenuItemLabel(
               label: 'Show', onClicked: (menuItem) => appWindow.show()),
@@ -129,6 +137,7 @@ showWindow() {
   AppWindow().show();
 }
 
+/// Opens window/focus on the text field if opened, or hides the window if already opened and focused
 HotKey openWindowHotkey = HotKey(
   key: LogicalKeyboardKey.digit1,
   modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
@@ -160,7 +169,7 @@ Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     createNewChat,
     keyDownHandler: (hotKey) async {
-      onTrayButtonTap('create_new_chat');
+      onTrayButtonTapCommand('', 'create_new_chat');
       await Future.delayed(const Duration(milliseconds: 200));
       promptTextFocusNode.requestFocus();
     },
@@ -168,7 +177,7 @@ Future<void> initShortcuts(AppWindow appWindow) async {
   await hotKeyManager.register(
     resetChat,
     keyDownHandler: (hotKey) async {
-      onTrayButtonTap('reset_chat');
+      onTrayButtonTapCommand('', 'reset_chat');
       await Future.delayed(const Duration(milliseconds: 200));
       promptTextFocusNode.requestFocus();
     },
@@ -200,8 +209,32 @@ Future<void> initCachedHotKeys() async {
     await hotKeyManager.register(
       openWindowHotkey,
       keyDownHandler: (hotKey) async {
+        /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
         final isAppVisible = await windowManager.isVisible();
-        isAppVisible ? AppWindow().hide() : AppWindow().show();
+        final isInputFieldFocused = promptTextFocusNode.hasFocus;
+        if (isAppVisible && isInputFieldFocused) {
+          promptTextFocusNode.unfocus();
+          await AppWindow().hide();
+          return;
+        }
+        if (isAppVisible && !isInputFieldFocused) {
+          /// if currently showing overlay, open the chatUI
+          if (overlayVisibility.value.isShowingSidebarOverlay) {
+            SidebarOverlayUI.isChatVisible.add(true);
+          } else if (overlayVisibility.value.isShowingOverlay) {
+            OverlayUI.isChatVisible.add(true);
+          }
+
+          promptTextFocusNode.requestFocus();
+          await AppWindow().show();
+          // to focus the window we show it twice
+          AppWindow().show();
+          return;
+        }
+        if (!isAppVisible) {
+          AppWindow().show();
+          return;
+        }
       },
     );
   }

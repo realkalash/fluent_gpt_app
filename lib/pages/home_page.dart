@@ -4,6 +4,7 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -182,7 +183,7 @@ class PageHeaderText extends StatelessWidget {
             children: [
               HyperlinkButton(
                 style: ButtonStyle(
-                  padding: ButtonState.all(EdgeInsets.zero),
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
                 ),
                 onPressed: () => showCostCalculatorDialog(context),
                 child: Text(
@@ -283,7 +284,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   @override
   void initState() {
     super.initState();
-    promptTextFocusNode.requestFocus();
+    // promptTextFocusNode.requestFocus();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       var chatProvider = context.read<ChatGPTProvider>();
@@ -324,11 +325,11 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     return CallbackShortcuts(
       bindings: {
         if (Platform.isMacOS)
-          const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
-              toggleSelectAllMessages
+          const SingleActivator(LogicalKeyboardKey.keyA,
+              meta: true, shift: true): toggleSelectAllMessages
         else
-          const SingleActivator(LogicalKeyboardKey.keyA, control: true):
-              toggleSelectAllMessages,
+          const SingleActivator(LogicalKeyboardKey.keyA,
+              control: true, shift: true): toggleSelectAllMessages,
         if (chatProvider.selectionModeEnabled)
           const SingleActivator(LogicalKeyboardKey.escape):
               chatProvider.disableSelectionMode,
@@ -445,12 +446,13 @@ class __ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
   }
 }
 
-void displayCopiedToClipboard(BuildContext context) {
-  displayInfoBar(
-    context,
-    builder: (context, close) => const InfoBar(
-      title: Text('The result is copied to clipboard'),
+Future<void> displayCopiedToClipboard() {
+  return displayInfoBar(
+    navigatorKey.currentContext!,
+    builder: (context, close) => InfoBar(
+      title: const Text('Copied'),
       severity: InfoBarSeverity.info,
+      style: InfoBarThemeData(icon: (_) => ic.FluentIcons.clipboard_24_filled),
     ),
   );
 }
@@ -475,7 +477,7 @@ void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
                     child: ToggleButton(
                       onChanged: (_) {
                         Clipboard.setData(ClipboardData(text: block));
-                        displayCopiedToClipboard(context);
+                        displayCopiedToClipboard();
                       },
                       checked: false,
                       child: const Icon(FluentIcons.copy, size: 10),
@@ -595,7 +597,7 @@ class RunCodeButton extends StatelessWidget {
             checked: snap.data == true,
             style: ToggleButtonThemeData(
               uncheckedButtonStyle:
-                  ButtonStyle(backgroundColor: ButtonState.all(Colors.green)),
+                  ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.green)),
             ),
             child: child,
           );

@@ -1066,28 +1066,7 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   Future<void> archiveChatRoom(ChatRoom room) async {
-    final archived = await getArchivedChatRooms();
-    archived.add(room);
-    // TODO: save archived chat rooms
     deleteChatRoom(room.id);
-  }
-
-  static Future<List<ChatRoom>> getArchivedChatRooms() async {
-    final json = await AppCache.archivedChatRooms.value();
-    if (json == null || json.isEmpty) return [];
-    final map = jsonDecode(json) as List;
-    final rooms = <ChatRoom>[];
-    for (var chatRoomRaw in map) {
-      final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
-      rooms.add(chatRoom);
-    }
-    return rooms;
-  }
-
-  static saveArchivedChatRooms(List<ChatRoom> rooms) {
-    final map = rooms.map((e) async => await e.toJson()).toList();
-    final json = jsonEncode(map);
-    AppCache.archivedChatRooms.set(json);
   }
 
   void selectAllMessages(Map<String, Map<String, String>> allMessages) {

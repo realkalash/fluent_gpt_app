@@ -473,7 +473,14 @@ class MainPageWithNavigation extends StatelessWidget {
                             ? FluentTheme.of(context).accentColor
                             : Colors.transparent,
                       ),
-                      icon: const Icon(FluentIcons.chat_24_filled, size: 24),
+                      icon: Icon(
+                        IconData(
+                          room.iconCodePoint,
+                          fontPackage: 'fluentui_system_icons',
+                          fontFamily: 'FluentSystemIcons-Filled',
+                        ),
+                        size: 24,
+                      ),
                       title: Text(room.chatRoomName),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,

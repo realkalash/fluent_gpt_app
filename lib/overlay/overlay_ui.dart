@@ -121,7 +121,7 @@ class _OverlayUIState extends State<OverlayUI> {
                           child: IconButton(
                             visualDensity: VisualDensity.compact,
                             icon: const Icon(FluentIcons.chat_add_20_filled),
-                            onPressed: () => onTrayButtonTap('create_new_chat'),
+                            onPressed: () => onTrayButtonTapCommand('','create_new_chat'),
                           )),
                     Positioned(
                       top: isSuperCompact ? 7.0 : 0,
@@ -158,7 +158,8 @@ class _OverlayUIState extends State<OverlayUI> {
                                   .map((prompt) =>
                                       _buildTextOption(prompt, 'custom')),
                             ],
-                            if (AppCache.showSettingsInOverlay.value == true)
+                            if (AppCache.showSettingsInOverlay.value == true &&
+                                isSuperCompact == false)
                               IconButton(
                                 visualDensity: VisualDensity.compact,
                                 icon:

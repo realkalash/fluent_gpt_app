@@ -1,11 +1,11 @@
 import 'package:fluent_gpt/common/chat_room.dart';
-import 'package:fluent_gpt/fluent_icons_list.dart';
+import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
-class EditChatRoomDialog extends StatelessWidget {
+class EditChatRoomDialog extends StatefulWidget {
   const EditChatRoomDialog(
       {super.key, required this.room, required this.onOkPressed});
   final ChatRoom room;
@@ -24,15 +24,26 @@ class EditChatRoomDialog extends StatelessWidget {
   }
 
   @override
+  State<EditChatRoomDialog> createState() => _EditChatRoomDialogState();
+}
+
+class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
+  late int ico;
+  @override
+  void initState() {
+    ico = widget.room.iconCodePoint;
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.read<ChatGPTProvider>();
-    var roomName = room.chatRoomName;
-    var systemMessage = room.systemMessage;
-    var maxLength = room.maxTokenLength;
-    var token = room.apiToken;
-    var orgID = room.orgID;
-    var index = room.indexSort;
-    var ico = room.iconCodePoint;
+    var roomName = widget.room.chatRoomName;
+    var systemMessage = widget.room.systemMessage;
+    var maxLength = widget.room.maxTokenLength;
+    var token = widget.room.apiToken;
+    var orgID = widget.room.orgID;
+    var index = widget.room.indexSort;
     return ContentDialog(
       title: const Text('Edit chat room'),
       constraints: const BoxConstraints(maxWidth: 800),
@@ -40,17 +51,18 @@ class EditChatRoomDialog extends StatelessWidget {
         Button(
           onPressed: () {
             provider.editChatRoom(
-                room.id,
-                room.copyWith(
+                widget.room.id,
+                widget.room.copyWith(
                   chatRoomName: roomName,
                   commandPrefix: systemMessage,
                   maxLength: maxLength,
                   token: token,
                   orgID: orgID,
                   indexSort: index,
+                  iconCodePoint: ico,
                 ));
             Navigator.of(context).pop();
-            onOkPressed();
+            widget.onOkPressed();
           },
           child: const Text('Save'),
         ),
@@ -67,29 +79,38 @@ class EditChatRoomDialog extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextBox(
-                controller: TextEditingController(text: room.chatRoomName),
-                onChanged: (value) {
-                  roomName = value;
-                },
+              Expanded(
+                child: TextBox(
+                  controller:
+                      TextEditingController(text: widget.room.chatRoomName),
+                  onChanged: (value) {
+                    roomName = value;
+                  },
+                ),
               ),
-              DropDownButton(
-                title: Icon(IconData(ico, fontFamily: 'FluentIcons')),
-                items: fluentIconsList.map((e) {
-                  return MenuFlyoutItem(
-                    text:
-                        Icon(IconData(e.codePoint, fontFamily: 'FluentIcons')),
-                    onPressed: () {
-                      ico = e.codePoint;
-                    },
-                  );
-                }).toList(),
+              Button(
+                onPressed: () async {
+                  final icon = await IconChooserDialog.show(context);
+                  if (icon != null) {
+                    setState(() {
+                      ico = icon.codePoint;
+                    });
+                  }
+                },
+                child: Icon(
+                  IconData(
+                    ico,
+                    fontPackage: 'fluentui_system_icons',
+                    fontFamily: 'FluentSystemIcons-Filled',
+                  ),
+                  size: 24,
+                ),
               ),
             ],
           ),
           const Text('System message'),
           TextBox(
-            controller: TextEditingController(text: room.systemMessage),
+            controller: TextEditingController(text: widget.room.systemMessage),
             maxLines: 30,
             minLines: 3,
             onChanged: (value) {
@@ -99,27 +120,27 @@ class EditChatRoomDialog extends StatelessWidget {
           const Text('Model'),
           GptModelChooser(
             onChanged: (model) {
-              provider.selectModelForChat(room.chatRoomName, model);
+              provider.selectModelForChat(widget.room.chatRoomName, model);
             },
           ),
           const Text('Number in list'),
           NumberBox(
-              value: room.indexSort,
+              value: widget.room.indexSort,
               min: 1,
               onChanged: (value) {
                 index = value ?? 1;
               }),
           const Text('Max length'),
           TextBox(
-            controller:
-                TextEditingController(text: room.maxTokenLength.toString()),
+            controller: TextEditingController(
+                text: widget.room.maxTokenLength.toString()),
             onChanged: (value) {
               maxLength = int.parse(value);
             },
           ),
           const Text('Token'),
           TextBox(
-            controller: TextEditingController(text: room.apiToken),
+            controller: TextEditingController(text: widget.room.apiToken),
             obscureText: true,
             onChanged: (value) {
               token = value;
@@ -127,7 +148,7 @@ class EditChatRoomDialog extends StatelessWidget {
           ),
           const Text('Org ID'),
           TextBox(
-            controller: TextEditingController(text: room.orgID),
+            controller: TextEditingController(text: widget.room.orgID),
             onChanged: (value) {
               orgID = value;
             },

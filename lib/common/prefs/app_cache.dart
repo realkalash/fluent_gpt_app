@@ -30,7 +30,6 @@ class AppCache {
       OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
-  static const archivedChatRooms = FileStringPref("archived/chatRooms");
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
   static const llmUrl = StringPref("llmUrl");
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
