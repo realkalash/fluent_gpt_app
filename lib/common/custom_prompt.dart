@@ -27,7 +27,7 @@ const List<CustomPrompt> basePromptsTemplate = [
     id: 1,
     title: 'Explain this',
     icon: FluentIcons.info_24_filled,
-    index: 0,
+    index: 1,
     prompt:
         'Please explain clearly and concisely using:"\${lang}" language: "\${input}"',
     showInChatField: true,
@@ -38,10 +38,10 @@ const List<CustomPrompt> basePromptsTemplate = [
     id: 2,
     title: 'Summarize this',
     icon: FluentIcons.text_paragraph_24_regular,
-    index: 1,
+    index: 2,
     prompt:
         '''You are a highly skilled AI trained in language comprehension and summarization. I would like you to read the text delimited by triple quotes and summarize it into a concise abstract paragraph. Aim to retain the most important points, providing a coherent and readable summary that could help a person understand the main points of the discussion without needing to read the entire text. Please avoid unnecessary details or tangential points.
-Only give me the output and nothing else. Respond in the \${lang} language. Clipboard access: \${clipboardAccess}
+Only give me the output and nothing else. Respond in the \${lang} language. Answer only in clipboard quotes: \${clipboardAccess}
 """
 \${input}
 """''',
@@ -53,25 +53,11 @@ Only give me the output and nothing else. Respond in the \${lang} language. Clip
     id: 3,
     title: 'Check grammar',
     icon: FluentIcons.text_grammar_wand_24_filled,
-    index: 2,
+    index: 3,
     prompt:
         '''Check spelling and grammar in the following text.
 If the original text has no mistake, write "Original text has no mistake". 
-Copy to clipboard: \${clipboardAccess}. 
-"""
-\${input}
-"""''',
-    showInChatField: true,
-    showInOverlay: true,
-    children: [],
-  ),
-  CustomPrompt(
-    id: 3,
-    title: 'Improve writing',
-    icon: FluentIcons.text_grammar_wand_24_filled,
-    index: 3,
-    prompt: '''Please improve the writing in the following text. Make it more engaging and clear.
-Copy to clipboard: \${clipboardAccess}.
+Answer only in clipboard quotes: \${clipboardAccess}. 
 """
 \${input}
 """''',
@@ -81,8 +67,22 @@ Copy to clipboard: \${clipboardAccess}.
   ),
   CustomPrompt(
     id: 4,
-    title: 'Translate this',
+    title: 'Improve writing',
+    icon: FluentIcons.text_grammar_wand_24_filled,
     index: 4,
+    prompt: '''Please improve the writing in the following text. Make it more engaging and clear.
+Answer only in clipboard quotes: \${clipboardAccess}.
+"""
+\${input}
+"""''',
+    showInChatField: true,
+    showInOverlay: true,
+    children: [],
+  ),
+  CustomPrompt(
+    id: 5,
+    title: 'Translate this',
+    index: 5,
     icon: FluentIcons.translate_24_regular,
     prompt:
         '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
@@ -91,21 +91,21 @@ Copy to clipboard: \${clipboardAccess}.
     showInOverlay: true,
     children: [
       CustomPrompt(
-        id: 5,
+        id: 6,
         title: 'Translate to English',
         prompt:
             '''Please translate the following text to English. Only give me the output and nothing else:
     "\${input}"''',
       ),
       CustomPrompt(
-        id: 6,
+        id: 7,
         title: 'Translate to Russian',
         prompt:
             '''Please translate the following text to Russian. Only give me the output and nothing else:
     "\${input}"''',
       ),
       CustomPrompt(
-        id: 7,
+        id: 8,
         title: 'Translate to Ukrainian',
         prompt:
             '''Please translate the following text to Ukrainian. Only give me the output and nothing else:

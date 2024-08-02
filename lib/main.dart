@@ -459,9 +459,12 @@ class MainPageWithNavigation extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
                             size: 20),
-                        onPressed: () =>
-                            Provider.of<ChatGPTProvider>(context, listen: false)
-                                .initChatsFromDisk(),
+                        onPressed: () async {
+                          await Provider.of<ChatGPTProvider>(context,
+                                  listen: false)
+                              .initChatsFromDisk();
+                          selectedChatRoomIdStream.add(selectedChatRoomId);
+                        },
                       ),
                     ),
                   ],

@@ -159,7 +159,7 @@ class PageHeaderText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.read<ChatGPTProvider>();
+    var chatProvider = context.watch<ChatGPTProvider>();
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
@@ -174,7 +174,24 @@ class PageHeaderText extends StatelessWidget {
                   room: selectedChatRoom,
                   onOkPressed: () {},
                 ),
-                child: TextAnimator(selectedChatRoom.chatRoomName, maxLines: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                        child: TextAnimator(
+                      selectedChatRoom.chatRoomName,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                    )),
+                    if (selectedChatRoom.apiToken.isEmpty ||
+                        selectedChatRoom.apiToken == 'empty')
+                      Tooltip(
+                        message: 'API token is empty!',
+                        child: Icon(ic.FluentIcons.warning_24_filled,
+                            color: Colors.red, size: 24),
+                      ),
+                  ],
+                ),
               );
             },
           ),
@@ -596,8 +613,8 @@ class RunCodeButton extends StatelessWidget {
             },
             checked: snap.data == true,
             style: ToggleButtonThemeData(
-              uncheckedButtonStyle:
-                  ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.green)),
+              uncheckedButtonStyle: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(Colors.green)),
             ),
             child: child,
           );

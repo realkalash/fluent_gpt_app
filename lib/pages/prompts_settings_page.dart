@@ -93,7 +93,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
                                       color: context.theme.accentColor,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('${item.index + 1}'),
+                                    child: Text('${item.index}'),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -392,6 +392,7 @@ class _PromptListTile extends StatelessWidget {
       //unbind old hotkey
       if (item.hotkey != null) {
         await hotKeyManager.unregister(item.hotkey!);
+
         /// wait native channel to finish
         await Future.delayed(const Duration(milliseconds: 200));
       }

@@ -93,20 +93,20 @@ class ChatRoom {
   }
 
   static Future<ChatRoom> fromMap(Map<String, dynamic> map) async {
-    String token = '';
-    if (map['token'] == null || map['nonce'] == null || map['token'] == '') {
-      /// List<int> Encrypted data
-      final encryptedToken = map['token'] as List<int>;
-      final nonce = map['nonce'] as List<int>;
-      final secretKey =
-          await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
-      final secretBox = SecretBox(
-        encryptedToken,
-        nonce: nonce,
-        mac: Mac.empty,
-      );
-      token = await decryptApiToken(secretBox, secretKey);
-    }
+    String token = map['token'] as String? ?? '';
+    // if (map['token'] == null || map['nonce'] == null || map['token'] == '') {
+    //   /// List<int> Encrypted data
+    //   final encryptedToken = map['token'] as List<int>;
+    //   final nonce = map['nonce'] as List<int>;
+    //   final secretKey =
+    //       await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
+    //   final secretBox = SecretBox(
+    //     encryptedToken,
+    //     nonce: nonce,
+    //     mac: Mac.empty,
+    //   );
+    //   token = await decryptApiToken(secretBox, secretKey);
+    // }
 
     return ChatRoom(
       model: allModels.firstWhere(
@@ -138,9 +138,9 @@ class ChatRoom {
   }
 
   Future<Map<String, dynamic>> toJson() async {
-    final secretKey =
-        await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
-    final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
+    // final secretKey =
+    //     await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
+    // final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
     return {
       'id': id,
       'model': model.model.toString(),
@@ -156,14 +156,14 @@ class ChatRoom {
       'repeatPenalty': repeatPenalty,
 
       /// List<int> Encrypted data
-      'token': encryptedTokenBox.cipherText,
+      // 'token': encryptedTokenBox.cipherText,
+      'token': apiToken,
       'orgID': orgID,
       'commandPrefix': systemMessage,
       'costUSD': costUSD,
       'tokens': tokens,
-      'nonce': encryptedTokenBox.nonce,
+      // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
-      'iconCodePoint': iconCodePoint,
     };
   }
 

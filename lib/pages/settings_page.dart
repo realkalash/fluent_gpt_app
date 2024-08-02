@@ -89,35 +89,38 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
   @override
   Widget build(BuildContext context) {
     final canGoBack = Navigator.of(context).canPop();
-    return ScaffoldPage.scrollable(
-      header: PageHeader(
-          title: const Text('Settings'),
-          leading: canGoBack
-              ? IconButton(
-                  icon: const Icon(FluentIcons.back),
-                  onPressed: () => Navigator.of(context).pop(),
-                )
-              : null),
-      children: [
-        const EnabledGptTools(),
-        const OverlaySettings(),
-        const _FilesSection(),
-        const AccessibilityPermissionButton(),
-        const _CacheSection(),
-        if (kDebugMode) const _DebugSection(),
-        const _HotKeySection(),
-        const CustomPromptsButton(),
-        Text('Appearance', style: FluentTheme.of(context).typography.title),
-        const _ThemeModeSection(),
-        spacer,
-        const _WindowTitleButton(),
-        // biggerSpacer,
-        // const _LocaleSection(),
-        const _ResolutionsSelector(),
-        const _LocaleSection(),
-        biggerSpacer,
-        const _OtherSettings(),
-      ],
+    return Container(
+      color: context.theme.scaffoldBackgroundColor.withOpacity(1),
+      child: ScaffoldPage.scrollable(
+        header: PageHeader(
+            title: const Text('Settings'),
+            leading: canGoBack
+                ? IconButton(
+                    icon: const Icon(FluentIcons.back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  )
+                : null),
+        children: [
+          const EnabledGptTools(),
+          const OverlaySettings(),
+          const _FilesSection(),
+          const AccessibilityPermissionButton(),
+          const _CacheSection(),
+          if (kDebugMode) const _DebugSection(),
+          const _HotKeySection(),
+          const CustomPromptsButton(),
+          Text('Appearance', style: FluentTheme.of(context).typography.title),
+          const _ThemeModeSection(),
+          spacer,
+          const _WindowTitleButton(),
+          // biggerSpacer,
+          // const _LocaleSection(),
+          const _ResolutionsSelector(),
+          const _LocaleSection(),
+          biggerSpacer,
+          const _OtherSettings(),
+        ],
+      ),
     );
   }
 }
@@ -145,16 +148,18 @@ class _WindowTitleButtonState extends State<_WindowTitleButton> {
 
   @override
   Widget build(BuildContext context) {
-    return FlyoutListTile(
-      text: const Text('Hide window title'),
-      tooltip: Platform.isWindows
+    return Tooltip(
+      message: Platform.isWindows
           ? 'Will disable acrylic effect due to a bug'
-          : null,
-      icon: Platform.isWindows
-          ? Icon(FluentIcons.warning, color: Colors.yellow)
-          : null,
-      onPressed: toggleTitleBarVisibility,
-      trailing: Checkbox(
+          : 'Will disable the window title bar',
+      child: Checkbox(
+        content: Row(
+          children: [
+            if (Platform.isWindows)
+              Icon(FluentIcons.warning, color: Colors.yellow),
+            const Text('Hide window title'),
+          ],
+        ),
         checked: AppCache.hideTitleBar.value,
         onChanged: (value) => toggleTitleBarVisibility(),
       ),
@@ -286,27 +291,23 @@ class _OverlaySettingsState extends State<OverlaySettings> {
       children: [
         Text('Overlay settings',
             style: FluentTheme.of(context).typography.subtitle),
-        FlyoutListTile(
-          text: const Text('Enable overlay'),
-          trailing: Checkbox(
-            checked: AppCache.enableOverlay.value,
-            onChanged: (value) {
-              setState(() {
-                AppCache.enableOverlay.value = value;
-              });
-            },
-          ),
+        Checkbox(
+          content: const Text('Enable overlay'),
+          checked: AppCache.enableOverlay.value,
+          onChanged: (value) {
+            setState(() {
+              AppCache.enableOverlay.value = value;
+            });
+          },
         ),
-        FlyoutListTile(
-          text: const Text('Show settings icon in overlay'),
-          trailing: Checkbox(
-            checked: AppCache.showSettingsInOverlay.value,
-            onChanged: (value) {
-              setState(() {
-                AppCache.showSettingsInOverlay.value = value;
-              });
-            },
-          ),
+        Checkbox(
+          content: const Text('Show settings icon in overlay'),
+          checked: AppCache.showSettingsInOverlay.value,
+          onChanged: (value) {
+            setState(() {
+              AppCache.showSettingsInOverlay.value = value;
+            });
+          },
         ),
         spacer,
         NumberBox(
@@ -396,40 +397,35 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         Text('Enabled GPT tools',
             style: FluentTheme.of(context).typography.subtitle),
         Wrap(
+          spacing: 15.0,
           children: [
             if (Platform.isWindows)
-              FlyoutListTile(
-                text: const Text('Search files'),
-                trailing: Checkbox(
-                  checked: AppCache.gptToolSearchEnabled.value!,
-                  onChanged: (value) {
-                    setState(() {
-                      AppCache.gptToolSearchEnabled.value = value;
-                    });
-                  },
-                ),
-              ),
-            FlyoutListTile(
-              text: const Text('Auto copy to clipboard'),
-              trailing: Checkbox(
-                checked: AppCache.gptToolCopyToClipboardEnabled.value!,
+              Checkbox(
+                content: const Text('Search files'),
+                checked: AppCache.gptToolSearchEnabled.value!,
                 onChanged: (value) {
                   setState(() {
-                    AppCache.gptToolCopyToClipboardEnabled.value = value;
+                    AppCache.gptToolSearchEnabled.value = value;
                   });
                 },
               ),
+            Checkbox(
+              content: const Text('Auto copy to clipboard'),
+              checked: AppCache.gptToolCopyToClipboardEnabled.value!,
+              onChanged: (value) {
+                setState(() {
+                  AppCache.gptToolCopyToClipboardEnabled.value = value;
+                });
+              },
             ),
-            FlyoutListTile(
-              text: const Text('Run python code'),
-              trailing: Checkbox(
-                checked: AppCache.gptToolPythonEnabled.value!,
-                onChanged: (value) {
-                  setState(() {
-                    AppCache.gptToolPythonEnabled.value = value;
-                  });
-                },
-              ),
+            Checkbox(
+              content: const Text('Run python code'),
+              checked: AppCache.gptToolPythonEnabled.value!,
+              onChanged: (value) {
+                setState(() {
+                  AppCache.gptToolPythonEnabled.value = value;
+                });
+              },
             ),
             biggerSpacer,
           ],
@@ -522,25 +518,22 @@ class _OtherSettings extends StatelessWidget {
         Text('Other settings',
             style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        FlyoutListTile(
-          text: const Text('Prevent close app'),
-          trailing: Checkbox(
-            checked: appTheme.preventClose,
-            onChanged: (value) => appTheme.togglePreventClose(),
-          ),
+        Checkbox(
+          content: const Text('Prevent close app'),
+          checked: appTheme.preventClose,
+          onChanged: (value) => appTheme.togglePreventClose(),
         ),
-        FlyoutListTile(
-          text: const Text('Show in dock'),
-          trailing: Checkbox(
-              checked: AppCache.showAppInDock.value == true,
-              onChanged: (value) {
-                appTheme.toggleShowInDock();
-              }),
+        Checkbox(
+          content: const Text('Show in dock'),
+          checked: AppCache.showAppInDock.value == true,
+          onChanged: (value) {
+            appTheme.toggleShowInDock();
+          },
         ),
-        FlyoutListTile(
-          text: const Text('Use second request for naming chats'),
-          tooltip: 'Can cause additional charges!',
-          trailing: Checkbox(
+        Tooltip(
+          message: 'Can cause additional charges!',
+          child: Checkbox(
+            content: const Text('Use second request for naming chats'),
             checked: gptProvider.useSecondRequestForNamingChats,
             onChanged: (value) =>
                 gptProvider.toggleUseSecondRequestForNamingChats(),
@@ -874,39 +867,17 @@ class _ThemeModeSection extends StatelessWidget {
         // background color
         spacer,
         // use solid background effect
-        FlyoutListTile(
-          text: const Text('Use acrylic'),
-          trailing: Checkbox(
-            checked: appTheme.windowEffect == WindowEffect.acrylic,
-            onChanged: (value) {
-              if (value == true) {
-                appTheme.setEffect(WindowEffect.acrylic);
-              } else {
-                appTheme.windowEffectOpacity = 0.0;
-                appTheme.setEffect(WindowEffect.disabled);
-              }
-            },
-          ),
-          onPressed: () {
-            if (appTheme.windowEffect == WindowEffect.acrylic) {
-              appTheme.setEffect(WindowEffect.disabled);
+        Checkbox(
+          content: const Text('Use acrylic'),
+          checked: appTheme.windowEffect == WindowEffect.acrylic,
+          onChanged: (value) {
+            if (value == true) {
+              appTheme.setEffect(WindowEffect.acrylic);
             } else {
               appTheme.windowEffectOpacity = 0.0;
-              appTheme.setEffect(WindowEffect.acrylic);
+              appTheme.setEffect(WindowEffect.disabled);
             }
           },
-          // selected: appTheme.windowEffect == WindowEffect.acrylic,
-          // trailing: Checkbox(
-          //   checked: appTheme.windowEffect == WindowEffect.acrylic,
-          //   onChanged: (v) {
-          //     if (v == true) {
-          //       appTheme.setEffect(WindowEffect.acrylic);
-          //     } else {
-          //       appTheme.windowEffectOpacity = 0.0;
-          //       appTheme.setEffect(WindowEffect.disabled);
-          //     }
-          //   },
-          // ),
         ),
       ],
     );

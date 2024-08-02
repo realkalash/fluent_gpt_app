@@ -148,7 +148,7 @@ class ChatGPTProvider with ChangeNotifier {
         final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
         final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
-        if (chatRoom.chatRoomName == selectedChatRoomId) {
+        if (chatRoom.id == selectedChatRoomId) {
           initCurerrentChat();
         }
       } catch (e) {
@@ -157,7 +157,7 @@ class ChatGPTProvider with ChangeNotifier {
     }
     if (chatRooms.isEmpty) {
       chatRooms['Default'] = _generateDefaultChatroom();
-      selectedChatRoomId = 'Default';
+      selectedChatRoomId = chatRooms['Default']!.id;
     }
     selectedChatRoomId = selectedChatRoomId;
     notifyRoomsStream();
@@ -174,11 +174,11 @@ class ChatGPTProvider with ChangeNotifier {
   void initCurerrentChat() {
     if (selectedChatRoom.apiToken != 'empty') {
       openAI.setToken(selectedChatRoom.apiToken);
-      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.securedToken}');
+      log('setOpenAIKeyForCurrentChatRoom: ${selectedChatRoom.apiToken}');
     }
     if (selectedChatRoom.orgID != '') {
       openAI.setOrgId(selectedChatRoom.orgID ?? '');
-      log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID}');
+      log('setOpenAIGroupIDForCurrentChatRoom: ${selectedChatRoom.orgID ?? ''}');
     }
   }
 
@@ -291,19 +291,11 @@ class ChatGPTProvider with ChangeNotifier {
             {
               'role': message.value['role'],
               'content': message.value['content'],
-              'created': message.value['created'],
-              'hidePrompt': message.value['hidePrompt'],
-              'commandMessage': message.value['commandMessage'],
-              'tags': message.value['tags'],
             },
         if (!includeConversation0)
           {
             'role': Role.user.name,
             'content': messageContent,
-            'created': dateTime,
-            'hidePrompt': hidePrompt.toString(),
-            'commandMessage': hidePrompt.toString(),
-            'tags': '$lenghtStyle;$conversationStyle',
           },
       ],
       maxToken: maxLenght,
@@ -312,11 +304,12 @@ class ChatGPTProvider with ChangeNotifier {
       topP: topP,
       frequencyPenalty: repeatPenalty,
       presencePenalty: repeatPenalty,
-      tools: [
-        if (AppCache.gptToolSearchEnabled.value!) searchFilesFunction,
-        if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
-      ],
+      // tools: [
+      //   if (AppCache.gptToolSearchEnabled.value!) searchFilesFunction,
+      //   if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
+      // ],
     );
+    final currToken = openAI.token;
     final stream = openAI.onChatCompletionSSE(
       request: request,
       onCancel: (cancelData) {
@@ -535,7 +528,6 @@ class ChatGPTProvider with ChangeNotifier {
       }
     }
 
-    saveToDisk();
     if (isFirstMessage) {
       // name chat
       if (useSecondRequestForNamingChats) {
@@ -553,11 +545,11 @@ class ChatGPTProvider with ChangeNotifier {
             chatRoom!.chatRoomName = titleShort;
             chatRooms[selectedChatRoomId] = chatRoom;
             notifyRoomsStream();
-            saveToDisk();
           }
         }
       }
     }
+    saveToDisk();
   }
 
   _requestForTitleChat(String userMessage) async {
@@ -643,7 +635,7 @@ class ChatGPTProvider with ChangeNotifier {
     notifyListeners();
     notifyRoomsStream();
     selectedChatRoomId = id;
-    saveToDisk([chatRooms[selectedChatRoomId]!]);
+    saveToDisk([selectedChatRoom]);
   }
 
   void setOpenAIKeyForCurrentChatRoom(String v) {
@@ -652,14 +644,14 @@ class ChatGPTProvider with ChangeNotifier {
     openAI.setToken(trimmed);
     log('setOpenAIKeyForCurrentChatRoom: ${chatRooms[selectedChatRoomId]!.securedToken}');
     notifyListeners();
-    saveToDisk([chatRooms[selectedChatRoomId]!]);
+    saveToDisk([selectedChatRoom]);
   }
 
   void setOpenAIGroupIDForCurrentChatRoom(String v) {
     chatRooms[selectedChatRoomId]!.orgID = v;
     openAI.setOrgId(v);
     notifyListeners();
-    saveToDisk([chatRooms[selectedChatRoomId]!]);
+    saveToDisk([selectedChatRoom]);
   }
 
   Future<void> deleteAllChatRooms() async {
@@ -675,6 +667,9 @@ class ChatGPTProvider with ChangeNotifier {
 
   void selectChatRoom(ChatRoom room) {
     selectedChatRoomId = room.id;
+    openAI.setToken(room.apiToken);
+    openAI.setOrgId(room.orgID ?? '');
+    log('setOpenAIKeyForCurrentChatRoom: ${room.securedToken}');
     notifyListeners();
   }
 
@@ -683,7 +678,7 @@ class ChatGPTProvider with ChangeNotifier {
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       chatRooms['Default'] = _generateDefaultChatroom();
-      selectedChatRoomId = 'Default';
+      selectedChatRoomId = chatRooms['Default']!.id;
     }
     if (chatRoomId == selectedChatRoomId) {
       selectedChatRoomId = chatRooms.keys.last;
@@ -707,15 +702,15 @@ class ChatGPTProvider with ChangeNotifier {
       {switchToForeground = false}) {
     if (selectedChatRoomId == oldChatRoomId) {
       // if token is changed, update openAI
-      if (chatRoom.apiToken != chatRooms[oldChatRoomId]?.apiToken) {
-        openAI.setToken(chatRoom.apiToken);
-        log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.securedToken}');
-      }
+
+      openAI.setToken(chatRoom.apiToken);
+      log('setOpenAIKeyForCurrentChatRoom: ${chatRoom.securedToken}');
+
       // if orgID is changed, update openAI
-      if (chatRoom.orgID != chatRooms[oldChatRoomId]?.orgID) {
-        openAI.setOrgId(chatRoom.orgID ?? '');
-        log('setOpenAIGroupIDForCurrentChatRoom: ${chatRoom.orgID}');
-      }
+
+      openAI.setOrgId(chatRoom.orgID ?? '');
+      log('setOpenAIGroupIDForCurrentChatRoom: ${chatRoom.orgID}');
+      switchToForeground = true;
     }
     chatRooms.remove(oldChatRoomId);
     chatRooms[chatRoom.id] = chatRoom;
@@ -730,7 +725,7 @@ class ChatGPTProvider with ChangeNotifier {
     messages.clear();
     calcUsageTokens(null);
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void sendResultOfRunningShellCode(String result) {
@@ -741,7 +736,7 @@ class ChatGPTProvider with ChangeNotifier {
           'Result: \n${result.trim().isEmpty ? 'Done. No output' : result}',
     });
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
     // scroll to bottom
     listItemsScrollController.animateTo(
       listItemsScrollController.position.maxScrollExtent + 200,
@@ -753,7 +748,7 @@ class ChatGPTProvider with ChangeNotifier {
   void deleteMessage(String id) {
     messages.remove(id);
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void enableSelectionMode() {
@@ -781,7 +776,7 @@ class ChatGPTProvider with ChangeNotifier {
       selectedMessages.remove(message.key);
     }
     disableSelectionMode();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void toggleSelectMessage(String id) {
@@ -830,7 +825,7 @@ class ChatGPTProvider with ChangeNotifier {
       'content': message,
     });
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
     scrollToEnd();
   }
 
@@ -980,7 +975,7 @@ class ChatGPTProvider with ChangeNotifier {
   void editMessage(Map<String, String> message, String text) {
     message['content'] = text;
     notifyListeners();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   Future<void> regenerateMessage(Map<String, String> message) async {
