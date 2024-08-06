@@ -7,15 +7,15 @@ import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
-import 'package:fluent_gpt/widgets/markdown_builders/md_code_builder.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
@@ -503,19 +503,9 @@ void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
                   RunCodeButton(code: block),
                 ],
               ),
-              subtitle: Markdown(
-                data: '```python\n$block\n```',
-                selectable: true,
-                shrinkWrap: true,
-                styleSheet: MarkdownStyleSheet(
-                  code: const TextStyle(
-                      fontSize: 14, backgroundColor: Colors.transparent),
-                ),
-                builders: {
-                  'code': CodeElementBuilder(
-                      isDarkTheme: FluentTheme.of(context).brightness ==
-                          Brightness.dark),
-                },
+              subtitle: buildMarkdown(
+                context,
+                '```python\n$block\n```',
               ),
             ),
           ],
