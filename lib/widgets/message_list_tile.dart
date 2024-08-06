@@ -12,7 +12,7 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -22,6 +22,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:intl/intl.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import 'markdown_builders/markdown_utils.dart';
 import 'markdown_builders/md_code_builder.dart';
 
 class _MessageListTile extends StatelessWidget {
@@ -120,12 +121,11 @@ class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
   bool _containsCode = false;
   bool _isFocused = false;
-  List<LogicalKeyboardKey> pressedKeybinding = [];
 
   @override
   void initState() {
     super.initState();
-    _isMarkdownView = AppCache.isMarkdownView.value ?? true;
+    _isMarkdownView = AppCache.isMarkdownViewEnabled.value ?? true;
   }
 
   @override
@@ -269,33 +269,10 @@ class _MessageCardState extends State<MessageCard> {
                         fontSize: widget.textSize.toDouble(),
                       ),
                 )
-              : Markdown(
-                  data: widget.message['content'] ?? '',
-                  softLineBreak: true,
-                  selectable: true,
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  styleSheet: MarkdownStyleSheet(
-                    p: TextStyle(fontSize: widget.textSize.toDouble()),
-                    code: TextStyle(
-                      fontSize: widget.textSize.toDouble() + 1,
-                      backgroundColor: Colors.transparent,
-                    ),
-                  ),
-                  builders: {
-                    'code': CodeElementBuilder(
-                        isDarkTheme: FluentTheme.of(context).brightness ==
-                            Brightness.dark),
-                  },
-                  onTapLink: (text, href, title) => launchUrlString(href!),
-                  extensionSet: md.ExtensionSet(
-                    md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-                    <md.InlineSyntax>[
-                      md.EmojiSyntax(),
-                      ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
-                    ],
-                  ),
+              : buildMarkdown(
+                  context,
+                  widget.message['content'] ?? '',
+                  textSize: widget.textSize.toDouble(),
                 ),
         ),
       );
@@ -307,45 +284,6 @@ class _MessageCardState extends State<MessageCard> {
         setState(() {
           _isFocused = isFocused;
         });
-      },
-      onKeyEvent: (node, event) {
-        if (event is KeyRepeatEvent) {
-          return KeyEventResult.handled;
-        }
-
-        if (event is KeyDownEvent) {
-          pressedKeybinding.add(event.logicalKey);
-        }
-        if (event is KeyUpEvent) {
-          pressedKeybinding.remove(event.logicalKey);
-        }
-        final containsC = pressedKeybinding.contains(LogicalKeyboardKey.keyC);
-        final containsControl =
-            pressedKeybinding.contains(LogicalKeyboardKey.controlLeft) ||
-                pressedKeybinding.contains(LogicalKeyboardKey.controlRight);
-        final containsMeta =
-            pressedKeybinding.contains(LogicalKeyboardKey.meta);
-
-        if (containsC && (containsControl || containsMeta)) {
-          displayInfoBar(context, builder: (c, _) {
-            final shortMessage = widget.message['content'].toString();
-            Clipboard.setData(ClipboardData(text: shortMessage));
-            return InfoBar(
-              title: Text(shortMessage),
-              severity: InfoBarSeverity.info,
-            );
-          });
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          FocusScope.of(context).nextFocus();
-          return KeyEventResult.handled;
-        }
-        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-          FocusScope.of(context).previousFocus();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
       },
       child: Stack(
         children: [
@@ -429,7 +367,8 @@ class _MessageCardState extends State<MessageCard> {
                           checked: false,
                           style: ToggleButtonThemeData(
                             uncheckedButtonStyle: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(Colors.blue)),
+                                backgroundColor:
+                                    WidgetStateProperty.all(Colors.blue)),
                           ),
                           child: const Icon(FluentIcons.code, size: 10),
                         ),

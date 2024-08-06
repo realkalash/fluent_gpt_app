@@ -1,6 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown_widget/markdown_widget.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutPage extends StatelessWidget {
@@ -76,7 +76,10 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
     return Card(
       backgroundColor:
           FluentTheme.of(context).micaBackgroundColor.withOpacity(0.8),
-      child: const MarkdownBody(data: message),
+      child: const MarkdownWidget(
+        data: message,
+        shrinkWrap: true,
+      ),
     );
   }
 }

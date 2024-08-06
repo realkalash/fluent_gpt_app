@@ -10,7 +10,7 @@ class AppCache {
   static const enableOverlay = BoolPref("enableOverlay", false);
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const hideTitleBar = BoolPref("hideTitleBar", false);
-  static const isMarkdownView = BoolPref("isMarkdownView", false);
+  static const isMarkdownViewEnabled = BoolPref("isMarkdownView", true);
   static const overlayVisibleElements = IntPref("overlayVisibleElements");
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
