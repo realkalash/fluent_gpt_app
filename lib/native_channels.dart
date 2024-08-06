@@ -10,6 +10,7 @@ const overlayChannel = MethodChannel('com.realk.fluent_gpt/overlay');
 
 class NativeChannelUtils {
   static void testChannel() async {
+    if (Platform.isLinux) return;
     try {
       final result = await overlayChannel.invokeMethod('testResultFromSwift');
       print('Result from Swift: $result');
@@ -19,6 +20,7 @@ class NativeChannelUtils {
   }
 
   static Future<String?> getSelectedText() async {
+    if (Platform.isLinux) return null;
     try {
       final String? selectedText =
           await overlayChannel.invokeMethod('getSelectedText');
@@ -35,6 +37,7 @@ class NativeChannelUtils {
   }
 
   static void showOverlay() async {
+    if (Platform.isLinux) return null;
     try {
       await overlayChannel.invokeMethod('showOverlay');
     } on PlatformException catch (e) {
@@ -43,6 +46,7 @@ class NativeChannelUtils {
   }
 
   static void requestNativePermissions() async {
+    if (Platform.isLinux) return null;
     try {
       await overlayChannel.invokeMethod('requestNativePermissions');
     } on PlatformException catch (e) {
@@ -51,6 +55,7 @@ class NativeChannelUtils {
   }
 
   static Future<bool> isAccessibilityGranted() async {
+    if (Platform.isLinux) return true;
     try {
       final bool isGranted =
           await overlayChannel.invokeMethod('isAccessabilityGranted');
@@ -62,6 +67,7 @@ class NativeChannelUtils {
   }
 
   static Future<void> initAccessibility() async {
+    if (Platform.isLinux) return;
     try {
       await overlayChannel.invokeMethod('initAccessibility');
       print('[Dart] initAccessibility called');
@@ -71,6 +77,7 @@ class NativeChannelUtils {
   }
 
   static Future<Map<String, num>?> getScreenSize() async {
+    if (Platform.isLinux) return null;
     try {
       final Map<String, num>? screenSize =
           await overlayChannel.invokeMapMethod('getScreenSize');
@@ -83,6 +90,7 @@ class NativeChannelUtils {
 
   ///  result(["positionX": cursorPosition.x, "positionY": cursorPosition.y])
   static Future<Offset?> getMousePosition() async {
+    if (Platform.isLinux) return null;
     try {
       final mousePosition =
           await overlayChannel.invokeMethod('getMousePosition');
@@ -98,6 +106,7 @@ class NativeChannelUtils {
 
   // Currenlty only used for macOS
   static Future<bool> requestMicrophonePermissions() async {
+    if (Platform.isLinux) return true;
     try {
       final result =
           await overlayChannel.invokeMethod('requestMicrophonePermissions');

@@ -24,6 +24,7 @@ import 'common/window_listener.dart';
 final trayButtonStream = BehaviorSubject<String?>();
 
 Future<void> initSystemTray() async {
+  if (Platform.isLinux) return;
   String path = Platform.isWindows
       ? 'assets/app_icon.ico'
       : 'assets/transparent_app_icon_32x32.png';

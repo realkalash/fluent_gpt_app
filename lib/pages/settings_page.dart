@@ -90,7 +90,9 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
   Widget build(BuildContext context) {
     final canGoBack = Navigator.of(context).canPop();
     return Container(
-      color: context.theme.scaffoldBackgroundColor.withOpacity(1),
+      color: Platform.isLinux
+          ? Colors.transparent
+          : context.theme.scaffoldBackgroundColor.withOpacity(1),
       child: ScaffoldPage.scrollable(
         header: PageHeader(
             title: const Text('Settings'),
@@ -867,18 +869,19 @@ class _ThemeModeSection extends StatelessWidget {
         // background color
         spacer,
         // use solid background effect
-        Checkbox(
-          content: const Text('Use acrylic'),
-          checked: appTheme.windowEffect == WindowEffect.acrylic,
-          onChanged: (value) {
-            if (value == true) {
-              appTheme.setEffect(WindowEffect.acrylic);
-            } else {
-              appTheme.windowEffectOpacity = 0.0;
-              appTheme.setEffect(WindowEffect.disabled);
-            }
-          },
-        ),
+        if (!Platform.isLinux)
+          Checkbox(
+            content: const Text('Use acrylic'),
+            checked: appTheme.windowEffect == WindowEffect.acrylic,
+            onChanged: (value) {
+              if (value == true) {
+                appTheme.setEffect(WindowEffect.acrylic);
+              } else {
+                appTheme.windowEffectOpacity = 0.0;
+                appTheme.setEffect(WindowEffect.disabled);
+              }
+            },
+          ),
       ],
     );
   }

@@ -156,8 +156,9 @@ class ChatGPTProvider with ChangeNotifier {
       }
     }
     if (chatRooms.isEmpty) {
-      chatRooms['Default'] = _generateDefaultChatroom();
-      selectedChatRoomId = chatRooms['Default']!.id;
+      final newChatRoom = _generateDefaultChatroom();
+      chatRooms[newChatRoom.id] = newChatRoom;
+      selectedChatRoomId = newChatRoom.id;
     }
     selectedChatRoomId = selectedChatRoomId;
     notifyRoomsStream();
@@ -677,8 +678,9 @@ class ChatGPTProvider with ChangeNotifier {
     chatRooms.remove(chatRoomId);
     // if last one - create a default one
     if (chatRooms.isEmpty) {
-      chatRooms['Default'] = _generateDefaultChatroom();
-      selectedChatRoomId = chatRooms['Default']!.id;
+      final newChatRoom = _generateDefaultChatroom();
+      chatRooms[newChatRoom.id] = newChatRoom;
+      selectedChatRoomId = newChatRoom.id;
     }
     if (chatRoomId == selectedChatRoomId) {
       selectedChatRoomId = chatRooms.keys.last;
