@@ -27,7 +27,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -653,7 +652,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                     openWindowHotkey = key;
                   });
                   await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
-                  initShortcuts(AppWindow());
+                  initShortcuts();
                 }
               },
               child: Row(

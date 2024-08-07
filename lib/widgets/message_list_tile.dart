@@ -12,18 +12,14 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:markdown_widget/markdown_widget.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
-import 'package:markdown/markdown.dart' as md;
 
 import 'markdown_builders/markdown_utils.dart';
-import 'markdown_builders/md_code_builder.dart';
 
 class _MessageListTile extends StatelessWidget {
   const _MessageListTile({
@@ -119,7 +115,6 @@ class MessageCard extends StatefulWidget {
 
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
-  bool _containsCode = false;
   bool _isFocused = false;
 
   @override
@@ -277,7 +272,6 @@ class _MessageCardState extends State<MessageCard> {
         ),
       );
     }
-    _containsCode = widget.message['content'].toString().contains('```');
 
     return Focus(
       onFocusChange: (isFocused) {
@@ -342,45 +336,17 @@ class _MessageCardState extends State<MessageCard> {
                     message: 'Copy text to clipboard',
                     child: SizedBox.square(
                       dimension: 30,
-                      child: ToggleButton(
-                        onChanged: (_) {
+                      child: Button(
+                        onPressed: () {
                           Clipboard.setData(
                             ClipboardData(text: '${widget.message['content']}'),
                           );
                           displayCopiedToClipboard();
                         },
-                        checked: false,
                         child: const Icon(FluentIcons.copy, size: 10),
                       ),
                     ),
                   ),
-                  if (_containsCode)
-                    Tooltip(
-                      message: 'Copy python code to clipboard',
-                      child: SizedBox.square(
-                        dimension: 30,
-                        child: ToggleButton(
-                          onChanged: (_) {
-                            _copyCodeToClipboard(
-                                widget.message['content'].toString());
-                          },
-                          checked: false,
-                          style: ToggleButtonThemeData(
-                            uncheckedButtonStyle: ButtonStyle(
-                                backgroundColor:
-                                    WidgetStateProperty.all(Colors.blue)),
-                          ),
-                          child: const Icon(FluentIcons.code, size: 10),
-                        ),
-                      ),
-                    ),
-                  if (_containsCode)
-                    Tooltip(
-                      message: 'Run python code',
-                      child: RunCodeButton(
-                        code: widget.message['content'].toString(),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -452,16 +418,20 @@ class _MessageCardState extends State<MessageCard> {
       context: context,
       builder: (ctx) => ContentDialog(
         title: const Text('Edit message'),
+        constraints:
+            const BoxConstraints(maxWidth: 800, maxHeight: 800, minHeight: 200),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
             const IncludeConversationSwitcher(),
             const SizedBox(height: 8),
-            TextBox(
-              controller: contentController,
-              minLines: 5,
-              maxLines: 10,
+            Expanded(
+              child: TextBox(
+                controller: contentController,
+                minLines: 5,
+                maxLines: 50,
+              ),
             ),
           ],
         ),

@@ -15,7 +15,6 @@ import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:markdown_widget/markdown_widget.dart';
 import 'package:provider/provider.dart';
 // ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
@@ -465,7 +464,7 @@ class __ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
 
 Future<void> displayCopiedToClipboard() {
   return displayInfoBar(
-    navigatorKey.currentContext!,
+    appContext!,
     builder: (context, close) => InfoBar(
       title: const Text('Copied'),
       severity: InfoBarSeverity.info,
@@ -500,7 +499,6 @@ void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
                       child: const Icon(FluentIcons.copy, size: 10),
                     ),
                   ),
-                  RunCodeButton(code: block),
                 ],
               ),
               subtitle: buildMarkdown(
@@ -559,56 +557,57 @@ List<String> getCodeFromMarkdown(String assistantContent) {
 }
 
 class RunCodeButton extends StatelessWidget {
-  const RunCodeButton({super.key, required this.code});
+  const RunCodeButton({
+    super.key,
+    required this.code,
+    required this.language,
+  });
   final String code;
+  final String language;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: 30,
-      child: StreamBuilder(
-        stream: ShellDriver.isRunningStream,
-        builder: (BuildContext ctx, AsyncSnapshot<dynamic> snap) {
-          late Widget child;
-          if (snap.data == true) {
-            child = const Icon(FluentIcons.progress_ring_dots, size: 10);
-          } else {
-            child = const Icon(FluentIcons.play_solid, size: 10);
-          }
-          return ToggleButton(
-            onChanged: (_) async {
-              final provider =
-                  Provider.of<ChatGPTProvider>(context, listen: false);
-              final codeBlocks = getCodeFromMarkdown(code);
-              if (codeBlocks.length > 1) {
-                chooseCodeBlockDialog(context, codeBlocks);
-                return;
-              }
+    final isSupported = language == 'shell' || language == 'python';
+    if (!isSupported) {
+      return const SizedBox.shrink();
+    }
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: SizedBox.square(
+        dimension: 30,
+        child: StreamBuilder(
+          stream: ShellDriver.isRunningStream,
+          builder: (BuildContext ctx, AsyncSnapshot<dynamic> snap) {
+            late Widget child;
+            if (snap.data == true) {
+              child = const Icon(FluentIcons.progress_ring_dots, size: 10);
+            } else {
+              child = const Icon(FluentIcons.play_solid, size: 10);
+            }
+            return ToggleButton(
+              onChanged: (_) async {
+                final provider =
+                    Provider.of<ChatGPTProvider>(context, listen: false);
 
-              if (shellCommandRegex.hasMatch(code)) {
-                final match = shellCommandRegex.firstMatch(code);
-                final command = match?.group(1);
-                if (command != null) {
-                  final result = await ShellDriver.runShellCommand(command);
+                if (language == 'shell') {
+                  final result = await ShellDriver.runShellCommand(code);
+                  provider.sendResultOfRunningShellCode(result);
+                } else if (language == 'python') {
+                  final result = await ShellDriver.runPythonCode(code);
                   provider.sendResultOfRunningShellCode(result);
                 }
-              } else if (pythonCommandRegex.hasMatch(code)) {
-                final match = pythonCommandRegex.firstMatch(code);
-                final command = match?.group(1);
-                if (command != null) {
-                  final result = await ShellDriver.runPythonCode(command);
-                  provider.sendResultOfRunningShellCode(result);
-                }
-              }
-            },
-            checked: snap.data == true,
-            style: ToggleButtonThemeData(
-              uncheckedButtonStyle: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.all(Colors.green)),
-            ),
-            child: child,
-          );
-        },
+              },
+              checked: snap.data == true,
+              style: ToggleButtonThemeData(
+                uncheckedButtonStyle: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(Colors.green),
+                  padding: WidgetStateProperty.all(EdgeInsets.zero),
+                ),
+              ),
+              child: child,
+            );
+          },
+        ),
       ),
     );
   }

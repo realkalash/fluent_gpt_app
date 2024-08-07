@@ -2,12 +2,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
-# the on-disk name of your application.
-set(BINARY_NAME "fluent_gpt")
-# The unique GTK application identifier for this application. See:
-# https://wiki.gnome.org/HowDoI/ChooseApplicationID
+# The name of the executable created for the application.
+set(BINARY_NAME "FluentGPT")
+# The unique GTK application identifier for this application.
 set(APPLICATION_ID "com.realk.fluent_gpt")
+
+# Copy the icon to the build directory
+configure_file(${CMAKE_SOURCE_DIR}/../assets/app_icon.png ${CMAKE_BINARY_DIR}/data/flutter_assets/assets/app_icon.png COPYONLY)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -66,8 +67,6 @@ add_executable(${BINARY_NAME}
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 
-# Apply the standard set of build settings. This can be removed for applications
-# that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
 # Add dependency libraries. Add any application-specific dependencies here.
@@ -91,10 +90,7 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
-
 # === Installation ===
-# By default, "installing" just makes a relocatable bundle in the build
-# directory.
 set(BUILD_BUNDLE_DIR "${PROJECT_BINARY_DIR}/bundle")
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)

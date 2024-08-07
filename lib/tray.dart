@@ -9,109 +9,57 @@ import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/overlay/overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
-import 'package:pasteboard/pasteboard.dart';
-import 'package:system_tray/system_tray.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:rxdart/rxdart.dart';
-
-import 'common/window_listener.dart';
 
 /// Can handle direct commands as [paste, grammar, explain, to_rus, to_eng] (Value from clipboard will be used as text)
 /// or onProtocol url link as myApp://command?text=Hello%20World
 final trayButtonStream = BehaviorSubject<String?>();
+AppTrayListener appTrayListener = AppTrayListener();
 
 Future<void> initSystemTray() async {
-  if (Platform.isLinux) return;
-  String path = Platform.isWindows
-      ? 'assets/app_icon.ico'
-      : 'assets/transparent_app_icon_32x32.png';
+  String? path;
+  if (Platform.isWindows) {
+    path = 'assets/app_icon.ico';
+  } else if (Platform.isMacOS) {
+    path = 'assets/transparent_app_icon_32x32.png';
+  } else if (Platform.isLinux) {
+    path = 'assets/app_icon.png';
+  }
+  if (path == null) return;
 
-  final AppWindow appWindow = AppWindow();
-  final SystemTray systemTray = SystemTray();
+  // final AppWindow appWindow = AppWindow();
+  // final SystemTray systemTray = SystemTray();
 
   // We first init the systray menu
-  await systemTray.initSystemTray(
-    iconPath: path,
+  await trayManager.setIcon(
+    path,
     isTemplate: true,
-    toolTip: "FluentGPT",
   );
 
   // create context menu
-  final Menu menu = Menu();
-  await menu.buildFrom([
-    MenuItemLabel(label: 'Show', onClicked: (menuItem) => appWindow.show()),
-    MenuItemLabel(label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
-    MenuItemLabel(label: 'Exit', onClicked: (menuItem) => appWindow.close()),
+  final Menu menu = Menu(items: [
+    MenuItem(label: 'Show', onClick: (menuItem) => windowManager.show()),
+    MenuItem(label: 'Hide', onClick: (menuItem) => windowManager.hide()),
+    MenuItem(label: 'Exit', onClick: (menuItem) => windowManager.close()),
   ]);
 
   // set context menu
-  await systemTray.setContextMenu(menu);
+  await trayManager.setContextMenu(menu);
 
   // handle system tray event
-  systemTray.registerSystemTrayEventHandler((eventName) async {
-    debugPrint("eventName: $eventName");
-    if (eventName == kSystemTrayEventClick) {
-      AppWindowListener.windowVisibilityStream.value == false
-          ? appWindow.show()
-          : appWindow.hide();
-    } else if (eventName == kSystemTrayEventRightClick) {
-      final clipBoard = await Clipboard.getData(Clipboard.kTextPlain);
-      if (clipBoard?.text?.trim().isNotEmpty == true) {
-        final first20CharIfPresent = clipBoard!.text!.length > 20
-            ? clipBoard.text!.substring(0, 20)
-            : clipBoard.text;
-        menu.buildFrom([
-          MenuItemLabel(
-              label: 'Paste: "${first20CharIfPresent?.trim()}..."',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'paste')),
-          MenuItemLabel(
-              label: 'Grammar',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'grammar')),
-          MenuItemLabel(
-              label: 'Explain',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'explain')),
-          MenuItemLabel(
-              label: 'Translate to Russian',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'to_rus')),
-          MenuItemLabel(
-              label: 'Translate to English',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'to_eng')),
-          MenuItemLabel(
-              label: 'Answer with Tags',
-              onClicked: (menuItem) async => onTrayButtonTapCommand(
-                  '${(await Pasteboard.text)}', 'answer_with_tags')),
-          MenuSeparator(),
-          MenuItemLabel(
-              label: 'Show', onClicked: (menuItem) => appWindow.show()),
-          MenuItemLabel(
-              label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
-          MenuItemLabel(
-              label: 'Exit', onClicked: (menuItem) => appWindow.close()),
-        ]);
-        await systemTray.setContextMenu(menu);
-      }
-      if (Platform.isWindows) {
-        systemTray.popUpContextMenu();
-      } else {
-        appWindow.show();
-      }
-    }
-  });
-  await initShortcuts(appWindow);
+  trayManager.removeListener(appTrayListener);
+  trayManager.addListener(appTrayListener);
+  await initShortcuts();
 }
 
 @Deprecated('Use onTrayButtonTapCommand instead')
 onTrayButtonTap(String item) {
   trayButtonStream.add(item);
-  AppWindow().show();
+  windowManager.show();
 }
 
 Future<void> onTrayButtonTapCommand(String promptText,
@@ -126,7 +74,7 @@ Future<void> onTrayButtonTapCommand(String promptText,
   trayButtonStream.add(uri.toString());
   final visible = await windowManager.isVisible();
   if (!visible) {
-    AppWindow().show();
+    windowManager.show();
   }
 }
 
@@ -135,7 +83,7 @@ BehaviorSubject<bool> windowVisibilityStream =
     BehaviorSubject<bool>.seeded(true);
 
 showWindow() {
-  AppWindow().show();
+  windowManager.show();
 }
 
 /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
@@ -159,12 +107,12 @@ HotKey showOverlayForText = HotKey(
   modifiers: [HotKeyModifier.control],
   scope: HotKeyScope.system,
 );
-Future<void> initShortcuts(AppWindow appWindow) async {
+Future<void> initShortcuts() async {
   await hotKeyManager.register(
     openWindowHotkey,
     keyDownHandler: (hotKey) async {
       final isAppVisible = await windowManager.isVisible();
-      isAppVisible ? appWindow.hide() : appWindow.show();
+      isAppVisible ? windowManager.hide() : windowManager.show();
     },
   );
   await hotKeyManager.register(
@@ -215,7 +163,7 @@ Future<void> initCachedHotKeys() async {
         final isInputFieldFocused = promptTextFocusNode.hasFocus;
         if (isAppVisible && isInputFieldFocused) {
           promptTextFocusNode.unfocus();
-          await AppWindow().hide();
+          await windowManager.hide();
           return;
         }
         if (isAppVisible && !isInputFieldFocused) {
@@ -227,16 +175,60 @@ Future<void> initCachedHotKeys() async {
           }
 
           promptTextFocusNode.requestFocus();
-          await AppWindow().show();
+          await windowManager.show();
           // to focus the window we show it twice
-          AppWindow().show();
+          windowManager.show();
           return;
         }
         if (!isAppVisible) {
-          AppWindow().show();
+          windowManager.show();
           return;
         }
       },
     );
+  }
+}
+
+class AppTrayListener extends TrayListener {
+  /// Emitted when the mouse clicks the tray icon.
+  @override
+  void onTrayIconMouseDown() {}
+
+  /// Emitted when the mouse is released from clicking the tray icon.
+  @override
+  void onTrayIconMouseUp() {
+    // if visible -> hide, else show
+    windowManager.isVisible().then((isVisible) {
+      if (isVisible) {
+        windowManager.hide();
+      } else {
+        windowManager.show();
+        windowManager.focus();
+      }
+    });
+  }
+
+  @override
+  void onTrayIconRightMouseDown() {}
+
+  @override
+  void onTrayIconRightMouseUp() {
+    trayManager.popUpContextMenu();
+  }
+
+  @override
+  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
+    log('onTrayMenuItemClick: ${menuItem.label}');
+    if (menuItem.onClick != null) {
+      menuItem.onClick!(menuItem);
+      return;
+    }
+    if (menuItem.label == 'Show') {
+      windowManager.show();
+    } else if (menuItem.label == 'Hide') {
+      windowManager.hide();
+    } else if (menuItem.label == 'Exit') {
+      windowManager.close();
+    }
   }
 }

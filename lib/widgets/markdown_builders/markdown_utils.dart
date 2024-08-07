@@ -1,17 +1,15 @@
 import 'package:fluent_gpt/utils.dart';
-import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:flutter/material.dart';
 import 'package:markdown_widget/config/all.dart';
-import 'package:markdown_widget/config/configs.dart';
 import 'package:markdown_widget/widget/all.dart';
+
+import 'code_wrapper.dart';
 
 Widget buildMarkdown(BuildContext context, String data,
     {String? language, double? textSize}) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final config =
       isDark ? MarkdownConfig.darkConfig : MarkdownConfig.defaultConfig;
-  codeWrapper(child, text, language) =>
-      CodeWrapperWidget(child, text, language);
 
   return Material(
     color: Colors.transparent,
@@ -21,7 +19,14 @@ Widget buildMarkdown(BuildContext context, String data,
         config: config.copy(configs: [
           isDark
               ? PreConfig.darkConfig.copy(
-                  wrapper: codeWrapper,
+                  wrapper: (child, code, lang) => CodeWrapperWidget(
+                    content: code,
+                    language: lang,
+                    preConfig: PreConfig.darkConfig,
+                    style: PreConfig.darkConfig.textStyle.copyWith(
+                      fontSize: textSize,
+                    ),
+                  ),
                   language: language,
                   textStyle: PreConfig.darkConfig.textStyle.copyWith(
                     fontSize: textSize,
@@ -36,7 +41,14 @@ Widget buildMarkdown(BuildContext context, String data,
                   ),
                 )
               : const PreConfig().copy(
-                  wrapper: codeWrapper,
+                  wrapper: (child, code, lang) => CodeWrapperWidget(
+                    content: code,
+                    language: lang,
+                    preConfig: PreConfig.darkConfig,
+                    style: PreConfig.darkConfig.textStyle.copyWith(
+                      fontSize: textSize,
+                    ),
+                  ),
                   language: language,
                   margin: const EdgeInsets.all(0),
                   textStyle: PreConfig.darkConfig.textStyle.copyWith(

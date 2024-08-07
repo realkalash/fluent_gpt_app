@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:chat_gpt_sdk/src/model/complete_text/response/usage.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/cost_calculator.dart';
-import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -310,7 +309,7 @@ class ChatGPTProvider with ChangeNotifier {
       //   if (AppCache.gptToolPythonEnabled.value!) writePythonCodeFunction,
       // ],
     );
-    final currToken = openAI.token;
+    // final currToken = openAI.token;
     final stream = openAI.onChatCompletionSSE(
       request: request,
       onCancel: (cancelData) {
@@ -735,7 +734,7 @@ class ChatGPTProvider with ChangeNotifier {
     messages[lastTimeAnswer] = ({
       'role': Role.assistant.name,
       'content':
-          'Result: \n${result.trim().isEmpty ? 'Done. No output' : result}',
+          'Result: \n${result.trim().isEmpty ? 'Done. No output' : '```plaintext\n$result```'}',
     });
     notifyRoomsStream();
     saveToDisk([selectedChatRoom]);

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Fluent GPT
+Comment=An open-source, multi-platform desktop application that brings the power of GPT models to your fingertips.
+Version=1.0
+Exec=/home/alex/repos/fluent_gpt_app/build/linux/x64/release/bundle/FluentGPT
+Icon=/home/alex/repos/fluent_gpt_app/build/linux/x64/release/bundle/data/flutter_assets/assets/app_icon.png
+Terminal=false
+Type=Application
+Categories=Utility;

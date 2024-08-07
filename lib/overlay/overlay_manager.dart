@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../common/custom_prompt.dart';
@@ -185,7 +184,7 @@ class OverlayManager {
     await windowManager.setResizable(true);
     await windowManager.setMinimumSize(defaultMinimumWindowSize);
     overlayVisibility.add(OverlayStatus.disabled);
-    await AppWindow().hide();
+    await windowManager.hide();
   }
 
   static Future<void> switchToMainWindow() async {
@@ -294,7 +293,7 @@ class OverlayManager {
             );
           }
         }
-        await AppWindow().show();
+        await windowManager.show();
 
         /// if already open show chat UI inside the overlay
         if (overlayVisibility.value.isShowingSidebarOverlay) {

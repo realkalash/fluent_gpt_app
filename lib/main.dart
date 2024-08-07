@@ -29,7 +29,6 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
@@ -160,7 +159,7 @@ void main(List<String> args) async {
   }
   await WindowsSingleInstance.ensureSingleInstance(args, "fluent_gpt",
       onSecondWindow: (secondWindowArgs) {
-    AppWindow().show();
+    windowManager.show();
 
     log('onSecondWindow. args: $args');
   });
@@ -184,6 +183,9 @@ void main(List<String> args) async {
 }
 
 final _appTheme = AppTheme();
+
+/// The context of the app. Use with caution.
+BuildContext? appContext;
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -331,6 +333,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
   Widget build(BuildContext context) {
     context.watch<NavigationProvider>();
     if (AppCache.isWelcomeShown.value! == false) return const WelcomeTab();
+    appContext = context;
 
     return GestureDetector(
       onPanStart: (v) => WindowManager.instance.startDragging(),

@@ -6,8 +6,8 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:provider/provider.dart';
-import 'package:system_tray/system_tray.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as icons;
+import 'package:window_manager/window_manager.dart';
 
 class MainAppHeaderButtons extends StatelessWidget {
   const MainAppHeaderButtons({super.key});
@@ -253,9 +253,7 @@ class CollapseAppButton extends StatelessWidget {
         child: ToggleButton(
           semanticLabel: 'Collapse',
           checked: false,
-          onChanged: (v) {
-            AppWindow().hide();
-          },
+          onChanged: (v) => windowManager.hide(),
           child: const Icon(
             FluentIcons.chrome_close,
             size: 20,
