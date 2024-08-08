@@ -68,6 +68,10 @@ String modifyMessageStyle(String prompt) {
   if (conversationLenghtStyleStream.value !=
       ConversationLengthStyleEnum.normal) {
     prompt += ' ${conversationLenghtStyleStream.value.prompt}';
+    if (conversationLenghtStyleStream.value.prompt != null) {
+      selectedChatRoom.maxTokenLength =
+          conversationLenghtStyleStream.value.maxTokenLenght ?? selectedChatRoom.maxTokenLength;
+    }
   }
 
   if (conversationStyleStream.value != ConversationStyleEnum.normal) {
@@ -102,6 +106,7 @@ class ChatGPTProvider with ChangeNotifier {
 
   bool selectionModeEnabled = false;
   bool includeConversationGlobal = true;
+  bool scrollToBottomOnAnswer = true;
 
   var lastTimeAnswer = DateTime.now().toIso8601String();
   final dialogApiKeyController = TextEditingController();
@@ -122,6 +127,11 @@ class ChatGPTProvider with ChangeNotifier {
   }
 
   int get textSize => _messageTextSize;
+
+  void toggleScrollToBottomOnAnswer() {
+    scrollToBottomOnAnswer = !scrollToBottomOnAnswer;
+    notifyListeners();
+  }
 
   Future<void> saveToDisk([List<ChatRoom>? rooms]) async {
     // ignore: no_leading_underscores_for_local_identifiers
@@ -261,11 +271,7 @@ class ChatGPTProvider with ChangeNotifier {
       await sendImageMessage(fileInput!, messageContent);
       isAnswering = false;
       notifyRoomsStream();
-      listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-      );
+      scrollToEnd();
       return;
     } else if (!isImageAttached) {
       messages[dateTime] = {
@@ -372,6 +378,9 @@ class ChatGPTProvider with ChangeNotifier {
           }
           addBotMessageToList(responseMessage, event.id);
         }
+        if (scrollToBottomOnAnswer) {
+          scrollToEnd();
+        }
       },
       onError: (e, stack) {
         isAnswering = false;
@@ -416,6 +425,21 @@ class ChatGPTProvider with ChangeNotifier {
       'error': 'true',
     };
     chatRoomsStream.add(chatRooms);
+    scrollToEnd();
+  }
+
+  /// Used to add message silently to the list
+  void addUserMessageToList(String appendedText, [String? id]) {
+    final now = DateTime.now().toIso8601String();
+    messages[id ?? now] = {
+      'role': Role.user.name,
+      'content': appendedText,
+      'created': now,
+      'id': id ?? '',
+    };
+    chatRoomsStream.add(chatRooms);
+    saveToDisk([selectedChatRoom]);
+    scrollToEnd();
   }
 
   Future _onToolsResponseEnd(

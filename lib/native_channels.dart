@@ -121,7 +121,9 @@ class NativeChannelUtils {
   }
 }
 
+/// Will not work on Linux
 Future<void> simulateCtrlCKeyPress() async {
+  if (Platform.isLinux) return;
   const key = PhysicalKeyboardKey.keyC;
   final modifiers = Platform.isMacOS
       ? [ModifierKey.metaModifier]
@@ -130,7 +132,9 @@ Future<void> simulateCtrlCKeyPress() async {
   await keyPressSimulator.simulateKeyUp(key, modifiers);
 }
 
+/// Will not work on Linux
 Future<void> simulateCtrlVKeyPress() async {
+  if (Platform.isLinux) return;
   const key = PhysicalKeyboardKey.keyV;
   final modifiers = Platform.isMacOS
       ? [ModifierKey.metaModifier]

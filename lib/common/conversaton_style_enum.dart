@@ -1,15 +1,22 @@
 class ConversationLengthStyleEnum {
-  final String name;
-  final String? prompt;
+  String name;
+  String? prompt;
+  int? maxTokenLenght;
 
-  const ConversationLengthStyleEnum(this.name, this.prompt);
+  ConversationLengthStyleEnum(
+    this.name,
+    this.prompt, {
+    this.maxTokenLenght,
+  });
 
-  static const ConversationLengthStyleEnum short =
-      ConversationLengthStyleEnum('short', '(Keep answer short)');
-  static const ConversationLengthStyleEnum normal =
-      ConversationLengthStyleEnum('normal', null);
-  static const ConversationLengthStyleEnum detailed =
-      ConversationLengthStyleEnum('detailed', '(Be precise and detailed)');
+  static ConversationLengthStyleEnum short = ConversationLengthStyleEnum(
+      'Short', '(Keep answer short)',
+      maxTokenLenght: 500);
+  static ConversationLengthStyleEnum normal =
+      ConversationLengthStyleEnum('Normal', null, maxTokenLenght: 1024);
+  static ConversationLengthStyleEnum detailed = ConversationLengthStyleEnum(
+      'Detailed', '(Be precise and detailed)',
+      maxTokenLenght: 4096);
 
   static List<ConversationLengthStyleEnum> values = [
     short,
@@ -18,21 +25,26 @@ class ConversationLengthStyleEnum {
   ];
 
   static ConversationLengthStyleEnum? fromName(String name) {
-    switch (name) {
-      case 'short':
-        return ConversationLengthStyleEnum.short;
-      case 'normal':
-        return ConversationLengthStyleEnum.normal;
-      case 'detailed':
-        return ConversationLengthStyleEnum.detailed;
-      default:
-        return null;
+    for (var item in values) {
+      if (item.name == name) {
+        return item;
+      }
     }
+    return null;
   }
 
   @override
   String toString() {
     return name;
+  }
+
+  ConversationLengthStyleEnum copyWith(
+      {String? name, String? prompt, int? maxTokenLenght}) {
+    return ConversationLengthStyleEnum(
+      name ?? this.name,
+      prompt ?? this.prompt,
+      maxTokenLenght: maxTokenLenght ?? this.maxTokenLenght,
+    );
   }
 }
 
@@ -40,20 +52,19 @@ class ConversationStyleEnum {
   final String name;
   final String? prompt;
 
-  const ConversationStyleEnum(this.name, this.prompt);
+  ConversationStyleEnum(this.name, this.prompt);
 
-  static const ConversationStyleEnum normal =
-      ConversationStyleEnum('normal', null);
-  static const ConversationStyleEnum business =
-      ConversationStyleEnum('business', '(Use business language)');
-  static const ConversationStyleEnum casual =
-      ConversationStyleEnum('casual', '(Use casual language)');
-  static const ConversationStyleEnum friendly =
-      ConversationStyleEnum('friendly', '(Use friendly language)');
-  static const ConversationStyleEnum professional =
-      ConversationStyleEnum('professional', '(Use professional language)');
-  static const ConversationStyleEnum seductive =
-      ConversationStyleEnum('seductive', '(Be seductive in your answer)');
+  static ConversationStyleEnum normal = ConversationStyleEnum('Normal', null);
+  static ConversationStyleEnum business =
+      ConversationStyleEnum('Business', '(Use business language)');
+  static ConversationStyleEnum casual =
+      ConversationStyleEnum('Casual', '(Use casual language)');
+  static ConversationStyleEnum friendly =
+      ConversationStyleEnum('Friendly', '(Use friendly language)');
+  static ConversationStyleEnum professional =
+      ConversationStyleEnum('Professional', '(Use professional language)');
+  static ConversationStyleEnum seductive =
+      ConversationStyleEnum('Seductive', '(Be seductive in your answer)');
 
   static List<ConversationStyleEnum> values = [
     normal,
@@ -65,22 +76,12 @@ class ConversationStyleEnum {
   ];
 
   static ConversationStyleEnum? fromName(String name) {
-    switch (name) {
-      case 'normal':
-        return ConversationStyleEnum.normal;
-      case 'business':
-        return ConversationStyleEnum.business;
-      case 'casual':
-        return ConversationStyleEnum.casual;
-      case 'friendly':
-        return ConversationStyleEnum.friendly;
-      case 'professional':
-        return ConversationStyleEnum.professional;
-      case 'seductive':
-        return ConversationStyleEnum.seductive;
-      default:
-        return null;
+    for (var item in values) {
+      if (item.name == name) {
+        return item;
+      }
     }
+    return null;
   }
 
   @override

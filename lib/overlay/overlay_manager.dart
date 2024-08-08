@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
@@ -257,6 +258,9 @@ class OverlayManager {
     }
   }
 
+  /// On linux hotkey registration is so fast it could trigger
+  /// the hotkey 3 times in a row, so we need to lock it
+  static bool _isHotKeyRegistering = false;
   static Future<void> _bindHotkey(CustomPrompt prompt, HotKey key) async {
     // each prompt can have multiple children
     for (var child in prompt.children) {
@@ -268,6 +272,8 @@ class OverlayManager {
     await hotKeyManager.register(
       key,
       keyDownHandler: (hotKey) async {
+        if (_isHotKeyRegistering) return;
+        _isHotKeyRegistering = true;
         final previousClipboard =
             (await Clipboard.getData(Clipboard.kTextPlain))?.text;
 
@@ -283,29 +289,34 @@ class OverlayManager {
         if (!isAppVisible) {
           final Offset? mouseCoord =
               await NativeChannelUtils.getMousePosition();
-
-          /// show mini overlay
-          if (!overlayVisibility.value.isEnabled) {
-            await showOverlay(
-              navigatorKey.currentContext!,
-              positionX: mouseCoord?.dx,
-              positionY: mouseCoord?.dy,
-            );
+          // windows can't resize windows at all
+          if (!Platform.isLinux) {
+            /// show mini overlay
+            if (!overlayVisibility.value.isEnabled) {
+              await showOverlay(
+                navigatorKey.currentContext!,
+                positionX: mouseCoord?.dx,
+                positionY: mouseCoord?.dy,
+              );
+            }
           }
         }
         await windowManager.show();
-
-        /// if already open show chat UI inside the overlay
-        if (overlayVisibility.value.isShowingSidebarOverlay) {
-          SidebarOverlayUI.isChatVisible.add(true);
-        } else if (overlayVisibility.value.isShowingOverlay) {
-          OverlayUI.isChatVisible.add(true);
+        if (!Platform.isLinux) {
+          /// if already open show chat UI inside the overlay
+          if (overlayVisibility.value.isShowingSidebarOverlay) {
+            SidebarOverlayUI.isChatVisible.add(true);
+          } else if (overlayVisibility.value.isShowingOverlay) {
+            OverlayUI.isChatVisible.add(true);
+          }
         }
+
         if (previousClipboard != null) {
           Clipboard.setData(ClipboardData(text: previousClipboard));
         }
 
-        onTrayButtonTapCommand(prompt.getPromptText(selectedText));
+        await onTrayButtonTapCommand(prompt.getPromptText(selectedText));
+        _isHotKeyRegistering = false;
       },
     );
   }

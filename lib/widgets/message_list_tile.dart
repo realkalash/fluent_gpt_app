@@ -228,7 +228,7 @@ class _MessageCardState extends State<MessageCard> {
             Wrap(
               children: [
                 for (final tag in widget.message['tags']?.split(';') ?? [])
-                  if (tag != 'normal')
+                  if (tag != 'Normal')
                     Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Button(
@@ -241,35 +241,32 @@ class _MessageCardState extends State<MessageCard> {
         ),
       );
     } else {
-      tileWidget = SelectionArea(
-        selectionControls: fluentTextSelectionControls,
-        child: _MessageListTile(
-          leading: leading,
-          tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
-          onPressed: () {
-            final provider = context.read<ChatGPTProvider>();
-            provider.toggleSelectMessage(widget.id);
-          },
-          title: Row(
-            children: [
-              Text('$formatDateTime ',
-                  style: FluentTheme.of(context).typography.caption!),
-              Text('${widget.message['role']}:', style: botMessageStyle),
-            ],
-          ),
-          subtitle: !_isMarkdownView
-              ? Text(
-                  '${widget.message['content']}',
-                  style: FluentTheme.of(context).typography.body?.copyWith(
-                        fontSize: widget.textSize.toDouble(),
-                      ),
-                )
-              : buildMarkdown(
-                  context,
-                  widget.message['content'] ?? '',
-                  textSize: widget.textSize.toDouble(),
-                ),
+      tileWidget = _MessageListTile(
+        leading: leading,
+        tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
+        onPressed: () {
+          final provider = context.read<ChatGPTProvider>();
+          provider.toggleSelectMessage(widget.id);
+        },
+        title: Row(
+          children: [
+            Text('$formatDateTime ',
+                style: FluentTheme.of(context).typography.caption!),
+            Text('${widget.message['role']}:', style: botMessageStyle),
+          ],
         ),
+        subtitle: !_isMarkdownView
+            ? Text(
+                '${widget.message['content']}',
+                style: FluentTheme.of(context).typography.body?.copyWith(
+                      fontSize: widget.textSize.toDouble(),
+                    ),
+              )
+            : buildMarkdown(
+                context,
+                widget.message['content'] ?? '',
+                textSize: widget.textSize.toDouble(),
+              ),
       );
     }
 
@@ -338,9 +335,8 @@ class _MessageCardState extends State<MessageCard> {
                       dimension: 30,
                       child: Button(
                         onPressed: () {
-                          Clipboard.setData(
-                            ClipboardData(text: '${widget.message['content']}'),
-                          );
+                          Clipboard.setData(ClipboardData(
+                              text: '${widget.message['content']}'));
                           displayCopiedToClipboard();
                         },
                         child: const Icon(FluentIcons.copy, size: 10),

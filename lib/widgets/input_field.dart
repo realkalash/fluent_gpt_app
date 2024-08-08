@@ -32,8 +32,13 @@ class _InputFieldState extends State<InputField> {
       return;
     }
     chatProvider.sendMessage(text.trim());
+    clearFieldAndFocus();
+  }
+
+  void clearFieldAndFocus() {
     Future.delayed(const Duration(milliseconds: 50)).then(
       (value) {
+        final chatProvider = context.read<ChatGPTProvider>();
         chatProvider.messageController.clear();
         promptTextFocusNode.requestFocus();
       },
@@ -156,7 +161,6 @@ class _InputFieldState extends State<InputField> {
                   if (_isShiftPressed) {
                     chatProvider.messageController.text =
                         '${chatProvider.messageController.text}\n';
-                    // refocus
                     promptTextFocusNode.requestFocus();
                   }
                 },
@@ -178,18 +182,59 @@ class _InputFieldState extends State<InputField> {
                 },
               )
             else
-              SizedBox.square(
-                dimension: 48,
-                child: IconButton(
-                  onPressed: () => onSubmit(
-                      chatProvider.messageController.text, chatProvider),
-                  icon: const Icon(ic.FluentIcons.send_24_filled, size: 24),
+              FlyoutTarget(
+                controller: menuController,
+                child: SizedBox.square(
+                  dimension: 44,
+                  child: GestureDetector(
+                    onSecondaryTap: _onSecondaryTap,
+                    child: Button(
+                      onPressed: () => onSubmit(
+                        chatProvider.messageController.text,
+                        chatProvider,
+                      ),
+                      child:
+                          const Icon(ic.FluentIcons.send_24_filled, size: 24),
+                    ),
+                  ),
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+
+  final menuController = FlyoutController();
+
+  void _onSecondaryTap() {
+    final provider = context.read<ChatGPTProvider>();
+    final controller = provider.messageController;
+    menuController.showFlyout(builder: (ctx) {
+      return MenuFlyout(
+        items: [
+          MenuFlyoutItem(
+              text: const Text('Send as assistant (silently)'),
+              onPressed: () {
+                provider.addMessageSystem(controller.text);
+                clearFieldAndFocus();
+              }),
+          MenuFlyoutItem(
+              text: const Text('Send as user (silently)'),
+              onPressed: () {
+                provider.addUserMessageToList(controller.text);
+                clearFieldAndFocus();
+              }),
+          MenuFlyoutItem(
+              text: const Text('Send as AI answer (silently)'),
+              onPressed: () {
+                provider.addBotMessageToList(
+                    controller.text, DateTime.now().toIso8601String());
+                clearFieldAndFocus();
+              }),
+        ],
+      );
+    });
   }
 }
 
@@ -359,7 +404,8 @@ class _FileThumbnail extends StatelessWidget {
             right: 0,
             child: IconButton(
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.black.withOpacity(0.5)),
+                backgroundColor:
+                    WidgetStateProperty.all(Colors.black.withOpacity(0.5)),
               ),
               onPressed: () => chatProvider.removeFileFromInput(),
               icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),

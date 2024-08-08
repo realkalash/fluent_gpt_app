@@ -4,7 +4,9 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
+import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
@@ -129,20 +131,36 @@ class ConversationStyleRow extends StatelessWidget {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: ConversationLengthStyleEnum.values
-                          .map((e) => SelectableColorContainer(
-                                selectedColor:
-                                    FluentTheme.of(context).accentColor,
-                                unselectedColor: FluentTheme.of(context)
-                                    .accentColor
-                                    .withOpacity(0.5),
-                                isSelected: lenghtStyle == e,
-                                onTap: () =>
-                                    conversationLenghtStyleStream.add(e),
-                                child: Text(e.name,
-                                    style: const TextStyle(fontSize: 12)),
-                              ))
-                          .toList(),
+                      children: ConversationLengthStyleEnum.values.map((e) {
+                        return SelectableColorContainer(
+                          selectedColor: FluentTheme.of(context).accentColor,
+                          unselectedColor: FluentTheme.of(context)
+                              .accentColor
+                              .withOpacity(0.5),
+                          isSelected: lenghtStyle == e,
+                          onTap: () => conversationLenghtStyleStream.add(e),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(e.name,
+                                  style: const TextStyle(fontSize: 12)),
+                              SizedBox.square(
+                                dimension: 16,
+                                child: Button(
+                                  style: ButtonStyle(
+                                    padding: WidgetStateProperty.all(
+                                        EdgeInsets.zero),
+                                  ),
+                                  onPressed: () =>
+                                      editConversationStyle(context, e),
+                                  child: const Icon(
+                                      ic.FluentIcons.edit_20_regular),
+                                ),
+                              )
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
@@ -150,6 +168,19 @@ class ConversationStyleRow extends StatelessWidget {
             }),
       ),
     );
+  }
+
+  editConversationStyle(
+      BuildContext context, ConversationLengthStyleEnum item) async {
+    final ConversationLengthStyleEnum? newItem =
+        await ConversationStyleDialog.show(context, item);
+    if (newItem != null) {
+      final indexOldItem = ConversationLengthStyleEnum.values.indexOf(item);
+      ConversationLengthStyleEnum.values.remove(item);
+      ConversationLengthStyleEnum.values.insert(indexOldItem, newItem);
+      // to update the UI
+      conversationLenghtStyleStream.add(conversationLenghtStyleStream.value);
+    }
   }
 }
 
@@ -400,6 +431,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             const Positioned(
               bottom: 128,
               right: 16,
+              width: 32,
+              height: 32,
               child: _ScrollToBottomButton(),
             ),
           ],
@@ -409,55 +442,31 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   }
 }
 
-class _ScrollToBottomButton extends StatefulWidget {
+class _ScrollToBottomButton extends StatelessWidget {
   const _ScrollToBottomButton({super.key});
 
   @override
-  State<_ScrollToBottomButton> createState() => __ScrollToBottomButtonState();
-}
-
-class __ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
-  bool isAtBottom = true;
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      final chatProvider = context.read<ChatGPTProvider>();
-      chatProvider.listItemsScrollController.addListener(() {
-        if (mounted == false) return;
-        final isAtBottomNew = chatProvider.listItemsScrollController.offset ==
-            chatProvider.listItemsScrollController.position.maxScrollExtent;
-        if (isAtBottom == isAtBottomNew) return;
-        if (isAtBottomNew) {
-          setState(() {
-            isAtBottom = true;
-          });
-        } else {
-          setState(() {
-            isAtBottom = false;
-          });
-        }
-      });
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (isAtBottom) {
-      return const SizedBox.shrink();
-    }
-    return SizedBox.square(
-      dimension: 48,
-      child: GestureDetector(
-          onTap: () {
-            final chatProvider = context.read<ChatGPTProvider>();
-            chatProvider.listItemsScrollController.animateTo(
-              chatProvider.listItemsScrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-            );
-          },
-          child: const Card(child: Icon(FluentIcons.down, size: 16))),
+    final provider = context.watch<ChatGPTProvider>();
+    return ToggleButton(
+      checked: provider.scrollToBottomOnAnswer,
+      style: ToggleButtonThemeData(
+        checkedButtonStyle: ButtonStyle(
+          padding: WidgetStateProperty.all(EdgeInsets.zero),
+          backgroundColor: WidgetStateProperty.all(
+              context.theme.accentColor.withOpacity(0.5)),
+        ),
+        uncheckedButtonStyle: ButtonStyle(
+          padding: WidgetStateProperty.all(EdgeInsets.zero),
+        ),
+      ),
+      onChanged: (value) {
+        provider.toggleScrollToBottomOnAnswer();
+        if (value) {
+          provider.scrollToEnd();
+        }
+      },
+      child: const Icon(FluentIcons.down, size: 16),
     );
   }
 }

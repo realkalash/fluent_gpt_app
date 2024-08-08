@@ -112,7 +112,14 @@ Future<void> initShortcuts() async {
     openWindowHotkey,
     keyDownHandler: (hotKey) async {
       final isAppVisible = await windowManager.isVisible();
-      isAppVisible ? windowManager.hide() : windowManager.show();
+      log('Open Window Hotkey: $isAppVisible');
+      if (isAppVisible) {
+        log('Hiding Window');
+        windowManager.hide();
+      } else {
+        log('Showing Window');
+        windowManager.show();
+      }
     },
   );
   await hotKeyManager.register(
@@ -149,7 +156,9 @@ Future<void> initShortcuts() async {
   );
   initCachedHotKeys();
 }
-
+/// On linux hotkey registration is so fast it could trigger 
+/// the hotkey 3 times in a row, so we need to lock it
+bool _isHotKeyRegistering = false;
 Future<void> initCachedHotKeys() async {
   final openWindowKey = AppCache.openWindowKey.value;
   if (openWindowKey != null) {
@@ -158,13 +167,25 @@ Future<void> initCachedHotKeys() async {
     await hotKeyManager.register(
       openWindowHotkey,
       keyDownHandler: (hotKey) async {
+        if (_isHotKeyRegistering) return;
+        _isHotKeyRegistering = true;
+
         /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
         final isAppVisible = await windowManager.isVisible();
         final isInputFieldFocused = promptTextFocusNode.hasFocus;
         if (isAppVisible && isInputFieldFocused) {
           promptTextFocusNode.unfocus();
           await windowManager.hide();
+          _isHotKeyRegistering = false;
           return;
+        }
+        if (Platform.isLinux) {
+          if (isAppVisible && !isInputFieldFocused) {
+            await windowManager.focus();
+            promptTextFocusNode.requestFocus();
+            _isHotKeyRegistering = false;
+            return;
+          }
         }
         if (isAppVisible && !isInputFieldFocused) {
           /// if currently showing overlay, open the chatUI
@@ -174,14 +195,18 @@ Future<void> initCachedHotKeys() async {
             OverlayUI.isChatVisible.add(true);
           }
 
-          promptTextFocusNode.requestFocus();
           await windowManager.show();
-          // to focus the window we show it twice
-          windowManager.show();
+          // to focus the window we show it twice on macos
+          if (Platform.isMacOS) {
+            await windowManager.show();
+          }
+          promptTextFocusNode.requestFocus();
+          _isHotKeyRegistering = false;
           return;
         }
         if (!isAppVisible) {
           windowManager.show();
+          _isHotKeyRegistering = false;
           return;
         }
       },
