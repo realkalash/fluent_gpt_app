@@ -382,6 +382,23 @@ class MainPageWithNavigation extends StatelessWidget {
             pane: NavigationPane(
               // selected: selectedIndex,
               displayMode: PaneDisplayMode.auto,
+              autoSuggestBox: AutoSuggestBox(
+                onSelected: (item) {
+                  final provider = context.read<ChatProvider>();
+                  final id = item.value;
+                  provider.selectChatRoom(chatRoomsStream.value[id]!);
+                },
+                items: [
+                  for (final item in chatRoomsStream.value.values)
+                    AutoSuggestBoxItem(
+                      label: item.chatRoomName,
+                      value: item.id,
+                    ),
+                ],
+                leadingIcon: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(FluentIcons.search_24_regular)),
+              ),
               items: [
                 PaneItemHeader(
                     header: Row(

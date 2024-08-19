@@ -129,23 +129,70 @@ class FileUtils {
     return false;
   }
 
+  /// key and message.toJson() to json string
+  static Future saveChatMessages(String id, String data) async {
+    final file = await getChatRoomMessagesFileById(id);
+    if (!file.existsSync()) {
+      await file.create(recursive: true);
+    }
+    await file.writeAsString(data);
+  }
+
   static Future<String> getChatRoomPath() async {
     final dir =
         documentDirectoryPath ?? await getApplicationDocumentsDirectory();
     return '$dir/fluent_gpt/chat_rooms';
   }
 
+  /// Returns the file at the given [id] in the chat rooms directory.
+  /// The content is a JSON string of the chat room messages.
+  ///
+  /// Example:
+  /// ```json
+  /// [
+  ///   {
+  ///    'id: '1',
+  ///    'message': {
+  ///       'prefix': 'AI',
+  ///       'message': 'Hello, how can I help you?'
+  ///     }
+  ///   }
+  /// ]
+  static Future<File> getChatRoomMessagesFileById(String id) async {
+    final path = await getChatRoomPath();
+    return File('$path/$id-messages.json');
+  }
+
+  /// It will not give messages files .git and .DS_Store
   static List<File> getFilesRecursive(String dirPath) {
     final files = <File>[];
     final dir = Directory(dirPath);
     if (!dir.existsSync()) return files;
-    dir.listSync(recursive: true).forEach((element) {
-      if (element is File) {
-        if (element.path.contains('.DS_Store') != true) {
-          files.add(element);
-        }
+    final list = dir.listSync(recursive: true);
+    for (final entity in list) {
+      if (entity is File) {
+        if (entity.path.contains('.DS_Store') == true) continue;
+        if (entity.path.contains('.git') == true) continue;
+        if (entity.path.contains('-messages.json') == true) continue;
+        files.add(entity);
       }
-    });
+    }
+
+    return files;
+  }
+
+  static Future<List<File>> getAllChatMessagesFiles() async {
+    final path = await getChatRoomPath();
+    // get files recursive will not return messages files
+    final files = <File>[];
+    final dir = Directory(path);
+    if (!dir.existsSync()) return files;
+    final list = dir.listSync(recursive: true);
+    for (final entity in list) {
+      if (entity is File) {
+        if (entity.path.contains('-messages.json') == true) files.add(entity);
+      }
+    }
     return files;
   }
 

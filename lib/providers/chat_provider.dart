@@ -53,7 +53,7 @@ get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
 get maxLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 512;
 get repeatPenalty => chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
 
-/// the key is (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2) the answer is message
+/// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
 BehaviorSubject<Map<String, ChatMessage>> messages = BehaviorSubject.seeded({});
 
 /// conversation lenght style. Will be appended to the prompt
@@ -113,6 +113,7 @@ class ChatProvider with ChangeNotifier {
 
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
+  bool isSendingFile = false;
 
   final dialogApiKeyController = TextEditingController();
   bool isAnswering = false;
@@ -144,11 +145,18 @@ class ChatProvider with ChangeNotifier {
       var chatRoomRaw = await chatRoom.toJson();
       final path = await FileUtils.getChatRoomPath();
       FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
+      final messagesRaw = <Map<String, dynamic>>[];
+      for (var message in messages.value.entries) {
+        /// add key and message.toJson
+        messagesRaw.add({
+          'id': message.key,
+          'message': message.value.toJson(),
+        });
+      }
+      FileUtils.saveChatMessages(chatRoom.id, jsonEncode(messagesRaw));
     }
-    // final chatRoomsRaw = jsonEncode(rooms);
-    // AppCache.chatRooms.set(chatRoomsRaw);
-
-    AppCache.selectedChatRoomId.set(selectedChatRoomId);
+    if (_chatRooms.length == 1)
+      AppCache.selectedChatRoomId.set(selectedChatRoomId);
   }
 
   Future<void> initChatsFromDisk() async {
@@ -163,6 +171,7 @@ class ChatProvider with ChangeNotifier {
         chatRooms[chatRoom.id] = chatRoom;
         if (chatRoom.id == selectedChatRoomId) {
           initCurrentChat();
+          _loadMessagesFromDisk(chatRoom.id);
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -274,9 +283,20 @@ class ChatProvider with ChangeNotifier {
 
     final isImageAttached =
         fileInput != null && fileInput!.mimeType?.contains('image') == true;
-    addUserMessageToList(
-      HumanChatMessage(content: ChatMessageContent.text(messageContent)),
-    );
+    if (isImageAttached) {
+      final bytes = await fileInput!.readAsBytes();
+      final base64 = base64Encode(bytes);
+      addUserMessageToList(
+        HumanChatMessage(
+          content: ChatMessageContent.image(
+              data: base64, mimeType: fileInput!.mimeType),
+        ),
+      );
+    } else {
+      addUserMessageToList(
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+      );
+    }
     await selectedChatRoom.messages.chatHistory
         .addHumanChatMessage(messageContent);
     isAnswering = true;
@@ -313,8 +333,10 @@ class ChatProvider with ChangeNotifier {
         addBotMessageToList(message, chunk.id);
         if (chunk.finishReason == FinishReason.stop) {
           /// TODO: add more logic here
+          saveToDisk([selectedChatRoom]);
         } else if (chunk.finishReason == FinishReason.length) {
           /// Maximum tokens reached
+          saveToDisk([selectedChatRoom]);
         }
       },
     );
@@ -322,6 +344,29 @@ class ChatProvider with ChangeNotifier {
     fileInput = null;
     notifyListeners();
     saveToDisk([selectedChatRoom]);
+  }
+
+  /// Will not use chat history
+  Future sendSingleMessage(String messageContent) async {
+    final messagesToSend = <ChatMessage>[];
+    messagesToSend.add(
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)));
+    final stream = openAI!.stream(PromptValue.chat(messagesToSend),
+        options: ChatOpenAIOptions(
+          model: selectedChatRoom.model.name,
+        ));
+    await stream.forEach(
+      (final chunk) {
+        final message = chunk.output;
+        totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+        addBotMessageToList(message, chunk.id);
+        if (chunk.finishReason == FinishReason.stop) {
+          saveToDisk([selectedChatRoom]);
+        } else if (chunk.finishReason == FinishReason.length) {
+          saveToDisk([selectedChatRoom]);
+        }
+      },
+    );
   }
 
   // LanguageModelUsage? usageForCurrentChat;
@@ -339,6 +384,9 @@ class ChatProvider with ChangeNotifier {
     values[id ?? DateTime.now().toIso8601String()] =
         AIChatMessage(content: newString);
     messages.add(values);
+    if (scrollToBottomOnAnswer){
+      scrollToEnd();
+    }
   }
 
   void addBotErrorMessageToList(CustomChatMessage message, [String? id]) {
@@ -436,6 +484,7 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
     notifyRoomsStream();
     selectedChatRoomId = id;
+    messages.add({});
     saveToDisk([selectedChatRoom]);
   }
 
@@ -443,18 +492,22 @@ class ChatProvider with ChangeNotifier {
     chatRooms.clear();
     final path = await FileUtils.getChatRoomPath();
     final files = FileUtils.getFilesRecursive(path);
+    final messagesFiles = await FileUtils.getAllChatMessagesFiles();
     for (var file in files) {
+      await file.delete();
+    }
+    for (var file in messagesFiles) {
       await file.delete();
     }
     notifyListeners();
     notifyRoomsStream();
   }
 
-  void selectChatRoom(ChatRoom room) {
+  Future<void> selectChatRoom(ChatRoom room) async {
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
     totalTokensForCurrentChat = 0;
-    notifyListeners();
+    _loadMessagesFromDisk(room.id);
   }
 
   void deleteChatRoom(String chatRoomId) {
@@ -600,6 +653,45 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> archiveChatRoom(ChatRoom room) async {
     deleteChatRoom(room.id);
+  }
+
+  void shortenMessage(String id) {
+    final message = messages.value[id];
+    sendSingleMessage(
+      'Please shorten the following text while keeping all the essential information and key points intact. Remove any unnecessary details or repetition:'
+      '\n"${message?.contentAsString}"',
+    );
+  }
+
+  void lengthenMessage(String id) {
+    final message = messages.value[id];
+    sendSingleMessage(
+      'Please expand the following text by providing more details and explanations. Make the text more specific and elaborate on the key points, while keeping it clear and understandable'
+      '\n"${message?.contentAsString}"',
+    );
+  }
+
+  Future _loadMessagesFromDisk(String id) async {
+    final roomId = id;
+    final fileContent = await FileUtils.getChatRoomMessagesFileById(roomId);
+    final chatRoomRaw =
+        jsonDecode(await fileContent.readAsString()) as List<dynamic>;
+    // id is the key
+    final roomMessages = <String, ChatMessage>{};
+    for (var messageJson in chatRoomRaw) {
+      try {
+        final key = messageJson['id'] as String;
+        final content = messageJson['message'] as Map<String, dynamic>;
+        roomMessages[key] = ChatRoom.chatMessageFromJson(content);
+      } catch (e) {
+        logError('Error while loading message from disk: $e');
+      }
+    }
+    selectedChatRoom.messages = ConversationBufferMemory(
+      chatHistory: ChatMessageHistory(messages: roomMessages.values.toList()),
+    );
+    messages.add(roomMessages);
+    notifyListeners();
   }
 }
 

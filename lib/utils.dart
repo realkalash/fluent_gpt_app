@@ -2,12 +2,44 @@ import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:langchain/langchain.dart';
 import 'package:nanoid2/nanoid2.dart';
 
 String generateChatID() => nanoid(length: 16);
 
 extension ThemeExtension on BuildContext {
   FluentThemeData get theme => FluentTheme.of(this);
+}
+
+extension ChatMessageExtension on ChatMessage {
+  Map<String, dynamic> toJson() {
+    if (this is HumanChatMessage &&
+        (this as HumanChatMessage).content is ChatMessageContentText) {
+      final message = this as HumanChatMessage;
+      return {
+        'prefix': HumanChatMessage.defaultPrefix,
+        'content': (message.content as ChatMessageContentText).text,
+      };
+    }
+    if (this is HumanChatMessage &&
+        (this as HumanChatMessage).content is ChatMessageContentImage) {
+      final message = this as HumanChatMessage;
+      return {
+        'prefix': HumanChatMessage.defaultPrefix,
+        'base64': (message.content as ChatMessageContentImage).data,
+      };
+    }
+    // AI
+    if (this is AIChatMessage) {
+      final message = this as AIChatMessage;
+      return {
+        'prefix': AIChatMessage.defaultPrefix,
+        'content': message.content,
+      };
+    }
+
+    throw Exception('Invalid content');
+  }
 }
 
 /// hotkey extension to get string

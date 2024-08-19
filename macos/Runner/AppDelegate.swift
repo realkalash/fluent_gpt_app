@@ -4,7 +4,7 @@ import FlutterMacOS
 import Foundation
 import AVFoundation
 
-@NSApplicationMain
+@main
 class AppDelegate: FlutterAppDelegate {
   var overlayWindow: NSWindow?
   var methodChannel: FlutterMethodChannel?

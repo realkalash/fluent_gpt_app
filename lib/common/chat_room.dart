@@ -88,9 +88,9 @@ class ChatRoom {
     //   );
     //   token = await decryptApiToken(secretBox, secretKey);
     // }
-    final memoryJson = map['messages'] as Map<String, dynamic>;
+    // final memoryJson = map['messages'] as Map<String, dynamic>;
     final messages = ConversationBufferMemory(
-      chatHistory: ChatMessageHistory()
+      chatHistory: ChatMessageHistory(),
     );
     return ChatRoom(
       model: allModels.value.firstWhere(
@@ -121,7 +121,7 @@ class ChatRoom {
       'id': id,
       'model': model.name.toString(),
       'chatRoomName': chatRoomName,
-      'messages': await messages.loadMemoryVariables(),
+      // 'messages': await messages.loadMemoryVariables(),
       'temp': temp,
       'topk': topk,
       'iconCode': iconCodePoint,
@@ -137,6 +137,27 @@ class ChatRoom {
       // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
     };
+  }
+
+  static ChatMessage chatMessageFromJson(Map<String, dynamic> json) {
+    if (json['prefix'] == HumanChatMessage.defaultPrefix) {
+      if (json['content'] is String) {
+        return HumanChatMessage(
+          content: ChatMessageContentText(text: json['content']),
+        );
+      }
+      if (json['base64'] is String) {
+        return HumanChatMessage(
+          content: ChatMessageContentImage(data: json['base64']),
+        );
+      }
+    }
+    if (json['prefix'] == AIChatMessage.defaultPrefix) {
+      if (json['content'] is String) {
+        return AIChatMessage(content: json['content'] as String);
+      }
+    }
+    throw Exception('Invalid content');
   }
 
   ChatRoom copyWith({
@@ -171,9 +192,7 @@ class ChatRoom {
       topP: topP ?? this.topP,
       maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
-
       systemMessage: commandPrefix ?? systemMessage,
-
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
     );

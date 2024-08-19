@@ -341,10 +341,9 @@ class _AddFileButton extends StatelessWidget {
             promptTextFocusNode.requestFocus();
           }
         },
-        icon: const Placeholder(fallbackHeight: 24, fallbackWidth: 24),
-        // icon: chatProvider.isSendingFile
-        //     ? const ProgressRing()
-        //     : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
+        icon: chatProvider.isSendingFile
+            ? const ProgressRing()
+            : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
       ),
     );
   }
@@ -366,9 +365,9 @@ class _FileThumbnail extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () async {
-              // if (chatProvider.isSendingFile) {
-              //   return;
-              // }
+              if (chatProvider.isSendingFile) {
+                return;
+              }
               FilePickerResult? result = await FilePicker.platform.pickFiles();
               if (result != null && result.files.isNotEmpty) {
                 chatProvider.addFileToInput(result.files.first.toXFile());

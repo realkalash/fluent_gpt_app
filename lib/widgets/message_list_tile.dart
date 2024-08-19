@@ -9,7 +9,8 @@ import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
@@ -42,48 +43,41 @@ class _MessageListTile extends StatelessWidget {
       button: true,
       enabled: onPressed != null,
       onTap: onPressed,
-      child: Container(
-        decoration: BoxDecoration(
-          color: tileColor ?? FluentTheme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        alignment: Alignment.centerLeft,
-        child: GestureDetector(
-          onTap: onPressed,
-          onLongPress: onPressed,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (leading != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
-                  child: leading!,
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+      child: GestureDetector(
+        onTap: onPressed,
+        onLongPress: onPressed,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (leading != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
+                child: leading!,
+              ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 8),
+                    child: DefaultTextStyle(
+                      style: FluentTheme.of(context).typography.title!,
+                      child: title,
+                    ),
+                  ),
+                  if (subtitle != null)
                     Padding(
-                      padding: const EdgeInsets.only(left: 16, top: 8),
+                      padding:
+                          const EdgeInsets.only(left: 16, top: 4, bottom: 8),
                       child: DefaultTextStyle(
-                        style: FluentTheme.of(context).typography.title!,
-                        child: title,
+                        style: FluentTheme.of(context).typography.subtitle!,
+                        child: subtitle!,
                       ),
                     ),
-                    if (subtitle != null)
-                      Padding(
-                        padding:
-                            const EdgeInsets.only(left: 16, top: 4, bottom: 8),
-                        child: DefaultTextStyle(
-                          style: FluentTheme.of(context).typography.subtitle!,
-                          child: subtitle!,
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -116,6 +110,7 @@ class MessageCard extends StatefulWidget {
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
   bool _isFocused = false;
+  final flyoutController = FlyoutController();
 
   @override
   void initState() {
@@ -146,12 +141,25 @@ class _MessageCardState extends State<MessageCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.message.contentAsString,
-              style: TextStyle(
-                fontSize: widget.textSize.toDouble(),
+            if ((widget.message as HumanChatMessage).content
+                is ChatMessageContentImage)
+              Image.memory(
+                decodeImage(
+                  ((widget.message as HumanChatMessage).content
+                          as ChatMessageContentImage)
+                      .data,
+                ),
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
               ),
-            ),
+            if ((widget.message as HumanChatMessage).content
+                is ChatMessageContentText)
+              Text(
+                widget.message.contentAsString,
+                style: TextStyle(
+                  fontSize: widget.textSize.toDouble(),
+                ),
+              ),
             if (widget.message is ChatMessageContentImage)
               GestureDetector(
                 onTap: () {},
@@ -215,7 +223,7 @@ class _MessageCardState extends State<MessageCard> {
             },
             child: Card(
               margin: const EdgeInsets.all(4),
-              padding: EdgeInsets.zero,
+              padding: EdgeInsets.only(bottom: 16),
               borderRadius: BorderRadius.circular(8.0),
               borderColor: _isFocused ? Colors.blue : Colors.transparent,
               child: tileWidget,
@@ -223,30 +231,31 @@ class _MessageCardState extends State<MessageCard> {
           ),
           Positioned(
             right: 16,
-            top: 8,
+            bottom: 8,
             child: Focus(
               canRequestFocus: false,
               descendantsAreFocusable: false,
               descendantsAreTraversable: false,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Wrap(
+                spacing: 4,
                 children: [
-                  Tooltip(
-                    message: _isMarkdownView ? 'Show text' : 'Show markdown',
-                    child: SizedBox.square(
-                      dimension: 30,
-                      child: ToggleButton(
-                        onChanged: (_) {
-                          setState(() {
-                            _isMarkdownView = !_isMarkdownView;
-                          });
-                          prefs!.setBool('isMarkdownView', _isMarkdownView);
-                        },
-                        checked: false,
-                        child: const Icon(FluentIcons.format_painter, size: 10),
-                      ),
-                    ),
-                  ),
+                  // Tooltip(
+                  //   message: _isMarkdownView ? 'Show text' : 'Show markdown',
+                  //   child: SizedBox.square(
+                  //     dimension: 30,
+                  //     child: ToggleButton(
+                  //       onChanged: (_) {
+                  //         prefs!.setBool('isMarkdownView', _isMarkdownView);
+                  //         setState(() {
+                  //           _isMarkdownView = !_isMarkdownView;
+                  //         });
+                  //       },
+                  //       checked: false,
+                  //       child: const Icon(FluentIcons.paint_brush_12_regular,
+                  //           size: 10),
+                  //     ),
+                  //   ),
+                  // ),
                   Tooltip(
                     message: 'Edit message',
                     child: SizedBox.square(
@@ -256,7 +265,8 @@ class _MessageCardState extends State<MessageCard> {
                           _showEditMessageDialog(context, widget.message);
                         },
                         checked: false,
-                        child: const Icon(FluentIcons.edit, size: 10),
+                        child:
+                            const Icon(FluentIcons.edit_12_regular, size: 10),
                       ),
                     ),
                   ),
@@ -270,10 +280,25 @@ class _MessageCardState extends State<MessageCard> {
                               text: widget.message.contentAsString));
                           displayCopiedToClipboard();
                         },
-                        child: const Icon(FluentIcons.copy, size: 10),
+                        child:
+                            const Icon(FluentIcons.copy_16_regular, size: 10),
                       ),
                     ),
                   ),
+                  // additional options
+                  SizedBox.square(
+                    dimension: 30,
+                    child: FlyoutTarget(
+                      controller: flyoutController,
+                      child: Button(
+                        onPressed: () => flyoutController.showFlyout(
+                          builder: (context) => _showOptionsFlyout(context),
+                        ),
+                        child: const Icon(FluentIcons.more_vertical_16_filled,
+                            size: 10),
+                      ),
+                    ),
+                  )
                 ],
               ),
             ),
@@ -517,5 +542,51 @@ class _MessageCardState extends State<MessageCard> {
             ],
           );
         });
+  }
+
+  MenuFlyout _showOptionsFlyout(BuildContext context) {
+    return MenuFlyout(
+      items: [
+        MenuFlyoutItem(
+            text: const Text('Shorter'),
+            leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
+            onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.shortenMessage(widget.id);
+            }),
+        MenuFlyoutItem(
+            text: const Text('Longer'),
+            leading: const Icon(FluentIcons.text_description_16_filled),
+            onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.lengthenMessage(widget.id);
+            }),
+        const MenuFlyoutSeparator(),
+        MenuFlyoutItem(
+            text: const Text('Continue'),
+            leading: const Icon(FluentIcons.arrow_forward_20_filled),
+            onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.sendMessage('Continue');
+            }),
+        MenuFlyoutItem(
+          text: const Text('Generate again'),
+          leading: const Icon(FluentIcons.arrow_counterclockwise_16_filled),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.regenerateMessage(widget.message);
+          },
+        ),
+        const MenuFlyoutSeparator(),
+        MenuFlyoutItem(
+          text: Text('Delete', style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.deleteMessage(widget.id);
+          },
+        ),
+      ],
+    );
   }
 }
