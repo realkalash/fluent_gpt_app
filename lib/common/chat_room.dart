@@ -1,14 +1,16 @@
 import 'dart:convert';
 
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:langchain/langchain.dart';
 
 class ChatRoom {
   String id;
   String chatRoomName;
-  ChatModel model;
+  ChatModelAi model;
   double temp;
   int topk;
   int promptBatchSize;
@@ -19,24 +21,8 @@ class ChatRoom {
   int iconCodePoint;
   int indexSort;
 
-  /// Api key for the chat model
-  String apiToken;
-
-  String? orgID;
-
-  /// cost in USD
-  double? costUSD;
-
-  /// Tokens in all messages
-  int? tokens;
-
-  String get securedToken =>
-      apiToken.replaceAllMapped(RegExp(r'.{4}'), (match) {
-        return '*' * match.group(0)!.length;
-      });
-
   /// <chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2, <key, value>>
-  Map<String, Map<String, String>> messages;
+  ConversationBufferMemory messages;
   String? systemMessage;
 
   ChatRoom({
@@ -51,11 +37,7 @@ class ChatRoom {
     required this.topP,
     required this.maxTokenLength,
     required this.repeatPenalty,
-    required this.apiToken,
-    this.orgID,
     this.systemMessage,
-    this.costUSD,
-    this.tokens,
     this.indexSort = 1,
 
     /// 62087 is the code point for the `chat_24_filled` from [FluentIcons]
@@ -93,7 +75,6 @@ class ChatRoom {
   }
 
   static Future<ChatRoom> fromMap(Map<String, dynamic> map) async {
-    String token = map['token'] as String? ?? '';
     // if (map['token'] == null || map['nonce'] == null || map['token'] == '') {
     //   /// List<int> Encrypted data
     //   final encryptedToken = map['token'] as List<int>;
@@ -107,11 +88,14 @@ class ChatRoom {
     //   );
     //   token = await decryptApiToken(secretBox, secretKey);
     // }
-
+    final memoryJson = map['messages'] as Map<String, dynamic>;
+    final messages = ConversationBufferMemory(
+      chatHistory: ChatMessageHistory()
+    );
     return ChatRoom(
-      model: allModels.firstWhere(
+      model: allModels.value.firstWhere(
         (element) => element.toString() == map['model'],
-        orElse: () => allModels.first,
+        orElse: () => allModels.value.first,
       ),
       id: map['id'],
       chatRoomName: map['chatRoomName'],
@@ -123,17 +107,9 @@ class ChatRoom {
       topP: map['topP'],
       maxTokenLength: map['maxLength'],
       repeatPenalty: map['repeatPenalty'],
-      apiToken: token,
-      orgID: map['orgID'],
       systemMessage: map['commandPrefix'],
-      costUSD: map['costUSD'],
-      tokens: map['tokens'],
       indexSort: map['indexSort'],
-      messages: (map['messages'] as Map).map(
-        (key, value) {
-          return MapEntry(key, Map<String, String>.from(value));
-        },
-      ),
+      messages: messages,
     );
   }
 
@@ -143,9 +119,9 @@ class ChatRoom {
     // final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
     return {
       'id': id,
-      'model': model.model.toString(),
+      'model': model.name.toString(),
       'chatRoomName': chatRoomName,
-      'messages': messages,
+      'messages': await messages.loadMemoryVariables(),
       'temp': temp,
       'topk': topk,
       'iconCode': iconCodePoint,
@@ -157,11 +133,7 @@ class ChatRoom {
 
       /// List<int> Encrypted data
       // 'token': encryptedTokenBox.cipherText,
-      'token': apiToken,
-      'orgID': orgID,
       'commandPrefix': systemMessage,
-      'costUSD': costUSD,
-      'tokens': tokens,
       // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
     };
@@ -170,8 +142,8 @@ class ChatRoom {
   ChatRoom copyWith({
     String? id,
     String? chatRoomName,
-    Map<String, Map<String, String>>? messages,
-    ChatModel? model,
+    ConversationBufferMemory? messages,
+    ChatModelAi? model,
     double? temp,
     int? topk,
     int? promptBatchSize,
@@ -199,11 +171,9 @@ class ChatRoom {
       topP: topP ?? this.topP,
       maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
-      apiToken: token ?? apiToken,
-      orgID: orgID ?? this.orgID,
+
       systemMessage: commandPrefix ?? systemMessage,
-      costUSD: costUSD ?? this.costUSD,
-      tokens: tokens ?? this.tokens,
+
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
     );
@@ -213,26 +183,4 @@ class ChatRoom {
     final map = json.decode(stringJson) as Map<String, dynamic>;
     return ChatRoom.fromMap(map);
   }
-}
-
-final allModels = [
-  GPT4OModel(),
-  Gpt4ChatModel(),
-  GPT4TurboModel(),
-  GptTurboChatModel(),
-  GptTurbo0301ChatModel(),
-  Gpt4VisionPreviewChatModel(),
-];
-
-class GPT4TurboModel extends ChatModelFromValue {
-  GPT4TurboModel() : super(model: 'gpt-4-0125-preview');
-}
-
-class GPT4OModel extends ChatModelFromValue {
-  GPT4OModel() : super(model: 'gpt-4o');
-}
-
-class LocalChatModel extends ChatModelFromValue {
-  LocalChatModel() : super(model: 'local');
-  final url = 'http://localhost:1234/v1/';
 }

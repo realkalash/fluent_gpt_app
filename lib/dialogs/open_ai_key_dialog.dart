@@ -1,4 +1,5 @@
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -17,7 +18,7 @@ class OpenAiTokenDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
+    final provider = context.read<ChatProvider>();
     return ContentDialog(
       title: const Text('OpenAI API key'),
       actions: [
@@ -33,13 +34,7 @@ class OpenAiTokenDialog extends StatelessWidget {
           TextBox(
             controller: provider.dialogApiKeyController,
             onChanged: (v) {
-              provider.setOpenAIKeyForCurrentChatRoom(v);
-            },
-          ),
-          const Text('OpenAI group ID (optional)'),
-          TextBox(
-            onChanged: (v) {
-              provider.setOpenAIGroupIDForCurrentChatRoom(v);
+              AppCache.openAiApiKey.value = v.trim();
             },
           ),
         ],

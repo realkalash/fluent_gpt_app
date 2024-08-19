@@ -13,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../providers/chat_gpt_provider.dart';
+import '../providers/chat_provider.dart';
 import '../widgets/input_field.dart';
 import '../widgets/message_list_tile.dart';
 
@@ -121,7 +121,8 @@ class _OverlayUIState extends State<OverlayUI> {
                           child: IconButton(
                             visualDensity: VisualDensity.compact,
                             icon: const Icon(FluentIcons.chat_add_20_filled),
-                            onPressed: () => onTrayButtonTapCommand('','create_new_chat'),
+                            onPressed: () =>
+                                onTrayButtonTapCommand('', 'create_new_chat'),
                           )),
                     Positioned(
                       top: isSuperCompact ? 7.0 : 0,
@@ -410,19 +411,19 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                 stream: chatRoomsStream,
                 builder: (context, snapshot) {
                   return ListView.builder(
-                    itemCount: messages.length,
+                    itemCount: messages.value.length,
                     controller: _scrollController,
                     reverse: false,
                     itemBuilder: (context, index) {
-                      final message = messages.entries.elementAt(index).value;
-                      final dateTimeRaw =
-                          messages.entries.elementAt(index).value['created'];
+                      final message =
+                          messages.value.entries.elementAt(index).value;
+
                       return MessageCard(
-                        id: messages.entries.elementAt(index).key,
+                        id: messages.value.entries.elementAt(index).key,
                         message: message,
-                        dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
+                        dateTime: null,
                         selectionMode: false,
-                        isError: message['error'] == 'true',
+                        isError: false,
                         textSize: AppCache.compactMessageTextSize.value!,
                         isCompactMode: true,
                       );

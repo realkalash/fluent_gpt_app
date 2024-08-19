@@ -1,8 +1,14 @@
-import 'package:fluent_gpt/common/chat_room.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart'
-    show FlyoutController, FlyoutTarget, MenuFlyout, MenuFlyoutItem, TextBox;
+    show
+        FlyoutController,
+        FlyoutTarget,
+        MenuFlyout,
+        MenuFlyoutItem,
+        TextBox,
+        TextFormBox;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +25,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
   bool obscureText = true;
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
+    final provider = context.read<ChatProvider>();
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -103,7 +109,9 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                               });
                             },
                           ),
-                          onChanged: provider.setOpenAIKeyForCurrentChatRoom,
+                          onChanged: (v) {
+                            AppCache.openAiApiKey.value = v.trim();
+                          },
                         ),
                         const Wrap(
                           spacing: 8,
@@ -125,10 +133,11 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        TextBox(
-                          placeholder: 'Enter your org ID (optional)',
+                        TextFormBox(
+                          initialValue: AppCache.ollamaUrl.value,
+                          placeholder: 'Enter llamaUrl e.g: ${AppCache.ollamaUrl.value}',
                           onChanged: (value) {
-                            provider.setOpenAIGroupIDForCurrentChatRoom(value);
+                            AppCache.ollamaUrl.value = value;
                           },
                         ),
                       ],
@@ -167,34 +176,34 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
   @override
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
-    final ChatGPTProvider provider = context.watch<ChatGPTProvider>();
+    final ChatProvider provider = context.watch<ChatProvider>();
     return FlyoutTarget(
       controller: flyoutController,
       child: ElevatedButton.icon(
         onPressed: () => openFlyout(context),
         icon: SizedBox.square(
-            dimension: 24, child: getModelIcon(selectedModel.model)),
-        label: Text(selectedModel.model),
+            dimension: 24, child: getModelIcon(selectedModel.name)),
+        label: Text(selectedModel.name),
       ),
     );
   }
 
   void openFlyout(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
-    final models = [...allModels, LocalChatModel()];
+    final provider = context.read<ChatProvider>();
+    final models = allModels.value;
     final selectedModel = selectedChatRoom.model;
     flyoutController.showFlyout(builder: (ctx) {
       return MenuFlyout(
         items: models
             .map(
               (e) => MenuFlyoutItem(
-                selected: e.model == selectedModel.model,
-                trailing: e.model == selectedModel.model
+                selected: e.name == selectedModel.name,
+                trailing: e.name == selectedModel.name
                     ? const Icon(FluentIcons.checkmark_16_filled)
                     : null,
-                leading: SizedBox.square(
-                    dimension: 24, child: getModelIcon(e.model)),
-                text: Text(e.model),
+                leading:
+                    SizedBox.square(dimension: 24, child: getModelIcon(e.name)),
+                text: Text(e.name),
                 onPressed: () => provider.selectNewModel(e),
               ),
             )

@@ -1,17 +1,17 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
@@ -101,10 +101,10 @@ class MessageCard extends StatefulWidget {
     required this.textSize,
     required this.isCompactMode,
   });
-  final Map<String, String> message;
+  final ChatMessage message;
+  final String id;
   final DateTime? dateTime;
   final bool selectionMode;
-  final String id;
   final bool isError;
   final bool isCompactMode;
   final int textSize;
@@ -132,25 +132,9 @@ class _MessageCardState extends State<MessageCard> {
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     final botMessageStyle = TextStyle(color: Colors.green, fontSize: 14);
     Widget tileWidget;
-    Widget? leading = widget.selectionMode
-        ? Checkbox(
-            onChanged: (v) {
-              final provider = context.read<ChatGPTProvider>();
-              provider.toggleSelectMessage(widget.id);
-            },
-            checked: widget.message['selected'] == 'true',
-          )
-        : null;
-    if (widget.message['role'] == Role.user.name) {
+
+    if (widget.message is HumanChatMessage) {
       tileWidget = _MessageListTile(
-        leading: leading,
-        tileColor: widget.message['commandMessage'] == 'true'
-            ? Colors.blue.withOpacity(0.5)
-            : null,
-        onPressed: () {
-          final provider = context.read<ChatGPTProvider>();
-          provider.toggleSelectMessage(widget.id);
-        },
         title: Row(
           children: [
             Text('$formatDateTime ',
@@ -162,44 +146,15 @@ class _MessageCardState extends State<MessageCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.message['commandMessage'] == 'true')
-                  Button(
-                    onPressed: () {
-                      final provider = context.read<ChatGPTProvider>();
-                      provider.toggleHidePrompt(widget.id);
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Command prompt'),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Icon(widget.message['hidePrompt'] == 'true'
-                              ? FluentIcons.chevron_down
-                              : FluentIcons.chevron_up),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (widget.message['hidePrompt'] != 'true')
-                  SelectableText(
-                    '${widget.message['content']}',
-                    style: FluentTheme.of(context).typography.body?.copyWith(
-                          fontSize: widget.textSize.toDouble(),
-                        ),
-                    selectionControls: fluentTextSelectionControls,
-                  ),
-              ],
+            Text(
+              widget.message.contentAsString,
+              style: TextStyle(
+                fontSize: widget.textSize.toDouble(),
+              ),
             ),
-            if (widget.message['image'] != null)
+            if (widget.message is ChatMessageContentImage)
               GestureDetector(
-                onTap: () {
-                  _showImageDialog(context, widget.message);
-                },
+                onTap: () {},
                 child: Align(
                   alignment: Alignment.center,
                   child: Container(
@@ -217,56 +172,32 @@ class _MessageCardState extends State<MessageCard> {
                           )
                         ]),
                     child: Image.memory(
-                      decodeImage(widget.message['image']!),
+                      decodeImage(
+                          (widget.message as ChatMessageContentImage).data),
                       fit: BoxFit.fitHeight,
                       gaplessPlayback: true,
                     ),
                   ),
                 ),
               ),
-            // tags
-            Wrap(
-              children: [
-                for (final tag in widget.message['tags']?.split(';') ?? [])
-                  if (tag != 'Normal')
-                    Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Button(
-                          onPressed: null,
-                          child: Text(tag),
-                        )),
-              ],
-            ),
           ],
         ),
       );
     } else {
       tileWidget = _MessageListTile(
-        leading: leading,
         tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
-        onPressed: () {
-          final provider = context.read<ChatGPTProvider>();
-          provider.toggleSelectMessage(widget.id);
-        },
         title: Row(
           children: [
             Text('$formatDateTime ',
                 style: FluentTheme.of(context).typography.caption!),
-            Text('${widget.message['role']}:', style: botMessageStyle),
+            Text('Ai:', style: botMessageStyle),
           ],
         ),
-        subtitle: !_isMarkdownView
-            ? Text(
-                '${widget.message['content']}',
-                style: FluentTheme.of(context).typography.body?.copyWith(
-                      fontSize: widget.textSize.toDouble(),
-                    ),
-              )
-            : buildMarkdown(
-                context,
-                widget.message['content'] ?? '',
-                textSize: widget.textSize.toDouble(),
-              ),
+        subtitle: buildMarkdown(
+          context,
+          widget.message.contentAsString,
+          textSize: widget.textSize.toDouble(),
+        ),
       );
     }
 
@@ -336,7 +267,7 @@ class _MessageCardState extends State<MessageCard> {
                       child: Button(
                         onPressed: () {
                           Clipboard.setData(ClipboardData(
-                              text: '${widget.message['content']}'));
+                              text: widget.message.contentAsString));
                           displayCopiedToClipboard();
                         },
                         child: const Icon(FluentIcons.copy, size: 10),
@@ -374,42 +305,9 @@ class _MessageCardState extends State<MessageCard> {
     chooseCodeBlockDialog(context, code);
   }
 
-  void _showRawMessageDialog(
-      BuildContext context, Map<String, String> message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => ContentDialog(
-        title: const Text('Raw message'),
-        content: SelectableText.rich(
-          TextSpan(
-            children: [
-              for (final entry in message.entries) ...[
-                TextSpan(
-                  text: '"${entry.key}": ',
-                  style: TextStyle(color: Colors.blue),
-                ),
-                TextSpan(
-                  text: '"${entry.value}",\n',
-                  style: TextStyle(color: Colors.green),
-                ),
-              ],
-            ],
-          ),
-          style: FluentTheme.of(context).typography.body,
-        ),
-        actions: [
-          Button(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Dismiss'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditMessageDialog(
-      BuildContext context, Map<String, String> message) {
-    final contentController = TextEditingController(text: message['content']);
+  void _showEditMessageDialog(BuildContext context, ChatMessage message) {
+    final contentController =
+        TextEditingController(text: message.contentAsString);
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
@@ -432,23 +330,6 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
         actions: [
-          Button(
-            onPressed: () {
-              final provider = context.read<ChatGPTProvider>();
-              provider.editMessage(message, contentController.text);
-              provider.regenerateMessage(message);
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Save & regenerate'),
-          ),
-          Button(
-            onPressed: () {
-              final provider = context.read<ChatGPTProvider>();
-              provider.editMessage(message, contentController.text);
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Save'),
-          ),
           Button(
             onPressed: () {
               Navigator.of(ctx).pop();
@@ -545,37 +426,23 @@ class _MessageCardState extends State<MessageCard> {
     );
   }
 
-  void _onSecondaryTap(BuildContext context, Map<String, String> message) {
+  void _onSecondaryTap(BuildContext context, ChatMessage message) {
     showDialog(
         context: context,
         builder: (ctx) {
-          final provider = context.read<ChatGPTProvider>();
+          final provider = context.read<ChatProvider>();
           return ContentDialog(
             title: const Text('Message options'),
             content: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.message['image'] != null)
-                  Container(
-                    width: 100,
-                    height: 100,
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12.0)),
-                    child: Image.memory(
-                      decodeImage(widget.message['image']!),
-                      fit: BoxFit.fitHeight,
-                      gaplessPlayback: true,
-                    ),
-                  ),
-                const SizedBox(height: 8),
                 Button(
                   onPressed: () async {
                     Navigator.of(context).maybePop();
 
                     final item = DataWriterItem();
-                    final imageBytesString = widget.message['image']!;
+                    final imageBytesString = widget.message.contentAsString;
                     final imageBytes = base64.decode(imageBytesString);
 
                     item.add(Formats.png(imageBytes));
@@ -588,7 +455,7 @@ class _MessageCardState extends State<MessageCard> {
                 const SizedBox(height: 8),
                 Button(
                   onPressed: () async {
-                    final fileBytesString = widget.message['image']!;
+                    final fileBytesString = widget.message.contentAsString;
                     final fileBytes = base64.decode(fileBytesString);
                     final file = XFile.fromData(
                       fileBytes,
@@ -624,50 +491,20 @@ class _MessageCardState extends State<MessageCard> {
                   child: const Text('Save image to file'),
                 ),
                 const SizedBox(height: 8),
-                Button(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                    provider.toggleSelectMessage(widget.id);
-                  },
-                  child: const Text('Select'),
-                ),
                 const SizedBox(height: 8),
-                Button(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                    _showRawMessageDialog(context, widget.message);
-                  },
-                  child: const Text('Show raw message'),
-                ),
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Divider(),
                 ),
-                if (provider.selectionModeEnabled)
-                  Button(
-                    onPressed: () {
-                      Navigator.of(context).maybePop();
-                      provider.mergeSelectedMessagesToAssistant();
-                    },
-                    child: Text(
-                        'Merge ${provider.selectedMessages.length} messages'),
-                  ),
                 const SizedBox(height: 8),
                 Button(
                     onPressed: () {
                       Navigator.of(context).maybePop();
-                      if (provider.selectionModeEnabled) {
-                        provider.deleteSelectedMessages();
-                        provider.disableSelectionMode();
-                      } else {
-                        provider.deleteMessage(widget.id);
-                      }
+                      provider.deleteMessage(widget.id);
                     },
                     style: ButtonStyle(
                         backgroundColor: WidgetStateProperty.all(Colors.red)),
-                    child: provider.selectionModeEnabled
-                        ? Text('Delete ${provider.selectedMessages.length}')
-                        : const Text('Delete')),
+                    child: const Text('Delete')),
               ],
             ),
             actions: [

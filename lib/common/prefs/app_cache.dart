@@ -31,12 +31,17 @@ class AppCache {
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
-  static const llmUrl = StringPref("llmUrl");
+
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 
-  static const customPrompts = FileStringPref("customPrompts");
+  static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
+  static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const archivedPrompts = StringPref("archivedPrompts");
+
+  static const ollamaUrl =
+      StringPref("ollamaUrl", 'http://localhost:11434/api');
+  static const openAiApiKey = StringPref("openAiApiKey", '');
 
   static const gptToolSearchEnabled = BoolPref("gptToolSearchEnabled", true);
   static const gptToolPythonEnabled = BoolPref("gptToolPythonEnabled", true);

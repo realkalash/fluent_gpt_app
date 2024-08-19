@@ -5,8 +5,6 @@ import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
-
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -35,27 +33,9 @@ import 'package:windows_single_instance/windows_single_instance.dart';
 import 'navigation_provider.dart';
 import 'overlay/overlay_ui.dart';
 import 'overlay/sidebar_overlay_ui.dart';
-import 'providers/chat_gpt_provider.dart';
-
-var openAI = OpenAI.instance.build(
-  token: 'empty',
-  baseOption:
-      HttpSetup(receiveTimeout: const Duration(seconds: kDebugMode ? 240 : 30)),
-  enableLog: true,
-);
+import 'providers/chat_provider.dart';
 
 SharedPreferences? prefs;
-
-void resetOpenAiUrl({String? url, required String token}) {
-  if (url != null) {}
-  openAI = OpenAI.instance.build(
-    token: token,
-    baseOption: HttpSetup(
-        receiveTimeout: const Duration(seconds: kDebugMode ? 240 : 30)),
-    enableLog: true,
-    apiUrl: url ?? 'https://api.openai.com/v1/',
-  );
-}
 
 const defaultMinimumWindowSize = Size(500, 600);
 Future<void> initWindow() async {
@@ -102,30 +82,6 @@ void setupMethodChannel() {
     switch (call.method) {
       case 'onTextSelected':
       // TODO: enable when ready
-      // final argsNative = call.arguments as Map;
-      // final args = argsNative.map<String, dynamic>(
-      //   (key, value) => MapEntry(key.toString(), value),
-      // );
-      // // log('onTextSelected: $args');
-      // final selectedText = args['selectedText'] as String?;
-      // if (selectedText == null || selectedText.isEmpty) {
-      //   return;
-      // }
-      // final isAppForegrounded = await windowManager.isFocused();
-      // if (isAppForegrounded) {
-      //   return;
-      // }
-      // final positionX = args['positionX'] as double?;
-      // final positionY = args['positionY'] as double?;
-      // final resolution = AppCache.resolution.value ?? '500x700';
-      // final screenHeight = double.parse(resolution.split('x').last);
-      // final screenWidth = double.parse(resolution.split('x').first);
-      // OverlayManager.showOverlay(
-      //   navigatorKey.currentContext!,
-      //   positionX: positionX,
-      //   positionY: positionY,
-      //   resolution: Size(screenWidth, screenHeight),
-      // );
       case 'onMouseUp':
         break;
       case 'onTimerFired':
@@ -236,7 +192,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
     return ChangeNotifierProvider(
       create: (context) => NavigationProvider(),
       child: ChangeNotifierProvider(
-        create: (context) => ChatGPTProvider(),
+        create: (context) => ChatProvider(),
         child: ChangeNotifierProvider.value(
           value: _appTheme,
           builder: (ctx, child) {
@@ -437,7 +393,7 @@ class MainPageWithNavigation extends StatelessWidget {
                           icon: const Icon(FluentIcons.compose_24_regular,
                               size: 20),
                           onPressed: () {
-                            final provider = context.read<ChatGPTProvider>();
+                            final provider = context.read<ChatProvider>();
                             provider.createNewChatRoom();
                           }),
                     ),
@@ -463,7 +419,7 @@ class MainPageWithNavigation extends StatelessWidget {
                         icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
                             size: 20),
                         onPressed: () async {
-                          await Provider.of<ChatGPTProvider>(context,
+                          await Provider.of<ChatProvider>(context,
                                   listen: false)
                               .initChatsFromDisk();
                           selectedChatRoomIdStream.add(selectedChatRoomId);
@@ -512,8 +468,7 @@ class MainPageWithNavigation extends StatelessWidget {
                                 icon: Icon(FluentIcons.delete_24_filled,
                                     color: Colors.red, size: 18),
                                 onPressed: () {
-                                  final provider =
-                                      context.read<ChatGPTProvider>();
+                                  final provider = context.read<ChatProvider>();
                                   // check shift key is pressed
                                   if (shiftPressedStream.value) {
                                     provider.deleteChatRoomHard(room.id);
@@ -527,7 +482,7 @@ class MainPageWithNavigation extends StatelessWidget {
                       ),
                       body: const ChatRoomPage(),
                       onTap: () {
-                        final provider = context.read<ChatGPTProvider>();
+                        final provider = context.read<ChatProvider>();
                         provider.selectChatRoom(room);
                       },
                     )),

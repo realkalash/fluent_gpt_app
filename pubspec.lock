@@ -113,14 +113,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.16"
-  chat_gpt_sdk:
-    dependency: "direct main"
-    description:
-      name: chat_gpt_sdk
-      sha256: "3ff2032d507e8a6845f1f7e62514d73228af7447b8f5c15d9a969648d5269b01"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.0"
   checked_yaml:
     dependency: transitive
     description:
@@ -265,6 +257,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.1"
+  fetch_api:
+    dependency: transitive
+    description:
+      name: fetch_api
+      sha256: "97f46c25b480aad74f7cc2ad7ccba2c5c6f08d008e68f95c1077286ce243d0e6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.0"
+  fetch_client:
+    dependency: transitive
+    description:
+      name: fetch_client
+      sha256: "9666ee14536778474072245ed5cba07db81ae8eb5de3b7bf4a2d1e2c49696092"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   ffi:
     dependency: transitive
     description:
@@ -477,6 +485,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  freezed_annotation:
+    dependency: transitive
+    description:
+      name: freezed_annotation
+      sha256: c2e2d632dd9b8a2b7751117abcfc2b4888ecfe181bd9fca7170d9ef02e595fe2
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.4"
   get_it:
     dependency: transitive
     description:
@@ -661,6 +677,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.0"
+  langchain:
+    dependency: "direct main"
+    description:
+      name: langchain
+      sha256: "0852c8025066083556907f8a9bdb8cb0dfa983540f548893f42f8ebb13da0dd6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0+1"
+  langchain_core:
+    dependency: transitive
+    description:
+      name: langchain_core
+      sha256: "5362a1cb9c019fdb7ea96956966876561871add368c7f5cb3470169bd6a17720"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
+  langchain_ollama:
+    dependency: "direct main"
+    description:
+      name: langchain_ollama
+      sha256: a2a0624022631ae16ad6ebd3a635768fedca24d55b2a76a4e6d8d1d03f8d65fa
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
+  langchain_openai:
+    dependency: "direct main"
+    description:
+      name: langchain_openai
+      sha256: "9e187f3308f048d8f25465b0d7da90000833dc33c9eb3a089c8358574bda44f9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.0+1"
+  langchain_tiktoken:
+    dependency: transitive
+    description:
+      name: langchain_tiktoken
+      sha256: c1804f4b3e56574ca67e562305d9f11e3eabe3c8aa87fea8635992f7efc66674
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -805,6 +861,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
+  ollama_dart:
+    dependency: transitive
+    description:
+      name: ollama_dart
+      sha256: "0af52c17a6dda9f6a30d79b9529bf38128d9b01dabd9d5f625040a32035eec24"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.3+1"
+  openai_dart:
+    dependency: transitive
+    description:
+      name: openai_dart
+      sha256: a9a07cadf2e91ecae6418b7ecc68352d4d71742f2eca199c023fb3be42a42265
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   package_config:
     dependency: transitive
     description:
@@ -1539,5 +1611,5 @@ packages:
     source: hosted
     version: "3.1.2"
 sdks:
-  dart: ">=3.4.1 <4.0.0"
+  dart: ">=3.4.0 <4.0.0"
   flutter: ">=3.22.0"

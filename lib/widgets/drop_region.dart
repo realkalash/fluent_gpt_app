@@ -1,7 +1,7 @@
 import 'dart:developer';
 
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +12,7 @@ class HomeDropRegion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
+    final provider = context.read<ChatProvider>();
     return DropRegion(
       // Formats this region can accept.
       formats: Formats.standardFormats,

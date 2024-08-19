@@ -2,7 +2,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -13,11 +12,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
+import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../providers/chat_gpt_provider.dart';
+import '../providers/chat_provider.dart';
 
 class InputField extends StatefulWidget {
   const InputField({super.key});
@@ -27,7 +27,7 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-  void onSubmit(String text, ChatGPTProvider chatProvider) {
+  void onSubmit(String text, ChatProvider chatProvider) {
     if (text.trim().isEmpty && chatProvider.fileInput == null) {
       return;
     }
@@ -38,7 +38,7 @@ class _InputFieldState extends State<InputField> {
   void clearFieldAndFocus() {
     Future.delayed(const Duration(milliseconds: 50)).then(
       (value) {
-        final chatProvider = context.read<ChatGPTProvider>();
+        final chatProvider = context.read<ChatProvider>();
         chatProvider.messageController.clear();
         promptTextFocusNode.requestFocus();
       },
@@ -50,7 +50,7 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    final chatProvider = context.read<ChatGPTProvider>();
+    final chatProvider = context.read<ChatProvider>();
     chatProvider.messageController.addListener(() {
       final text = chatProvider.messageController.text;
       if (text.contains(' ')) {
@@ -67,7 +67,7 @@ class _InputFieldState extends State<InputField> {
   }
 
   void onShortcutPasteText(text) {
-    final chatProvider = context.read<ChatGPTProvider>();
+    final chatProvider = context.read<ChatProvider>();
     chatProvider.messageController.text =
         chatProvider.messageController.text + text;
     windowManager.focus();
@@ -75,7 +75,7 @@ class _InputFieldState extends State<InputField> {
   }
 
   void onShortcutPasteImage(image) async {
-    final chatProvider = context.read<ChatGPTProvider>();
+    final chatProvider = context.read<ChatProvider>();
     final convertedPngImage = await image.toPNG();
     chatProvider.addFileToInput(convertedPngImage);
     windowManager.focus();
@@ -94,9 +94,9 @@ class _InputFieldState extends State<InputField> {
   }
 
   Future<void> onShortcutCopyToThirdParty() async {
-    final lastMessage = selectedChatRoom.messages.values.last;
+    final lastMessage = messages.value.values.last;
     // final previousClipboard = await Pasteboard.text;
-    Pasteboard.writeText(lastMessage['content'] ?? '');
+    Pasteboard.writeText(lastMessage.contentAsString);
     displayCopiedToClipboard();
     // await windowManager.minimize();
     // // wait for the window to hideasdasd
@@ -109,7 +109,7 @@ class _InputFieldState extends State<InputField> {
   bool _isShiftPressed = false;
   @override
   Widget build(BuildContext context) {
-    final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
+    final ChatProvider chatProvider = context.watch<ChatProvider>();
 
     return CallbackShortcuts(
       bindings: {
@@ -208,7 +208,7 @@ class _InputFieldState extends State<InputField> {
   final menuController = FlyoutController();
 
   void _onSecondaryTap() {
-    final provider = context.read<ChatGPTProvider>();
+    final provider = context.read<ChatProvider>();
     final controller = provider.messageController;
     menuController.showFlyout(builder: (ctx) {
       return MenuFlyout(
@@ -222,14 +222,16 @@ class _InputFieldState extends State<InputField> {
           MenuFlyoutItem(
               text: const Text('Send as user (silently)'),
               onPressed: () {
-                provider.addUserMessageToList(controller.text);
+                provider.addUserMessageToList(HumanChatMessage(
+                    content: ChatMessageContent.text(controller.text)));
                 clearFieldAndFocus();
               }),
           MenuFlyoutItem(
               text: const Text('Send as AI answer (silently)'),
               onPressed: () {
                 provider.addBotMessageToList(
-                    controller.text, DateTime.now().toIso8601String());
+                    AIChatMessage(content: controller.text),
+                    DateTime.now().toIso8601String());
                 clearFieldAndFocus();
               }),
         ],
@@ -284,7 +286,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                   onTap: () => openFlyout(context),
                   child: SizedBox.square(
                     dimension: 20,
-                    child: getModelIcon(selectedModel.model),
+                    child: getModelIcon(selectedModel.name),
                   ),
                 ),
               ),
@@ -294,21 +296,21 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
   }
 
   void openFlyout(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
-    final models = [...allModels, LocalChatModel()];
+    final provider = context.read<ChatProvider>();
+    final models = allModels.value;
     final selectedModel = selectedChatRoom.model;
     flyoutController.showFlyout(builder: (ctx) {
       return MenuFlyout(
         items: models
             .map(
               (e) => MenuFlyoutItem(
-                selected: e.model == selectedModel.model,
-                trailing: e.model == selectedModel.model
+                selected: e.name == selectedModel.name,
+                trailing: e.name == selectedModel.name
                     ? const Icon(ic.FluentIcons.checkmark_16_filled)
                     : null,
-                leading: SizedBox.square(
-                    dimension: 24, child: getModelIcon(e.model)),
-                text: Text(e.model),
+                leading:
+                    SizedBox.square(dimension: 24, child: getModelIcon(e.name)),
+                text: Text(e.name),
                 onPressed: () => provider.selectNewModel(e),
               ),
             )
@@ -324,7 +326,7 @@ class _AddFileButton extends StatelessWidget {
     required this.chatProvider,
   });
 
-  final ChatGPTProvider chatProvider;
+  final ChatProvider chatProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -339,9 +341,10 @@ class _AddFileButton extends StatelessWidget {
             promptTextFocusNode.requestFocus();
           }
         },
-        icon: chatProvider.isSendingFile
-            ? const ProgressRing()
-            : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
+        icon: const Placeholder(fallbackHeight: 24, fallbackWidth: 24),
+        // icon: chatProvider.isSendingFile
+        //     ? const ProgressRing()
+        //     : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
       ),
     );
   }
@@ -353,7 +356,7 @@ class _FileThumbnail extends StatelessWidget {
     required this.chatProvider,
   });
 
-  final ChatGPTProvider chatProvider;
+  final ChatProvider chatProvider;
 
   @override
   Widget build(BuildContext context) {
@@ -363,9 +366,9 @@ class _FileThumbnail extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () async {
-              if (chatProvider.isSendingFile) {
-                return;
-              }
+              // if (chatProvider.isSendingFile) {
+              //   return;
+              // }
               FilePickerResult? result = await FilePicker.platform.pickFiles();
               if (result != null && result.files.isNotEmpty) {
                 chatProvider.addFileToInput(result.files.first.toXFile());
@@ -395,10 +398,10 @@ class _FileThumbnail extends StatelessWidget {
                     );
                   }),
             ),
-          if (chatProvider.isSendingFile)
-            const Positioned.fill(
-              child: Center(child: ProgressRing()),
-            ),
+          // if (chatProvider.isSendingFile)
+          //   const Positioned.fill(
+          //     child: Center(child: ProgressRing()),
+          //   ),
           Positioned(
             top: 0,
             right: 0,
@@ -484,7 +487,7 @@ class HotShurtcutsWidget extends StatefulWidget {
   }
 
   static void answerWithTags(BuildContext context, String text, String tags) {
-    final chatProvider = context.read<ChatGPTProvider>();
+    final chatProvider = context.read<ChatProvider>();
     final formattedText = text.trim();
     final formattedTags = tags.trim();
     chatProvider.sendMessage(
@@ -529,7 +532,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final chatProvider = context.read<ChatGPTProvider>();
+    final chatProvider = context.read<ChatProvider>();
     final txtController = chatProvider.messageController;
 
     return Padding(
@@ -585,7 +588,7 @@ class PromptChipWidget extends StatelessWidget {
   final CustomPrompt prompt;
 
   Future<void> _onTap(BuildContext context, CustomPrompt child) async {
-    final contr = context.read<ChatGPTProvider>().messageController;
+    final contr = context.read<ChatProvider>().messageController;
 
     if (contr.text.trim().isNotEmpty) {
       onTrayButtonTapCommand(child.getPromptText(contr.text));

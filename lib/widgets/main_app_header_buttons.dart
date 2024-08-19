@@ -1,7 +1,7 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
@@ -163,7 +163,7 @@ class AddChatButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.read<ChatGPTProvider>();
+    var chatProvider = context.read<ChatProvider>();
     // var navProvider = context.read<NavigationProvider>();
 
     return Tooltip(
@@ -191,7 +191,7 @@ class ClearChatButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.read<ChatGPTProvider>();
+    var chatProvider = context.read<ChatProvider>();
 
     return Tooltip(
       message: 'Clear conversation (Ctrl + R)',
@@ -204,7 +204,7 @@ class ClearChatButton extends StatelessWidget {
             size: 20,
           ),
           onChanged: (v) {
-            chatProvider.clearConversation();
+            chatProvider.clearChatMessages();
           },
         ),
       ),

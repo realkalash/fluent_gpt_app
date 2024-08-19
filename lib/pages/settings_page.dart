@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
@@ -11,7 +10,7 @@ import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -20,6 +19,7 @@ import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
+import 'package:langchain/langchain.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
@@ -36,7 +36,7 @@ import '../widgets/confirmation_dialog.dart';
 class GptModelChooser extends StatefulWidget {
   const GptModelChooser({super.key, required this.onChanged});
 
-  final void Function(ChatModel model) onChanged;
+  final void Function(ChatModelAi model) onChanged;
 
   @override
   State<GptModelChooser> createState() => _GptModelChooserState();
@@ -52,14 +52,14 @@ class _GptModelChooserState extends State<GptModelChooser> {
             spacing: 15.0,
             runSpacing: 10.0,
             children: List.generate(
-              allModels.length,
+              allModels.value.length,
               (index) {
-                final model = allModels[index];
+                final model = allModels.value[index];
 
                 return Padding(
                   padding: const EdgeInsetsDirectional.only(bottom: 8.0),
                   child: RadioButton(
-                    checked: selectedModel.model == model.model,
+                    checked: selectedModel.name == model.name,
                     onChanged: (value) {
                       if (value) {
                         setState(() {
@@ -67,7 +67,7 @@ class _GptModelChooserState extends State<GptModelChooser> {
                         });
                       }
                     },
-                    content: Text(model.model),
+                    content: Text(model.name),
                   ),
                 );
               },
@@ -104,7 +104,6 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         children: [
           const EnabledGptTools(),
           const OverlaySettings(),
-          const _FilesSection(),
           const AccessibilityPermissionButton(),
           const _CacheSection(),
           if (kDebugMode) const _DebugSection(),
@@ -328,7 +327,7 @@ class _OverlaySettingsState extends State<OverlaySettings> {
           value: AppCache.compactMessageTextSize.value,
           onChanged: (value) {
             AppCache.compactMessageTextSize.value = value ?? 10;
-            Provider.of<ChatGPTProvider>(context, listen: false).updateUI();
+            Provider.of<ChatProvider>(context, listen: false).updateUI();
           },
           mode: SpinButtonPlacementMode.inline,
         ),
@@ -431,76 +430,14 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             biggerSpacer,
           ],
         ),
-      ],
-    );
-  }
-}
-
-class _FilesSection extends StatefulWidget {
-  const _FilesSection({super.key});
-
-  @override
-  State<_FilesSection> createState() => _FilesSectionState();
-}
-
-class _FilesSectionState extends State<_FilesSection> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      final provider = context.read<ChatGPTProvider>();
-      provider.retrieveFiles();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gptProvider = context.watch<ChatGPTProvider>();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Files', style: FluentTheme.of(context).typography.subtitle),
-            IconButton(
-              icon: const Icon(FluentIcons.refresh),
-              onPressed: () {
-                gptProvider.retrieveFiles();
-              },
-            ),
-          ],
+        Text('LLama url', style: FluentTheme.of(context).typography.subtitle),
+        TextFormBox(
+          initialValue: AppCache.ollamaUrl.value,
+          placeholder: AppCache.ollamaUrl.value,
+          onChanged: (value) {
+            AppCache.ollamaUrl.value = value;
+          },
         ),
-        spacer,
-        if (gptProvider.isRetrievingFiles)
-          const Center(child: ProgressBar())
-        else
-          Wrap(
-            spacing: 15.0,
-            runSpacing: 10.0,
-            children: List.generate(
-              gptProvider.filesInOpenAi.length,
-              (index) {
-                final file = gptProvider.filesInOpenAi[index];
-                return Button(
-                  onPressed: () {
-                    // gptProvider.downloadOpenFile(file);
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('${file.filename} (${file.bytes ~/ 1024} KB)'),
-                      IconButton(
-                        icon: const Icon(FluentIcons.delete),
-                        onPressed: () {
-                          gptProvider.deleteFileFromOpenAi(file);
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
       ],
     );
   }
@@ -512,7 +449,7 @@ class _OtherSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
-    final gptProvider = context.watch<ChatGPTProvider>();
+    final gptProvider = context.watch<ChatProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -551,7 +488,7 @@ class _ResolutionsSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
-    final gptProvider = context.watch<ChatGPTProvider>();
+    final gptProvider = context.watch<ChatProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -592,7 +529,7 @@ class MessageSamplePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ChatGPTProvider>();
+    final provider = context.watch<ChatProvider>();
     return Container(
       padding: const EdgeInsets.all(16.0),
       child: Card(
@@ -601,11 +538,10 @@ class MessageSamplePreviewCard extends StatelessWidget {
           children: [
             const Text('Message sample preview'),
             MessageCard(
-              message: const {
-                'content':
+              message: const AIChatMessage(
+                content:
                     '''Hello, how are you doing today?\nI'm doing great, thank you for asking. I'm here to help you with anything you need.''',
-                'role': 'user',
-              },
+              ),
               selectionMode: false,
               dateTime: DateTime.now(),
               id: '1234',
@@ -957,7 +893,7 @@ class __CacheSectionState extends State<_CacheSection> {
                 onPressed: () => ConfirmationDialog(
                       isDelete: true,
                       onAcceptPressed: () {
-                        context.read<ChatGPTProvider>().deleteAllChatRooms();
+                        context.read<ChatProvider>().deleteAllChatRooms();
                       },
                     )),
             Button(

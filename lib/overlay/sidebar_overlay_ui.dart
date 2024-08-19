@@ -17,7 +17,7 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../providers/chat_gpt_provider.dart';
+import '../providers/chat_provider.dart';
 import '../widgets/input_field.dart';
 import '../widgets/message_list_tile.dart';
 
@@ -406,22 +406,22 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: chatRoomsStream,
+                stream: messages,
                 builder: (context, snapshot) {
                   return ListView.builder(
-                    itemCount: messages.length,
+                    itemCount: messages.value.length,
                     controller: _scrollController,
                     reverse: false,
                     itemBuilder: (context, index) {
-                      final message = messages.entries.elementAt(index).value;
-                      final dateTimeRaw =
-                          messages.entries.elementAt(index).value['created'];
+                      final element = messages.value.entries.elementAt(index);
+                      final message = element.value;
+                      
                       return MessageCard(
-                        id: messages.entries.elementAt(index).key,
+                        id: element.key,
                         message: message,
-                        dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
+                        dateTime: null,
                         selectionMode: false,
-                        isError: message['error'] == 'true',
+                        isError: false,
                         textSize: AppCache.compactMessageTextSize.value!,
                         isCompactMode: true,
                       );

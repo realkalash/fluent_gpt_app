@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
@@ -106,7 +106,7 @@ class _CostDialogState extends State<DeletedChatsDialog> {
                               bytesArchivedChats = size;
                             });
                             // ignore: use_build_context_synchronously
-                            context.read<ChatGPTProvider>().initChatsFromDisk();
+                            context.read<ChatProvider>().initChatsFromDisk();
                           }
                         },
                         child: const Text('Restore'),

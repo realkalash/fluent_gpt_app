@@ -3,11 +3,9 @@ import 'dart:io';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
-import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/utils.dart';
-import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -23,7 +21,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
-import '../providers/chat_gpt_provider.dart';
+import '../providers/chat_provider.dart';
 
 final promptTextFocusNode = FocusNode();
 
@@ -189,7 +187,7 @@ class PageHeaderText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.watch<ChatGPTProvider>();
+    var chatProvider = context.watch<ChatProvider>();
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
@@ -213,8 +211,8 @@ class PageHeaderText extends StatelessWidget {
                       maxLines: 2,
                       textAlign: TextAlign.center,
                     )),
-                    if (selectedChatRoom.apiToken.isEmpty ||
-                        selectedChatRoom.apiToken == 'empty')
+                    if (AppCache.openAiApiKey.value == null ||
+                        AppCache.openAiApiKey.value!.isEmpty)
                       Tooltip(
                         message: 'API token is empty!',
                         child: Icon(ic.FluentIcons.warning_24_filled,
@@ -234,27 +232,12 @@ class PageHeaderText extends StatelessWidget {
                 ),
                 onPressed: () => showCostCalculatorDialog(context),
                 child: Text(
-                  ' Tokens: ${selectedChatRoom.tokens ?? 0} | ${(selectedChatRoom.costUSD ?? 0.0).toStringAsFixed(4)}\$',
+                  ' Tokens: ${(chatProvider.totalTokensForCurrentChat)}',
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
-              const Spacer(),
-              const IncludeConversationSwitcher(),
-              if (chatProvider.selectionModeEnabled) ...[
-                IconButton(
-                  icon:
-                      Icon(ic.FluentIcons.delete_16_filled, color: Colors.red),
-                  onPressed: () {
-                    chatProvider.deleteSelectedMessages();
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(FluentIcons.cancel),
-                  onPressed: () {
-                    chatProvider.disableSelectionMode();
-                  },
-                ),
-              ]
+              Spacer(),
+              IncludeConversationSwitcher(),
             ],
           ),
         ],
@@ -263,11 +246,11 @@ class PageHeaderText extends StatelessWidget {
   }
 
   void showCostCalculatorDialog(BuildContext context) {
-    final tokens = selectedChatRoom.tokens ?? 0;
-    showDialog(
-      context: context,
-      builder: (context) => CostDialog(tokens: tokens),
-    );
+    // final tokens = selectedChatRoom.tokens ?? 0;
+    // showDialog(
+    //   context: context,
+    //   builder: (context) => CostDialog(tokens: tokens),
+    // );
   }
 }
 
@@ -276,7 +259,7 @@ class IncludeConversationSwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ChatGPTProvider chatProvider = context.watch<ChatGPTProvider>();
+    final ChatProvider chatProvider = context.watch<ChatProvider>();
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -334,7 +317,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     // promptTextFocusNode.requestFocus();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      var chatProvider = context.read<ChatGPTProvider>();
+      var chatProvider = context.read<ChatProvider>();
       chatProvider.listItemsScrollController.animateTo(
         chatProvider.listItemsScrollController.position.maxScrollExtent + 200,
         duration: const Duration(milliseconds: 400),
@@ -343,100 +326,58 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     });
   }
 
-  void toggleSelectAllMessages() {
-    final allMessages = selectedChatRoom.messages;
-    final chatProvider = context.read<ChatGPTProvider>();
-    if (!chatProvider.selectionModeEnabled) {
-      chatProvider.selectAllMessages(allMessages);
-    } else {
-      chatProvider.disableSelectionMode();
-    }
-  }
-
-  Future<void> promptDeleteSelectedMessages() async {
-    final chatProvider = context.read<ChatGPTProvider>();
-    final result = await ConfirmationDialog.show(
-      context: context,
-      isDelete: true,
-    );
-    if (result) {
-      chatProvider.deleteSelectedMessages();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.watch<ChatGPTProvider>();
+    var chatProvider = context.watch<ChatProvider>();
     chatProvider.context = context;
 
-    return CallbackShortcuts(
-      bindings: {
-        if (Platform.isMacOS)
-          const SingleActivator(LogicalKeyboardKey.keyA,
-              meta: true, shift: true): toggleSelectAllMessages
-        else
-          const SingleActivator(LogicalKeyboardKey.keyA,
-              control: true, shift: true): toggleSelectAllMessages,
-        if (chatProvider.selectionModeEnabled)
-          const SingleActivator(LogicalKeyboardKey.escape):
-              chatProvider.disableSelectionMode,
-        if (Platform.isMacOS)
-          const SingleActivator(LogicalKeyboardKey.backspace, meta: true):
-              promptDeleteSelectedMessages
-        else
-          const SingleActivator(LogicalKeyboardKey.delete, control: true):
-              promptDeleteSelectedMessages,
-      },
-      child: GestureDetector(
-        onTap: promptTextFocusNode.requestFocus,
-        behavior: HitTestBehavior.translucent,
-        excludeFromSemantics: true,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Column(
-              children: <Widget>[
-                Expanded(
-                  child: StreamBuilder(
-                      stream: chatRoomsStream,
-                      builder: (context, snapshot) {
-                        return ListView.builder(
-                          controller: chatProvider.listItemsScrollController,
-                          itemCount: messages.entries.length,
-                          itemBuilder: (context, index) {
-                            final message =
-                                messages.entries.elementAt(index).value;
-                            final dateTimeRaw = messages.entries
-                                .elementAt(index)
-                                .value['created'];
+    return GestureDetector(
+      onTap: promptTextFocusNode.requestFocus,
+      behavior: HitTestBehavior.translucent,
+      excludeFromSemantics: true,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Column(
+            children: <Widget>[
+              Expanded(
+                child: StreamBuilder(
+                    stream: messages,
+                    builder: (context, snapshot) {
+                      return ListView.builder(
+                        controller: chatProvider.listItemsScrollController,
+                        itemCount: messages.value.entries.length,
+                        itemBuilder: (context, index) {
+                          final element =
+                              messages.value.entries.elementAt(index);
+                          final message = element.value;
 
-                            return MessageCard(
-                              key: ValueKey('message_$index'),
-                              id: messages.entries.elementAt(index).key,
-                              message: message,
-                              dateTime: DateTime.tryParse(dateTimeRaw ?? ''),
-                              selectionMode: chatProvider.selectionModeEnabled,
-                              isError: message['error'] == 'true',
-                              textSize: chatProvider.textSize,
-                              isCompactMode: false,
-                            );
-                          },
-                        );
-                      }),
-                ),
-                const HotShurtcutsWidget(),
-                const InputField()
-              ],
-            ),
-            const Positioned(
-              bottom: 128,
-              right: 16,
-              width: 32,
-              height: 32,
-              child: _ScrollToBottomButton(),
-            ),
-          ],
-        ),
+                          return MessageCard(
+                            key: ValueKey('message_$index'),
+                            id: element.key,
+                            message: message,
+                            dateTime: null,
+                            selectionMode: false,
+                            isError: false,
+                            textSize: chatProvider.textSize,
+                            isCompactMode: false,
+                          );
+                        },
+                      );
+                    }),
+              ),
+              const HotShurtcutsWidget(),
+              const InputField()
+            ],
+          ),
+          const Positioned(
+            bottom: 128,
+            right: 16,
+            width: 32,
+            height: 32,
+            child: _ScrollToBottomButton(),
+          ),
+        ],
       ),
     );
   }
@@ -447,7 +388,7 @@ class _ScrollToBottomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ChatGPTProvider>();
+    final provider = context.watch<ChatProvider>();
     return ToggleButton(
       checked: provider.scrollToBottomOnAnswer,
       style: ToggleButtonThemeData(
@@ -596,14 +537,14 @@ class RunCodeButton extends StatelessWidget {
             return ToggleButton(
               onChanged: (_) async {
                 final provider =
-                    Provider.of<ChatGPTProvider>(context, listen: false);
+                    Provider.of<ChatProvider>(context, listen: false);
 
                 if (language == 'shell') {
                   final result = await ShellDriver.runShellCommand(code);
-                  provider.sendResultOfRunningShellCode(result);
+                  // provider.sendResultOfRunningShellCode(result);
                 } else if (language == 'python') {
                   final result = await ShellDriver.runPythonCode(code);
-                  provider.sendResultOfRunningShellCode(result);
+                  // provider.sendResultOfRunningShellCode(result);
                 }
               },
               checked: snap.data == true,

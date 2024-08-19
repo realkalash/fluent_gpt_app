@@ -1,8 +1,10 @@
 import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
-import 'package:fluent_gpt/providers/chat_gpt_provider.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:langchain_openai/langchain_openai.dart';
 import 'package:provider/provider.dart';
 
 class EditChatRoomDialog extends StatefulWidget {
@@ -37,12 +39,11 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<ChatGPTProvider>();
+    final provider = context.read<ChatProvider>();
     var roomName = widget.room.chatRoomName;
     var systemMessage = widget.room.systemMessage;
     var maxLength = widget.room.maxTokenLength;
-    var token = widget.room.apiToken;
-    var orgID = widget.room.orgID;
+    var token = AppCache.openAiApiKey.value;
     var index = widget.room.indexSort;
     return ContentDialog(
       title: const Text('Edit chat room'),
@@ -57,10 +58,11 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                   commandPrefix: systemMessage,
                   maxLength: maxLength,
                   token: token,
-                  orgID: orgID,
                   indexSort: index,
                   iconCodePoint: ico,
                 ));
+            AppCache.openAiApiKey.value = token;
+            openAI = ChatOpenAI(apiKey: token);
             Navigator.of(context).pop();
             widget.onOkPressed();
           },
@@ -140,17 +142,11 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
           ),
           const Text('Token'),
           TextBox(
-            controller: TextEditingController(text: widget.room.apiToken),
+            controller:
+                TextEditingController(text: AppCache.openAiApiKey.value),
             obscureText: true,
             onChanged: (value) {
               token = value;
-            },
-          ),
-          const Text('Org ID'),
-          TextBox(
-            controller: TextEditingController(text: widget.room.orgID),
-            onChanged: (value) {
-              orgID = value;
             },
           ),
         ],
