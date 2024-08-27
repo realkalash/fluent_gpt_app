@@ -140,7 +140,7 @@ class FileUtils {
 
   static Future<String> getChatRoomPath() async {
     final dir =
-        documentDirectoryPath ?? await getApplicationDocumentsDirectory();
+        documentDirectoryPath ?? (await getApplicationDocumentsDirectory()).path;
     return '$dir/fluent_gpt/chat_rooms';
   }
 

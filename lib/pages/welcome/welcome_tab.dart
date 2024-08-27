@@ -6,9 +6,14 @@ import 'package:provider/provider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:window_manager/window_manager.dart';
 
-class WelcomeTab extends StatelessWidget {
+class WelcomeTab extends StatefulWidget {
   const WelcomeTab({super.key});
 
+  @override
+  State<WelcomeTab> createState() => _WelcomeTabState();
+}
+
+class _WelcomeTabState extends State<WelcomeTab> {
   @override
   Widget build(BuildContext context) {
     final navProvider = context.read<NavigationProvider>();

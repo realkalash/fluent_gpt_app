@@ -89,9 +89,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
   Widget build(BuildContext context) {
     final canGoBack = Navigator.of(context).canPop();
     return Container(
-      color: Platform.isLinux
-          ? Colors.transparent
-          : context.theme.scaffoldBackgroundColor.withOpacity(1),
+      color: Colors.transparent,
       child: ScaffoldPage.scrollable(
         header: PageHeader(
             title: const Text('Settings'),
