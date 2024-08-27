@@ -18,6 +18,7 @@ import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
+import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:langchain/langchain.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -430,12 +431,28 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         ),
         Text('LLama url', style: FluentTheme.of(context).typography.subtitle),
         TextFormBox(
-          initialValue: AppCache.ollamaUrl.value,
-          placeholder: AppCache.ollamaUrl.value,
+          initialValue: AppCache.localApiUrl.value,
+          placeholder: AppCache.localApiUrl.value,
           onChanged: (value) {
-            AppCache.ollamaUrl.value = value;
+            AppCache.localApiUrl.value = value;
           },
         ),
+        Text('Brave API key',
+            style: FluentTheme.of(context).typography.subtitle),
+        TextFormBox(
+          initialValue: AppCache.braveSearchApiKey.value,
+          placeholder: AppCache.braveSearchApiKey.value,
+          onChanged: (value) {
+            AppCache.braveSearchApiKey.value = value;
+          },
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://api.search.brave.com/app/keys',
+            url: 'https://api.search.brave.com/app/keys',
+          ),
+        )
       ],
     );
   }

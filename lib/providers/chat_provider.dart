@@ -2,6 +2,7 @@ import 'dart:convert';
 // ignore: implementation_imports
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:fluent_gpt/common/chat_room.dart';
@@ -17,13 +18,13 @@ import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:langchain/langchain.dart';
-import 'package:langchain_ollama/langchain_ollama.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:tiktoken/tiktoken.dart';
 
 ChatOpenAI? openAI;
-ChatOllama? llamaAi;
+ChatOpenAI? llamaAi;
+// ChatOllama? llamaAi;
 
 /// First is ID, second is ChatRoom
 BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
@@ -103,8 +104,7 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
 
 final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([
   /// gpt-4o
-  ChatModelAi(name: 'gpt-4o', apiKey: ''),
-  ChatModelAi(name: 'llama3', apiKey: ''),
+  ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
 ]);
 
 class ChatProvider with ChangeNotifier {
@@ -114,6 +114,7 @@ class ChatProvider with ChangeNotifier {
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
   bool isSendingFile = false;
+  bool isWebSearchEnabled = false;
 
   final dialogApiKeyController = TextEditingController();
   bool isAnswering = false;
@@ -175,6 +176,21 @@ class ChatProvider with ChangeNotifier {
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
+        chatRooms[file.path] = ChatRoom(
+          id: file.path,
+          chatRoomName: 'Error ${file.path}',
+          model: ChatModelAi(name: 'error', apiKey: ''),
+          messages:
+              ConversationBufferMemory(systemPrefix: defaultSystemMessage),
+          temp: temp,
+          topk: topk,
+          promptBatchSize: promptBatchSize,
+          repeatPenaltyTokens: repeatPenaltyTokens,
+          topP: topP,
+          maxTokenLength: maxLenght,
+          repeatPenalty: repeatPenalty,
+          systemMessage: defaultSystemMessage,
+        );
       }
     }
     if (chatRooms.isEmpty) {
@@ -197,6 +213,26 @@ class ChatProvider with ChangeNotifier {
     await initChatsFromDisk();
   }
 
+  _retrieveLocalModels() async {
+    var localApi = AppCache.localApiUrl.value;
+    if (localApi == null || localApi.isEmpty == true) return;
+
+    localApi = localApi.replaceAll('/api', '');
+    // retrieve models
+    // curl http://0.0.0.0:1234/v1/models/
+    final dio = Dio();
+    final response = await dio.get('$localApi/models/');
+    final respJson = response.data as Map<String, dynamic>;
+    final models = respJson['data'] as List;
+    final listModels = models
+        .map(
+          (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
+              apiKey: AppCache.openAiApiKey.value ?? ''),
+        )
+        .toList();
+    allModels.add([...allModels.value, ...listModels]);
+  }
+
   initChatModels() async {
     // final listModelsJsonString = await AppCache.savedModels.value();
     // if (listModelsJsonString?.isNotEmpty == true) {
@@ -207,12 +243,16 @@ class ChatProvider with ChangeNotifier {
     //   allModels.add(listModels);
     // }
     allModels.add(allModels.value);
+    await _retrieveLocalModels();
   }
 
   /// Should be called after we load all chat rooms
   void initCurrentChat() {
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    llamaAi = ChatOllama(baseUrl: AppCache.ollamaUrl.value!);
+    llamaAi = ChatOpenAI(
+      baseUrl: AppCache.localApiUrl.value!,
+      apiKey: AppCache.openAiApiKey.value,
+    );
   }
 
   void listenTray() {
@@ -275,11 +315,21 @@ class ChatProvider with ChangeNotifier {
     bool hidePrompt = false,
   ]) async {
     bool isFirstMessage = messages.value.isEmpty;
+    if (isWebSearchEnabled) {
+      final scrapper = WebScraper();
+      final results = await scrapper.search(messageContent);
+
+      for (var result in results) {
+        addBotMessageToList(
+          AIChatMessage(content: '${result.title}\n\n${result.description}'),
+        );
+        // TODO parse and feed to LLM
+      }
+      return;
+    }
 
     /// add additional styles to the message
     messageContent = modifyMessageStyle(messageContent);
-    final lenghtStyle = conversationLenghtStyleStream.value;
-    final conversationStyle = conversationStyleStream.value;
 
     final isImageAttached =
         fileInput != null && fileInput!.mimeType?.contains('image') == true;
@@ -309,7 +359,7 @@ class ChatProvider with ChangeNotifier {
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
     }
-    if (selectedChatRoom.model.name == 'gpt-4o') {
+    if (selectedChatRoom.model.ownedBy == 'openai') {
       if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
         openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
       }
@@ -317,11 +367,11 @@ class ChatProvider with ChangeNotifier {
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.name,
           ));
-    } else if (selectedChatRoom.model.name == 'llama3') {
+    } else {
       stream = llamaAi!.stream(
         PromptValue.chat(messagesToSend),
-        options: const ChatOllamaOptions(
-          model: 'llama3.1:latest',
+        options: ChatOpenAIOptions(
+          model: selectedChatRoom.model.name,
         ),
       );
     }
@@ -384,7 +434,7 @@ class ChatProvider with ChangeNotifier {
     values[id ?? DateTime.now().toIso8601String()] =
         AIChatMessage(content: newString);
     messages.add(values);
-    if (scrollToBottomOnAnswer){
+    if (scrollToBottomOnAnswer) {
       scrollToEnd();
     }
   }
@@ -506,8 +556,12 @@ class ChatProvider with ChangeNotifier {
   Future<void> selectChatRoom(ChatRoom room) async {
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
+    llamaAi = ChatOpenAI(
+        apiKey: AppCache.openAiApiKey.value,
+        baseUrl: AppCache.localApiUrl.value!);
     totalTokensForCurrentChat = 0;
     _loadMessagesFromDisk(room.id);
+    notifyListeners();
   }
 
   void deleteChatRoom(String chatRoomId) {
@@ -691,6 +745,11 @@ class ChatProvider with ChangeNotifier {
       chatHistory: ChatMessageHistory(messages: roomMessages.values.toList()),
     );
     messages.add(roomMessages);
+    notifyListeners();
+  }
+
+  void toggleWebSearch() {
+    isWebSearchEnabled = !isWebSearchEnabled;
     notifyListeners();
   }
 }

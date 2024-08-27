@@ -39,9 +39,10 @@ class AppCache {
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const archivedPrompts = StringPref("archivedPrompts");
 
-  static const ollamaUrl =
-      StringPref("ollamaUrl", 'http://localhost:11434/api');
+  static const localApiUrl =
+      StringPref("localApiUrl", 'http://localhost:11434/api');
   static const openAiApiKey = StringPref("openAiApiKey", '');
+  static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
 
   static const gptToolSearchEnabled = BoolPref("gptToolSearchEnabled", true);
   static const gptToolPythonEnabled = BoolPref("gptToolPythonEnabled", true);

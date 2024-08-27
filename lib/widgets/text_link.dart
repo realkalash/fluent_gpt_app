@@ -8,14 +8,17 @@ class LinkTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: ()=> launchUrlString(url ?? text),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.blue.withOpacity(0.7),
-          fontSize: 14,
-          decoration: TextDecoration.underline,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: ()=> launchUrlString(url ?? text),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.blue.withOpacity(0.7),
+            fontSize: 14,
+            decoration: TextDecoration.underline,
+          ),
         ),
       ),
     );

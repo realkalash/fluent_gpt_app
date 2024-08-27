@@ -248,8 +248,8 @@ class _ChooseModelButton extends StatefulWidget {
 }
 
 class _ChooseModelButtonState extends State<_ChooseModelButton> {
-  Widget getModelIcon(String model) {
-    if (model.contains('gpt')) {
+  Widget getModelIcon(String ownedBy) {
+    if (ownedBy == 'openai') {
       return Image.asset(
         'assets/openai_icon.png',
         fit: BoxFit.contain,
@@ -266,32 +266,30 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
+    final provider = context.watch<ChatProvider>();
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
-      child: StreamBuilder(
-          stream: chatRoomsStream,
-          builder: (context, snapshot) {
-            return FlyoutTarget(
-              controller: flyoutController,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: FluentTheme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                width: 30,
-                height: 30,
-                padding: const EdgeInsets.all(2),
-                child: GestureDetector(
-                  onTap: () => openFlyout(context),
-                  child: SizedBox.square(
-                    dimension: 20,
-                    child: getModelIcon(selectedModel.name),
-                  ),
-                ),
-              ),
-            );
-          }),
+      child: FlyoutTarget(
+        controller: flyoutController,
+        child: Container(
+          decoration: BoxDecoration(
+            color: FluentTheme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          width: 30,
+          height: 30,
+          padding: const EdgeInsets.all(2),
+          child: GestureDetector(
+            onTap: () => openFlyout(context),
+            child: SizedBox.square(
+              dimension: 20,
+              child: getModelIcon(selectedModel.ownedBy ?? ''),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -308,8 +306,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                 trailing: e.name == selectedModel.name
                     ? const Icon(ic.FluentIcons.checkmark_16_filled)
                     : null,
-                leading:
-                    SizedBox.square(dimension: 24, child: getModelIcon(e.name)),
+                leading: SizedBox.square(
+                    dimension: 24, child: getModelIcon(e.ownedBy ?? '')),
                 text: Text(e.name),
                 onPressed: () => provider.selectNewModel(e),
               ),
@@ -504,34 +502,34 @@ class HotShurtcutsWidget extends StatefulWidget {
 }
 
 class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
-  Timer? timer;
-  String textFromClipboard = '';
+  // Timer? timer;
+  // String textFromClipboard = '';
 
-  @override
-  void initState() {
-    super.initState();
+  // @override
+  // void initState() {
+  //   super.initState();
 
-    /// periodically checks the clipboard for text and displays a widget if there is text
-    /// in the clipboard
-    timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-      Clipboard.getData(Clipboard.kTextPlain).then((value) {
-        if (value?.text != textFromClipboard) {
-          textFromClipboard = value?.text ?? '';
-          if (mounted) setState(() {});
-        }
-      });
-    });
-  }
+  //   /// periodically checks the clipboard for text and displays a widget if there is text
+  //   /// in the clipboard
+  //   timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+  //     Clipboard.getData(Clipboard.kTextPlain).then((value) {
+  //       if (value?.text != textFromClipboard) {
+  //         textFromClipboard = value?.text ?? '';
+  //         if (mounted) setState(() {});
+  //       }
+  //     });
+  //   });
+  // }
 
-  @override
-  void dispose() {
-    super.dispose();
-    timer?.cancel();
-  }
+  // @override
+  // void dispose() {
+  //   super.dispose();
+  //   timer?.cancel();
+  // }
 
   @override
   Widget build(BuildContext context) {
-    final chatProvider = context.read<ChatProvider>();
+    final chatProvider = context.watch<ChatProvider>();
     final txtController = chatProvider.messageController;
 
     return Padding(
@@ -543,31 +541,46 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
           spacing: 4,
           runSpacing: 4,
           children: [
-            if (textFromClipboard.trim().isNotEmpty)
-              Container(
-                constraints: const BoxConstraints(maxWidth: 180),
-                child: Button(
-                  style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(Colors.blue)),
-                  onPressed: () {
-                    chatProvider.sendMessage(textFromClipboard);
-                  },
-                  child: Text(
-                    textFromClipboard.replaceAll('\n', '').trim(),
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    textAlign: TextAlign.start,
-                  ),
-                ),
-              ),
+            // if (textFromClipboard.trim().isNotEmpty)
+            //   Container(
+            //     constraints: const BoxConstraints(maxWidth: 180),
+            //     child: Button(
+            //       style: ButtonStyle(
+            //           backgroundColor: WidgetStateProperty.all(Colors.blue)),
+            //       onPressed: () {
+            //         chatProvider.sendMessage(textFromClipboard);
+            //       },
+            //       child: Text(
+            //         textFromClipboard.replaceAll('\n', '').trim(),
+            //         maxLines: 1,
+            //         overflow: TextOverflow.clip,
+            //         textAlign: TextAlign.start,
+            //       ),
+            //     ),
+            //   ),
             for (final prompt in customPrompts.value)
               if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
+            Tooltip(
+              message: chatProvider.isWebSearchEnabled
+                  ? 'Disable web search'
+                  : 'Enable web search',
+              child: ToggleButton(
+                  checked: chatProvider.isWebSearchEnabled,
+                  child: const Icon(ic.FluentIcons.globe_search_20_filled,
+                      size: 20),
+                  onChanged: (_) {
+                    chatProvider.toggleWebSearch();
+                  }),
+            ),
             Button(
                 child: const Text('Answer with tags'),
-                onPressed: () {
+                onPressed: () async {
+                  final textFromClipboard =
+                      (await Clipboard.getData('text/plain'))?.text ?? '';
                   final text = txtController.text.trim().isEmpty
                       ? textFromClipboard
                       : txtController.text;
+                  // ignore: use_build_context_synchronously
                   HotShurtcutsWidget.showAnswerWithTagsDialog(context, text);
                   txtController.clear();
                 }),

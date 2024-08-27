@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
-import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
 
@@ -75,28 +74,11 @@ class ChatRoom {
   }
 
   static Future<ChatRoom> fromMap(Map<String, dynamic> map) async {
-    // if (map['token'] == null || map['nonce'] == null || map['token'] == '') {
-    //   /// List<int> Encrypted data
-    //   final encryptedToken = map['token'] as List<int>;
-    //   final nonce = map['nonce'] as List<int>;
-    //   final secretKey =
-    //       await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
-    //   final secretBox = SecretBox(
-    //     encryptedToken,
-    //     nonce: nonce,
-    //     mac: Mac.empty,
-    //   );
-    //   token = await decryptApiToken(secretBox, secretKey);
-    // }
-    // final memoryJson = map['messages'] as Map<String, dynamic>;
     final messages = ConversationBufferMemory(
       chatHistory: ChatMessageHistory(),
     );
     return ChatRoom(
-      model: allModels.value.firstWhere(
-        (element) => element.toString() == map['model'],
-        orElse: () => allModels.value.first,
-      ),
+      model: ChatModelAi.fromJson(map['model']),
       id: map['id'],
       chatRoomName: map['chatRoomName'],
       temp: map['temp'],
@@ -119,7 +101,7 @@ class ChatRoom {
     // final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
     return {
       'id': id,
-      'model': model.name.toString(),
+      'model': model.toJson(),
       'chatRoomName': chatRoomName,
       // 'messages': await messages.loadMemoryVariables(),
       'temp': temp,

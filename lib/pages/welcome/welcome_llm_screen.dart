@@ -134,10 +134,10 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                         ),
                         const SizedBox(height: 24),
                         TextFormBox(
-                          initialValue: AppCache.ollamaUrl.value,
-                          placeholder: 'Enter llamaUrl e.g: ${AppCache.ollamaUrl.value}',
+                          initialValue: AppCache.localApiUrl.value,
+                          placeholder: 'Enter llamaUrl e.g: ${AppCache.localApiUrl.value}',
                           onChanged: (value) {
-                            AppCache.ollamaUrl.value = value;
+                            AppCache.localApiUrl.value = value;
                           },
                         ),
                       ],
