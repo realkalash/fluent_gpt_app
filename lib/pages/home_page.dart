@@ -366,6 +366,31 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                       );
                     }),
               ),
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Wrap(
+                    alignment: WrapAlignment.start,
+                    spacing: 8,
+                    children: [
+                      Tooltip(
+                        message: chatProvider.isWebSearchEnabled
+                            ? 'Disable web search'
+                            : 'Enable web search',
+                        child: ToggleButton(
+                            checked: chatProvider.isWebSearchEnabled,
+                            child: const Icon(
+                                ic.FluentIcons.globe_search_20_filled,
+                                size: 20),
+                            onChanged: (_) {
+                              chatProvider.toggleWebSearch();
+                            }),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const HotShurtcutsWidget(),
               const InputField()
             ],

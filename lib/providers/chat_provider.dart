@@ -23,7 +23,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:tiktoken/tiktoken.dart';
 
 ChatOpenAI? openAI;
-ChatOpenAI? llamaAi;
+ChatOpenAI? localModel;
 // ChatOllama? llamaAi;
 
 /// First is ID, second is ChatRoom
@@ -114,7 +114,7 @@ class ChatProvider with ChangeNotifier {
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
   bool isSendingFile = false;
-  bool isWebSearchEnabled = false;
+  bool isWebSearchEnabled = true;
 
   final dialogApiKeyController = TextEditingController();
   bool isAnswering = false;
@@ -249,7 +249,7 @@ class ChatProvider with ChangeNotifier {
   /// Should be called after we load all chat rooms
   void initCurrentChat() {
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    llamaAi = ChatOpenAI(
+    localModel = ChatOpenAI(
       baseUrl: AppCache.localApiUrl.value!,
       apiKey: AppCache.openAiApiKey.value,
     );
@@ -310,21 +310,40 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void addWebResultsToMessages(List<SearchResult> webpage) {
+    final values = messages.value;
+    List results = [];
+    for (var result in webpage) {
+      results.add(result.toJson());
+    }
+    values[DateTime.now().toIso8601String()] = CustomChatMessage(
+      content: jsonEncode(results),
+      role: ChatMessageRole.custom.name,
+    );
+    messages.add(values);
+    saveToDisk([selectedChatRoom]);
+    scrollToEnd();
+  }
+
   Future<void> sendMessage(
     String messageContent, [
     bool hidePrompt = false,
   ]) async {
     bool isFirstMessage = messages.value.isEmpty;
     if (isWebSearchEnabled) {
+      // final query = await retrieveResponseFromPrompt(
+      //   'User want to google this: $messageContent. Give me a query. Give only a query text, because your answer will be sent to a search engine',
+      // );
+      addHumanMessageToList(
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+      );
+      // addBotMessageToList(AIChatMessage(content: 'Searching for: "$query"'));
       final scrapper = WebScraper();
       final results = await scrapper.search(messageContent);
+      final threeRessults = results.take(3).map((e) => e).toList();
 
-      for (var result in results) {
-        addBotMessageToList(
-          AIChatMessage(content: '${result.title}\n\n${result.description}'),
-        );
-        // TODO parse and feed to LLM
-      }
+      addWebResultsToMessages(threeRessults);
+      _answerBasedOnWebResults(threeRessults, messageContent);
       return;
     }
 
@@ -336,14 +355,14 @@ class ChatProvider with ChangeNotifier {
     if (isImageAttached) {
       final bytes = await fileInput!.readAsBytes();
       final base64 = base64Encode(bytes);
-      addUserMessageToList(
+      addHumanMessageToList(
         HumanChatMessage(
           content: ChatMessageContent.image(
               data: base64, mimeType: fileInput!.mimeType),
         ),
       );
     } else {
-      addUserMessageToList(
+      addHumanMessageToList(
         HumanChatMessage(content: ChatMessageContent.text(messageContent)),
       );
     }
@@ -354,7 +373,8 @@ class ChatProvider with ChangeNotifier {
     late Stream<ChatResult> stream;
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
-      messagesToSend.addAll(messages.value.values);
+      messagesToSend.addAll(messages.value.values
+          .where((element) => element is! CustomChatMessage));
     } else {
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
@@ -368,7 +388,7 @@ class ChatProvider with ChangeNotifier {
             model: selectedChatRoom.model.name,
           ));
     } else {
-      stream = llamaAi!.stream(
+      stream = localModel!.stream(
         PromptValue.chat(messagesToSend),
         options: ChatOpenAIOptions(
           model: selectedChatRoom.model.name,
@@ -397,18 +417,32 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Will not use chat history
-  Future sendSingleMessage(String messageContent) async {
+  Future sendSingleMessage(String messageContent, {int? maxTokens}) async {
     final messagesToSend = <ChatMessage>[];
     messagesToSend.add(
         HumanChatMessage(content: ChatMessageContent.text(messageContent)));
-    final stream = openAI!.stream(PromptValue.chat(messagesToSend),
+    Stream<ChatResult> stream;
+    if (selectedModel.ownedBy == 'openai') {
+      stream = openAI!.stream(PromptValue.chat(messagesToSend),
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.name,
+            maxTokens: maxTokens,
+          ));
+    } else {
+      stream = localModel!.stream(
+        PromptValue.chat(messagesToSend),
         options: ChatOpenAIOptions(
           model: selectedChatRoom.model.name,
-        ));
+          maxTokens: maxTokens,
+        ),
+      );
+    }
+
     await stream.forEach(
       (final chunk) {
         final message = chunk.output;
         totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+        print('Total tokens: $totalTokensForCurrentChat');
         addBotMessageToList(message, chunk.id);
         if (chunk.finishReason == FinishReason.stop) {
           saveToDisk([selectedChatRoom]);
@@ -417,6 +451,21 @@ class ChatProvider with ChangeNotifier {
         }
       },
     );
+  }
+
+  /// will not use chat history.
+  /// Will not populate messages
+  Future<String> retrieveResponseFromPrompt(String message) async {
+    final messagesToSend = <ChatMessage>[];
+    messagesToSend
+        .add(HumanChatMessage(content: ChatMessageContent.text(message)));
+    AIChatMessage response;
+    if (selectedModel.ownedBy == 'openai') {
+      response = await openAI!.call(messagesToSend);
+    } else {
+      response = await localModel!.call(messagesToSend);
+    }
+    return response.content;
   }
 
   // LanguageModelUsage? usageForCurrentChat;
@@ -447,7 +496,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Used to add message silently to the list
-  void addUserMessageToList(HumanChatMessage message, [String? id]) {
+  void addHumanMessageToList(HumanChatMessage message, [String? id]) {
     final values = messages.value;
     values[id ?? DateTime.now().toIso8601String()] = message;
     messages.add(values);
@@ -556,7 +605,7 @@ class ChatProvider with ChangeNotifier {
   Future<void> selectChatRoom(ChatRoom room) async {
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    llamaAi = ChatOpenAI(
+    localModel = ChatOpenAI(
         apiKey: AppCache.openAiApiKey.value,
         baseUrl: AppCache.localApiUrl.value!);
     totalTokensForCurrentChat = 0;
@@ -751,6 +800,46 @@ class ChatProvider with ChangeNotifier {
   void toggleWebSearch() {
     isWebSearchEnabled = !isWebSearchEnabled;
     notifyListeners();
+  }
+
+  Future _answerBasedOnWebResults(
+    List<SearchResult> results,
+    String userMessage,
+  ) async {
+    String urlContent = '';
+    for (var result in results) {
+      final url = result.url;
+      final title = result.title;
+      final text = await WebScraper().extractFormattedContent(url);
+      final characters = text.characters;
+      final tokenCount = characters.length / 4;
+      if (tokenCount > 6500) {
+        urlContent += '[SYSTEM:Char count exceeded 3500. Stop the search]';
+        break;
+      }
+      // if char count is more than 2000, append and skip the rest
+      if (tokenCount > 2000) {
+        // append the first 2000 chars
+        urlContent += characters.take(2000).join('');
+        urlContent +=
+            '[SYSTEM:Char count exceeded 500. Skip the rest of the page]';
+        continue;
+      }
+
+      urlContent += 'Page Title:$title\nBody:```$text```\n\n';
+    }
+    userMessage = modifyMessageStyle(userMessage);
+
+    return sendSingleMessage(
+      'You are an agent of LLM model that scraps the internet. Answer to the message based only on this search results from these web pages: $urlContent.\n'
+      'In the end add a caption where did you find this info.'
+      '''E.g. "I found this information on: 
+      - [page1](link1) 
+      - [page2](link2)
+      "'''
+      '.Answer in markdown with links. ALWAYS USE SOURCE NAMES AND LINKS!'
+      'User message: $userMessage',
+    );
   }
 }
 

@@ -139,6 +139,13 @@ class ChatRoom {
         return AIChatMessage(content: json['content'] as String);
       }
     }
+    // custom message
+    if (json['prefix'] is String && json['content'] is String) {
+      return CustomChatMessage(
+        role: json['prefix'] as String,
+        content: json['content'] as String,
+      );
+    }
     throw Exception('Invalid content');
   }
 

@@ -222,7 +222,7 @@ class _InputFieldState extends State<InputField> {
           MenuFlyoutItem(
               text: const Text('Send as user (silently)'),
               onPressed: () {
-                provider.addUserMessageToList(HumanChatMessage(
+                provider.addHumanMessageToList(HumanChatMessage(
                     content: ChatMessageContent.text(controller.text)));
                 clearFieldAndFocus();
               }),
@@ -560,18 +560,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
             //   ),
             for (final prompt in customPrompts.value)
               if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
-            Tooltip(
-              message: chatProvider.isWebSearchEnabled
-                  ? 'Disable web search'
-                  : 'Enable web search',
-              child: ToggleButton(
-                  checked: chatProvider.isWebSearchEnabled,
-                  child: const Icon(ic.FluentIcons.globe_search_20_filled,
-                      size: 20),
-                  onChanged: (_) {
-                    chatProvider.toggleWebSearch();
-                  }),
-            ),
+
             Button(
                 child: const Text('Answer with tags'),
                 onPressed: () async {

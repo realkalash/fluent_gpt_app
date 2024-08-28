@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
@@ -19,6 +20,7 @@ import 'package:super_clipboard/super_clipboard.dart';
 
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import 'markdown_builders/markdown_utils.dart';
 
@@ -191,6 +193,56 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
       );
+    } else if (widget.message is CustomChatMessage) {
+      final message = widget.message as CustomChatMessage;
+      final jsonContent = jsonDecode(message.content);
+      if (jsonContent is List) {
+        final results =
+            jsonContent.map((e) => SearchResult.fromJson(e)).toList();
+        tileWidget = _MessageListTile(
+          title: Wrap(
+            children: [
+              for (final result in results)
+                SizedBox(
+                  width: 200,
+                  // height: 120,
+                  child: Button(
+                    onPressed: () => launchUrlString(result.url),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (result.favicon != null)
+                          Image.network(
+                            result.favicon!,
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.cover,
+                          ),
+                        Text(
+                          result.title,
+                          style: FluentTheme.of(context).typography.subtitle!,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.start,
+                          maxLines: 2,
+                        ),
+                        /// url short one line
+                        Text(
+                          result.url,
+                          style: FluentTheme.of(context).typography.caption!,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.start,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+            ],
+          ),
+        );
+      } else {
+        tileWidget = const Text('Unknown message type');
+      }
     } else {
       tileWidget = _MessageListTile(
         tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,

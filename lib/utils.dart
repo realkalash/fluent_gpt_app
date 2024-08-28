@@ -37,6 +37,13 @@ extension ChatMessageExtension on ChatMessage {
         'content': message.content,
       };
     }
+    if (this is CustomChatMessage) {
+      final message = this as CustomChatMessage;
+      return {
+        'prefix': message.role,
+        'content': message.content,
+      };
+    }
 
     throw Exception('Invalid content');
   }
