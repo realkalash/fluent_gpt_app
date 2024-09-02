@@ -17,9 +17,11 @@ import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 ChatOpenAI? openAI;
 ChatOpenAI? localModel;
@@ -107,7 +109,15 @@ final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([
 ]);
 
 class ChatProvider with ChangeNotifier {
-  final listItemsScrollController = ScrollController();
+  final listItemsScrollController = ItemScrollController();
+  // final listItemsScrollController = ScrollController();
+  final ScrollOffsetController scrollOffsetController =
+      ScrollOffsetController();
+  final ItemPositionsListener itemPositionsListener =
+      ItemPositionsListener.create();
+  final ScrollOffsetListener scrollOffsetListener =
+      ScrollOffsetListener.create();
+
   final TextEditingController messageController = TextEditingController();
 
   bool includeConversationGlobal = true;
@@ -247,10 +257,12 @@ class ChatProvider with ChangeNotifier {
   /// Should be called after we load all chat rooms
   void initCurrentChat() {
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    localModel = ChatOpenAI(
-      baseUrl: AppCache.localApiUrl.value!,
-      apiKey: AppCache.openAiApiKey.value,
-    );
+    if (AppCache.localApiUrl.value != null &&
+        AppCache.localApiUrl.value!.isNotEmpty)
+      localModel = ChatOpenAI(
+        baseUrl: AppCache.localApiUrl.value!,
+        apiKey: AppCache.openAiApiKey.value,
+      );
   }
 
   void listenTray() {
@@ -358,12 +370,12 @@ class ChatProvider with ChangeNotifier {
       isAnswering = true;
       notifyListeners();
       final scrapper = WebScraper();
-      print('[scrapper] searchPrompt: $searchPrompt');
       final results = await scrapper.search(searchPrompt);
       if (AppCache.scrapOnlyDecription.value!) {
         final shortResults = results.take(15).map((e) => e).toList();
         addWebResultsToMessages(shortResults);
-        await _answerBasedOnWebResults(shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+        await _answerBasedOnWebResults(shortResults,
+            'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
       } else {
         final threeRessults = results.take(3).map((e) => e).toList();
         addWebResultsToMessages(threeRessults);
@@ -427,18 +439,20 @@ class ChatProvider with ChangeNotifier {
     await stream.forEach(
       (final chunk) {
         final message = chunk.output;
-        totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+        // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
         addBotMessageToList(message, chunk.id);
         if (chunk.finishReason == FinishReason.stop) {
           /// TODO: add more logic here
           saveToDisk([selectedChatRoom]);
           isAnswering = false;
           notifyListeners();
+          refreshTokensForCurrentChat();
         } else if (chunk.finishReason == FinishReason.length) {
           /// Maximum tokens reached
           saveToDisk([selectedChatRoom]);
           isAnswering = false;
           notifyListeners();
+          refreshTokensForCurrentChat();
         }
       },
     );
@@ -446,6 +460,38 @@ class ChatProvider with ChangeNotifier {
     fileInput = null;
     notifyListeners();
     saveToDisk([selectedChatRoom]);
+  }
+
+  Future<int> getTokensFromMessages(List<ChatMessage> messages) async {
+    int tokens = 0;
+    if (selectedChatRoom.model.ownedBy == 'openai') {
+      final tokenizer = Tokenizer();
+      if (selectedChatRoom.model.name == 'gpt-4o' ||
+          selectedChatRoom.model.name == 'gpt-3.5-turbo') {
+        for (var message in messages) {
+          if (message is AIChatMessage) {
+            tokens += await tokenizer.count(
+              message.content,
+              modelName: 'gpt-4-',
+            );
+          }
+        }
+      } else {
+        for (var message in messages) {
+          if (message is AIChatMessage) {
+            tokens +=
+                await tokenizer.count(message.content, modelName: 'gpt-4');
+          }
+        }
+      }
+    }
+    return tokens;
+  }
+
+  Future refreshTokensForCurrentChat() async {
+    final tokens = await getTokensFromMessages(messages.value.values.toList());
+    totalTokensForCurrentChat = tokens;
+    notifyListeners();
   }
 
   List<ChatMessage> getLastFewMessagesForContext() {
@@ -527,7 +573,6 @@ class ChatProvider with ChangeNotifier {
     return response.content;
   }
 
-  // LanguageModelUsage? usageForCurrentChat;
   int totalTokensForCurrentChat = 0;
 
   void addBotMessageToList(AIChatMessage message, [String? id]) {
@@ -663,12 +708,14 @@ class ChatProvider with ChangeNotifier {
   Future<void> selectChatRoom(ChatRoom room) async {
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    localModel = ChatOpenAI(
+    if (AppCache.localApiUrl.value!.isNotEmpty)
+      localModel = ChatOpenAI(
         apiKey: AppCache.openAiApiKey.value,
-        baseUrl: AppCache.localApiUrl.value!);
+        baseUrl: AppCache.localApiUrl.value!,
+      );
     totalTokensForCurrentChat = 0;
-    _loadMessagesFromDisk(room.id);
-    notifyListeners();
+    await _loadMessagesFromDisk(room.id);
+    refreshTokensForCurrentChat();
   }
 
   void deleteChatRoom(String chatRoomId) {
@@ -769,10 +816,9 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> scrollToEnd() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    await listItemsScrollController.animateTo(
-      listItemsScrollController.position.maxScrollExtent,
+    await scrollOffsetController.animateScroll(
+      offset: 600,
       duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
     );
   }
 
@@ -845,11 +891,11 @@ class ChatProvider with ChangeNotifier {
           : await WebScraper().extractFormattedContent(url);
       final characters = text.characters;
       final tokenCount = characters.length / 4;
-      print('[scrapper] Token count: $tokenCount');
-      print('[scrapper] Char count: ${characters.length}');
-      print('[scrapper] URL: $url');
-      print('[scrapper] Title: $title');
-      print('[scrapper] Text: $text');
+      // print('[scrapper] Token count: $tokenCount');
+      // print('[scrapper] Char count: ${characters.length}');
+      // print('[scrapper] URL: $url');
+      // print('[scrapper] Title: $title');
+      // print('[scrapper] Text: $text');
       if (tokenCount > 6500) {
         urlContent += '[SYSTEM:Char count exceeded 3500. Stop the search]';
         break;
@@ -877,6 +923,36 @@ class ChatProvider with ChangeNotifier {
       '.Answer in markdown with links. ALWAYS USE SOURCE NAMES AND LINKS!'
       'User message: $userMessage',
     );
+  }
+
+  void scrollToMessage(String messageKey) {
+    final index = indexOf(messages.value.values.toList(), messages.value[messageKey]);
+    listItemsScrollController.scrollTo(
+      index: index,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  /// custom get index
+  int indexOf(List<ChatMessage> list, ChatMessage? element, [int start = 0]) {
+    if (start < 0) start = 0;
+    for (int i = start; i < list.length; i++) {
+      final first = list[i];
+      if (first is HumanChatMessage && element is HumanChatMessage) {
+        if (first.content is ChatMessageContentText &&
+            element.content is ChatMessageContentText) {
+          if ((first.content as ChatMessageContentText).text ==
+              (element.content as ChatMessageContentText).text) {
+            return i;
+          }
+        }
+      } else if (first is AIChatMessage && element is AIChatMessage) {
+        if (first.content == element.content) {
+          return i;
+        }
+      }
+    }
+    return -1;
   }
 }
 

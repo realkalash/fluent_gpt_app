@@ -233,8 +233,6 @@ class AppTrayListener extends TrayListener {
   /// Emitted when the mouse is released from clicking the tray icon.
   @override
   void onTrayIconMouseUp() {
-    print('onTrayIconMouseUp');
-    // if visible -> hide, else show
     windowManager.isVisible().then((isVisible) {
       if (isVisible) {
         windowManager.hide();

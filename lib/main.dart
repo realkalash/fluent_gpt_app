@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:blur/blur.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';

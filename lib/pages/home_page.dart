@@ -1,7 +1,9 @@
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
+import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
+import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
@@ -14,9 +16,9 @@ import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// ignore: depend_on_referenced_packages
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_provider.dart';
@@ -229,12 +231,35 @@ class PageHeaderText extends StatelessWidget {
                   padding: WidgetStateProperty.all(EdgeInsets.zero),
                 ),
                 onPressed: () => showCostCalculatorDialog(context),
-                child: Text(
-                  ' Tokens: ${(chatProvider.totalTokensForCurrentChat)}',
-                  style: const TextStyle(fontSize: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Tokens: ${(chatProvider.totalTokensForCurrentChat)}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: chatProvider.refreshTokensForCurrentChat,
+                      child: const Icon(FluentIcons.refresh, size: 12),
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
+              IconButton(
+                icon: const Icon(ic.FluentIcons.search_20_filled, size: 20),
+                onPressed: () async {
+                  final provider = context.read<ChatProvider>();
+                  final String? elementkey = await showDialog(
+                    context: context,
+                    builder: (context) => const SearchChatDialog(query: ''),
+                  );
+                  if (elementkey == null) return;
+                  provider.scrollToMessage(elementkey);
+                },
+              ),
               const IncludeConversationSwitcher(),
             ],
           ),
@@ -244,11 +269,12 @@ class PageHeaderText extends StatelessWidget {
   }
 
   void showCostCalculatorDialog(BuildContext context) {
-    // final tokens = selectedChatRoom.tokens ?? 0;
-    // showDialog(
-    //   context: context,
-    //   builder: (context) => CostDialog(tokens: tokens),
-    // );
+    final provider = context.read<ChatProvider>();
+    final tokens = provider.totalTokensForCurrentChat;
+    showDialog(
+      context: context,
+      builder: (context) => CostDialog(tokens: tokens),
+    );
   }
 }
 
@@ -258,20 +284,15 @@ class IncludeConversationSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        FlyoutListTile(
-          text: const Icon(FluentIcons.full_history),
-          tooltip: 'Include conversation',
-          trailing: Checkbox(
-            checked: chatProvider.includeConversationGlobal,
-            onChanged: (value) {
-              chatProvider.setIncludeWholeConversation(value ?? false);
-            },
-          ),
-        ),
-      ],
+    return FlyoutListTile(
+      text: const Icon(FluentIcons.full_history),
+      tooltip: 'Include conversation',
+      trailing: Checkbox(
+        checked: chatProvider.includeConversationGlobal,
+        onChanged: (value) {
+          chatProvider.setIncludeWholeConversation(value ?? false);
+        },
+      ),
     );
   }
 }
@@ -291,8 +312,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       var chatProvider = context.read<ChatProvider>();
-      chatProvider.listItemsScrollController.animateTo(
-        chatProvider.listItemsScrollController.position.maxScrollExtent + 200,
+      chatProvider.scrollOffsetController.animateScroll(
+        offset: 200,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOut,
       );
@@ -317,8 +338,14 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                 child: StreamBuilder(
                     stream: messages,
                     builder: (context, snapshot) {
-                      return ListView.builder(
-                        controller: chatProvider.listItemsScrollController,
+                      return ScrollablePositionedList.builder(
+                        itemScrollController:
+                            chatProvider.listItemsScrollController,
+                        scrollOffsetController:
+                            chatProvider.scrollOffsetController,
+                        itemPositionsListener:
+                            chatProvider.itemPositionsListener,
+                        scrollOffsetListener: chatProvider.scrollOffsetListener,
                         itemCount: messages.value.entries.length,
                         itemBuilder: (context, index) {
                           final element =

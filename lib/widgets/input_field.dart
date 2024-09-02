@@ -36,30 +36,18 @@ class _InputFieldState extends State<InputField> {
   }
 
   void clearFieldAndFocus() {
+    final chatProvider = context.read<ChatProvider>();
     Future.delayed(const Duration(milliseconds: 50)).then(
       (value) {
-        final chatProvider = context.read<ChatProvider>();
         chatProvider.messageController.clear();
         promptTextFocusNode.requestFocus();
       },
     );
   }
 
-  int wordCountInField = 0;
-
   @override
   void initState() {
     super.initState();
-    final chatProvider = context.read<ChatProvider>();
-    chatProvider.messageController.addListener(() {
-      final text = chatProvider.messageController.text;
-      if (text.contains(' ')) {
-        wordCountInField = text.trim().split(' ').length;
-      } else {
-        wordCountInField = 0;
-      }
-      if (mounted) setState(() {});
-    });
     shiftPressedStream.stream.listen((isShiftPressed) {
       _isShiftPressed = isShiftPressed;
       if (mounted) setState(() {});
@@ -167,13 +155,10 @@ class _InputFieldState extends State<InputField> {
                 placeholder: 'Type your message here',
               ),
             ),
+            const SizedBox(width: 4),
             if (_isShiftPressed)
               const Icon(ic.FluentIcons.arrow_down_12_filled),
-            if (wordCountInField != 0)
-              Text(
-                '$wordCountInField words',
-                style: FluentTheme.of(context).typography.caption,
-              ),
+            const SizedBox(width: 4),
             if (chatProvider.isAnswering)
               IconButton(
                 icon: const Icon(ic.FluentIcons.stop_16_filled),
@@ -199,6 +184,7 @@ class _InputFieldState extends State<InputField> {
                   ),
                 ),
               ),
+            const SizedBox(width: 10),
           ],
         ),
       ),
@@ -280,6 +266,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
           ),
           width: 30,
           height: 30,
+          margin: const EdgeInsets.only(left: 8),
           padding: const EdgeInsets.all(2),
           child: GestureDetector(
             onTap: () => openFlyout(context),

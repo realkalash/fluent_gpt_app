@@ -271,7 +271,7 @@ class _MessageCardState extends State<MessageCard> {
               ),
       );
     }
-
+    
     return Focus(
       onFocusChange: (isFocused) {
         setState(() {
@@ -286,7 +286,7 @@ class _MessageCardState extends State<MessageCard> {
             },
             child: Card(
               margin: const EdgeInsets.all(4),
-              padding: EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: 16),
               borderRadius: BorderRadius.circular(8.0),
               borderColor: _isFocused ? Colors.blue : Colors.transparent,
               child: tileWidget,
