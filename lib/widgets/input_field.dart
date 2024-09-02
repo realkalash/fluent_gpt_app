@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -54,18 +55,35 @@ class _InputFieldState extends State<InputField> {
     });
   }
 
-  void onShortcutPasteText(text) {
+  void onShortcutPasteText(String text) {
     final chatProvider = context.read<ChatProvider>();
-    chatProvider.messageController.text =
-        chatProvider.messageController.text + text;
+    final currentCursorPosition = chatProvider.messageController.selection.base.offset;
+    final currentText = chatProvider.messageController.text;
+    final newText = currentText.substring(0, currentCursorPosition) +
+        text +
+        currentText.substring(currentCursorPosition);
+    chatProvider.messageController.text = newText;
     windowManager.focus();
     promptTextFocusNode.requestFocus();
+    // place the cursor at the end of the pasted text
+    chatProvider.messageController.selection = TextSelection.collapsed(offset: currentCursorPosition + text.length);
   }
 
   void onShortcutPasteImage(image) async {
     final chatProvider = context.read<ChatProvider>();
-    final convertedPngImage = await image.toPNG();
-    chatProvider.addFileToInput(convertedPngImage);
+    if (image is Uint8List) {
+      chatProvider.addFileToInput(
+        XFile.fromData(
+          image,
+          name: 'image.png',
+          mimeType: 'image/png',
+          length: image.length,
+        ),
+      );
+    } else {
+      final convertedPngImage = await image.toPNG();
+      chatProvider.addFileToInput(convertedPngImage);
+    }
     windowManager.focus();
     promptTextFocusNode.requestFocus();
   }
