@@ -217,11 +217,23 @@ Future<void> initCachedHotKeys() async {
 class AppTrayListener extends TrayListener {
   /// Emitted when the mouse clicks the tray icon.
   @override
-  void onTrayIconMouseDown() {}
+  void onTrayIconMouseDown() {
+    if (Platform.isWindows) {
+      windowManager.isVisible().then((isVisible) {
+        if (isVisible) {
+          windowManager.hide();
+        } else {
+          windowManager.show();
+          windowManager.focus();
+        }
+      });
+    }
+  }
 
   /// Emitted when the mouse is released from clicking the tray icon.
   @override
   void onTrayIconMouseUp() {
+    print('onTrayIconMouseUp');
     // if visible -> hide, else show
     windowManager.isVisible().then((isVisible) {
       if (isVisible) {
@@ -234,7 +246,11 @@ class AppTrayListener extends TrayListener {
   }
 
   @override
-  void onTrayIconRightMouseDown() {}
+  void onTrayIconRightMouseDown() {
+    if (Platform.isWindows) {
+      trayManager.popUpContextMenu();
+    }
+  }
 
   @override
   void onTrayIconRightMouseUp() {
