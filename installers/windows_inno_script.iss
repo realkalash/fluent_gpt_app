@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "FluentGPT"
-#define MyAppVersion "0.9.13-dev13"
+#define MyAppVersion "0.9.14-dev14"
 #define MyAppPublisher "realkalash"
 #define MyAppURL "https://github.com/realkalash/fluent_gpt_app"
 #define MyAppExeName "fluent_gpt.exe"
