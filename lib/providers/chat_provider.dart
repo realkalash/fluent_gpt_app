@@ -20,7 +20,6 @@ import 'package:flutter/services.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:tiktoken/tiktoken.dart';
 
 ChatOpenAI? openAI;
 ChatOpenAI? localModel;
@@ -114,7 +113,7 @@ class ChatProvider with ChangeNotifier {
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
   bool isSendingFile = false;
-  bool isWebSearchEnabled = true;
+  bool isWebSearchEnabled = false;
 
   final dialogApiKeyController = TextEditingController();
   bool isAnswering = false;
@@ -125,7 +124,6 @@ class ChatProvider with ChangeNotifier {
 
   int _messageTextSize = 14;
 
-  bool useSecondRequestForNamingChats = true;
   set textSize(int v) {
     _messageTextSize = v;
     AppCache.messageTextSize.set(v);
@@ -325,25 +323,55 @@ class ChatProvider with ChangeNotifier {
     scrollToEnd();
   }
 
+  void renameCurrentChatRoom(String newName) {
+    final chatRoom = chatRooms[selectedChatRoomId]!;
+    chatRoom.chatRoomName = newName;
+    notifyRoomsStream();
+    saveToDisk();
+  }
+
   Future<void> sendMessage(
     String messageContent, [
     bool hidePrompt = false,
   ]) async {
     bool isFirstMessage = messages.value.isEmpty;
+    if (isFirstMessage) {
+      if (AppCache.useSecondRequestForNamingChats.value!) {
+        retrieveResponseFromPrompt(
+          '$nameTopicPrompt "$messageContent"',
+        ).then(renameCurrentChatRoom);
+      } else {
+        final first50CharsIfPossible = messageContent.length > 50
+            ? messageContent.substring(0, 50)
+            : messageContent;
+        renameCurrentChatRoom(first50CharsIfPossible);
+      }
+    }
     if (isWebSearchEnabled) {
-      // final query = await retrieveResponseFromPrompt(
-      //   'User want to google this: $messageContent. Give me a query. Give only a query text, because your answer will be sent to a search engine',
-      // );
       addHumanMessageToList(
         HumanChatMessage(content: ChatMessageContent.text(messageContent)),
       );
-      // addBotMessageToList(AIChatMessage(content: 'Searching for: "$query"'));
+      final lastMessages = getLastFewMessagesForContextAsString();
+      String searchPrompt = await retrieveResponseFromPrompt(
+        '$webSearchPrompt """$lastMessages"""\n GIVE ME ONLYTHE PROMPT AND NOTHING ELSE',
+      );
+      isAnswering = true;
+      notifyListeners();
       final scrapper = WebScraper();
-      final results = await scrapper.search(messageContent);
-      final threeRessults = results.take(3).map((e) => e).toList();
+      print('[scrapper] searchPrompt: $searchPrompt');
+      final results = await scrapper.search(searchPrompt);
+      if (AppCache.scrapOnlyDecription.value!) {
+        final shortResults = results.take(15).map((e) => e).toList();
+        addWebResultsToMessages(shortResults);
+        await _answerBasedOnWebResults(shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+      } else {
+        final threeRessults = results.take(3).map((e) => e).toList();
+        addWebResultsToMessages(threeRessults);
+        await _answerBasedOnWebResults(threeRessults, messageContent);
+      }
 
-      addWebResultsToMessages(threeRessults);
-      _answerBasedOnWebResults(threeRessults, messageContent);
+      isAnswering = false;
+      notifyListeners();
       return;
     }
 
@@ -404,9 +432,13 @@ class ChatProvider with ChangeNotifier {
         if (chunk.finishReason == FinishReason.stop) {
           /// TODO: add more logic here
           saveToDisk([selectedChatRoom]);
+          isAnswering = false;
+          notifyListeners();
         } else if (chunk.finishReason == FinishReason.length) {
           /// Maximum tokens reached
           saveToDisk([selectedChatRoom]);
+          isAnswering = false;
+          notifyListeners();
         }
       },
     );
@@ -416,7 +448,35 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
-  /// Will not use chat history
+  List<ChatMessage> getLastFewMessagesForContext() {
+    final values = messages.value;
+    final lastMessages = values.values.toList().take(15).toList();
+    return lastMessages;
+  }
+
+  String getLastFewMessagesForContextAsString() {
+    final lastMessages = getLastFewMessagesForContext();
+    return lastMessages.map((e) {
+      if (e is HumanChatMessage && e.content is ChatMessageContentText) {
+        return 'Human: ${(e.content as ChatMessageContentText).text}';
+      }
+      if (e is AIChatMessage) {
+        return 'Ai: ${e.content}';
+      }
+      if (e is CustomChatMessage) {
+        final jsonContent = jsonDecode(e.content);
+        if (jsonContent is List) {
+          final results =
+              jsonContent.map((e) => SearchResult.fromJson(e)).toList();
+          return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
+        }
+      }
+      return '';
+    }).join('\n');
+  }
+
+  /// Will not use chat history.
+  /// Will populate messages
   Future sendSingleMessage(String messageContent, {int? maxTokens}) async {
     final messagesToSend = <ChatMessage>[];
     messagesToSend.add(
@@ -442,7 +502,6 @@ class ChatProvider with ChangeNotifier {
       (final chunk) {
         final message = chunk.output;
         totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
-        print('Total tokens: $totalTokensForCurrentChat');
         addBotMessageToList(message, chunk.id);
         if (chunk.finishReason == FinishReason.stop) {
           saveToDisk([selectedChatRoom]);
@@ -557,7 +616,6 @@ class ChatProvider with ChangeNotifier {
 
   void selectModelForChat(String chatRoomName, ChatModelAi model) {
     chatRooms[chatRoomName]!.model = model;
-    calcUsageTokens(null);
     notifyRoomsStream();
     saveToDisk();
   }
@@ -685,7 +743,6 @@ class ChatProvider with ChangeNotifier {
     } catch (e) {
       log('Error while canceling: $e');
     } finally {
-      calcUsageTokens(null);
       isAnswering = false;
       notifyListeners();
     }
@@ -721,33 +778,6 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> regenerateMessage(ChatMessage message) async {
     await sendMessage(message.contentAsString, true);
-  }
-
-  void calcUsageTokens(double? totalTokens) {
-    if (totalTokens != null) {
-      log('Usage: $totalTokens');
-      return;
-    }
-
-    String modelName = selectedModel.name;
-
-    final encoding = encodingForModel(modelName);
-    final listTexts =
-        messages.value.values.map((e) => e.contentAsString).toList();
-    final oneLine = listTexts.join('');
-    final uint = encoding.encode(oneLine);
-    // selectedChatRoom.tokens = uint.length;
-    // selectedChatRoom.costUSD = CostCalculator.calculateCostPerToken(
-    //   selectedChatRoom.tokens ?? 0,
-    //   modelName,
-    // );
-    // AppCache.tokensUsedTotal.value = selectedChatRoom.tokens ?? 0;
-    // AppCache.costTotal.value = selectedChatRoom.costUSD ?? 0;
-  }
-
-  toggleUseSecondRequestForNamingChats() {
-    useSecondRequestForNamingChats = !useSecondRequestForNamingChats;
-    notifyListeners();
   }
 
   void updateUI() {
@@ -810,9 +840,16 @@ class ChatProvider with ChangeNotifier {
     for (var result in results) {
       final url = result.url;
       final title = result.title;
-      final text = await WebScraper().extractFormattedContent(url);
+      final text = AppCache.scrapOnlyDecription.value!
+          ? WebScraper.clearTextFromTags(result.description)
+          : await WebScraper().extractFormattedContent(url);
       final characters = text.characters;
       final tokenCount = characters.length / 4;
+      print('[scrapper] Token count: $tokenCount');
+      print('[scrapper] Char count: ${characters.length}');
+      print('[scrapper] URL: $url');
+      print('[scrapper] Title: $title');
+      print('[scrapper] Text: $text');
       if (tokenCount > 6500) {
         urlContent += '[SYSTEM:Char count exceeded 3500. Stop the search]';
         break;

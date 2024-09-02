@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
@@ -236,8 +234,8 @@ class PageHeaderText extends StatelessWidget {
                   style: const TextStyle(fontSize: 12),
                 ),
               ),
-              Spacer(),
-              IncludeConversationSwitcher(),
+              const Spacer(),
+              const IncludeConversationSwitcher(),
             ],
           ),
         ],
@@ -270,31 +268,6 @@ class IncludeConversationSwitcher extends StatelessWidget {
             checked: chatProvider.includeConversationGlobal,
             onChanged: (value) {
               chatProvider.setIncludeWholeConversation(value ?? false);
-            },
-          ),
-        ),
-        if (Platform.isWindows)
-          FlyoutListTile(
-            text: const Icon(FluentIcons.search_data),
-            tooltip: 'Tool Search files',
-            trailing: Checkbox(
-              checked: AppCache.gptToolSearchEnabled.value!,
-              onChanged: (value) {
-                AppCache.gptToolSearchEnabled.value = value;
-                // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-                chatProvider.notifyListeners();
-              },
-            ),
-          ),
-        FlyoutListTile(
-          text: const Icon(FluentIcons.python_language),
-          tooltip: 'Tool Python code execution',
-          trailing: Checkbox(
-            checked: AppCache.gptToolPythonEnabled.value!,
-            onChanged: (value) {
-              AppCache.gptToolPythonEnabled.value = value;
-              // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-              chatProvider.notifyListeners();
             },
           ),
         ),
@@ -566,10 +539,10 @@ class RunCodeButton extends StatelessWidget {
 
                 if (language == 'shell') {
                   final result = await ShellDriver.runShellCommand(code);
-                  // provider.sendResultOfRunningShellCode(result);
+                  provider.addMessageSystem('result: $result');
                 } else if (language == 'python') {
                   final result = await ShellDriver.runPythonCode(code);
-                  // provider.sendResultOfRunningShellCode(result);
+                  provider.addMessageSystem('result: $result');
                 }
               },
               checked: snap.data == true,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
 import 'package:flutter/gestures.dart';
 
@@ -15,6 +17,8 @@ class AppCache {
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
+  static BoolPref useAcrylicEffect =
+      BoolPref("useAcrylicEffect", Platform.isLinux ? false : true);
 
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);
@@ -41,11 +45,13 @@ class AppCache {
 
   static const localApiUrl =
       StringPref("localApiUrl", 'http://localhost:11434/api');
+  static const localApiModelPaths = StringPref("localApiModels", '{}');
   static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
 
-  static const gptToolSearchEnabled = BoolPref("gptToolSearchEnabled", true);
-  static const gptToolPythonEnabled = BoolPref("gptToolPythonEnabled", true);
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
+  static const useSecondRequestForNamingChats =
+      BoolPref("useSecondRequestForNamingChats", false);
+  static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
 }

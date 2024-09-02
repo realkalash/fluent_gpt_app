@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:blur/blur.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
@@ -34,6 +35,7 @@ import 'navigation_provider.dart';
 import 'overlay/overlay_ui.dart';
 import 'overlay/sidebar_overlay_ui.dart';
 import 'providers/chat_provider.dart';
+import 'providers/server_provider.dart';
 
 SharedPreferences? prefs;
 
@@ -169,7 +171,8 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
         }
       }
       if (mounted) {
-        await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
+        if (AppCache.useAcrylicEffect.value!)
+          await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
       }
     });
   }
@@ -193,65 +196,47 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
       create: (context) => NavigationProvider(),
       child: ChangeNotifierProvider(
         create: (context) => ChatProvider(),
-        child: ChangeNotifierProvider.value(
-          value: _appTheme,
-          builder: (ctx, child) {
-            final appTheme = ctx.watch<AppTheme>();
-            return FluentApp(
-              title: '',
-              navigatorKey: navigatorKey,
-              onGenerateTitle: (context) => 'ChatGPT',
-              themeMode: appTheme.mode,
-              debugShowCheckedModeBanner: false,
-              home: const GlobalPage(),
-              color: appTheme.color,
-              supportedLocales: const [Locale('en')],
-              darkTheme: FluentThemeData(
-                brightness: Brightness.dark,
-                infoBarTheme: InfoBarThemeData(
-                    decoration: (severity) =>
-                        appTheme.buildInfoBarDecoration(severity)),
-                accentColor: appTheme.color,
-                visualDensity: VisualDensity.standard,
-                focusTheme: FocusThemeData(
-                  glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
+        child: ChangeNotifierProvider(
+          create: (context) => ServerProvider(),
+          child: ChangeNotifierProvider.value(
+            value: _appTheme,
+            builder: (ctx, child) {
+              final appTheme = ctx.watch<AppTheme>();
+              return FluentApp(
+                title: '',
+                navigatorKey: navigatorKey,
+                onGenerateTitle: (context) => 'ChatGPT',
+                themeMode: appTheme.mode,
+                debugShowCheckedModeBanner: false,
+                home: const GlobalPage(),
+                color: appTheme.color,
+                supportedLocales: const [Locale('en')],
+                darkTheme: FluentThemeData(
+                  brightness: Brightness.dark,
+                  infoBarTheme: InfoBarThemeData(
+                      decoration: (severity) =>
+                          appTheme.buildInfoBarDecoration(severity)),
+                  accentColor: appTheme.color,
+                  iconTheme: const IconThemeData(size: 20, color: Colors.white),
                 ),
-                iconTheme: const IconThemeData(
-                  size: 20,
-                  color: Colors.white,
+                theme: FluentThemeData(
+                  accentColor: appTheme.color,
+                  infoBarTheme: InfoBarThemeData(
+                      decoration: (severity) =>
+                          appTheme.buildInfoBarDecoration(severity)),
+                  iconTheme: const IconThemeData(size: 20),
                 ),
-              ),
-              theme: FluentThemeData(
-                accentColor: appTheme.color,
-                infoBarTheme: InfoBarThemeData(
-                    decoration: (severity) =>
-                        appTheme.buildInfoBarDecoration(severity)),
-                visualDensity: VisualDensity.standard,
-                focusTheme: FocusThemeData(
-                  glowFactor: is10footScreen(ctx) ? 2.0 : 0.0,
-                ),
-                iconTheme: const IconThemeData(size: 20),
-              ),
-              locale: appTheme.locale,
-              builder: (ctx, child) {
-                return Directionality(
-                  textDirection: appTheme.textDirection,
-                  child: NavigationPaneTheme(
+                locale: appTheme.locale,
+                builder: (ctx, child) {
+                  return NavigationPaneTheme(
                     data: const NavigationPaneThemeData(
-                        // backgroundColor: appTheme.windowEffect !=
-                        //         flutter_acrylic.WindowEffect.disabled
-                        //     ? Colors.transparent
-                        //     : null,
-                        ),
+                        backgroundColor: Colors.transparent),
                     child: child!,
-                  ),
-                );
-              },
-              // routeInformationParser: router.routeInformationParser,
-              // routerDelegate: router.routerDelegate,
-              // routeInformationProvider: router.routeInformationProvider,
-            );
-          },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

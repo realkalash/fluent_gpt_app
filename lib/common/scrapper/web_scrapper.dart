@@ -109,6 +109,11 @@ class WebScraper {
 
     return buffer.toString().trim();
   }
+
+  static String clearTextFromTags(String htmlText) {
+    final document = parse(htmlText);
+    return document.body?.text ?? '';
+  }
 }
 
 class SearchResult {

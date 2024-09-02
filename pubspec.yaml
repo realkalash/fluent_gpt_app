@@ -61,6 +61,7 @@ dependencies:
   langchain_openai: ^0.5.0+1
   langchain_ollama: ^0.1.0
   html: ^0.15.4
+  blur: ^4.0.0
   
 
 dev_dependencies:

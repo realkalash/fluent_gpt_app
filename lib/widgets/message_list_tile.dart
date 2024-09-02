@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/file_utils.dart';
-import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
@@ -156,11 +155,11 @@ class _MessageCardState extends State<MessageCard> {
               ),
             if ((widget.message as HumanChatMessage).content
                 is ChatMessageContentText)
-              Text(
+              SelectableText(
                 widget.message.contentAsString,
                 style: TextStyle(
-                  fontSize: widget.textSize.toDouble(),
-                ),
+                    fontSize: widget.textSize.toDouble(),
+                    fontWeight: FontWeight.normal),
               ),
             if (widget.message is ChatMessageContentImage)
               GestureDetector(
@@ -217,6 +216,10 @@ class _MessageCardState extends State<MessageCard> {
                             width: 24,
                             height: 24,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              FluentIcons.globe_16_regular,
+                              size: 24,
+                            ),
                           ),
                         Text(
                           result.title,
@@ -225,6 +228,7 @@ class _MessageCardState extends State<MessageCard> {
                           textAlign: TextAlign.start,
                           maxLines: 2,
                         ),
+
                         /// url short one line
                         Text(
                           result.url,
@@ -253,11 +257,18 @@ class _MessageCardState extends State<MessageCard> {
             Text('Ai:', style: botMessageStyle),
           ],
         ),
-        subtitle: buildMarkdown(
-          context,
-          widget.message.contentAsString,
-          textSize: widget.textSize.toDouble(),
-        ),
+        subtitle: _isMarkdownView
+            ? buildMarkdown(
+                context,
+                widget.message.contentAsString,
+                textSize: widget.textSize.toDouble(),
+              )
+            : Text(
+                widget.message.contentAsString,
+                style: TextStyle(
+                  fontSize: widget.textSize.toDouble(),
+                ),
+              ),
       );
     }
 

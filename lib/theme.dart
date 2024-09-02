@@ -41,6 +41,9 @@ class AppTheme extends ChangeNotifier {
           Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
     }
     preventClose = prefs?.getBool('preventClose') ?? false;
+    _windowEffect = AppCache.useAcrylicEffect.value!
+        ? WindowEffect.acrylic
+        : WindowEffect.disabled;
   }
 
   bool preventClose = false;
@@ -147,6 +150,17 @@ class AppTheme extends ChangeNotifier {
   void toggleShowInDock() {
     AppCache.showAppInDock.set(!AppCache.showAppInDock.value!);
     windowManager.setSkipTaskbar(!AppCache.showAppInDock.value!);
+    notifyListeners();
+  }
+
+  void toggleHideTitleBar() {
+    AppCache.hideTitleBar.value = !AppCache.hideTitleBar.value!;
+    windowManager.setTitleBarStyle(
+      AppCache.hideTitleBar.value!
+          ? TitleBarStyle.hidden
+          : TitleBarStyle.normal,
+      windowButtonVisibility: false,
+    );
     notifyListeners();
   }
 }

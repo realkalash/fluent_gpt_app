@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -11,11 +13,13 @@ import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
@@ -29,7 +33,6 @@ import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
 import '../widgets/confirmation_dialog.dart';
@@ -111,56 +114,15 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           Text('Appearance', style: FluentTheme.of(context).typography.title),
           const _ThemeModeSection(),
           spacer,
-          const _WindowTitleButton(),
+
           // biggerSpacer,
           // const _LocaleSection(),
           const _ResolutionsSelector(),
           const _LocaleSection(),
           biggerSpacer,
+          const ServerSettings(),
           const _OtherSettings(),
         ],
-      ),
-    );
-  }
-}
-
-class _WindowTitleButton extends StatefulWidget {
-  const _WindowTitleButton({super.key});
-
-  @override
-  State<_WindowTitleButton> createState() => _WindowTitleButtonState();
-}
-
-class _WindowTitleButtonState extends State<_WindowTitleButton> {
-  toggleTitleBarVisibility() {
-    setState(() {
-      AppCache.hideTitleBar.value = !AppCache.hideTitleBar.value!;
-    });
-    if (AppCache.hideTitleBar.value == true) {
-      windowManager.setTitleBarStyle(TitleBarStyle.hidden,
-          windowButtonVisibility: false);
-    } else {
-      windowManager.setTitleBarStyle(TitleBarStyle.normal,
-          windowButtonVisibility: false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: Platform.isWindows
-          ? 'Will disable acrylic effect due to a bug'
-          : 'Will disable the window title bar',
-      child: Checkbox(
-        content: Row(
-          children: [
-            if (Platform.isWindows)
-              Icon(FluentIcons.warning, color: Colors.yellow),
-            const Text('Hide window title'),
-          ],
-        ),
-        checked: AppCache.hideTitleBar.value,
-        onChanged: (value) => toggleTitleBarVisibility(),
       ),
     );
   }
@@ -380,6 +342,79 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
   }
 }
 
+class ServerSettings extends StatelessWidget {
+  const ServerSettings({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final server = context.watch<ServerProvider>();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Server settings',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Expander(
+          header: Row(
+            children: [
+              const Text('Models List'),
+              const Spacer(),
+              Button(
+                child: const Text('Add model'),
+                onPressed: () async {
+                  String? result = await FilePicker.platform.getDirectoryPath(
+                      // allowMultiple: false,
+                      // dialogTitle: 'Select a gguf model',
+                      // type: FileType.custom,
+                      // allowedExtensions: ['gguf'],
+                      );
+                  if (result != null && result.isNotEmpty) {
+                    server.addLocalModelPath(result);
+                  }
+                },
+              ),
+              SqueareIconButton(
+                onTap: () {
+                  showDialog(
+                      context: context,
+                      builder: (ctx) => const HowToRunLocalModelsDialog());
+                },
+                icon: const Icon(FluentIcons.help),
+                tooltip: 'How to use local models',
+              )
+            ],
+          ),
+          content: ListView.builder(
+            shrinkWrap: true,
+            itemCount: server.localModelsPaths.length,
+            itemBuilder: (context, index) {
+              final element = server.localModelsPaths.entries.elementAt(index);
+              return ListTile(
+                title: SelectableText(element.key),
+                leading: IconButton(
+                  icon: Icon(
+                      element.value ? FluentIcons.pause : FluentIcons.play),
+                  onPressed: () {
+                    if (element.value) {
+                      server.stopModel(element.key);
+                    } else {
+                      server.loadModel(element.key);
+                    }
+                  },
+                ),
+                trailing: IconButton(
+                  icon: Icon(FluentIcons.delete, color: Colors.red),
+                  onPressed: () => server.removeLocalModelPath(element.key),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class EnabledGptTools extends StatefulWidget {
   const EnabledGptTools({super.key});
 
@@ -388,6 +423,8 @@ class EnabledGptTools extends StatefulWidget {
 }
 
 class _EnabledGptToolsState extends State<EnabledGptTools> {
+  bool obscureBraveText = true;
+  bool obscureOpenAiText = true;
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -398,31 +435,12 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         Wrap(
           spacing: 15.0,
           children: [
-            if (Platform.isWindows)
-              Checkbox(
-                content: const Text('Search files'),
-                checked: AppCache.gptToolSearchEnabled.value!,
-                onChanged: (value) {
-                  setState(() {
-                    AppCache.gptToolSearchEnabled.value = value;
-                  });
-                },
-              ),
             Checkbox(
               content: const Text('Auto copy to clipboard'),
               checked: AppCache.gptToolCopyToClipboardEnabled.value!,
               onChanged: (value) {
                 setState(() {
                   AppCache.gptToolCopyToClipboardEnabled.value = value;
-                });
-              },
-            ),
-            Checkbox(
-              content: const Text('Run python code'),
-              checked: AppCache.gptToolPythonEnabled.value!,
-              onChanged: (value) {
-                setState(() {
-                  AppCache.gptToolPythonEnabled.value = value;
                 });
               },
             ),
@@ -437,11 +455,22 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             AppCache.localApiUrl.value = value;
           },
         ),
-        Text('Brave API key',
-            style: FluentTheme.of(context).typography.subtitle),
+        Text(
+          'Brave API key',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
         TextFormBox(
           initialValue: AppCache.braveSearchApiKey.value,
           placeholder: AppCache.braveSearchApiKey.value,
+          obscureText: obscureBraveText,
+          suffix: IconButton(
+            icon: const Icon(FluentIcons.hide),
+            onPressed: () {
+              setState(() {
+                obscureBraveText = !obscureBraveText;
+              });
+            },
+          ),
           onChanged: (value) {
             AppCache.braveSearchApiKey.value = value;
           },
@@ -452,7 +481,33 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             'https://api.search.brave.com/app/keys',
             url: 'https://api.search.brave.com/app/keys',
           ),
-        )
+        ),
+        Text(
+          'OpenAi global API key',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.openAiApiKey.value,
+          placeholder: AppCache.openAiApiKey.value,
+          obscureText: obscureOpenAiText,
+          suffix: IconButton(
+            icon: const Icon(FluentIcons.hide),
+            onPressed: () {
+              setState(() {
+                obscureOpenAiText = !obscureOpenAiText;
+              });
+            },
+          ),
+          onChanged: (value) => AppCache.openAiApiKey.value = value,
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://platform.openai.com/api-keys',
+            url: 'https://platform.openai.com/api-keys',
+          ),
+        ),
+        spacer,
       ],
     );
   }
@@ -464,7 +519,6 @@ class _OtherSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
-    final gptProvider = context.watch<ChatProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -479,17 +533,21 @@ class _OtherSettings extends StatelessWidget {
         Checkbox(
           content: const Text('Show in dock'),
           checked: AppCache.showAppInDock.value == true,
-          onChanged: (value) {
-            appTheme.toggleShowInDock();
-          },
+          onChanged: (value) => appTheme.toggleShowInDock(),
         ),
+        Checkbox(
+            content: const Text('Hide window title'),
+            checked: AppCache.hideTitleBar.value,
+            onChanged: (value) => appTheme.toggleHideTitleBar()),
         Tooltip(
           message: 'Can cause additional charges!',
           child: Checkbox(
             content: const Text('Use second request for naming chats'),
-            checked: gptProvider.useSecondRequestForNamingChats,
-            onChanged: (value) =>
-                gptProvider.toggleUseSecondRequestForNamingChats(),
+            checked: AppCache.useSecondRequestForNamingChats.value,
+            onChanged: (value) {
+              AppCache.useSecondRequestForNamingChats.value = value;
+              appTheme.updateUI();
+            },
           ),
         ),
       ],
@@ -816,22 +874,88 @@ class _ThemeModeSection extends StatelessWidget {
         ]),
         biggerSpacer,
         Text('Background', style: FluentTheme.of(context).typography.subtitle),
-        // background color
         spacer,
-        // use solid background effect
-        if (!Platform.isLinux)
-          Checkbox(
-            content: const Text('Use acrylic'),
-            checked: appTheme.windowEffect == WindowEffect.acrylic,
-            onChanged: (value) {
-              if (value == true) {
-                appTheme.setEffect(WindowEffect.acrylic);
-              } else {
-                appTheme.windowEffectOpacity = 0.0;
-                appTheme.setEffect(WindowEffect.disabled);
-              }
-            },
-          ),
+        Wrap(
+          spacing: 8.0,
+          children: [
+            if (!Platform.isLinux)
+              Checkbox(
+                content: const Text('Use aero'),
+                checked: appTheme.windowEffect == WindowEffect.aero,
+                onChanged: (value) {
+                  if (value == true) {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.windowEffectColor = Colors.blue;
+                    appTheme.setEffect(WindowEffect.aero);
+                  } else {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.setEffect(WindowEffect.disabled);
+                  }
+                },
+              ),
+            if (!Platform.isLinux)
+              Checkbox(
+                content: const Text('Use acrylic'),
+                checked: appTheme.windowEffect == WindowEffect.acrylic,
+                onChanged: (value) {
+                  if (value == true) {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.windowEffectColor = Colors.blue;
+                    appTheme.setEffect(WindowEffect.acrylic);
+                  } else {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.setEffect(WindowEffect.disabled);
+                  }
+                },
+              ),
+            Checkbox(
+              content: const Text('Use transparent'),
+              checked: appTheme.windowEffect == WindowEffect.transparent,
+              onChanged: (value) {
+                if (value == true) {
+                  appTheme.windowEffectOpacity = 0.0;
+                  appTheme.windowEffectColor = Colors.transparent;
+                  appTheme.setEffect(WindowEffect.transparent);
+                } else {
+                  appTheme.windowEffectOpacity = 0.0;
+                  appTheme.setEffect(WindowEffect.disabled);
+                }
+              },
+            ),
+            Checkbox(
+              content: const Text('Use mica'),
+              checked: appTheme.windowEffect == WindowEffect.mica,
+              onChanged: (value) {
+                if (value == true) {
+                  appTheme.windowEffectOpacity = 0.7;
+                  appTheme.windowEffectColor = Colors.blue;
+                  appTheme.setEffect(WindowEffect.mica);
+                } else {
+                  appTheme.windowEffectOpacity = 0.0;
+                  appTheme.setEffect(WindowEffect.disabled);
+                }
+              },
+            ),
+          ],
+        ),
+
+        /// transparency
+        spacer,
+        Text('Transparency',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        SliderStatefull(
+          initValue: appTheme.windowEffectOpacity,
+          onChangeEnd: (value) {
+            appTheme.windowEffectOpacity = value;
+            appTheme.setEffect(appTheme.windowEffect);
+          },
+          label: 'Opacity',
+          min: 0.0,
+          max: 1.0,
+          divisions: 100,
+          onChanged: (_) {},
+        ),
       ],
     );
   }
@@ -846,9 +970,11 @@ class SliderStatefull extends StatefulWidget {
     this.min = 0.0,
     this.max = 100.0,
     this.divisions = 100,
+    this.onChangeEnd,
   });
   final double initValue;
-  final void Function(double) onChanged;
+  final void Function(double value) onChanged;
+  final void Function(double value)? onChangeEnd;
   final String? label;
   final double min;
   final double max;
@@ -874,6 +1000,9 @@ class _SliderStatefullState extends State<SliderStatefull> {
       min: widget.min,
       max: widget.max,
       divisions: widget.divisions,
+      onChangeEnd: (value) {
+        widget.onChangeEnd?.call(value);
+      },
       onChanged: (value) {
         setState(() {
           _value = value;
