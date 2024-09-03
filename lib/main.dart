@@ -51,7 +51,6 @@ Future<void> initWindow() async {
   await windowManager.setTitle('fluent_gpt');
   await windowManager.setMinimumSize(defaultMinimumWindowSize);
   await windowManager.show();
-  await windowManager.setPreventClose(prefs?.getBool('preventClose') ?? false);
   windowManager.removeListener(AppWindowListener());
   windowManager.addListener(AppWindowListener());
   await windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
@@ -170,8 +169,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
         }
       }
       if (mounted) {
-        if (AppCache.useAcrylicEffect.value!)
-          await _appTheme.setEffect(flutter_acrylic.WindowEffect.acrylic);
+        _appTheme.postInit();
       }
     });
   }
@@ -212,6 +210,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 supportedLocales: const [Locale('en')],
                 darkTheme: FluentThemeData(
                   brightness: Brightness.dark,
+                  scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
                   infoBarTheme: InfoBarThemeData(
                       decoration: (severity) =>
                           appTheme.buildInfoBarDecoration(severity)),
@@ -220,6 +219,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 ),
                 theme: FluentThemeData(
                   accentColor: appTheme.color,
+                  scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
                   infoBarTheme: InfoBarThemeData(
                       decoration: (severity) =>
                           appTheme.buildInfoBarDecoration(severity)),
@@ -229,7 +229,8 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 builder: (ctx, child) {
                   return NavigationPaneTheme(
                     data: const NavigationPaneThemeData(
-                        backgroundColor: Colors.transparent),
+                      backgroundColor: Colors.transparent,
+                    ),
                     child: child!,
                   );
                 },

@@ -40,10 +40,18 @@ class AppTheme extends ChangeNotifier {
       resolution =
           Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
     }
+  }
+
+  Future postInit() async {
     preventClose = prefs?.getBool('preventClose') ?? false;
-    _windowEffect = AppCache.useAcrylicEffect.value!
-        ? WindowEffect.acrylic
-        : WindowEffect.disabled;
+    windowManager.setPreventClose(preventClose);
+    final effect = AppCache.backgroundEffect.value;
+    final effectEnum = WindowEffect.values.firstWhere(
+      (element) => element.name == effect,
+      orElse: () => WindowEffect.disabled,
+    );
+    _windowEffect = effectEnum;
+    setEffect(_windowEffect);
   }
 
   bool preventClose = false;
@@ -71,12 +79,7 @@ class AppTheme extends ChangeNotifier {
   }
 
   /// We should ignore the system theme mode!
-  ThemeMode _mode = ThemeMode.dark;
-  ThemeMode get mode => _mode;
-  set mode(ThemeMode mode) {
-    _mode = mode;
-    notifyListeners();
-  }
+  ThemeMode mode = ThemeMode.dark;
 
   bool get isDark => mode == ThemeMode.dark;
 
@@ -100,8 +103,23 @@ class AppTheme extends ChangeNotifier {
       color: windowEffectColor.withOpacity(windowEffectOpacity),
       dark: isDark,
     );
+    if (effect == WindowEffect.disabled) {
+      if (isDark) {
+        darkBackgroundColor = defaultDarkBackgroundColor;
+      } else {
+        lightBackgroundColor = defaultLightBackgroundColor;
+      }
+    } else {
+      /// if the effect is transperent or blur
+      if (isDark) {
+        darkBackgroundColor = defaultDarkBackgroundColor.withOpacity(windowEffectOpacity);
+      } else {
+        lightBackgroundColor = defaultLightBackgroundColor.withOpacity(windowEffectOpacity);
+      }
+    }
     _windowEffect = effect;
     log('Setting window effect to $effect');
+    AppCache.backgroundEffect.set(effect.name);
     notifyListeners();
   }
 
@@ -125,6 +143,11 @@ class AppTheme extends ChangeNotifier {
   }
 
   Locale? _locale;
+  final defaultLightBackgroundColor = const Color(0xffF3F2F1);
+  final defaultDarkBackgroundColor = const Color(0xff201f1e);
+
+  Color lightBackgroundColor = const Color(0xffF3F2F1);
+  Color darkBackgroundColor = const Color(0xff201f1e);
   Locale? get locale => _locale;
   set locale(Locale? locale) {
     _locale = locale;

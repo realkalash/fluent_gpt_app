@@ -78,7 +78,12 @@ class ChatRoom {
       chatHistory: ChatMessageHistory(),
     );
     return ChatRoom(
-      model: ChatModelAi.fromJson(map['model']),
+      model: map['model'] is String
+          ? ChatModelAi(
+              name: map['model'],
+              ownedBy: map['model'] == 'gpt-4o' ? 'openai' : 'custom',
+            )
+          : ChatModelAi.fromJson(map['model']),
       id: map['id'],
       chatRoomName: map['chatRoomName'],
       temp: map['temp'],

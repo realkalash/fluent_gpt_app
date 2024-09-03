@@ -32,11 +32,10 @@ class MainAppHeaderButtons extends StatelessWidget {
             onChanged: (v) {
               if (isDark) {
                 appTheme.mode = ThemeMode.light;
-                appTheme.setEffect(WindowEffect.disabled);
               } else {
                 appTheme.mode = ThemeMode.dark;
-                appTheme.setEffect(WindowEffect.mica);
               }
+              appTheme.setEffect(appTheme.windowEffect);
             },
             child: const Icon(
               icons.FluentIcons.weather_sunny_24_regular,

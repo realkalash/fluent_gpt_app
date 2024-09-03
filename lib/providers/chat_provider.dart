@@ -228,17 +228,21 @@ class ChatProvider with ChangeNotifier {
     localApi = localApi.replaceAll('/api', '');
     // retrieve models
     // curl http://0.0.0.0:1234/v1/models/
-    final dio = Dio();
-    final response = await dio.get('$localApi/models/');
-    final respJson = response.data as Map<String, dynamic>;
-    final models = respJson['data'] as List;
-    final listModels = models
-        .map(
-          (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
-              apiKey: AppCache.openAiApiKey.value ?? ''),
-        )
-        .toList();
-    allModels.add([...allModels.value, ...listModels]);
+    try {
+      final dio = Dio();
+      final response = await dio.get('$localApi/models/');
+      final respJson = response.data as Map<String, dynamic>;
+      final models = respJson['data'] as List;
+      final listModels = models
+          .map(
+            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
+                apiKey: AppCache.openAiApiKey.value ?? ''),
+          )
+          .toList();
+      allModels.add([...allModels.value, ...listModels]);
+    } catch (e) {
+      logError('Error retrieving local models: $e');
+    }
   }
 
   initChatModels() async {
@@ -926,7 +930,8 @@ class ChatProvider with ChangeNotifier {
   }
 
   void scrollToMessage(String messageKey) {
-    final index = indexOf(messages.value.values.toList(), messages.value[messageKey]);
+    final index =
+        indexOf(messages.value.values.toList(), messages.value[messageKey]);
     listItemsScrollController.scrollTo(
       index: index,
       duration: const Duration(milliseconds: 400),

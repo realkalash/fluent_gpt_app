@@ -17,8 +17,9 @@ class AppCache {
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
-  static BoolPref useAcrylicEffect =
-      BoolPref("useAcrylicEffect", Platform.isLinux ? false : true);
+  
+  static StringPref backgroundEffect =
+      StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');
 
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);

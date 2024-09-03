@@ -5,6 +5,7 @@ import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
@@ -313,9 +314,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       var chatProvider = context.read<ChatProvider>();
       chatProvider.scrollOffsetController.animateScroll(
-        offset: 200,
+        offset: 50,
         duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
       );
     });
   }
@@ -372,7 +372,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                   padding: const EdgeInsets.all(4.0),
                   child: Wrap(
                     alignment: WrapAlignment.start,
-                    spacing: 8,
+                    spacing: 4,
                     children: [
                       Tooltip(
                         message: chatProvider.isWebSearchEnabled
@@ -381,10 +381,27 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         child: ToggleButton(
                             checked: chatProvider.isWebSearchEnabled,
                             child: const Icon(
-                                ic.FluentIcons.globe_search_20_filled,
-                                size: 20),
+                              ic.FluentIcons.globe_search_20_filled,
+                              size: 20,
+                            ),
                             onChanged: (_) {
                               chatProvider.toggleWebSearch();
+                            }),
+                      ),
+                      Tooltip(
+                        message: 'Customize custom promtps',
+                        child: ToggleButton(
+                            checked: false,
+                            child: const Icon(
+                              ic.FluentIcons.settings_20_regular,
+                              size: 20,
+                            ),
+                            onChanged: (_) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) =>
+                                    const CustomPromptsSettingsDialog(),
+                              );
                             }),
                       ),
                     ],
