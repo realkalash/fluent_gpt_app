@@ -307,20 +307,6 @@ class ChatGPTContent extends StatefulWidget {
 
 class _ChatGPTContentState extends State<ChatGPTContent> {
   @override
-  void initState() {
-    super.initState();
-    // promptTextFocusNode.requestFocus();
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      var chatProvider = context.read<ChatProvider>();
-      chatProvider.scrollOffsetController.animateScroll(
-        offset: 50,
-        duration: const Duration(milliseconds: 400),
-      );
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     var chatProvider = context.watch<ChatProvider>();
     chatProvider.context = context;

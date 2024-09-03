@@ -216,7 +216,8 @@ class _MessageCardState extends State<MessageCard> {
                             width: 24,
                             height: 24,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
                               FluentIcons.globe_16_regular,
                               size: 24,
                             ),
@@ -263,15 +264,19 @@ class _MessageCardState extends State<MessageCard> {
                 widget.message.contentAsString,
                 textSize: widget.textSize.toDouble(),
               )
-            : Text(
-                widget.message.contentAsString,
-                style: TextStyle(
-                  fontSize: widget.textSize.toDouble(),
+            : Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: SelectableText(
+                  widget.message.contentAsString,
+                  style: TextStyle(
+                    fontSize: widget.textSize.toDouble(),
+                    fontWeight: FontWeight.normal,
+                  ),
                 ),
               ),
       );
     }
-    
+
     return Focus(
       onFocusChange: (isFocused) {
         setState(() {
@@ -302,23 +307,24 @@ class _MessageCardState extends State<MessageCard> {
               child: Wrap(
                 spacing: 4,
                 children: [
-                  // Tooltip(
-                  //   message: _isMarkdownView ? 'Show text' : 'Show markdown',
-                  //   child: SizedBox.square(
-                  //     dimension: 30,
-                  //     child: ToggleButton(
-                  //       onChanged: (_) {
-                  //         prefs!.setBool('isMarkdownView', _isMarkdownView);
-                  //         setState(() {
-                  //           _isMarkdownView = !_isMarkdownView;
-                  //         });
-                  //       },
-                  //       checked: false,
-                  //       child: const Icon(FluentIcons.paint_brush_12_regular,
-                  //           size: 10),
-                  //     ),
-                  //   ),
-                  // ),
+                  Tooltip(
+                    message: _isMarkdownView ? 'Show text' : 'Show markdown',
+                    child: SizedBox.square(
+                      dimension: 30,
+                      child: ToggleButton(
+                        onChanged: (_) {
+                          AppCache.isMarkdownViewEnabled.value =
+                              !_isMarkdownView;
+                          setState(() {
+                            _isMarkdownView = !_isMarkdownView;
+                          });
+                        },
+                        checked: false,
+                        child: const Icon(FluentIcons.paint_brush_12_regular,
+                            size: 10),
+                      ),
+                    ),
+                  ),
                   Tooltip(
                     message: 'Edit message',
                     child: SizedBox.square(

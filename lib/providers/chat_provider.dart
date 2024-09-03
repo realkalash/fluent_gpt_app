@@ -116,7 +116,7 @@ class ChatProvider with ChangeNotifier {
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
   final ScrollOffsetListener scrollOffsetListener =
-      ScrollOffsetListener.create();
+      ScrollOffsetListener.create(recordProgrammaticScrolls: false);
 
   final TextEditingController messageController = TextEditingController();
 
@@ -180,7 +180,8 @@ class ChatProvider with ChangeNotifier {
         chatRooms[chatRoom.id] = chatRoom;
         if (chatRoom.id == selectedChatRoomId) {
           initCurrentChat();
-          _loadMessagesFromDisk(chatRoom.id);
+          await _loadMessagesFromDisk(chatRoom.id);
+          scrollToEnd();
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -592,7 +593,10 @@ class ChatProvider with ChangeNotifier {
         AIChatMessage(content: newString);
     messages.add(values);
     if (scrollToBottomOnAnswer) {
-      scrollToEnd();
+      scrollOffsetController.animateScroll(
+        offset: 10,
+        duration: const Duration(milliseconds: 1),
+      );
     }
   }
 
@@ -720,6 +724,7 @@ class ChatProvider with ChangeNotifier {
     totalTokensForCurrentChat = 0;
     await _loadMessagesFromDisk(room.id);
     refreshTokensForCurrentChat();
+    scrollToEnd();
   }
 
   void deleteChatRoom(String chatRoomId) {
@@ -820,10 +825,15 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> scrollToEnd() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    await scrollOffsetController.animateScroll(
-      offset: 600,
+    final lastIndex = messages.value.length;
+    listItemsScrollController.scrollTo(
+      index: lastIndex,
       duration: const Duration(milliseconds: 400),
     );
+    // await scrollOffsetController.animateScroll(
+    //   offset: 200,
+    //   duration: const Duration(milliseconds: 400),
+    // );
   }
 
   Future<void> regenerateMessage(ChatMessage message) async {

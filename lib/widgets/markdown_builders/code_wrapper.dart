@@ -27,7 +27,7 @@ class CodeWrapperWidget extends StatefulWidget {
 class _PreWrapperState extends State<CodeWrapperWidget> {
   late Widget _switchWidget;
   bool hasCopied = false;
-  bool isWordWrapped = false;
+  bool isWordWrapped = true;
   final scrollController = ScrollController();
 
   @override
