@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
@@ -194,7 +195,12 @@ class _MessageCardState extends State<MessageCard> {
       );
     } else if (widget.message is CustomChatMessage) {
       final message = widget.message as CustomChatMessage;
-      final jsonContent = jsonDecode(message.content);
+      dynamic jsonContent;
+      try {
+        jsonContent = jsonDecode(message.content);
+      } catch (e, stack) {
+        logError(e.toString(),stack);
+      }
       if (jsonContent is List) {
         final results =
             jsonContent.map((e) => SearchResult.fromJson(e)).toList();

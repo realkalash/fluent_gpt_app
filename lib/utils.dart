@@ -44,6 +44,13 @@ extension ChatMessageExtension on ChatMessage {
         'content': message.content,
       };
     }
+    if (this is SystemChatMessage) {
+      final message = this as SystemChatMessage;
+      return {
+        'prefix': SystemChatMessage.defaultPrefix,
+        'content': message.content,
+      };
+    }
 
     throw Exception('Invalid content');
   }

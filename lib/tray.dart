@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -12,7 +10,6 @@ import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/overlay/overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:pasteboard/pasteboard.dart';

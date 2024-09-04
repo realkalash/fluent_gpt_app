@@ -103,9 +103,13 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
   return newContent;
 }
 
+const defaultChatModels = [
+  ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
+];
+
 final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([
   /// gpt-4o
-  ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
+  const ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
 ]);
 
 class ChatProvider with ChangeNotifier {
@@ -147,9 +151,9 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveToDisk([List<ChatRoom>? rooms]) async {
+  Future<void> saveToDisk(List<ChatRoom> rooms) async {
     // ignore: no_leading_underscores_for_local_identifiers
-    final _chatRooms = rooms ?? chatRooms.values.toList();
+    final _chatRooms = rooms;
     for (var chatRoom in _chatRooms) {
       var chatRoomRaw = await chatRoom.toJson();
       final path = await FileUtils.getChatRoomPath();
@@ -240,7 +244,7 @@ class ChatProvider with ChangeNotifier {
                 apiKey: AppCache.openAiApiKey.value ?? ''),
           )
           .toList();
-      allModels.add([...allModels.value, ...listModels]);
+      allModels.add([...defaultChatModels, ...listModels]);
     } catch (e) {
       logError('Error retrieving local models: $e');
     }
@@ -255,7 +259,7 @@ class ChatProvider with ChangeNotifier {
     //       .toList();
     //   allModels.add(listModels);
     // }
-    allModels.add(allModels.value);
+    allModels.add(defaultChatModels);
     await _retrieveLocalModels();
   }
 
@@ -356,7 +360,7 @@ class ChatProvider with ChangeNotifier {
     final chatRoom = chatRooms[selectedChatRoomId]!;
     chatRoom.chatRoomName = newName;
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   Future<void> sendMessage(
@@ -453,26 +457,33 @@ class ChatProvider with ChangeNotifier {
       );
     }
 
-    await stream.forEach(
-      (final chunk) {
-        final message = chunk.output;
-        // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
-        addBotMessageToList(message, chunk.id);
-        if (chunk.finishReason == FinishReason.stop) {
-          /// TODO: add more logic here
-          saveToDisk([selectedChatRoom]);
-          isAnswering = false;
-          notifyListeners();
-          refreshTokensForCurrentChat();
-        } else if (chunk.finishReason == FinishReason.length) {
-          /// Maximum tokens reached
-          saveToDisk([selectedChatRoom]);
-          isAnswering = false;
-          notifyListeners();
-          refreshTokensForCurrentChat();
-        }
-      },
-    );
+    try {
+      await stream.forEach(
+        (final chunk) {
+          final message = chunk.output;
+          // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+          addBotMessageToList(message, chunk.id);
+          if (chunk.finishReason == FinishReason.stop) {
+            /// TODO: add more logic here
+            saveToDisk([selectedChatRoom]);
+            isAnswering = false;
+            notifyListeners();
+            refreshTokensForCurrentChat();
+          } else if (chunk.finishReason == FinishReason.length) {
+            /// Maximum tokens reached
+            saveToDisk([selectedChatRoom]);
+            isAnswering = false;
+            notifyListeners();
+            refreshTokensForCurrentChat();
+          }
+        },
+      );
+    } catch (e, stack) {
+      logError('Error while answering: $e', stack);
+      addBotErrorMessageToList(
+        SystemChatMessage(content: 'Error while answering: $e'),
+      );
+    }
 
     fileInput = null;
     notifyListeners();
@@ -612,7 +623,7 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  void addBotErrorMessageToList(CustomChatMessage message, [String? id]) {
+  void addBotErrorMessageToList(SystemChatMessage message, [String? id]) {
     final values = messages.value;
     values[id ?? DateTime.now().toIso8601String()] = message;
     messages.add(values);
@@ -665,7 +676,7 @@ class ChatProvider with ChangeNotifier {
   void clearChatMessages() {
     messages.add({});
     selectedChatRoom.messages.clear();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
     notifyRoomsStream();
   }
 
@@ -676,13 +687,13 @@ class ChatProvider with ChangeNotifier {
   void selectNewModel(ChatModelAi model) {
     chatRooms[selectedChatRoomId]!.model = model;
     notifyListeners();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void selectModelForChat(String chatRoomName, ChatModelAi model) {
     chatRooms[chatRoomName]!.model = model;
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   void createNewChatRoom() {
@@ -728,6 +739,7 @@ class ChatProvider with ChangeNotifier {
   Future<void> selectChatRoom(ChatRoom room) async {
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
+    messages.add({});
     if (AppCache.localApiUrl.value!.isNotEmpty)
       localModel = ChatOpenAI(
         apiKey: AppCache.openAiApiKey.value,
@@ -762,7 +774,6 @@ class ChatProvider with ChangeNotifier {
   void deleteChatRoomHard(String chatRoomName) {
     chatRooms.removeWhere((key, value) => value.chatRoomName == chatRoomName);
     notifyListeners();
-    saveToDisk();
   }
 
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
@@ -777,7 +788,7 @@ class ChatProvider with ChangeNotifier {
       selectedChatRoomId = chatRoom.id;
     }
     notifyRoomsStream();
-    saveToDisk();
+    saveToDisk([selectedChatRoom]);
   }
 
   // void sendResultOfRunningShellCode(String result) {

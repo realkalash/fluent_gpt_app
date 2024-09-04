@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/file_utils.dart';

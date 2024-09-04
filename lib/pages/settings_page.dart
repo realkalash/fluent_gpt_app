@@ -6,7 +6,6 @@ import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
-import 'package:fluent_gpt/features/g_drive_integration.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -524,6 +523,10 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
               TextFormBox(
                 initialValue: AppCache.localApiUrl.value,
                 placeholder: AppCache.localApiUrl.value,
+                onFieldSubmitted: (value) {
+                  AppCache.localApiUrl.value = value;
+                  Provider.of<ChatProvider>(context, listen: false).initChatModels();
+                },
                 onChanged: (value) {
                   AppCache.localApiUrl.value = value;
                 },

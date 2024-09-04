@@ -3,7 +3,7 @@ class ChatModelAi {
   final String name;
   final String? ownedBy;
 
-  ChatModelAi({this.apiKey = '', required this.name, this.ownedBy});
+  const ChatModelAi({this.apiKey = '', required this.name, this.ownedBy});
 
   static ChatModelAi fromJson(Map<String, dynamic> json) {
     return ChatModelAi(

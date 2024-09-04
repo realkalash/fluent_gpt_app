@@ -144,6 +144,11 @@ class ChatRoom {
         return AIChatMessage(content: json['content'] as String);
       }
     }
+    if (json['prefix'] == SystemChatMessage.defaultPrefix) {
+      if (json['content'] is String) {
+        return SystemChatMessage(content: json['content'] as String);
+      }
+    }
     // custom message
     if (json['prefix'] is String && json['content'] is String) {
       return CustomChatMessage(
