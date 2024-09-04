@@ -32,7 +32,7 @@ LicenseFile=C:\Users\alex\repos\fluent_gpt_app\LICENSE.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 OutputDir=C:\Users\alex\repos\fluent_gpt_app\installers
-OutputBaseFilename=flutter_application
+OutputBaseFilename=fluent-gpt-windows
 SetupIconFile=C:\Users\alex\repos\fluent_gpt_app\assets\app_icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -49,6 +49,7 @@ Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\{#M
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\file_selector_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\flutter_acrylic_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\gpt_tokenizer.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\hotkey_manager_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\irondash_engine_context_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\pasteboard_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
