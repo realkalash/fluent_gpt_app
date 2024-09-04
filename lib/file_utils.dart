@@ -70,9 +70,11 @@ extension XFileUint8ListExtension on Uint8List {
 
 class FileUtils {
   static String? documentDirectoryPath;
+  static String? temporaryDirectoryPath;
 
   static Future<void> init() async {
     documentDirectoryPath = (await getApplicationDocumentsDirectory()).path;
+    temporaryDirectoryPath = (await getTemporaryDirectory()).path;
   }
 
   static Future _createTestFileInDir(Future<Directory?> dirFuture) async {

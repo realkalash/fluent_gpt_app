@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/imgur_integration.dart';
+import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -9,8 +12,10 @@ import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/overlay/overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:rxdart/rxdart.dart';
@@ -19,6 +24,13 @@ import 'package:rxdart/rxdart.dart';
 /// or onProtocol url link as myApp://command?text=Hello%20World
 final trayButtonStream = BehaviorSubject<String?>();
 AppTrayListener appTrayListener = AppTrayListener();
+final List<MenuItem> trayMenuFooterItems = [
+  MenuItem(label: 'Show', onClick: (menuItem) => windowManager.show()),
+  MenuItem(label: 'Hide', onClick: (menuItem) => windowManager.hide()),
+  MenuItem(label: 'Exit', onClick: (menuItem) => windowManager.close()),
+];
+
+final List<MenuItem> trayMenuItems = [];
 
 Future<void> initSystemTray() async {
   String? path;
@@ -40,20 +52,56 @@ Future<void> initSystemTray() async {
     isTemplate: true,
   );
 
-  // create context menu
-  final Menu menu = Menu(items: [
-    MenuItem(label: 'Show', onClick: (menuItem) => windowManager.show()),
-    MenuItem(label: 'Hide', onClick: (menuItem) => windowManager.hide()),
-    MenuItem(label: 'Exit', onClick: (menuItem) => windowManager.close()),
-  ]);
-
-  // set context menu
-  await trayManager.setContextMenu(menu);
+  await initTrayMenuItems();
 
   // handle system tray event
   trayManager.removeListener(appTrayListener);
   trayManager.addListener(appTrayListener);
   await initShortcuts();
+}
+
+Future<void> initTrayMenuItems() async {
+  trayMenuItems.clear();
+  trayMenuItems.addAll([
+    MenuItem.submenu(
+      label: 'Tools',
+      submenu: Menu(items: [
+        MenuItem(
+          label: 'Search by Image SauceNao (Clipboard)',
+          toolTip:
+              'The image will be uploaded to Imgur and searched on SauceNao',
+          icon: 'assets/saucenao_favicon.png',
+          onClick: (menuItem) async {
+            if (AppCache.useImgurApi.value != true) {
+              onTrayButtonTapCommand(
+                "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
+                'show_dialog',
+              );
+              return;
+            }
+            final clipboardBytesImage = await Pasteboard.image;
+            if (clipboardBytesImage != null) {
+              SauceNaoImageFinder.uploadToImgurAndFindImageBytes(
+                clipboardBytesImage,
+              );
+            } else {
+              onTrayButtonTapCommand(
+                'No image found in the clipboard',
+                'show_dialog',
+              );
+            }
+          },
+        ),
+      ]),
+    ),
+    MenuItem.separator(),
+    ...trayMenuFooterItems,
+  ]);
+  // create context menu
+  final Menu menu = Menu(items: trayMenuItems);
+
+  // set context menu
+  await trayManager.setContextMenu(menu);
 }
 
 @Deprecated('Use onTrayButtonTapCommand instead')
@@ -156,7 +204,8 @@ Future<void> initShortcuts() async {
   );
   initCachedHotKeys();
 }
-/// On linux hotkey registration is so fast it could trigger 
+
+/// On linux hotkey registration is so fast it could trigger
 /// the hotkey 3 times in a row, so we need to lock it
 bool _isHotKeyRegistering = false;
 Future<void> initCachedHotKeys() async {
@@ -255,19 +304,19 @@ class AppTrayListener extends TrayListener {
     trayManager.popUpContextMenu();
   }
 
-  @override
-  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
-    log('onTrayMenuItemClick: ${menuItem.label}');
-    if (menuItem.onClick != null) {
-      menuItem.onClick!(menuItem);
-      return;
-    }
-    if (menuItem.label == 'Show') {
-      windowManager.show();
-    } else if (menuItem.label == 'Hide') {
-      windowManager.hide();
-    } else if (menuItem.label == 'Exit') {
-      windowManager.close();
-    }
-  }
+  // @override
+  // Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
+  //   log('onTrayMenuItemClick: ${menuItem.label}');
+  //   if (menuItem.onClick != null) {
+  //     menuItem.onClick!(menuItem);
+  //     return;
+  //   }
+  //   if (menuItem.label == 'Show') {
+  //     windowManager.show();
+  //   } else if (menuItem.label == 'Hide') {
+  //     windowManager.hide();
+  //   } else if (menuItem.label == 'Exit') {
+  //     windowManager.close();
+  //   }
+  // }
 }

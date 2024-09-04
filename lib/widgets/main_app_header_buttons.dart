@@ -4,7 +4,6 @@ import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:provider/provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as icons;
 import 'package:window_manager/window_manager.dart';
@@ -25,7 +24,26 @@ class MainAppHeaderButtons extends StatelessWidget {
           const AddChatButton(),
           const ClearChatButton(),
           const PinAppButton(),
-          const ToggleOverlaySqueareButton(),
+          if (AppCache.enableOverlay.value == true)
+            const ToggleOverlaySqueareButton(),
+          Tooltip(
+            message: 'Settings',
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ToggleButton(
+                checked: false,
+                onChanged: (_) {
+                  Navigator.of(context).push(
+                    FluentPageRoute(builder: (context) => const SettingsPage()),
+                  );
+                },
+                child: const Icon(
+                  icons.FluentIcons.settings_24_regular,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(width: 4.0),
           ToggleButton(
             checked: isDark,
@@ -129,24 +147,6 @@ class ToggleOverlaySqueareButton extends StatelessWidget {
               },
               child: const Icon(
                 icons.FluentIcons.panel_right_32_filled,
-                size: 20,
-              ),
-            ),
-          ),
-        ),
-        Tooltip(
-          message: 'Settings',
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ToggleButton(
-              checked: false,
-              onChanged: (_) {
-                Navigator.of(context).push(
-                  FluentPageRoute(builder: (context) => const SettingsPage()),
-                );
-              },
-              child: const Icon(
-                icons.FluentIcons.settings_24_regular,
                 size: 20,
               ),
             ),

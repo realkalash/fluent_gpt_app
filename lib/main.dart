@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
+import 'package:fluent_gpt/features/additional_features.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -134,6 +135,7 @@ void main(List<String> args) async {
   // For hot reload, `unregisterAll()` needs to be called.
   await hotKeyManager.unregisterAll();
   OverlayManager.init();
+  AdditionalFeatures.initAdditionalFeatures();
 
   runApp(const MyApp());
 }

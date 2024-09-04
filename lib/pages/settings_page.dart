@@ -6,6 +6,8 @@ import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
+import 'package:fluent_gpt/features/g_drive_integration.dart';
+import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -105,6 +107,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
                 : null),
         children: [
           const EnabledGptTools(),
+          const AdditionalTools(),
           const OverlaySettings(),
           const AccessibilityPermissionButton(),
           const _CacheSection(),
@@ -122,6 +125,69 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           biggerSpacer,
           const ServerSettings(),
           const _OtherSettings(),
+        ],
+      ),
+    );
+  }
+}
+
+class AdditionalTools extends StatefulWidget {
+  const AdditionalTools({super.key});
+
+  @override
+  State<AdditionalTools> createState() => _AdditionalToolsState();
+}
+
+class _AdditionalToolsState extends State<AdditionalTools> {
+  @override
+  Widget build(BuildContext context) {
+    return Expander(
+      header: const Text('Additional tools'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Additional tools',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Checkbox(
+                content: const Text('Imgur'),
+                checked: AppCache.useImgurApi.value,
+                onChanged: (value) async {
+                  setState(() {
+                    AppCache.useImgurApi.value = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          if (AppCache.useImgurApi.value == true) ...[
+            TextFormBox(
+              placeholder: 'Imgur client ID',
+              initialValue: AppCache.imgurClientId.value,
+              obscureText: true,
+              suffix: const Tooltip(
+                message: """1. Go to Imgur and create an account.
+      2. Navigate to the Imgur API and register your application to get a clientId.
+      3. Fill "Application Name" with anything you want. (e.g. "Fluent GPT")
+      4. Authorization type: "OAuth 2 authorization without a callback URL
+      5. Email: Your email
+      6. Paste clientId here""",
+                child: Icon(FluentIcons.info),
+              ),
+              onChanged: (value) {
+                AppCache.imgurClientId.value = value;
+                ImgurIntegration.authenticate(value);
+              },
+            ),
+            const LinkTextButton(
+              'Get Imgur clientID',
+              url: 'https://api.imgur.com/oauth2/addclient',
+            ),
+          ],
+          spacer,
         ],
       ),
     );
@@ -259,6 +325,7 @@ class _OverlaySettingsState extends State<OverlaySettings> {
             setState(() {
               AppCache.enableOverlay.value = value;
             });
+            Provider.of<AppTheme>(context, listen: false).updateUI();
           },
         ),
         Checkbox(
@@ -447,64 +514,73 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             biggerSpacer,
           ],
         ),
-        Text('LLama url', style: FluentTheme.of(context).typography.subtitle),
-        TextFormBox(
-          initialValue: AppCache.localApiUrl.value,
-          placeholder: AppCache.localApiUrl.value,
-          onChanged: (value) {
-            AppCache.localApiUrl.value = value;
-          },
-        ),
-        Text(
-          'Brave API key',
-          style: FluentTheme.of(context).typography.subtitle,
-        ),
-        TextFormBox(
-          initialValue: AppCache.braveSearchApiKey.value,
-          placeholder: AppCache.braveSearchApiKey.value,
-          obscureText: obscureBraveText,
-          suffix: IconButton(
-            icon: const Icon(FluentIcons.hide),
-            onPressed: () {
-              setState(() {
-                obscureBraveText = !obscureBraveText;
-              });
-            },
-          ),
-          onChanged: (value) {
-            AppCache.braveSearchApiKey.value = value;
-          },
-        ),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: LinkTextButton(
-            'https://api.search.brave.com/app/keys',
-            url: 'https://api.search.brave.com/app/keys',
-          ),
-        ),
-        Text(
-          'OpenAi global API key',
-          style: FluentTheme.of(context).typography.subtitle,
-        ),
-        TextFormBox(
-          initialValue: AppCache.openAiApiKey.value,
-          placeholder: AppCache.openAiApiKey.value,
-          obscureText: obscureOpenAiText,
-          suffix: IconButton(
-            icon: const Icon(FluentIcons.hide),
-            onPressed: () {
-              setState(() {
-                obscureOpenAiText = !obscureOpenAiText;
-              });
-            },
-          ),
-          onChanged: (value) => AppCache.openAiApiKey.value = value,
-        ),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: LinkTextButton(
-            'https://platform.openai.com/api-keys',
-            url: 'https://platform.openai.com/api-keys',
+        Expander(
+          header: const Text('API and URLs'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('LLama url',
+                  style: FluentTheme.of(context).typography.subtitle),
+              TextFormBox(
+                initialValue: AppCache.localApiUrl.value,
+                placeholder: AppCache.localApiUrl.value,
+                onChanged: (value) {
+                  AppCache.localApiUrl.value = value;
+                },
+              ),
+              Text(
+                'Brave API key',
+                style: FluentTheme.of(context).typography.subtitle,
+              ),
+              TextFormBox(
+                initialValue: AppCache.braveSearchApiKey.value,
+                placeholder: AppCache.braveSearchApiKey.value,
+                obscureText: obscureBraveText,
+                suffix: IconButton(
+                  icon: const Icon(FluentIcons.hide),
+                  onPressed: () {
+                    setState(() {
+                      obscureBraveText = !obscureBraveText;
+                    });
+                  },
+                ),
+                onChanged: (value) {
+                  AppCache.braveSearchApiKey.value = value;
+                },
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: LinkTextButton(
+                  'https://api.search.brave.com/app/keys',
+                  url: 'https://api.search.brave.com/app/keys',
+                ),
+              ),
+              Text(
+                'OpenAi global API key',
+                style: FluentTheme.of(context).typography.subtitle,
+              ),
+              TextFormBox(
+                initialValue: AppCache.openAiApiKey.value,
+                placeholder: AppCache.openAiApiKey.value,
+                obscureText: obscureOpenAiText,
+                suffix: IconButton(
+                  icon: const Icon(FluentIcons.hide),
+                  onPressed: () {
+                    setState(() {
+                      obscureOpenAiText = !obscureOpenAiText;
+                    });
+                  },
+                ),
+                onChanged: (value) => AppCache.openAiApiKey.value = value,
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: LinkTextButton(
+                  'https://platform.openai.com/api-keys',
+                  url: 'https://platform.openai.com/api-keys',
+                ),
+              ),
+            ],
           ),
         ),
         spacer,

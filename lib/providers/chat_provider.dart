@@ -293,6 +293,18 @@ class ChatProvider with ChangeNotifier {
         }
       } else if (command == 'custom') {
         sendMessage(text, true);
+      } else if (command == 'show_dialog') {
+        showDialog(
+            context: context!,
+            builder: (ctx) => ContentDialog(
+                  content: Text(text),
+                  actions: [
+                    Button(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Close'),
+                    )
+                  ],
+                ));
       } else if (command == 'grammar') {
         sendMessage('Check spelling and grammar: "$text"', true);
       } else if (command == 'explain') {

@@ -49,10 +49,14 @@ class AppCache {
   static const localApiModelPaths = StringPref("localApiModels", '{}');
   static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
+  static const imgurClientId = StringPref("braveSearchApiKey", '');
 
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
   static const useSecondRequestForNamingChats =
       BoolPref("useSecondRequestForNamingChats", false);
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
+
+  static const useGoogleApi = BoolPref("useGoogleApi", false);
+  static const useImgurApi = BoolPref("useImgurApi", false);
 }

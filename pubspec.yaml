@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 0.9.15+15
+version: 0.9.16+16
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
@@ -62,6 +62,9 @@ dependencies:
   langchain_openai: ^0.5.0+1
   langchain_ollama: ^0.1.0
   html: ^0.15.4
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  google_sign_in: ^6.2.1
   
 
 dev_dependencies:
