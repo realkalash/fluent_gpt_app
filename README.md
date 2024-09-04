@@ -51,6 +51,7 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 10. mini window of FluentGPT will appear near cursor
 11. It will start to use your command using the prompt+selected text
 
+
 3. (Only windows) For using Search files functionality. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
 4. Download and install python from [here](https://www.python.org/downloads/).
 
