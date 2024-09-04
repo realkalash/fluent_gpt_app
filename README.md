@@ -35,7 +35,10 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 
 1. Download the Fluent GPT App from [GitHub Releases](#).
 2. Follow the installation instructions specific to your OS.
-
+3. (Only windows) For using Search files functionality. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
+4. Download and install python from [here](https://www.python.org/downloads/).
+   
+---
 (optional)
 
 ### Guide how to use keybindings:
@@ -50,10 +53,7 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 9. Press your shortcut combination
 10. mini window of FluentGPT will appear near cursor
 11. It will start to use your command using the prompt+selected text
-
-
-3. (Only windows) For using Search files functionality. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
-4. Download and install python from [here](https://www.python.org/downloads/).
+---
 
 ### Using ChatGPT from OpenAI
 
@@ -85,7 +85,7 @@ By following these steps, you can seamlessly integrate gpt4All or any other cust
 ### Configuration
 
 - **Hiding to Tray**: Enable this in settings to allow the app to minimize to the system tray.
-- **Setting Custom Shortcut**: Define your custom shortcut in the settings menu (Default Ctrl+Shift+1).
+- **Setting Custom Shortcut**: Define your custom shortcut in the settings menu.
 - **Adding/Managing Chat Rooms**: Create and manage chat rooms through the main interface. Assign different GPT models and set custom instructions for each room.
 
 ## Usage
@@ -109,7 +109,6 @@ Copyright (c) 2024 Alex Kalashnikov.
 
 ## Packages Used
 - Flutter
-- Provider
 - fluent_ui
 - system_theme
 - flutter_acrylic
@@ -117,12 +116,53 @@ Copyright (c) 2024 Alex Kalashnikov.
 - provider
 - url_launcher
 - window_manager
-- chat_gpt_sdk
 - shared_preferences
-- intl
 - chat_gpt_flutter
-- system_tray
+- tray_manager
 - hotkey_manager
+- process_run
+- shell
+- file
+- markdown_widget
+- fluentui_system_icons
+- rxdart
+- dio
+- windows_single_instance
+- flutter_highlighter
+- file_picker
+- background_downloader
+- cross_file
+- mime_type
+- pasteboard
+- easy_image_viewer
+- path_provider
+- protocol_handler
+- package_info_plus
+- flutter_gpt_tokenizer
+- super_drag_and_drop
+- file_selector
+- super_clipboard
+- permission_handler
+- http
+- animated_list_plus
+- scrollable_positioned_list
+- nanoid2
+- widget_and_text_animator
+- simple_animations
+- flutter_moving_background
+- smooth_page_indicator
+- adaptive_layout
+- flutter_local_notifications
+- cryptography
+- cryptography_flutter
+- keypress_simulator
+- langchain
+- langchain_openai
+- langchain_ollama
+- html
+- googleapis
+- googleapis_auth
+- google_sign_in
 
 ---
-Generated with ChatGPT-4o
+Some content was generated with ChatGPT-4o
