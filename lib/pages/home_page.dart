@@ -19,7 +19,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_provider.dart';
@@ -324,29 +324,27 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                 child: StreamBuilder(
                     stream: messages,
                     builder: (context, snapshot) {
-                      return ScrollablePositionedList.builder(
-                        itemScrollController:
-                            chatProvider.listItemsScrollController,
-                        scrollOffsetController:
-                            chatProvider.scrollOffsetController,
-                        itemPositionsListener:
-                            chatProvider.itemPositionsListener,
-                        scrollOffsetListener: chatProvider.scrollOffsetListener,
+                      return ListView.builder(
+                        controller: chatProvider.listItemsScrollController,
                         itemCount: messages.value.entries.length,
                         itemBuilder: (context, index) {
                           final element =
                               messages.value.entries.elementAt(index);
                           final message = element.value;
 
-                          return MessageCard(
+                          return AutoScrollTag(
+                            controller: chatProvider.listItemsScrollController,
                             key: ValueKey('message_$index'),
-                            id: element.key,
-                            message: message,
-                            dateTime: null,
-                            selectionMode: false,
-                            isError: false,
-                            textSize: chatProvider.textSize,
-                            isCompactMode: false,
+                            index: index,
+                            child: MessageCard(
+                              id: element.key,
+                              message: message,
+                              dateTime: null,
+                              selectionMode: false,
+                              isError: false,
+                              textSize: chatProvider.textSize,
+                              isCompactMode: false,
+                            ),
                           );
                         },
                       );

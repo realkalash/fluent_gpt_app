@@ -7,12 +7,15 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
+import 'package:glowy_borders/glowy_borders.dart';
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
@@ -57,7 +60,8 @@ class _InputFieldState extends State<InputField> {
 
   void onShortcutPasteText(String text) {
     final chatProvider = context.read<ChatProvider>();
-    final currentCursorPosition = chatProvider.messageController.selection.base.offset;
+    final currentCursorPosition =
+        chatProvider.messageController.selection.base.offset;
     final currentText = chatProvider.messageController.text;
     final newText = currentText.substring(0, currentCursorPosition) +
         text +
@@ -66,7 +70,8 @@ class _InputFieldState extends State<InputField> {
     windowManager.focus();
     promptTextFocusNode.requestFocus();
     // place the cursor at the end of the pasted text
-    chatProvider.messageController.selection = TextSelection.collapsed(offset: currentCursorPosition + text.length);
+    chatProvider.messageController.selection =
+        TextSelection.collapsed(offset: currentCursorPosition + text.length);
   }
 
   void onShortcutPasteImage(image) async {
@@ -178,11 +183,31 @@ class _InputFieldState extends State<InputField> {
               const Icon(ic.FluentIcons.arrow_down_12_filled),
             const SizedBox(width: 4),
             if (chatProvider.isAnswering)
-              IconButton(
-                icon: const Icon(ic.FluentIcons.stop_16_filled),
-                onPressed: () {
-                  chatProvider.stopAnswering();
-                },
+              SizedBox.square(
+                dimension: 52,
+                child: AnimatedGradientBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  gradientColors: [
+                    Colors.red,
+                    Colors.orange,
+                    Colors.yellow,
+                    Colors.green,
+                    Colors.blue,
+                  ],
+                  glowSize: 2,
+                  // borderSize: 1,
+                  animationTime: 5,
+                  child: IconButton(
+                    style: ButtonStyle(
+                        backgroundColor: WidgetStatePropertyAll(
+                      context.theme.scaffoldBackgroundColor,
+                    )),
+                    onPressed: () {
+                      // chatProvider.stopAnswering();
+                    },
+                    icon: const ProgressRing(),
+                  ),
+                ),
               )
             else
               FlyoutTarget(

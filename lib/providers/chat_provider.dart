@@ -21,7 +21,7 @@ import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 
 ChatOpenAI? openAI;
 ChatOpenAI? localModel;
@@ -113,15 +113,7 @@ final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([
 ]);
 
 class ChatProvider with ChangeNotifier {
-  final listItemsScrollController = ItemScrollController();
-  // final listItemsScrollController = ScrollController();
-  final ScrollOffsetController scrollOffsetController =
-      ScrollOffsetController();
-  final ItemPositionsListener itemPositionsListener =
-      ItemPositionsListener.create();
-  final ScrollOffsetListener scrollOffsetListener =
-      ScrollOffsetListener.create(recordProgrammaticScrolls: false);
-
+  final listItemsScrollController = AutoScrollController();
   final TextEditingController messageController = TextEditingController();
 
   bool includeConversationGlobal = true;
@@ -192,7 +184,7 @@ class ChatProvider with ChangeNotifier {
         chatRooms[file.path] = ChatRoom(
           id: file.path,
           chatRoomName: 'Error ${file.path}',
-          model: ChatModelAi(name: 'error', apiKey: ''),
+          model: const ChatModelAi(name: 'error', apiKey: ''),
           messages:
               ConversationBufferMemory(systemPrefix: defaultSystemMessage),
           temp: temp,
@@ -447,12 +439,14 @@ class ChatProvider with ChangeNotifier {
       stream = openAI!.stream(PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.name,
+            maxTokens: selectedChatRoom.maxTokenLength,
           ));
     } else {
       stream = localModel!.stream(
         PromptValue.chat(messagesToSend),
         options: ChatOpenAIOptions(
           model: selectedChatRoom.model.name,
+          maxTokens: selectedChatRoom.maxTokenLength,
         ),
       );
     }
@@ -616,9 +610,10 @@ class ChatProvider with ChangeNotifier {
         AIChatMessage(content: newString);
     messages.add(values);
     if (scrollToBottomOnAnswer) {
-      scrollOffsetController.animateScroll(
-        offset: 10,
+      listItemsScrollController.animateTo(
+        listItemsScrollController.position.maxScrollExtent + 200,
         duration: const Duration(milliseconds: 1),
+        curve: Curves.easeOut,
       );
     }
   }
@@ -815,6 +810,7 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
+  @Deprecated('Is not implemented on the plugin level')
   void stopAnswering() {
     try {
       cancelToken?.cancel('canceled ');
@@ -848,10 +844,10 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> scrollToEnd() async {
     await Future.delayed(const Duration(milliseconds: 100));
-    final lastIndex = messages.value.length;
-    listItemsScrollController.scrollTo(
-      index: lastIndex,
-      duration: const Duration(milliseconds: 400),
+    listItemsScrollController.animateTo(
+      listItemsScrollController.position.maxScrollExtent + 200,
+      duration: const Duration(milliseconds: 1),
+      curve: Curves.easeOut,
     );
     // await scrollOffsetController.animateScroll(
     //   offset: 200,
@@ -962,13 +958,10 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  void scrollToMessage(String messageKey) {
+  Future<void> scrollToMessage(String messageKey) async {
     final index =
         indexOf(messages.value.values.toList(), messages.value[messageKey]);
-    listItemsScrollController.scrollTo(
-      index: index,
-      duration: const Duration(milliseconds: 400),
-    );
+    await listItemsScrollController.scrollToIndex(index);
   }
 
   /// custom get index
