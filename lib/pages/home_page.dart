@@ -373,6 +373,18 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             }),
                       ),
                       Tooltip(
+                        message: 'Include conversation',
+                        child: ToggleButton(
+                            checked: chatProvider.includeConversationGlobal,
+                            child: const Icon(
+                              ic.FluentIcons.history_20_filled,
+                              size: 20,
+                            ),
+                            onChanged: (value) {
+                              chatProvider.setIncludeWholeConversation(value);
+                            }),
+                      ),
+                      Tooltip(
                         message: 'Customize custom promtps',
                         child: ToggleButton(
                             checked: false,

@@ -130,6 +130,8 @@ class ChatProvider with ChangeNotifier {
 
   int _messageTextSize = 14;
 
+  int maxMessagesToIncludeInHistory = 30;
+
   set textSize(int v) {
     _messageTextSize = v;
     AppCache.messageTextSize.set(v);
@@ -426,8 +428,10 @@ class ChatProvider with ChangeNotifier {
     late Stream<ChatResult> stream;
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
-      messagesToSend.addAll(messages.value.values
-          .where((element) => element is! CustomChatMessage));
+      messagesToSend
+          .addAll(getLastFewMessages(count: maxMessagesToIncludeInHistory));
+      // messagesToSend.addAll(messages.value.values
+      //     .where((element) => element is! CustomChatMessage));
     } else {
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
@@ -520,6 +524,16 @@ class ChatProvider with ChangeNotifier {
     final values = messages.value;
     final lastMessages = values.values.toList().take(15).toList();
     return lastMessages;
+  }
+
+  List<ChatMessage> getLastFewMessages({int count = 15}) {
+    final values = messages.value;
+    return values.values
+        .where(
+          (element) => element is! CustomChatMessage,
+        )
+        .take(count)
+        .toList();
   }
 
   String getLastFewMessagesForContextAsString() {

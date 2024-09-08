@@ -195,7 +195,6 @@ class _InputFieldState extends State<InputField> {
                     Colors.blue,
                   ],
                   glowSize: 2,
-                  // borderSize: 1,
                   animationTime: 5,
                   child: IconButton(
                     style: ButtonStyle(
