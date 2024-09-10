@@ -173,7 +173,7 @@ class ChatRoom {
     double? repeatPenalty,
     String? token,
     String? orgID,
-    String? commandPrefix,
+    String? systemMessage,
     double? costUSD,
     int? tokens,
     int? iconCodePoint,
@@ -191,7 +191,7 @@ class ChatRoom {
       topP: topP ?? this.topP,
       maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
-      systemMessage: commandPrefix ?? systemMessage,
+      systemMessage: systemMessage ?? this.systemMessage,
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
     );

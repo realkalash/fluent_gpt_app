@@ -198,7 +198,11 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
 
   /// Builds a text option button. Size is 40x30
   Widget _buildTextOption(CustomPrompt prompt, String command) {
-    final IconData icon = prompt.icon;
+    final IconData icon = fluent.IconData(
+      prompt.iconCodePoint,
+      fontFamily: CustomPrompt.fontFamily,
+      fontPackage: CustomPrompt.fontPackage,
+    );
 
     String? hotkeyText;
     if (prompt.hotkey != null) {
@@ -352,7 +356,8 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
               ),
               fluent.ListTile(
                 leading: const Icon(FluentIcons.dismiss_16_filled),
-                tileColor: fluent.WidgetStateProperty.all(Colors.red.withOpacity(0.4)),
+                tileColor:
+                    fluent.WidgetStateProperty.all(Colors.red.withOpacity(0.4)),
                 title: const Text('CLOSE'),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -415,7 +420,7 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                     itemBuilder: (context, index) {
                       final element = messages.value.entries.elementAt(index);
                       final message = element.value;
-                      
+
                       return MessageCard(
                         id: element.key,
                         message: message,

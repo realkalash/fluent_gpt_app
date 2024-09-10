@@ -1,6 +1,8 @@
 import 'package:animated_list_plus/animated_list_plus.dart';
 import 'package:animated_list_plus/transitions.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -126,7 +128,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
                     final lenght = calcAllPromptsLenght();
                     final newPrompt = CustomPrompt(
                       id: lenght,
-                      icon: FluentIcons.info_24_filled,
+                      iconCodePoint: FluentIcons.info_24_filled.codePoint,
                       title: 'New prompt $lenght',
                       prompt: 'Prompt',
                       index: lenght,
@@ -207,18 +209,16 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           const SizedBox(height: 8),
           // icon dropdown
           const Text('Icon:'),
-          DropDownButton(
-            title: Icon(item.icon),
-            items: [
-              for (var icon in fluentIconsList)
-                MenuFlyoutItem(
-                  text: Icon(icon),
-                  onPressed: () {
-                    final newItem = item.copyWith(icon: icon);
-                    updateItem(newItem, context);
-                  },
-                ),
-            ],
+          Button(
+            child: Icon(item.icon),
+            onPressed: () async {
+              final icon = await IconChooserDialog.show(context);
+              if (icon != null) {
+                final newItem = item.copyWith(iconCodePoint: icon.codePoint);
+                // ignore: use_build_context_synchronously
+                updateItem(newItem, context);
+              }
+            },
           ),
           const Text('Title:'),
           TextBox(
@@ -320,7 +320,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                 ...item.children,
                 CustomPrompt(
                   id: lenght,
-                  icon: FluentIcons.info_24_filled,
+                  iconCodePoint: FluentIcons.info_24_filled.codePoint,
                   title: 'New sub-prompt $lenght',
                   prompt: 'Sub-prompt',
                   index: customPrompts.value.length,
@@ -441,7 +441,7 @@ class _PromptListTile extends StatelessWidget {
                       final lenght = calcAllPromptsLenght();
                       final newPrompt = CustomPrompt(
                         id: lenght,
-                        icon: FluentIcons.info_24_filled,
+                        iconCodePoint: FluentIcons.info_24_filled.codePoint,
                         title: 'New sub-prompt $lenght',
                         prompt: 'Sub-prompt',
                         index: customPrompts.value.length,

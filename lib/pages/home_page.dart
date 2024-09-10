@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
@@ -7,6 +13,8 @@ import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -14,8 +22,10 @@ import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:glowy_borders/glowy_borders.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -298,6 +308,329 @@ class IncludeConversationSwitcher extends StatelessWidget {
   }
 }
 
+class AddSystemMessageField extends StatefulWidget {
+  const AddSystemMessageField({super.key});
+
+  @override
+  State<AddSystemMessageField> createState() => _AddSystemMessageFieldState();
+}
+
+class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
+  bool isExpanded = false;
+  bool isHovered = false;
+  final controller = TextEditingController();
+  String systemMessage = '';
+  StreamSubscription? subscription;
+  @override
+  void initState() {
+    controller.text = selectedChatRoom.systemMessage ?? '';
+    systemMessage = selectedChatRoom.systemMessage ?? '';
+    super.initState();
+    subscription = chatRoomsStream.listen((onData) {
+      if (selectedChatRoom.systemMessage != systemMessage) {
+        controller.text = selectedChatRoom.systemMessage ?? '';
+        systemMessage = selectedChatRoom.systemMessage ?? '';
+        if (mounted) setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    subscription?.cancel();
+    super.dispose();
+  }
+
+  void submit() {
+    setState(() {
+      isExpanded = false;
+      systemMessage = controller.text;
+    });
+    context.read<ChatProvider>()
+      ..editChatRoom(
+        selectedChatRoomId,
+        selectedChatRoom.copyWith(systemMessage: systemMessage),
+      )
+      ..updateUI();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isExpanded)
+      return Container(
+        height: 100,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: FluentTheme.of(context).cardColor,
+        ),
+        child: TextBox(
+          controller: controller,
+          autocorrect: true,
+          autofocus: true,
+          expands: false,
+          minLines: 1,
+          maxLines: 8,
+          textAlignVertical: TextAlignVertical.center,
+          prefix: IconButton(
+            icon:
+                const Icon(ic.FluentIcons.dismiss_square_20_regular, size: 24),
+            onPressed: () {
+              setState(() {
+                isExpanded = false;
+              });
+            },
+          ),
+          suffix: IconButton(
+            icon: const Icon(ic.FluentIcons.send_24_regular, size: 24),
+            onPressed: () {
+              setState(() {
+                isExpanded = false;
+                systemMessage = controller.text;
+              });
+            },
+          ),
+          onSubmitted: (value) {
+            setState(() {
+              isExpanded = false;
+              systemMessage = value;
+            });
+          },
+        ),
+      );
+    return GestureDetector(
+      onTap: () {
+        setState(() => isExpanded = true);
+      },
+      child: MouseRegion(
+        onHover: (_) => setState(() => isHovered = true),
+        onExit: (_) => setState(() => isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: isHovered
+                ? FluentTheme.of(context).accentColor.withOpacity(0.1)
+                : FluentTheme.of(context).cardColor,
+          ),
+          width: double.infinity,
+          margin: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(16),
+          height: 100,
+          alignment: Alignment.center,
+          child: BasicListTile(
+            title: const Center(
+                child: Text('Add system message',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
+            trailing: const PromptLibraryButton(),
+            subtitle: systemMessage.isEmpty
+                ? null
+                : Expanded(
+                    child: Center(
+                        child:
+                            Text(systemMessage, overflow: TextOverflow.fade))),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PromptLibraryButton extends StatelessWidget {
+  const PromptLibraryButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AiLibraryButton(
+      onPressed: () async {
+        final prompt = await showDialog<CustomPrompt?>(
+          context: context,
+          builder: (ctx) => const AiPromptsLibraryDialog(),
+          barrierDismissible: true,
+        );
+        if (prompt != null) {
+          // ignore: use_build_context_synchronously
+          final controller = context.read<ChatProvider>();
+          controller.editChatRoom(
+            selectedChatRoomId,
+            selectedChatRoom.copyWith(systemMessage: prompt.prompt),
+          );
+          controller.updateUI();
+        }
+      },
+    );
+  }
+}
+
+class HomePagePlaceholdersCards extends StatefulWidget {
+  const HomePagePlaceholdersCards({super.key});
+
+  @override
+  State<HomePagePlaceholdersCards> createState() =>
+      _HomePagePlaceholdersCardsState();
+}
+
+class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
+  List<CustomPrompt> getRandom3Prompts(BuildContext context) {
+    final list = <CustomPrompt>[];
+    final random = Random();
+    for (var i = 0; i < 3; i++) {
+      final index = random.nextInt(promptsLibrary.length);
+      list.add(promptsLibrary[index]);
+    }
+    return list;
+  }
+
+  Color getColorBasedOnFirstLetter(String text) {
+    final firstLetter = text[0].toLowerCase();
+    final colors = {
+      'a': Colors.blue.dark,
+      'b': Colors.blue,
+      'c': Colors.green,
+      'd': Colors.orange,
+      'e': Colors.purple,
+      'f': Colors.teal.dark,
+      'g': Colors.teal.darker,
+      'h': Colors.yellow.dark,
+      'i': Colors.yellow.darker,
+      'j': Colors.yellow.light,
+      'k': Colors.red.dark,
+      'l': Colors.red.darker,
+      'm': Colors.red.darkest,
+      'n': Colors.blue.dark,
+      'o': Colors.blue.darker,
+      'p': Colors.blue.darkest,
+      'q': Colors.yellow.darker,
+      'r': Colors.grey,
+      's': Colors.magenta,
+      't': Colors.magenta.dark,
+      'u': Colors.magenta.darker,
+      'v': Colors.magenta.darkest,
+      'w': Colors.orange.dark,
+      'x': Colors.orange.darker,
+      'y': Colors.orange.darkest,
+      'z': Colors.green.dark,
+    };
+    return colors[firstLetter] ?? Colors.grey;
+  }
+
+  List<CustomPrompt> prompts = [];
+
+  @override
+  void initState() {
+    prompts = getRandom3Prompts(context);
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: 250,
+      alignment: Alignment.center,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        children: prompts
+            .map(
+              (e) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: AnimatedHoverCard(
+                    defHeight: 200,
+                    defWidth: 180,
+                    onTap: () {
+                      context.read<ChatProvider>().messageController.text =
+                          e.prompt;
+                      promptTextFocusNode.requestFocus();
+                    },
+                    color: getColorBasedOnFirstLetter(e.title),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            e.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Expanded(
+                              child:
+                                  Text(e.prompt, overflow: TextOverflow.fade)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class AnimatedHoverCard extends StatefulWidget {
+  const AnimatedHoverCard({
+    super.key,
+    this.onTap,
+    required this.child,
+    required this.defWidth,
+    required this.defHeight,
+    this.color,
+  });
+  final void Function()? onTap;
+  final Widget child;
+  final double defWidth;
+  final double defHeight;
+  final Color? color;
+
+  @override
+  State<AnimatedHoverCard> createState() => _AnimatedHoverCardState();
+}
+
+class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
+  bool isHovered = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() {
+          isHovered = true;
+        }),
+        onExit: (_) => setState(() {
+          isHovered = false;
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: isHovered ? widget.defWidth * 1.15 : widget.defWidth,
+          height: isHovered ? widget.defHeight * 1.15 : widget.defHeight,
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: widget.color ?? FluentTheme.of(context).cardColor,
+            boxShadow: [
+              BoxShadow(
+                color: FluentTheme.of(context).shadowColor.withOpacity(0.2),
+                blurRadius: isHovered ? 16 : 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
 class ChatGPTContent extends StatefulWidget {
   const ChatGPTContent({super.key});
 
@@ -320,36 +653,48 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
         children: [
           Column(
             children: <Widget>[
-              Expanded(
-                child: StreamBuilder(
-                    stream: messages,
-                    builder: (context, snapshot) {
-                      return ListView.builder(
-                        controller: chatProvider.listItemsScrollController,
-                        itemCount: messages.value.entries.length,
-                        itemBuilder: (context, index) {
-                          final element =
-                              messages.value.entries.elementAt(index);
-                          final message = element.value;
+              if (messages.value.entries.isEmpty)
+                const Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AddSystemMessageField(),
+                      HomePagePlaceholdersCards(),
+                    ],
+                  ),
+                )
+              else
+                Expanded(
+                  child: StreamBuilder(
+                      stream: messages,
+                      builder: (context, snapshot) {
+                        return ListView.builder(
+                          controller: chatProvider.listItemsScrollController,
+                          itemCount: messages.value.entries.length,
+                          itemBuilder: (context, index) {
+                            final element =
+                                messages.value.entries.elementAt(index);
+                            final message = element.value;
 
-                          return AutoScrollTag(
-                            controller: chatProvider.listItemsScrollController,
-                            key: ValueKey('message_$index'),
-                            index: index,
-                            child: MessageCard(
-                              id: element.key,
-                              message: message,
-                              dateTime: null,
-                              selectionMode: false,
-                              isError: false,
-                              textSize: chatProvider.textSize,
-                              isCompactMode: false,
-                            ),
-                          );
-                        },
-                      );
-                    }),
-              ),
+                            return AutoScrollTag(
+                              controller:
+                                  chatProvider.listItemsScrollController,
+                              key: ValueKey('message_$index'),
+                              index: index,
+                              child: MessageCard(
+                                id: element.key,
+                                message: message,
+                                dateTime: null,
+                                selectionMode: false,
+                                isError: false,
+                                textSize: chatProvider.textSize,
+                                isCompactMode: false,
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                ),
               SizedBox(
                 width: double.infinity,
                 child: Padding(
@@ -358,47 +703,27 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
-                      Tooltip(
-                        message: chatProvider.isWebSearchEnabled
+                      ToggleButtonAdvenced(
+                        checked: chatProvider.isWebSearchEnabled,
+                        icon: ic.FluentIcons.globe_search_20_filled,
+                        onChanged: (_) => chatProvider.toggleWebSearch(),
+                        tooltip: chatProvider.isWebSearchEnabled
                             ? 'Disable web search'
                             : 'Enable web search',
-                        child: ToggleButton(
-                            checked: chatProvider.isWebSearchEnabled,
-                            child: const Icon(
-                              ic.FluentIcons.globe_search_20_filled,
-                              size: 20,
-                            ),
-                            onChanged: (_) {
-                              chatProvider.toggleWebSearch();
-                            }),
                       ),
-                      Tooltip(
-                        message: 'Include conversation',
-                        child: ToggleButton(
-                            checked: chatProvider.includeConversationGlobal,
-                            child: const Icon(
-                              ic.FluentIcons.history_20_filled,
-                              size: 20,
-                            ),
-                            onChanged: (value) {
-                              chatProvider.setIncludeWholeConversation(value);
-                            }),
+                      ToggleButtonAdvenced(
+                        checked: chatProvider.includeConversationGlobal,
+                        icon: ic.FluentIcons.history_20_filled,
+                        onChanged: chatProvider.setIncludeWholeConversation,
+                        tooltip: 'Include conversation',
                       ),
-                      Tooltip(
-                        message: 'Customize custom promtps',
-                        child: ToggleButton(
-                            checked: false,
-                            child: const Icon(
-                              ic.FluentIcons.settings_20_regular,
-                              size: 20,
-                            ),
-                            onChanged: (_) {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) =>
-                                    const CustomPromptsSettingsDialog(),
-                              );
-                            }),
+                      ToggleButtonAdvenced(
+                        icon: ic.FluentIcons.settings_20_regular,
+                        onChanged: (_) => showDialog(
+                          context: context,
+                          builder: (ctx) => const CustomPromptsSettingsDialog(),
+                        ),
+                        tooltip: 'Customize custom promtps',
                       ),
                     ],
                   ),
@@ -416,6 +741,53 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             child: _ScrollToBottomButton(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ToggleButtonAdvenced extends StatelessWidget {
+  const ToggleButtonAdvenced({
+    super.key,
+    this.checked = false,
+    required this.icon,
+    required this.onChanged,
+    required this.tooltip,
+    this.contextItems = const [],
+  });
+  final bool checked;
+  final IconData icon;
+  final void Function(bool) onChanged;
+  final String tooltip;
+  final List<Widget> contextItems;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = FlyoutController();
+    return Tooltip(
+      message: tooltip,
+      child: FlyoutTarget(
+        controller: controller,
+        child: GestureDetector(
+          onSecondaryTap: () {
+            if (contextItems.isEmpty) return;
+            controller.showFlyout(builder: (context) {
+              return FlyoutContent(child: Column(children: contextItems));
+            });
+          },
+          child: ToggleButton(
+            checked: checked,
+            onChanged: onChanged,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20),
+                if (contextItems.isNotEmpty)
+                  const Icon(ic.FluentIcons.chevron_down_20_regular),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

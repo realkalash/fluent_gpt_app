@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
@@ -13,8 +14,10 @@ import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
+import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -124,6 +127,7 @@ void main(List<String> args) async {
   if (AppCache.isWelcomeShown.value == true) {
     await FileUtils.init();
   }
+  defaultSystemMessage = AppCache.globalSystemPrompt.value!;
   if (Platform.isMacOS || Platform.isWindows) {
     await flutter_acrylic.Window.initialize();
     await flutter_acrylic.Window.hideWindowControls();
@@ -230,8 +234,10 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                 locale: appTheme.locale,
                 builder: (ctx, child) {
                   return NavigationPaneTheme(
-                    data: const NavigationPaneThemeData(
-                      backgroundColor: Colors.transparent,
+                    data: NavigationPaneThemeData(
+                      backgroundColor: appTheme.isDark
+                          ? _appTheme.darkBackgroundColor
+                          : _appTheme.lightBackgroundColor,
                     ),
                     child: child!,
                   );
@@ -263,10 +269,10 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
 
   @override
   void dispose() {
-    final navigationProvider = context.read<NavigationProvider>();
-    windowManager.removeListener(this);
-    navigationProvider.searchController.dispose();
-    navigationProvider.searchFocusNode.dispose();
+    // final navigationProvider = context.read<NavigationProvider>();
+    // windowManager.removeListener(this);
+    // navigationProvider.searchController.dispose();
+    // navigationProvider.searchFocusNode.dispose();
     super.dispose();
   }
 

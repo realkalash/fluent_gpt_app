@@ -75,6 +75,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                         language: widget.language,
                         theme: widget.preConfig.theme,
                         textStyle: widget.style,
+                        styleNotMatched: widget.preConfig.styleNotMatched,
                       ),
                     ));
                   }),
@@ -103,6 +104,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                     language: widget.language,
                     theme: widget.preConfig.theme,
                     textStyle: widget.style,
+                    styleNotMatched: widget.preConfig.styleNotMatched,
                   ),
                 ));
               }),

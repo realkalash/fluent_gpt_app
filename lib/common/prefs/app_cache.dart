@@ -37,6 +37,8 @@ class AppCache {
   static const windowHeight = IntPref("windowHeight");
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
 
+  static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
+
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 

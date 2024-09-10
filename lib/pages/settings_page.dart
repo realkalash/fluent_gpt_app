@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
@@ -16,6 +17,7 @@ import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
+import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
@@ -26,6 +28,7 @@ import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:langchain/langchain.dart';
+import 'package:rxdart/subjects.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
@@ -38,49 +41,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import '../theme.dart';
 import '../widgets/confirmation_dialog.dart';
 
-class GptModelChooser extends StatefulWidget {
-  const GptModelChooser({super.key, required this.onChanged});
-
-  final void Function(ChatModelAi model) onChanged;
-
-  @override
-  State<GptModelChooser> createState() => _GptModelChooserState();
-}
-
-class _GptModelChooserState extends State<GptModelChooser> {
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<String>(
-        stream: selectedChatRoomIdStream,
-        builder: (context, snapshot) {
-          return Wrap(
-            spacing: 15.0,
-            runSpacing: 10.0,
-            children: List.generate(
-              allModels.value.length,
-              (index) {
-                final model = allModels.value[index];
-
-                return Padding(
-                  padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-                  child: RadioButton(
-                    checked: selectedModel.name == model.name,
-                    onChanged: (value) {
-                      if (value) {
-                        setState(() {
-                          widget.onChanged.call(model);
-                        });
-                      }
-                    },
-                    content: Text(model.name),
-                  ),
-                );
-              },
-            ),
-          );
-        });
-  }
-}
+BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -107,6 +68,8 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         children: [
           const EnabledGptTools(),
           const AdditionalTools(),
+          spacer,
+          const GlobalSettings(),
           const OverlaySettings(),
           const AccessibilityPermissionButton(),
           const _CacheSection(),
@@ -347,18 +310,6 @@ class _OverlaySettingsState extends State<OverlaySettings> {
           min: 4,
           mode: SpinButtonPlacementMode.inline,
         ),
-        Text('compactMessageTextSize',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        NumberBox(
-          value: AppCache.compactMessageTextSize.value,
-          onChanged: (value) {
-            AppCache.compactMessageTextSize.value = value ?? 10;
-            Provider.of<ChatProvider>(context, listen: false).updateUI();
-          },
-          mode: SpinButtonPlacementMode.inline,
-        ),
-        const MessageSamplePreviewCard(isCompact: true),
         biggerSpacer,
       ],
     );
@@ -481,6 +432,58 @@ class ServerSettings extends StatelessWidget {
   }
 }
 
+class GlobalSettings extends StatefulWidget {
+  const GlobalSettings({super.key});
+
+  @override
+  State<GlobalSettings> createState() => _GlobalSettingsState();
+}
+
+class _GlobalSettingsState extends State<GlobalSettings> {
+  final systemPromptController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    systemPromptController.text = AppCache.globalSystemPrompt.value!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expander(
+      header: const Text('Global settings'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormBox(
+            placeholder: 'Global system prompt',
+            controller: systemPromptController,
+            minLines: 1,
+            maxLines: 12,
+            suffix: AiLibraryButton(onPressed: () async {
+              final prompt = await showDialog<CustomPrompt?>(
+                context: context,
+                builder: (ctx) => const AiPromptsLibraryDialog(),
+                barrierDismissible: true,
+              );
+              if (prompt != null) {
+                AppCache.globalSystemPrompt.value = prompt.prompt;
+                systemPromptController.text = prompt.prompt;
+                defaultSystemMessage = prompt.prompt;
+              }
+            }),
+            onChanged: (value) {
+              AppCache.globalSystemPrompt.value = value;
+              defaultSystemMessage = value;
+            },
+          ),
+          const Text('Global system prompt will be used for all NEW chats'),
+          spacer,
+        ],
+      ),
+    );
+  }
+}
+
 class EnabledGptTools extends StatefulWidget {
   const EnabledGptTools({super.key});
 
@@ -525,7 +528,8 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 placeholder: AppCache.localApiUrl.value,
                 onFieldSubmitted: (value) {
                   AppCache.localApiUrl.value = value;
-                  Provider.of<ChatProvider>(context, listen: false).initChatModels();
+                  Provider.of<ChatProvider>(context, listen: false)
+                      .initChatModels();
                 },
                 onChanged: (value) {
                   AppCache.localApiUrl.value = value;
@@ -657,19 +661,54 @@ class _ResolutionsSelector extends StatelessWidget {
               : null,
         ),
         const SizedBox(height: 8.0),
-        Text('Text size', style: FluentTheme.of(context).typography.subtitle),
+        Text('Message Text size',
+            style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        SizedBox(
-          width: 200.0,
-          child: NumberBox(
-            value: gptProvider.textSize,
-            onChanged: (value) {
-              gptProvider.textSize = value ?? 14;
-            },
-            mode: SpinButtonPlacementMode.inline,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  Text('Basic Message Text Size',
+                      style: FluentTheme.of(context).typography.subtitle),
+                  SizedBox(
+                    width: 200.0,
+                    child: NumberBox(
+                      value: gptProvider.textSize,
+                      onChanged: (value) {
+                        gptProvider.textSize = value ?? 14;
+                      },
+                      mode: SpinButtonPlacementMode.inline,
+                    ),
+                  ),
+                  const MessageSamplePreviewCard(isCompact: false),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  Text('Compact Message Text Size',
+                      style: FluentTheme.of(context).typography.subtitle),
+                  SizedBox(
+                    width: 200.0,
+                    child: NumberBox(
+                      value: AppCache.compactMessageTextSize.value,
+                      onChanged: (value) {
+                        AppCache.compactMessageTextSize.value = value ?? 10;
+                        Provider.of<ChatProvider>(context, listen: false)
+                            .updateUI();
+                      },
+                      mode: SpinButtonPlacementMode.inline,
+                    ),
+                  ),
+                  const MessageSamplePreviewCard(isCompact: true),
+                ],
+              ),
+            )
+          ],
         ),
-        const MessageSamplePreviewCard(isCompact: false),
       ],
     );
   }
@@ -979,7 +1018,7 @@ class _ThemeModeSection extends StatelessWidget {
                 onChanged: (value) {
                   if (value == true) {
                     appTheme.windowEffectOpacity = 0.0;
-                    appTheme.windowEffectColor = Colors.blue;
+                    appTheme.windowEffectColor = appTheme.color;
                     appTheme.setEffect(WindowEffect.acrylic);
                   } else {
                     appTheme.windowEffectOpacity = 0.0;

@@ -197,7 +197,11 @@ class _OverlayUIState extends State<OverlayUI> {
 
   /// Builds a text option button. Size is 30x30
   Widget _buildTextOption(CustomPrompt prompt, String command) {
-    final IconData icon = prompt.icon;
+    final IconData icon = fluent.IconData(
+      prompt.iconCodePoint,
+      fontFamily: CustomPrompt.fontFamily,
+      fontPackage: CustomPrompt.fontPackage,
+    );
     final String text = prompt.title;
     return InkWell(
       onTap: () async {

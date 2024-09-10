@@ -1,6 +1,7 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:glowy_borders/glowy_borders.dart';
 
 class FilledRedButton extends StatelessWidget {
   const FilledRedButton({
@@ -30,6 +31,37 @@ class FilledRedButton extends StatelessWidget {
         }),
       ),
       child: child,
+    );
+  }
+}
+
+
+class AiLibraryButton extends StatelessWidget {
+  const AiLibraryButton({
+    super.key,
+    required this.onPressed,
+    this.isSmall = false,
+  });
+  final void Function() onPressed;
+  final bool isSmall;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedGradientBorder(
+      gradientColors: [
+        Colors.transparent,
+        FluentTheme.of(context).accentColor,
+      ],
+      glowSize: isSmall ? 2 : 4,
+      borderRadius: BorderRadius.circular(4),
+      child: Button(
+        style:
+            ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
+        onPressed: onPressed,
+        child: isSmall
+            ? const Text('AI', style: TextStyle(color: Colors.white))
+            : const Text('AI library', style: TextStyle(color: Colors.white)),
+      ),
     );
   }
 }

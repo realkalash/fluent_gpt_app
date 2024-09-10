@@ -528,12 +528,20 @@ class ChatProvider with ChangeNotifier {
 
   List<ChatMessage> getLastFewMessages({int count = 15}) {
     final values = messages.value;
-    return values.values
+    final list = values.values
         .where(
           (element) => element is! CustomChatMessage,
         )
         .take(count)
         .toList();
+        // append current global system message to the very beginning
+    if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+      list.insert(
+        0,
+        SystemChatMessage(content: selectedChatRoom.systemMessage!),
+      );
+    }
+    return list;
   }
 
   String getLastFewMessagesForContextAsString() {

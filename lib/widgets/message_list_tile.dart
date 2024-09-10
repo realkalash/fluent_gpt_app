@@ -325,7 +325,7 @@ class _MessageCardState extends State<MessageCard> {
                             _isMarkdownView = !_isMarkdownView;
                           });
                         },
-                        checked: false,
+                        checked: _isMarkdownView,
                         child: const Icon(FluentIcons.paint_brush_12_regular,
                             size: 10),
                       ),

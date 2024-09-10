@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -12,6 +13,7 @@ import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -140,12 +142,6 @@ class _InputFieldState extends State<InputField> {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Row(
           children: [
-            // Button(
-            //     child: const Text('Search test'),
-            //     onPressed: () async {
-            //       chatProvider
-            //           .sendMessage('Can you search for file named "1.png?');
-            //     }),
             if (chatProvider.fileInput == null)
               _AddFileButton(chatProvider: chatProvider),
             if (chatProvider.fileInput != null)
@@ -159,7 +155,29 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
-                prefix: const _ChooseModelButton(),
+                prefix: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _ChooseModelButton(),
+                    AiLibraryButton(
+                      onPressed: () async {
+                        final prompt = await showDialog<CustomPrompt?>(
+                          context: context,
+                          builder: (ctx) => const AiPromptsLibraryDialog(),
+                          barrierDismissible: true,
+                        );
+                        if (prompt != null) {
+                          // ignore: use_build_context_synchronously
+                          final controller = context.read<ChatProvider>();
+                          controller.messageController.text = prompt
+                              .getPromptText(controller.messageController.text);
+                          promptTextFocusNode.requestFocus();
+                        }
+                      },
+                      isSmall: true,
+                    ),
+                  ],
+                ),
                 textInputAction: TextInputAction.done,
                 onSubmitted: (value) {
                   if (value.trim().isEmpty) {
@@ -281,10 +299,6 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
       return Image.asset(
         'assets/openai_icon.png',
         fit: BoxFit.contain,
-        // width: 24,
-        // height: 24,
-        // cacheHeight: 24,
-        // cacheWidth: 24,
       );
     }
     return const Icon(ic.FluentIcons.chat_24_regular);
