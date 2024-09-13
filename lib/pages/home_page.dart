@@ -22,10 +22,8 @@ import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
-import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:glowy_borders/glowy_borders.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -271,7 +269,6 @@ class PageHeaderText extends StatelessWidget {
                   provider.scrollToMessage(elementkey);
                 },
               ),
-              const IncludeConversationSwitcher(),
             ],
           ),
         ],
@@ -356,82 +353,81 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
 
   @override
   Widget build(BuildContext context) {
-    if (isExpanded)
-      return Container(
-        height: 100,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: FluentTheme.of(context).cardColor,
-        ),
-        child: TextBox(
-          controller: controller,
-          autocorrect: true,
-          autofocus: true,
-          expands: false,
-          minLines: 1,
-          maxLines: 8,
-          textAlignVertical: TextAlignVertical.center,
-          prefix: IconButton(
-            icon:
-                const Icon(ic.FluentIcons.dismiss_square_20_regular, size: 24),
-            onPressed: () {
-              setState(() {
-                isExpanded = false;
-              });
-            },
-          ),
-          suffix: IconButton(
-            icon: const Icon(ic.FluentIcons.send_24_regular, size: 24),
-            onPressed: () {
-              setState(() {
-                isExpanded = false;
-                systemMessage = controller.text;
-              });
-            },
-          ),
-          onSubmitted: (value) {
-            setState(() {
-              isExpanded = false;
-              systemMessage = value;
-            });
-          },
-        ),
-      );
-    return GestureDetector(
-      onTap: () {
-        setState(() => isExpanded = true);
-      },
-      child: MouseRegion(
-        onHover: (_) => setState(() => isHovered = true),
-        onExit: (_) => setState(() => isHovered = false),
-        cursor: SystemMouseCursors.click,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isHovered
-                ? FluentTheme.of(context).accentColor.withOpacity(0.1)
-                : FluentTheme.of(context).cardColor,
-          ),
-          width: double.infinity,
-          margin: const EdgeInsets.all(32),
-          padding: const EdgeInsets.all(16),
-          height: 100,
-          alignment: Alignment.center,
-          child: BasicListTile(
-            title: const Center(
-                child: Text('Add system message',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
-            trailing: const PromptLibraryButton(),
-            subtitle: systemMessage.isEmpty
-                ? null
-                : Expanded(
-                    child: Center(
-                        child:
-                            Text(systemMessage, overflow: TextOverflow.fade))),
-          ),
-        ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: isExpanded ? 300 : 100,
+      margin: isExpanded ? const EdgeInsets.all(8) : const EdgeInsets.all(16),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: FluentTheme.of(context).cardColor,
       ),
+      child: isExpanded
+          ? TextBox(
+              controller: controller,
+              autofocus: true,
+              minLines: 1,
+              maxLines: 20,
+              textAlignVertical: TextAlignVertical.center,
+              prefix: IconButton(
+                icon: const Icon(ic.FluentIcons.dismiss_square_20_regular,
+                    size: 24),
+                onPressed: () {
+                  setState(() {
+                    isExpanded = false;
+                  });
+                },
+              ),
+              suffix: IconButton(
+                icon: const Icon(ic.FluentIcons.send_24_regular, size: 24),
+                onPressed: () {
+                  setState(() {
+                    isExpanded = false;
+                    systemMessage = controller.text;
+                  });
+                },
+              ),
+              onSubmitted: (value) {
+                setState(() {
+                  isExpanded = false;
+                  systemMessage = value;
+                });
+              },
+            )
+          : GestureDetector(
+              onTap: () {
+                setState(() => isExpanded = true);
+              },
+              child: MouseRegion(
+                onHover: (_) => setState(() => isHovered = true),
+                onExit: (_) => setState(() => isHovered = false),
+                cursor: SystemMouseCursors.click,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: isHovered
+                        ? FluentTheme.of(context).accentColor.withOpacity(0.1)
+                        : FluentTheme.of(context).cardColor,
+                  ),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  alignment: Alignment.center,
+                  child: BasicListTile(
+                    title: const Center(
+                        child: Text('Add system message',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w500))),
+                    trailing: const PromptLibraryButton(),
+                    subtitle: systemMessage.isEmpty
+                        ? null
+                        : Expanded(
+                            child: Center(
+                                child: Text(systemMessage,
+                                    overflow: TextOverflow.fade))),
+                  ),
+                ),
+              ),
+            ),
     );
   }
 }
@@ -531,14 +527,16 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
       child: ListView(
         scrollDirection: Axis.horizontal,
         shrinkWrap: true,
-        children: prompts
-            .map(
-              (e) => Center(
-                child: Padding(
+        children: prompts.map(
+          (e) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: AnimatedHoverCard(
                     defHeight: 200,
-                    defWidth: 180,
+                    defWidth: 160,
                     onTap: () {
                       context.read<ChatProvider>().messageController.text =
                           e.prompt;
@@ -567,9 +565,21 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                     ),
                   ),
                 ),
-              ),
-            )
-            .toList(),
+                Positioned(
+                  bottom: 32,
+                  right: 16,
+                  child: Button(
+                    child: const Icon(ic.FluentIcons.send_24_filled),
+                    onPressed: () {
+                      context.read<ChatProvider>().sendMessage(e.prompt);
+                      promptTextFocusNode.requestFocus();
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ).toList(),
       ),
     );
   }
@@ -583,8 +593,10 @@ class AnimatedHoverCard extends StatefulWidget {
     required this.defWidth,
     required this.defHeight,
     this.color,
+    this.onLongPress,
   });
   final void Function()? onTap;
+  final void Function()? onLongPress;
   final Widget child;
   final double defWidth;
   final double defHeight;
@@ -600,6 +612,7 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         onEnter: (_) => setState(() {

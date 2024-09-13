@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -179,7 +181,7 @@ class ChatProvider with ChangeNotifier {
         if (chatRoom.id == selectedChatRoomId) {
           initCurrentChat();
           await _loadMessagesFromDisk(chatRoom.id);
-          scrollToEnd();
+          if (messages.value.isNotEmpty) scrollToEnd();
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -187,8 +189,7 @@ class ChatProvider with ChangeNotifier {
           id: file.path,
           chatRoomName: 'Error ${file.path}',
           model: const ChatModelAi(name: 'error', apiKey: ''),
-          messages:
-              ConversationBufferMemory(systemPrefix: defaultSystemMessage),
+          messages: ConversationBufferMemory(),
           temp: temp,
           topk: topk,
           promptBatchSize: promptBatchSize,
@@ -196,7 +197,8 @@ class ChatProvider with ChangeNotifier {
           topP: topP,
           maxTokenLength: maxLenght,
           repeatPenalty: repeatPenalty,
-          systemMessage: defaultSystemMessage,
+          systemMessage: '',
+          dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
         );
       }
     }
@@ -357,12 +359,21 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
+  Future<void> generateUserKnowladgeBasedOnText(String text) async {
+    final userName = AppCache.userName.value;
+    final response = await retrieveResponseFromPrompt(
+      'Based on this messages/conversation/text give me a short sentence to populate knowladge about $userName:'
+      '"$text"',
+    );
+  }
+
   Future<void> sendMessage(
     String messageContent, [
     bool hidePrompt = false,
   ]) async {
     bool isFirstMessage = messages.value.isEmpty;
     if (isFirstMessage) {
+      /// Name chat room
       if (AppCache.useSecondRequestForNamingChats.value!) {
         retrieveResponseFromPrompt(
           '$nameTopicPrompt "$messageContent"',
@@ -380,21 +391,34 @@ class ChatProvider with ChangeNotifier {
       );
       final lastMessages = getLastFewMessagesForContextAsString();
       String searchPrompt = await retrieveResponseFromPrompt(
-        '$webSearchPrompt """$lastMessages"""\n GIVE ME ONLYTHE PROMPT AND NOTHING ELSE',
+        '$webSearchPrompt """$lastMessages"""\n GIVE ME RESULT ONLY IN THIS FORMAT. DON\'T ADD ANYTHING ELSE'
+        '{"query":"<your response>"}',
       );
       isAnswering = true;
       notifyListeners();
       final scrapper = WebScraper();
-      final results = await scrapper.search(searchPrompt);
-      if (AppCache.scrapOnlyDecription.value!) {
-        final shortResults = results.take(15).map((e) => e).toList();
-        addWebResultsToMessages(shortResults);
-        await _answerBasedOnWebResults(shortResults,
-            'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
-      } else {
-        final threeRessults = results.take(3).map((e) => e).toList();
-        addWebResultsToMessages(threeRessults);
-        await _answerBasedOnWebResults(threeRessults, messageContent);
+      try {
+        final decoded = jsonDecode(searchPrompt);
+        searchPrompt = decoded['query'];
+      } catch (e) {
+        // do nothing
+      }
+      try {
+        final results = await scrapper.search(searchPrompt);
+        if (AppCache.scrapOnlyDecription.value!) {
+          final shortResults = results.take(15).map((e) => e).toList();
+          addWebResultsToMessages(shortResults);
+          await _answerBasedOnWebResults(shortResults,
+              'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+        } else {
+          final threeRessults = results.take(3).map((e) => e).toList();
+          addWebResultsToMessages(threeRessults);
+          await _answerBasedOnWebResults(threeRessults, messageContent);
+        }
+      } catch (e) {
+        addBotErrorMessageToList(
+          SystemChatMessage(content: 'Error while searching: $e'),
+        );
       }
 
       isAnswering = false;
@@ -413,7 +437,9 @@ class ChatProvider with ChangeNotifier {
       addHumanMessageToList(
         HumanChatMessage(
           content: ChatMessageContent.image(
-              data: base64, mimeType: fileInput!.mimeType),
+            data: base64,
+            mimeType: fileInput!.mimeType,
+          ),
         ),
       );
     } else {
@@ -428,11 +454,17 @@ class ChatProvider with ChangeNotifier {
     late Stream<ChatResult> stream;
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
-      messagesToSend
-          .addAll(getLastFewMessages(count: maxMessagesToIncludeInHistory));
-      // messagesToSend.addAll(messages.value.values
-      //     .where((element) => element is! CustomChatMessage));
+      messagesToSend.addAll(
+        await getLastFewMessages(count: maxMessagesToIncludeInHistory),
+      );
     } else {
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+        final systemMessage = await getFormattedSystemPrompt(
+          basicPrompt: selectedChatRoom.systemMessage!,
+        );
+        messagesToSend.add(SystemChatMessage(content: systemMessage));
+      }
+
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
     }
@@ -440,11 +472,21 @@ class ChatProvider with ChangeNotifier {
       if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
         openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
       }
-      stream = openAI!.stream(PromptValue.chat(messagesToSend),
-          options: ChatOpenAIOptions(
+      stream = openAI!.stream(
+        PromptValue.chat(messagesToSend),
+        options: ChatOpenAIOptions(
             model: selectedChatRoom.model.name,
             maxTokens: selectedChatRoom.maxTokenLength,
-          ));
+            functionCall: const ChatFunctionCallAuto(),
+            functions: [
+              if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                const ChatFunction(
+                  name: 'copy_to_clipboard_tool',
+                  description: 'Tool to copy text to users clipboard',
+                  parameters: copyToClipboardFunctionParameters,
+                ),
+            ]),
+      );
     } else {
       stream = localModel!.stream(
         PromptValue.chat(messagesToSend),
@@ -456,22 +498,49 @@ class ChatProvider with ChangeNotifier {
     }
 
     try {
+      String functionCallString = '';
+      String functionName = '';
       await stream.forEach(
         (final chunk) {
           final message = chunk.output;
           // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
-          addBotMessageToList(message, chunk.id);
+          if (message.functionCall?.argumentsRaw == null)
+            addBotMessageToList(message, chunk.id);
+          else {
+            functionCallString += message.functionCall!.argumentsRaw;
+            if (message.functionCall?.name.isNotEmpty == true) {
+              functionName = message.functionCall!.name;
+            }
+          }
+          print(
+              'function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
             /// TODO: add more logic here
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
-            notifyListeners();
             refreshTokensForCurrentChat();
+            onResponseEnd(messageContent, chunk.id);
+            if (functionCallString.isNotEmpty) {
+              final lastChar =
+                  functionCallString[functionCallString.length - 1];
+              if (lastChar == '}') {
+                final decoded = jsonDecode(functionCallString);
+                _onToolsResponseEnd(messageContent, decoded, functionName);
+              }
+            }
           } else if (chunk.finishReason == FinishReason.length) {
             /// Maximum tokens reached
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
             notifyListeners();
+            refreshTokensForCurrentChat();
+          } else if (chunk.finishReason == FinishReason.toolCalls) {
+            final lastChar = functionCallString[functionCallString.length - 1];
+            if (lastChar == '}') {
+              final decoded = jsonDecode(functionCallString);
+              _onToolsResponseEnd(messageContent, decoded, functionName);
+            }
+            isAnswering = false;
             refreshTokensForCurrentChat();
           }
         },
@@ -486,6 +555,10 @@ class ChatProvider with ChangeNotifier {
     fileInput = null;
     notifyListeners();
     saveToDisk([selectedChatRoom]);
+  }
+
+  void onResponseEnd(String userContent, String id) async {
+    /* do nothing for now */
   }
 
   Future<int> getTokensFromMessages(List<ChatMessage> messages) async {
@@ -526,7 +599,7 @@ class ChatProvider with ChangeNotifier {
     return lastMessages;
   }
 
-  List<ChatMessage> getLastFewMessages({int count = 15}) {
+  Future<List<ChatMessage>> getLastFewMessages({int count = 15}) async {
     final values = messages.value;
     final list = values.values
         .where(
@@ -534,13 +607,18 @@ class ChatProvider with ChangeNotifier {
         )
         .take(count)
         .toList();
-        // append current global system message to the very beginning
+    // append current global system message to the very beginning
     if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
       list.insert(
         0,
-        SystemChatMessage(content: selectedChatRoom.systemMessage!),
+        SystemChatMessage(
+          content: await getFormattedSystemPrompt(
+            basicPrompt: selectedChatRoom.systemMessage!,
+          ),
+        ),
       );
     }
+
     return list;
   }
 
@@ -606,8 +684,10 @@ class ChatProvider with ChangeNotifier {
   /// Will not populate messages
   Future<String> retrieveResponseFromPrompt(String message) async {
     final messagesToSend = <ChatMessage>[];
+
     messagesToSend
         .add(HumanChatMessage(content: ChatMessageContent.text(message)));
+
     AIChatMessage response;
     if (selectedModel.ownedBy == 'openai') {
       response = await openAI!.call(messagesToSend);
@@ -658,34 +738,40 @@ class ChatProvider with ChangeNotifier {
 
   Future _onToolsResponseEnd(
     String userContent,
-    Map<String, dynamic> assistantArgs,
+    Map<String, dynamic> toolArgs,
+    String? toolName,
   ) async {
-    //e.g. {index: 0, id: call_ko18NuZ0HCgKkk5rcBZyUQ3B, type: function, function: {name: search_files, arguments: {"filename":"1.png","offset":0,"maxNumberFiles":10}}}
-    log('assistantArgs: $assistantArgs');
-    final toolFunction = assistantArgs['function'] as Map<String, dynamic>;
-    final toolName = toolFunction['name'];
-    final toolArgsString = toolFunction['arguments'] as String;
-    final toolArgs = jsonDecode(toolArgsString) as Map<String, dynamic>;
-    if (toolName == 'search_files') {
-      final fileName = '${toolArgs['filename']}';
-      toolArgs.remove('filename');
-
-      final result =
-          await ShellDriver.runShellSearchFileCommand(fileName, toolArgs);
-      addBotMessageToList(AIChatMessage(content: result));
-    } else if (toolName == 'get_current_weather') {
-      final location = toolArgs['location'];
-      // final unit = toolArgs['unit'];
-      final result = await ShellDriver.runShellCommand(
-          'curl wttr.in/$location?format="%C+%t+%w+%h+%p"');
-      addBotMessageToList(AIChatMessage(content: result));
-    } else if (toolName == 'write_python_code') {
-      final code = toolArgs['code'];
-      final responseMessage = toolArgs['responseMessage'];
-      addBotMessageToList(AIChatMessage(content: '$code\n$responseMessage'));
-    } else {
-      addBotMessageToList(AIChatMessage(content: 'Unknown tool: $toolName'));
+    log('assistantArgs: $toolArgs');
+    if (toolName == 'copy_to_clipboard_tool' &&
+        AppCache.gptToolCopyToClipboardEnabled.value!) {
+      final text = toolArgs['responseMessage'];
+      final textToCopy = toolArgs['clipboard'];
+      await Clipboard.setData(ClipboardData(text: textToCopy));
+      displayCopiedToClipboard();
+      addBotMessageToList(
+          AIChatMessage(content: "```Clipboard\n$textToCopy\n```\n$text"));
     }
+    // if (toolName == 'search_files') {
+    //   final fileName = '${toolArgs['filename']}';
+    //   toolArgs.remove('filename');
+
+    //   final result =
+    //       await ShellDriver.runShellSearchFileCommand(fileName, toolArgs);
+    //   addBotMessageToList(AIChatMessage(content: result));
+    // } else
+    // if (toolName == 'get_current_weather') {
+    //   final location = toolArgs['location'];
+    //   // final unit = toolArgs['unit'];
+    //   final result = await ShellDriver.runShellCommand(
+    //       'curl wttr.in/$location?format="%C+%t+%w+%h+%p"');
+    //   addBotMessageToList(AIChatMessage(content: result));
+    // } else if (toolName == 'write_python_code') {
+    //   final code = toolArgs['code'];
+    //   final responseMessage = toolArgs['responseMessage'];
+    //   addBotMessageToList(AIChatMessage(content: '$code\n$responseMessage'));
+    // } else {
+    //   addBotMessageToList(AIChatMessage(content: 'Unknown tool: $toolName'));
+    // }
   }
 
   _requestForTitleChat(String userMessage) async {}
@@ -698,7 +784,20 @@ class ChatProvider with ChangeNotifier {
   }
 
   void notifyRoomsStream() {
-    chatRoomsStream.add(chatRooms);
+    final chatRooms = chatRoomsStream.value;
+    final sortedChatRooms = chatRooms.values.toList()
+      ..sort((a, b) {
+        int indexSortComparison = a.indexSort.compareTo(b.indexSort);
+        if (indexSortComparison != 0) {
+          return indexSortComparison;
+        }
+        return b.dateCreatedMilliseconds.compareTo(a.dateCreatedMilliseconds);
+      });
+    chatRoomsStream.add(
+      {
+        for (var e in sortedChatRooms) (e).id: e,
+      },
+    );
   }
 
   void selectNewModel(ChatModelAi model) {
@@ -713,14 +812,20 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
-  void createNewChatRoom() {
+  Future<void> createNewChatRoom() async {
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
     final id = generateChatID();
+    String systemMessage = '';
+    if (defaultSystemMessage.isNotEmpty == true) {
+      systemMessage =
+          await getFormattedSystemPrompt(basicPrompt: defaultSystemMessage);
+    }
+
     chatRooms[id] = ChatRoom(
       id: id,
       chatRoomName: chatRoomName,
       model: selectedModel,
-      messages: ConversationBufferMemory(systemPrefix: defaultSystemMessage),
+      messages: ConversationBufferMemory(),
       temp: temp,
       topk: topk,
       promptBatchSize: promptBatchSize,
@@ -728,13 +833,15 @@ class ChatProvider with ChangeNotifier {
       topP: topP,
       maxTokenLength: maxLenght,
       repeatPenalty: repeatPenalty,
-      systemMessage: defaultSystemMessage,
+      systemMessage: systemMessage,
+      dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
     );
     totalTokensForCurrentChat = 0;
     notifyListeners();
     notifyRoomsStream();
     selectedChatRoomId = id;
     messages.add({});
+
     saveToDisk([selectedChatRoom]);
   }
 
@@ -768,11 +875,15 @@ class ChatProvider with ChangeNotifier {
     scrollToEnd();
   }
 
-  void deleteChatRoom(String chatRoomId) {
+  Future<void> deleteChatRoom(String chatRoomId) async {
+    final chatRoomToDelete = chatRooms[chatRoomId];
     chatRooms.remove(chatRoomId);
     // if last one - create a default one
     if (chatRooms.isEmpty) {
-      final newChatRoom = _generateDefaultChatroom();
+      final newChatRoom = _generateDefaultChatroom(
+        systemMessage:
+            await getFormattedSystemPrompt(basicPrompt: defaultSystemMessage),
+      );
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
@@ -781,8 +892,24 @@ class ChatProvider with ChangeNotifier {
     }
     FileUtils.getChatRoomPath().then((dir) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
-      FileUtils.moveFile(
-          '$dir/$chatRoomId.json', '$archivedChatRoomsPath/$chatRoomId.json');
+      if (chatRoomToDelete?.model.name == 'error') {
+        // in this case id is the path
+        FileUtils.deleteFile(chatRoomId);
+      } else {
+        FileUtils.moveFile(
+            '$dir/$chatRoomId.json', '$archivedChatRoomsPath/$chatRoomId.json');
+      }
+    });
+
+    /// 2. Delete messages file
+    FileUtils.getChatRoomMessagesFileById(chatRoomId).then((file) async {
+      final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
+      if (chatRoomToDelete?.model.name == 'error') {
+        FileUtils.deleteFile(chatRoomId);
+      } else {
+        FileUtils.moveFile(
+            file.path, '$archivedChatRoomsPath/${file.path.split('/').last}');
+      }
     });
     notifyListeners();
   }
@@ -866,6 +993,8 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> scrollToEnd() async {
     await Future.delayed(const Duration(milliseconds: 100));
+    if (messages.value.isEmpty) return;
+    if (listItemsScrollController.hasClients == false) return;
     listItemsScrollController.animateTo(
       listItemsScrollController.position.maxScrollExtent + 200,
       duration: const Duration(milliseconds: 1),
@@ -1009,12 +1138,12 @@ class ChatProvider with ChangeNotifier {
   }
 }
 
-ChatRoom _generateDefaultChatroom() {
+ChatRoom _generateDefaultChatroom({String? systemMessage}) {
   return ChatRoom(
     id: generateChatID(),
     chatRoomName: 'Default',
     model: selectedModel,
-    messages: ConversationBufferMemory(systemPrefix: defaultSystemMessage),
+    messages: ConversationBufferMemory(),
     temp: temp,
     topk: topk,
     promptBatchSize: promptBatchSize,
@@ -1022,6 +1151,7 @@ ChatRoom _generateDefaultChatroom() {
     topP: topP,
     maxTokenLength: maxLenght,
     repeatPenalty: repeatPenalty,
-    systemMessage: defaultSystemMessage,
+    systemMessage: '',
+    dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
   );
 }

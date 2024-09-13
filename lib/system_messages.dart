@@ -1,4 +1,5 @@
 String defaultSystemMessage = '';
+String infoAboutUser = '';
 final shellCommandRegex = RegExp(r'```Shell\n(.*?)\n```', dotAll: true);
 final pythonCommandRegex = RegExp(r'```python-exe\n(.*?)\n```', dotAll: true);
 final everythingSearchCommandRegex =

@@ -2,14 +2,10 @@
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
-import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:flutter/services.dart';
-import 'package:hotkey_manager/hotkey_manager.dart';
-import 'package:simple_animations/movie_tween/movie_tween.dart';
 
 class AiPromptsLibraryDialog extends StatefulWidget {
   /// will return the selected [CustomPrompt] or null if the dialog is dismissed

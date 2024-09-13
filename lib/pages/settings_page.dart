@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
+import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -27,15 +28,17 @@ import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
+import 'package:system_info2/system_info2.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import '../theme.dart';
@@ -61,7 +64,8 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
             title: const Text('Settings'),
             leading: canGoBack
                 ? IconButton(
-                    icon: const Icon(FluentIcons.back),
+                    icon:
+                        const Icon(FluentIcons.arrow_left_24_filled, size: 24),
                     onPressed: () => Navigator.of(context).pop(),
                   )
                 : null),
@@ -79,10 +83,8 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           Text('Appearance', style: FluentTheme.of(context).typography.title),
           const _ThemeModeSection(),
           spacer,
-
           // biggerSpacer,
           // const _LocaleSection(),
-          const _ResolutionsSelector(),
           const _LocaleSection(),
           biggerSpacer,
           const ServerSettings(),
@@ -137,7 +139,7 @@ class _AdditionalToolsState extends State<AdditionalTools> {
       4. Authorization type: "OAuth 2 authorization without a callback URL
       5. Email: Your email
       6. Paste clientId here""",
-                child: Icon(FluentIcons.info),
+                child: Icon(FluentIcons.info_20_filled),
               ),
               onChanged: (value) {
                 AppCache.imgurClientId.value = value;
@@ -280,24 +282,24 @@ class _OverlaySettingsState extends State<OverlaySettings> {
       children: [
         Text('Overlay settings',
             style: FluentTheme.of(context).typography.subtitle),
-        Checkbox(
-          content: const Text('Enable overlay'),
-          checked: AppCache.enableOverlay.value,
+        _CheckBoxTile(
+          isChecked: AppCache.enableOverlay.value!,
           onChanged: (value) {
             setState(() {
               AppCache.enableOverlay.value = value;
             });
             Provider.of<AppTheme>(context, listen: false).updateUI();
           },
+          child: const Text('Enable overlay'),
         ),
-        Checkbox(
-          content: const Text('Show settings icon in overlay'),
-          checked: AppCache.showSettingsInOverlay.value,
+        _CheckBoxTile(
+          isChecked: AppCache.showSettingsInOverlay.value!,
           onChanged: (value) {
             setState(() {
               AppCache.showSettingsInOverlay.value = value;
             });
           },
+          child: const Text('Show settings icon in overlay'),
         ),
         spacer,
         NumberBox(
@@ -346,9 +348,9 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
                 const Text('Accessibility granted'),
                 const SizedBox(width: 10.0),
                 if (isGranted)
-                  Icon(FluentIcons.check_mark, color: Colors.green)
+                  Icon(FluentIcons.check_20_filled, color: Colors.green)
                 else
-                  Icon(FluentIcons.clear, color: Colors.red)
+                  Icon(FluentIcons.error_circle_20_regular, color: Colors.red)
               ],
             ),
           );
@@ -396,7 +398,7 @@ class ServerSettings extends StatelessWidget {
                       context: context,
                       builder: (ctx) => const HowToRunLocalModelsDialog());
                 },
-                icon: const Icon(FluentIcons.help),
+                icon: const Icon(FluentIcons.chat_help_20_filled),
                 tooltip: 'How to use local models',
               )
             ],
@@ -409,8 +411,9 @@ class ServerSettings extends StatelessWidget {
               return ListTile(
                 title: SelectableText(element.key),
                 leading: IconButton(
-                  icon: Icon(
-                      element.value ? FluentIcons.pause : FluentIcons.play),
+                  icon: Icon(element.value
+                      ? FluentIcons.pause_20_filled
+                      : FluentIcons.play_20_filled),
                   onPressed: () {
                     if (element.value) {
                       server.stopModel(element.key);
@@ -420,7 +423,7 @@ class ServerSettings extends StatelessWidget {
                   },
                 ),
                 trailing: IconButton(
-                  icon: Icon(FluentIcons.delete, color: Colors.red),
+                  icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
                   onPressed: () => server.removeLocalModelPath(element.key),
                 ),
               );
@@ -454,6 +457,7 @@ class _GlobalSettingsState extends State<GlobalSettings> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const LabelText('Global system prompt'),
           TextFormBox(
             placeholder: 'Global system prompt',
             controller: systemPromptController,
@@ -476,10 +480,216 @@ class _GlobalSettingsState extends State<GlobalSettings> {
               defaultSystemMessage = value;
             },
           ),
-          const Text('Global system prompt will be used for all NEW chats'),
+          const CaptionText(
+            'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below',
+          ),
+          Button(
+            child: const Text('Click here to check the whole system prompt'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const GlobalSystemPromptSampleDialog(),
+                barrierDismissible: true,
+              );
+            },
+          ),
           spacer,
+          const LabelText('Info about User'),
+          TextFormBox(
+            prefix: const _BadgePrefix(Text('User name')),
+            initialValue: AppCache.userName.value,
+            minLines: 1,
+            maxLines: 1,
+            onChanged: (value) {
+              AppCache.userName.value = value;
+            },
+          ),
+          const CaptionText('Your name that will be used in the chat'),
+          spacer,
+          const LabelText('System info'),
+          Card(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('OS: ${SysInfo.operatingSystemName}'),
+                  Text('Cores: ${SysInfo.cores.length}'),
+                  Text('Architecture: ${SysInfo.rawKernelArchitecture}'),
+                  Text('KernelName: ${SysInfo.kernelName}'),
+                  Text('OS version: ${SysInfo.kernelVersion}'),
+                  Text('User directory: ${SysInfo.userDirectory}'),
+                  Text('User system id: ${SysInfo.userId}'),
+                  Text('User name in OS: ${SysInfo.userName}'),
+                ]),
+          ),
+          _CheckBoxTile(
+            isChecked: AppCache.includeUserNameToSysPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeUserNameToSysPrompt.value = value;
+            },
+            child: const Text('Include user name in system prompt'),
+          ),
+          _CheckBoxTile(
+            isChecked: AppCache.includeSysInfoToSysPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeSysInfoToSysPrompt.value = value;
+            },
+            child: const Text('Include system info in system prompt'),
+          ),
+          Tooltip(
+            message:
+                'If enabled will summarize chat conversation and append the most'
+                ' important information about the user to a file.'
+                '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
+            child: Row(
+              children: [
+                _CheckBoxTile(
+                  isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+                  onChanged: (value) {
+                    AppCache.learnAboutUserAfterCreateNewChat.value = value;
+                  },
+                  child: const Text(
+                      'Learn about the user after creating new chat'),
+                ),
+                const Icon(FluentIcons.brain_circuit_24_filled)
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              _CheckBoxTile(
+                isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+                onChanged: (value) {
+                  AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
+                },
+                child: const Text('Include knowledge about user'),
+              ),
+              const Spacer(),
+              Button(
+                  child: const Text('Open info about User'),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => const InfoAboutUserDialog(),
+                      barrierDismissible: true,
+                    );
+                  }),
+            ],
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _CheckBoxTile extends StatefulWidget {
+  const _CheckBoxTile({
+    super.key,
+    required this.isChecked,
+    required this.child,
+    this.onChanged,
+  });
+  final bool isChecked;
+  final Widget child;
+  final void Function(bool?)? onChanged;
+  @override
+  State<_CheckBoxTile> createState() => _CheckBoxTileState();
+}
+
+class _CheckBoxTileState extends State<_CheckBoxTile> {
+  bool isChecked = false;
+  bool isHovered = false;
+  @override
+  void initState() {
+    isChecked = widget.isChecked;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onHover: (event) {
+        if (isHovered) return;
+        setState(() {
+          isHovered = true;
+        });
+      },
+      onExit: (event) {
+        if (!isHovered) return;
+        setState(() {
+          isHovered = false;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(4.0),
+        decoration: BoxDecoration(
+          color: isHovered ? context.theme.cardColor : null,
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              isChecked = !isChecked;
+            });
+            widget.onChanged?.call(isChecked);
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Checkbox(
+                  checked: isChecked,
+                  onChanged: (value) {
+                    setState(() {
+                      isChecked = value!;
+                    });
+                    widget.onChanged?.call(value);
+                  }),
+              const SizedBox(width: 8.0),
+              widget.child,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BadgePrefix extends StatelessWidget {
+  const _BadgePrefix(this.child, {super.key});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(2.0),
+      margin: const EdgeInsets.only(left: 4.0),
+      decoration: BoxDecoration(
+        color: context.theme.cardColor,
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: child,
+    );
+  }
+}
+
+class LabelText extends StatelessWidget {
+  const LabelText(this.label, {super.key});
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: FluentTheme.of(context).typography.subtitle,
+    );
+  }
+}
+
+class CaptionText extends StatelessWidget {
+  const CaptionText(this.caption, {super.key});
+  final String caption;
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      caption,
+      style: FluentTheme.of(context).typography.caption,
     );
   }
 }
@@ -504,14 +714,14 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         Wrap(
           spacing: 15.0,
           children: [
-            Checkbox(
-              content: const Text('Auto copy to clipboard'),
-              checked: AppCache.gptToolCopyToClipboardEnabled.value!,
+            _CheckBoxTile(
+              isChecked: AppCache.gptToolCopyToClipboardEnabled.value!,
               onChanged: (value) {
                 setState(() {
                   AppCache.gptToolCopyToClipboardEnabled.value = value;
                 });
               },
+              child: const Text('Auto copy to clipboard'),
             ),
             biggerSpacer,
           ],
@@ -544,7 +754,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 placeholder: AppCache.braveSearchApiKey.value,
                 obscureText: obscureBraveText,
                 suffix: IconButton(
-                  icon: const Icon(FluentIcons.hide),
+                  icon: const Icon(FluentIcons.eye_20_regular),
                   onPressed: () {
                     setState(() {
                       obscureBraveText = !obscureBraveText;
@@ -571,7 +781,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 placeholder: AppCache.openAiApiKey.value,
                 obscureText: obscureOpenAiText,
                 suffix: IconButton(
-                  icon: const Icon(FluentIcons.hide),
+                  icon: const Icon(FluentIcons.eye_20_regular),
                   onPressed: () {
                     setState(() {
                       obscureOpenAiText = !obscureOpenAiText;
@@ -654,7 +864,7 @@ class _ResolutionsSelector extends StatelessWidget {
               '${appTheme.resolution?.width}x${appTheme.resolution?.height}'),
           trailing: kDebugMode
               ? IconButton(
-                  icon: const Icon(FluentIcons.delete),
+                  icon: const Icon(FluentIcons.delete_20_filled),
                   onPressed: () async {
                     await AppCache.resolution.remove();
                   })
@@ -808,7 +1018,8 @@ class _HotKeySectionState extends State<_HotKeySection> {
                                     Navigator.of(context).pop();
                                   },
                                   child: const SmallIconButton(
-                                    child: Icon(FluentIcons.page_left),
+                                    child:
+                                        Icon(FluentIcons.arrow_left_20_filled),
                                   ),
                                 ),
                               ),
@@ -929,7 +1140,7 @@ class _ThemeModeSection extends StatelessWidget {
           alignment: AlignmentDirectional.center,
           child: appTheme.color == color
               ? Icon(
-                  FluentIcons.check_mark,
+                  FluentIcons.checkmark_20_filled,
                   color: color.basedOnLuminance(),
                   size: 22.0,
                 )
@@ -945,6 +1156,22 @@ class _ThemeModeSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+         Text('Accent Color',
+            style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Wrap(children: [
+          Tooltip(
+            message: accentColorNames[0],
+            child: _buildColorBlock(appTheme, systemAccentColor),
+          ),
+          ...List.generate(Colors.accentColors.length, (index) {
+            final color = Colors.accentColors[index];
+            return Tooltip(
+              message: accentColorNames[index + 1],
+              child: _buildColorBlock(appTheme, color),
+            );
+          }),
+        ]),
         Text('Theme mode', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Padding(
@@ -973,24 +1200,7 @@ class _ThemeModeSection extends StatelessWidget {
             content: const Text('Dark'),
           ),
         ),
-        biggerSpacer,
-        Text('Accent Color',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        Wrap(children: [
-          Tooltip(
-            message: accentColorNames[0],
-            child: _buildColorBlock(appTheme, systemAccentColor),
-          ),
-          ...List.generate(Colors.accentColors.length, (index) {
-            final color = Colors.accentColors[index];
-            return Tooltip(
-              message: accentColorNames[index + 1],
-              child: _buildColorBlock(appTheme, color),
-            );
-          }),
-        ]),
-        biggerSpacer,
+
         Text('Background', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Wrap(

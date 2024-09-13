@@ -67,3 +67,32 @@ const writePythonCodeFunction = {
     }
   }
 };
+const copyToClipboardFunction = {
+  "type": "function",
+  "function": {
+    "name": "copy_to_clipboard",
+    "description": "Copy the given text to the user's clipboard",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "clipboard": {"type": "string", "description": "Text to copy"},
+        "responseMessage": {
+          "type": "string",
+          "description": "The response summary message from chatGPT"
+        }
+      },
+      "required": ["code", "responseMessage"]
+    }
+  }
+};
+const copyToClipboardFunctionParameters = {
+  "type": "object",
+  "properties": {
+    "clipboard": {"type": "string", "description": "Text to copy"},
+    "responseMessage": {
+      "type": "string",
+      "description": "The response summary message from chatGPT"
+    }
+  },
+  "required": ["clipboard", "responseMessage"]
+};

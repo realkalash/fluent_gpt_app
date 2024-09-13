@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:html/parser.dart' show parse;
@@ -10,6 +11,7 @@ class WebScraper {
   Future<List<SearchResult>> search(String query) async {
     final url = Uri.parse(
         'https://api.search.brave.com/res/v1/web/search?q=${Uri.encodeComponent(query)}&format=json');
+    log('searching for $query');
 
     final response = await http.get(
       url,
@@ -24,7 +26,7 @@ class WebScraper {
       final results = jsonResponse['web']['results'] as List;
       return results.map((result) => SearchResult.fromJson(result)).toList();
     } else {
-      throw Exception('Failed to perform search: ${response.statusCode}');
+      throw Exception('Code:${response.statusCode}; Error:${response.body}');
     }
   }
 

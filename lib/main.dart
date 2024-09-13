@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
@@ -17,7 +16,6 @@ import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
-import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -128,6 +126,7 @@ void main(List<String> args) async {
     await FileUtils.init();
   }
   defaultSystemMessage = AppCache.globalSystemPrompt.value!;
+  infoAboutUser = (await AppCache.userInfo.value()) ?? '';
   if (Platform.isMacOS || Platform.isWindows) {
     await flutter_acrylic.Window.initialize();
     await flutter_acrylic.Window.hideWindowControls();

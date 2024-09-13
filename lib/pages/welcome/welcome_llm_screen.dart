@@ -25,6 +25,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
   bool obscureText = true;
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final provider = context.read<ChatProvider>();
     return Scaffold(
       backgroundColor: Colors.transparent,

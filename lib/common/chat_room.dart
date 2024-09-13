@@ -19,6 +19,7 @@ class ChatRoom {
   double repeatPenalty;
   int iconCodePoint;
   int indexSort;
+  int dateCreatedMilliseconds;
 
   /// <chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2, <key, value>>
   ConversationBufferMemory messages;
@@ -37,7 +38,8 @@ class ChatRoom {
     required this.maxTokenLength,
     required this.repeatPenalty,
     this.systemMessage,
-    this.indexSort = 1,
+    required this.dateCreatedMilliseconds,
+    this.indexSort = 999999,
 
     /// 62087 is the code point for the `chat_24_filled` from [FluentIcons]
     this.iconCodePoint = 62087,
@@ -95,8 +97,9 @@ class ChatRoom {
       maxTokenLength: map['maxLength'],
       repeatPenalty: map['repeatPenalty'],
       systemMessage: map['commandPrefix'],
-      indexSort: map['indexSort'],
+      indexSort: map['indexSort'] ?? 999999,
       messages: messages,
+      dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -123,6 +126,7 @@ class ChatRoom {
       'commandPrefix': systemMessage,
       // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
+      'dateCreatedMilliseconds': dateCreatedMilliseconds,
     };
   }
 
@@ -178,6 +182,7 @@ class ChatRoom {
     int? tokens,
     int? iconCodePoint,
     int? indexSort,
+    int? dateCreatedMilliseconds,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -194,6 +199,8 @@ class ChatRoom {
       systemMessage: systemMessage ?? this.systemMessage,
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
+      dateCreatedMilliseconds:
+          dateCreatedMilliseconds ?? this.dateCreatedMilliseconds,
     );
   }
 

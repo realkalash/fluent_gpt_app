@@ -17,7 +17,7 @@ class AppCache {
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
-  
+
   static StringPref backgroundEffect =
       StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');
 
@@ -44,6 +44,8 @@ class AppCache {
 
   static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
+  static const userInfo = FileStringPref("fluent_gpt/userInfo.json");
+  static const userName = StringPref("userName", 'User');
   static const archivedPrompts = StringPref("archivedPrompts");
 
   static const localApiUrl =
@@ -58,6 +60,10 @@ class AppCache {
   static const useSecondRequestForNamingChats =
       BoolPref("useSecondRequestForNamingChats", false);
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
+  static const includeUserNameToSysPrompt = BoolPref("includeUserNameToSysPrompt", false);
+  static const includeSysInfoToSysPrompt = BoolPref("includeSysInfoToSysPrompt", false);
+  static const includeKnowledgeAboutUserToSysPrompt = BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
+  static const learnAboutUserAfterCreateNewChat = BoolPref("learnAboutUserAfterCreateNewChat", false);
 
   static const useGoogleApi = BoolPref("useGoogleApi", false);
   static const useImgurApi = BoolPref("useImgurApi", false);
