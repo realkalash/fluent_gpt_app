@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
@@ -199,7 +198,7 @@ class _MessageCardState extends State<MessageCard> {
       try {
         jsonContent = jsonDecode(message.content);
       } catch (e, stack) {
-        logError(e.toString(),stack);
+        logError(e.toString(), stack);
       }
       if (jsonContent is List) {
         final results =
@@ -346,11 +345,21 @@ class _MessageCardState extends State<MessageCard> {
                     ),
                   ),
                   Tooltip(
-                    message: 'Copy text to clipboard',
+                    message: 'Copy to clipboard',
                     child: SizedBox.square(
                       dimension: 30,
                       child: Button(
-                        onPressed: () {
+                        onPressed: () async {
+                          if (widget.message is HumanChatMessage) {
+                            if ((widget.message as HumanChatMessage).content
+                                is ChatMessageContentImage) {
+                              final bytes =
+                                  decodeImage(widget.message.contentAsString);
+                              await Pasteboard.writeImage(bytes);
+                              displayCopiedToClipboard();
+                              return;
+                            }
+                          }
                           Clipboard.setData(ClipboardData(
                               text: widget.message.contentAsString));
                           displayCopiedToClipboard();

@@ -1,4 +1,6 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:io';
+
 import 'package:adaptive_layout/adaptive_layout.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -43,6 +45,19 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
         key: LogicalKeyboardKey.enter,
         modifiers: [HotKeyModifier.meta],
       ),
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Search in chat (only when input field is focused)',
+      hotKey: Platform.isMacOS
+          ? HotKey(
+              key: LogicalKeyboardKey.keyF,
+              modifiers: [HotKeyModifier.meta],
+            )
+          : HotKey(
+              key: LogicalKeyboardKey.keyF,
+              modifiers: [HotKeyModifier.control],
+            ),
       textColor: Colors.white,
     ),
   ];

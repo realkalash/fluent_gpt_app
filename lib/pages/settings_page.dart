@@ -535,25 +535,27 @@ class _GlobalSettingsState extends State<GlobalSettings> {
             },
             child: const Text('Include system info in system prompt'),
           ),
-          Tooltip(
-            message:
-                'If enabled will summarize chat conversation and append the most'
-                ' important information about the user to a file.'
-                '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
-            child: Row(
-              children: [
-                _CheckBoxTile(
-                  isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
-                  onChanged: (value) {
-                    AppCache.learnAboutUserAfterCreateNewChat.value = value;
-                  },
-                  child: const Text(
-                      'Learn about the user after creating new chat'),
-                ),
-                const Icon(FluentIcons.brain_circuit_24_filled)
-              ],
+          // TODO: enable when ready
+          if (kDebugMode)
+            Tooltip(
+              message:
+                  'If enabled will summarize chat conversation and append the most'
+                  ' important information about the user to a file.'
+                  '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
+              child: Row(
+                children: [
+                  _CheckBoxTile(
+                    isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+                    onChanged: (value) {
+                      AppCache.learnAboutUserAfterCreateNewChat.value = value;
+                    },
+                    child: const Text(
+                        'Learn about the user after creating new chat'),
+                  ),
+                  const Icon(FluentIcons.brain_circuit_24_filled)
+                ],
+              ),
             ),
-          ),
           Row(
             children: [
               _CheckBoxTile(
@@ -1156,7 +1158,7 @@ class _ThemeModeSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-         Text('Accent Color',
+        Text('Accent Color',
             style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Wrap(children: [

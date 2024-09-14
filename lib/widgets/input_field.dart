@@ -2,9 +2,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -75,21 +75,12 @@ class _InputFieldState extends State<InputField> {
         TextSelection.collapsed(offset: currentCursorPosition + text.length);
   }
 
-  void onShortcutPasteImage(image) async {
+  void onShortcutPasteImage(Uint8List? image) async {
+    if (image == null) return;
+
     final chatProvider = context.read<ChatProvider>();
-    if (image is Uint8List) {
-      chatProvider.addFileToInput(
-        XFile.fromData(
-          image,
-          name: 'image.png',
-          mimeType: 'image/png',
-          length: image.length,
-        ),
-      );
-    } else {
-      final convertedPngImage = await image.toPNG();
-      chatProvider.addFileToInput(convertedPngImage);
-    }
+    final imageFilePng = await image.toPNG();
+    chatProvider.addFileToInput(imageFilePng);
     windowManager.focus();
     promptTextFocusNode.requestFocus();
   }
@@ -118,6 +109,16 @@ class _InputFieldState extends State<InputField> {
     // if (previousClipboard != null) Pasteboard.writeText(previousClipboard);
   }
 
+  Future<void> onShortcutSearchPressed() async {
+    final provider = context.read<ChatProvider>();
+    final String? elementkey = await showDialog(
+      context: context,
+      builder: (context) => const SearchChatDialog(query: ''),
+    );
+    if (elementkey == null) return;
+    provider.scrollToMessage(elementkey);
+  }
+
   bool _isShiftPressed = false;
   @override
   Widget build(BuildContext context) {
@@ -131,6 +132,12 @@ class _InputFieldState extends State<InputField> {
         else
           const SingleActivator(LogicalKeyboardKey.keyV, control: true):
               onShortcutPasteToField,
+        if (Platform.isMacOS)
+          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+              onShortcutSearchPressed
+        else
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+              onShortcutSearchPressed,
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
         const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {

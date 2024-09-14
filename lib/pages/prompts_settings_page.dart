@@ -3,7 +3,6 @@ import 'package:animated_list_plus/transitions.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
-import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';

@@ -10,7 +10,6 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -434,6 +433,11 @@ class ChatProvider with ChangeNotifier {
     if (isImageAttached) {
       final bytes = await fileInput!.readAsBytes();
       final base64 = base64Encode(bytes);
+      if (messageController.text.trim().isNotEmpty) {
+        addHumanMessageToList(
+          HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+        );
+      }
       addHumanMessageToList(
         HumanChatMessage(
           content: ChatMessageContent.image(
@@ -441,6 +445,7 @@ class ChatProvider with ChangeNotifier {
             mimeType: fileInput!.mimeType,
           ),
         ),
+        DateTime.now().add(const Duration(milliseconds: 50)).toIso8601String(),
       );
     } else {
       addHumanMessageToList(
@@ -457,7 +462,8 @@ class ChatProvider with ChangeNotifier {
       messagesToSend.addAll(
         await getLastFewMessages(count: maxMessagesToIncludeInHistory),
       );
-    } else {
+    } 
+    if (!includeConversationGlobal) {
       if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
         final systemMessage = await getFormattedSystemPrompt(
           basicPrompt: selectedChatRoom.systemMessage!,
@@ -466,7 +472,18 @@ class ChatProvider with ChangeNotifier {
       }
 
       messagesToSend.add(
-          HumanChatMessage(content: ChatMessageContent.text(messageContent)));
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+      );
+      if (isImageAttached){
+        messagesToSend.add(
+          HumanChatMessage(
+            content: ChatMessageContent.image(
+              data: base64Encode(await fileInput!.readAsBytes()),
+              mimeType: fileInput!.mimeType,
+            ),
+          ),
+        );
+      }
     }
     if (selectedChatRoom.model.ownedBy == 'openai') {
       if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
@@ -475,17 +492,17 @@ class ChatProvider with ChangeNotifier {
       stream = openAI!.stream(
         PromptValue.chat(messagesToSend),
         options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.name,
-            maxTokens: selectedChatRoom.maxTokenLength,
-            functionCall: const ChatFunctionCallAuto(),
-            functions: [
-              if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                const ChatFunction(
-                  name: 'copy_to_clipboard_tool',
-                  description: 'Tool to copy text to users clipboard',
-                  parameters: copyToClipboardFunctionParameters,
-                ),
-            ]),
+          model: selectedChatRoom.model.name,
+          maxTokens: selectedChatRoom.maxTokenLength,
+          toolChoice: const ChatToolChoiceAuto(),
+          tools: const [
+            ToolSpec(
+              name: 'copy_to_clipboard_tool',
+              description: 'Tool to copy text to users clipboard',
+              inputJsonSchema: copyToClipboardFunctionParameters,
+            ),
+          ],
+        ),
       );
     } else {
       stream = localModel!.stream(
@@ -493,6 +510,14 @@ class ChatProvider with ChangeNotifier {
         options: ChatOpenAIOptions(
           model: selectedChatRoom.model.name,
           maxTokens: selectedChatRoom.maxTokenLength,
+          toolChoice: const ChatToolChoiceAuto(),
+          tools: const [
+            ToolSpec(
+              name: 'copy_to_clipboard_tool',
+              description: 'Tool to copy text to users clipboard',
+              inputJsonSchema: copyToClipboardFunctionParameters,
+            ),
+          ],
         ),
       );
     }
@@ -504,16 +529,16 @@ class ChatProvider with ChangeNotifier {
         (final chunk) {
           final message = chunk.output;
           // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
-          if (message.functionCall?.argumentsRaw == null)
+          if (message.toolCalls.isEmpty)
             addBotMessageToList(message, chunk.id);
           else {
-            functionCallString += message.functionCall!.argumentsRaw;
-            if (message.functionCall?.name.isNotEmpty == true) {
-              functionName = message.functionCall!.name;
+            functionCallString += message.toolCalls.first.argumentsRaw;
+            if (message.toolCalls.first.name.isNotEmpty == true) {
+              functionName = message.toolCalls.first.name;
             }
           }
-          print(
-              'function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
+          // print(
+          //     'function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
             /// TODO: add more logic here
             saveToDisk([selectedChatRoom]);
@@ -550,6 +575,7 @@ class ChatProvider with ChangeNotifier {
       addBotErrorMessageToList(
         SystemChatMessage(content: 'Error while answering: $e'),
       );
+      isAnswering = false;
     }
 
     fileInput = null;
@@ -787,11 +813,10 @@ class ChatProvider with ChangeNotifier {
     final chatRooms = chatRoomsStream.value;
     final sortedChatRooms = chatRooms.values.toList()
       ..sort((a, b) {
-        int indexSortComparison = a.indexSort.compareTo(b.indexSort);
-        if (indexSortComparison != 0) {
-          return indexSortComparison;
+        if (a.indexSort == b.indexSort) {
+          return b.dateCreatedMilliseconds.compareTo(a.dateCreatedMilliseconds);
         }
-        return b.dateCreatedMilliseconds.compareTo(a.dateCreatedMilliseconds);
+        return a.indexSort.compareTo(b.indexSort);
       });
     chatRoomsStream.add(
       {
