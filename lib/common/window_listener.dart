@@ -62,7 +62,7 @@ class AppWindowListener extends WindowListener {
 
   @override
   void onWindowEvent(String eventName) {
-    // log('Window event: $eventName');
+    log('Window event: $eventName');
     if (eventName == 'show') {
       windowVisibilityStream.add(true);
     } else if (eventName == 'restore') {

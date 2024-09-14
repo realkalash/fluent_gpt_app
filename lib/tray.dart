@@ -22,9 +22,12 @@ import 'package:rxdart/rxdart.dart';
 final trayButtonStream = BehaviorSubject<String?>();
 AppTrayListener appTrayListener = AppTrayListener();
 final List<MenuItem> trayMenuFooterItems = [
-  MenuItem(label: 'Show', onClick: (menuItem) => windowManager.show()),
-  MenuItem(label: 'Hide', onClick: (menuItem) => windowManager.hide()),
-  MenuItem(label: 'Exit', onClick: (menuItem) => windowManager.close()),
+  MenuItem(label: 'Show', onClick: (_) => windowManager.show()),
+  MenuItem(label: 'Hide', onClick: (_) => windowManager.hide()),
+  MenuItem(
+      label: 'Exit',
+      onClick: (_) =>
+          Platform.isMacOS ? windowManager.destroy() : windowManager.close()),
 ];
 
 final List<MenuItem> trayMenuItems = [];
