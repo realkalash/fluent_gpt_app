@@ -123,10 +123,6 @@ Future<void> onTrayButtonTapCommand(String promptText,
   }
 }
 
-/// If the window is visible or not
-BehaviorSubject<bool> windowVisibilityStream =
-    BehaviorSubject<bool>.seeded(true);
-
 showWindow() {
   windowManager.show();
 }

@@ -9,6 +9,7 @@ import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -17,6 +18,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
 import 'package:glowy_borders/glowy_borders.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
@@ -551,85 +553,50 @@ class HotShurtcutsWidget extends StatefulWidget {
 }
 
 class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
-  // Timer? timer;
-  // String textFromClipboard = '';
-
-  // @override
-  // void initState() {
-  //   super.initState();
-
-  //   /// periodically checks the clipboard for text and displays a widget if there is text
-  //   /// in the clipboard
-  //   timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-  //     Clipboard.getData(Clipboard.kTextPlain).then((value) {
-  //       if (value?.text != textFromClipboard) {
-  //         textFromClipboard = value?.text ?? '';
-  //         if (mounted) setState(() {});
-  //       }
-  //     });
-  //   });
-  // }
-
-  // @override
-  // void dispose() {
-  //   super.dispose();
-  //   timer?.cancel();
-  // }
-
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
     final txtController = chatProvider.messageController;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: SizedBox(
-        width: double.infinity,
-        child: Wrap(
-          alignment: WrapAlignment.start,
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            // if (textFromClipboard.trim().isNotEmpty)
-            //   Container(
-            //     constraints: const BoxConstraints(maxWidth: 180),
-            //     child: Button(
-            //       style: ButtonStyle(
-            //           backgroundColor: WidgetStateProperty.all(Colors.blue)),
-            //       onPressed: () {
-            //         chatProvider.sendMessage(textFromClipboard);
-            //       },
-            //       child: Text(
-            //         textFromClipboard.replaceAll('\n', '').trim(),
-            //         maxLines: 1,
-            //         overflow: TextOverflow.clip,
-            //         textAlign: TextAlign.start,
-            //       ),
-            //     ),
-            //   ),
-            for (final prompt in customPrompts.value)
-              if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
-
-            Button(
-                child: const Text('Answer with tags'),
-                onPressed: () async {
-                  final textFromClipboard =
-                      (await Clipboard.getData('text/plain'))?.text ?? '';
-                  final text = txtController.text.trim().isEmpty
-                      ? textFromClipboard
-                      : txtController.text;
-                  // ignore: use_build_context_synchronously
-                  HotShurtcutsWidget.showAnswerWithTagsDialog(context, text);
-                  txtController.clear();
-                }),
-          ],
-        ),
-      ),
+    return StreamBuilder(
+      stream: customPrompts,
+      builder: (context, snapshot) {
+        if (snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.start,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final prompt in customPrompts.value)
+                  if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
+                Button(
+                    child: const Text('Answer with tags'),
+                    onPressed: () async {
+                      final textFromClipboard =
+                          (await Clipboard.getData('text/plain'))?.text ?? '';
+                      final text = txtController.text.trim().isEmpty
+                          ? textFromClipboard
+                          : txtController.text;
+                      // ignore: use_build_context_synchronously
+                      HotShurtcutsWidget.showAnswerWithTagsDialog(context, text);
+                      txtController.clear();
+                    }),
+              ],
+            ),
+          ),
+        );
+      }
     );
   }
 }
 
-class PromptChipWidget extends StatelessWidget {
+class PromptChipWidget extends StatefulWidget {
   const PromptChipWidget({
     super.key,
     required this.prompt,
@@ -637,6 +604,11 @@ class PromptChipWidget extends StatelessWidget {
 
   final CustomPrompt prompt;
 
+  @override
+  State<PromptChipWidget> createState() => _PromptChipWidgetState();
+}
+
+class _PromptChipWidgetState extends State<PromptChipWidget> {
   Future<void> _onTap(BuildContext context, CustomPrompt child) async {
     final contr = context.read<ChatProvider>().messageController;
 
@@ -653,68 +625,91 @@ class PromptChipWidget extends StatelessWidget {
     }
   }
 
+  final flyoutContr = FlyoutController();
+
   @override
   Widget build(BuildContext context) {
-    return Button(
-      onPressed: () => _onTap(context, prompt),
-      onLongPress: () => _onLongPress(context),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(prompt.icon, size: 18),
-          const SizedBox(width: 4),
-          Text(prompt.title),
-          if (prompt.children.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: DropDownButton(
-                items: [
-                  for (final child in prompt.children)
-                    MenuFlyoutItem(
-                      leading: Icon(child.icon),
-                      text: Text(child.title),
-                      onPressed: () => _onTap(context, child),
-                    )
-                ],
-              ),
-            ),
-        ],
+    return FlyoutTarget(
+      controller: flyoutContr,
+      child: GestureDetector(
+        onSecondaryTap: () => _onRightClick(context),
+        child: Button(
+          onPressed: () => _onTap(context, widget.prompt),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(widget.prompt.icon, size: 18),
+              const SizedBox(width: 4),
+              Text(widget.prompt.title),
+              if (widget.prompt.children.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: DropDownButton(
+                    items: [
+                      for (final child in widget.prompt.children)
+                        MenuFlyoutItem(
+                          leading: Icon(child.icon),
+                          text: Text(child.title),
+                          onPressed: () => _onTap(context, child),
+                        )
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  void _onLongPress(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return ContentDialog(
-          title: Row(
-            children: [
-              Text(prompt.title),
-              const Spacer(),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(ic.FluentIcons.dismiss_24_filled, color: Colors.red),
+  _onRightClick(BuildContext context) {
+    final item = widget.prompt;
+    
+    flyoutContr.showFlyout(builder: (ctx) {
+      return FlyoutContent(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final child in item.children)
+              FlyoutListTile(
+                icon: Icon(child.icon),
+                text: Text(child.title),
+                onPressed: () => _onTap(ctx, child),
               ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var child in prompt.children)
-                ListTile(
-                  title: Text(child.title),
-                  onPressed: () {
-                    _onTap(context, child);
-                    Navigator.of(context).pop();
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
+            if (item.children.isNotEmpty) const Divider(),
+            FlyoutListTile(
+              icon: const Icon(ic.FluentIcons.settings_20_regular),
+              text: const Text('Edit'),
+              onPressed: () async {
+                final prompt = await showDialog<CustomPrompt?>(
+                  context: context,
+                  builder: (context) => EditPromptDialog(prompt: item),
+                );
+                if (prompt != null) {
+                  // ignore: use_build_context_synchronously
+                  final list = customPrompts.value.toList();
+                  list.removeWhere((element) => element.id == item.id);
+                  list.add(prompt);
+                  list.sort((a, b) => a.index.compareTo(b.index));
+                  customPrompts.add(list);
+                  // ignore: use_build_context_synchronously
+                  Navigator.of(ctx).pop();
+
+                  //unbind old hotkey
+                  if (item.hotkey != null) {
+                    await hotKeyManager.unregister(item.hotkey!);
+
+                    /// wait native channel to finish
+                    await Future.delayed(const Duration(milliseconds: 200));
+                  }
+                  OverlayManager.bindHotkeys(customPrompts.value);
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

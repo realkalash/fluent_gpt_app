@@ -629,6 +629,7 @@ class _MessageCardState extends State<MessageCard> {
   }
 
   MenuFlyout _showOptionsFlyout(BuildContext context) {
+    final message = widget.message;
     return MenuFlyout(
       items: [
         MenuFlyoutItem(
@@ -661,6 +662,27 @@ class _MessageCardState extends State<MessageCard> {
             provider.regenerateMessage(widget.message);
           },
         ),
+        if (message is HumanChatMessage &&
+            message.content is ChatMessageContentText)
+          MenuFlyoutItem(
+            text: const Text('Remember this'),
+            leading: const Icon(FluentIcons.brain_circuit_20_regular),
+            onPressed: () async {
+              final provider = context.read<ChatProvider>();
+              final information =
+                  await provider.generateUserKnowladgeBasedOnText(
+                widget.message.contentAsString,
+              );
+              displayInfoBar(provider.context!, builder: (ctx, close) {
+                return InfoBar(
+                  title: const Text('Updated info about user'),
+                  content: Text(information),
+                  severity: InfoBarSeverity.success,
+                  isLong: true,
+                );
+              });
+            },
+          ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: Text('Delete', style: TextStyle(color: Colors.red)),

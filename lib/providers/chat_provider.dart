@@ -358,12 +358,22 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
-  Future<void> generateUserKnowladgeBasedOnText(String text) async {
+  /// returns generated info about user
+  Future<String> generateUserKnowladgeBasedOnText(String text) async {
     final userName = AppCache.userName.value;
     final response = await retrieveResponseFromPrompt(
       'Based on this messages/conversation/text give me a short sentence to populate knowladge about $userName:'
       '"$text"',
     );
+    log('Generated user knowladge: "$response"');
+    final personalKnowladge = await AppCache.userInfo.value();
+    // final currentDate = DateTime.now();
+    // final stringDate = '${currentDate.year}/${currentDate.month}/${currentDate.day}'; 
+    /// I think it would be better to keep it short...
+    final finalString = response;
+    // append to the end
+    AppCache.userInfo.set('$personalKnowladge\n$finalString');
+    return response;
   }
 
   Future<void> sendMessage(

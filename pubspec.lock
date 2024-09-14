@@ -265,6 +265,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.1"
+  entry:
+    dependency: "direct main"
+    description:
+      name: entry
+      sha256: e3250f8ca233cee315576fd1026de4698f140f4abd5ae21aab7e3ab1630a3770
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   fake_async:
     dependency: transitive
     description:

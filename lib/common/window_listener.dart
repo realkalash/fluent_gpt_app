@@ -40,23 +40,37 @@ class AppWindowListener extends WindowListener {
     AppCache.windowHeight.set(size.height.toInt());
   }
 
-  @override
-  Future<void> onWindowClose() async {
-    log('Window closed');
-    windowVisibilityStream.add(false);
-  }
+  // @override
+  // Future<void> onWindowClose() async {
+  //   log('Window closed');
+  //   windowVisibilityStream.add(false);
+  // }
+
+  // @override
+  // onWindowMinimize() {
+  //   log('Window minimized');
+  //   windowVisibilityStream.add(false);
+  // }
+
+  // @override
+  // onWindowRestore() {
+  //   log('Window restored');
+  //   windowVisibilityStream.add(true);
+  //   // windowManager.focus();
+  //   // promptTextFocusNode.requestFocus();
+  // }
 
   @override
-  onWindowMinimize() {
-    log('Window minimized');
-    windowVisibilityStream.add(false);
-  }
-
-  @override
-  onWindowRestore() {
-    log('Window restored');
-    windowVisibilityStream.add(true);
-    // windowManager.focus();
-    // promptTextFocusNode.requestFocus();
+  void onWindowEvent(String eventName) {
+    // log('Window event: $eventName');
+    if (eventName == 'show') {
+      windowVisibilityStream.add(true);
+    } else if (eventName == 'restore') {
+      windowVisibilityStream.add(true);
+    } else if (eventName == 'hide') {
+      windowVisibilityStream.add(false);
+    } else if (eventName == 'minimize') {
+      windowVisibilityStream.add(false);
+    }
   }
 }

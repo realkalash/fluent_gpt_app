@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
@@ -23,6 +25,7 @@ import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -39,17 +42,36 @@ class ChatRoomPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ScaffoldPage(
-      header: PageHeader(title: PageHeaderText()),
-      content: Stack(
-        fit: StackFit.expand,
-        children: [
-          ChatGPTContent(),
-          HomeDropOverlay(),
-          HomeDropRegion(),
-        ],
-      ),
-    );
+    return StreamBuilder(
+        stream: AppWindowListener.windowVisibilityStream,
+        builder: (context, snapshot) {
+          if (snapshot.data != true) {
+            return const SizedBox.shrink();
+          }
+          return StreamBuilder(
+              stream: selectedChatRoomIdStream,
+              builder: (context, snapshot) {
+                return Entry(
+                  duration: const Duration(milliseconds: 500),
+                  key: ValueKey('chat_room_page_$selectedChatRoomId'),
+                  yOffset: 500,
+                  curve: Curves.linearToEaseOut,
+                  opacity: 0.2,
+                  scale: 0.5,
+                  child: const ScaffoldPage(
+                    header: PageHeader(title: PageHeaderText()),
+                    content: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ChatGPTContent(),
+                        HomeDropOverlay(),
+                        HomeDropRegion(),
+                      ],
+                    ),
+                  ),
+                );
+              });
+        });
   }
 }
 
@@ -520,68 +542,90 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: MediaQuery.of(context).size.width,
-      height: 250,
-      alignment: Alignment.center,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        shrinkWrap: true,
-        children: prompts.map(
-          (e) {
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: AnimatedHoverCard(
-                    defHeight: 200,
-                    defWidth: 160,
-                    onTap: () {
-                      context.read<ChatProvider>().messageController.text =
-                          e.prompt;
-                      promptTextFocusNode.requestFocus();
-                    },
-                    color: getColorBasedOnFirstLetter(e.title),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        children: [
-                          Text(
-                            e.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+    return StreamBuilder<Object>(
+        stream: AppWindowListener.windowVisibilityStream,
+        builder: (context, snapshot) {
+          return Container(
+            width: MediaQuery.of(context).size.width,
+            height: 250,
+            alignment: Alignment.center,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              shrinkWrap: true,
+              children: List.generate(
+                prompts.length,
+                (index) {
+                  final item = prompts[index];
+                  return Entry(
+                    curve: Curves.easeInOutBack,
+                    scale: 0.1,
+                    duration: const Duration(milliseconds: 800),
+                    delay: Duration(milliseconds: (index * 300)),
+                    key: ValueKey('home_place_holder_$index'),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: AnimatedHoverCard(
+                            defHeight: 200,
+                            defWidth: 160,
+                            onTap: () {
+                              context
+                                  .read<ChatProvider>()
+                                  .messageController
+                                  .text = item.prompt;
+                              promptTextFocusNode.requestFocus();
+                            },
+                            color: getColorBasedOnFirstLetter(item.title),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Expanded(
+                                      child: Text(item.prompt,
+                                          overflow: TextOverflow.fade)),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                              child:
-                                  Text(e.prompt, overflow: TextOverflow.fade)),
-                        ],
-                      ),
+                        ),
+                        Positioned(
+                          bottom: 32,
+                          right: 16,
+                          child: Button(
+                            child: const Icon(ic.FluentIcons.send_24_filled),
+                            onPressed: () {
+                              context
+                                  .read<ChatProvider>()
+                                  .sendMessage(item.prompt);
+                              promptTextFocusNode.requestFocus();
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 32,
-                  right: 16,
-                  child: Button(
-                    child: const Icon(ic.FluentIcons.send_24_filled),
-                    onPressed: () {
-                      context.read<ChatProvider>().sendMessage(e.prompt);
-                      promptTextFocusNode.requestFocus();
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
-        ).toList(),
-      ),
-    );
+                  );
+                },
+              ),
+              // children: prompts.map(
+              //   (e) {
+              //     return ;
+              //   },
+              // ).toList(),
+            ),
+          );
+        });
   }
 }
 
@@ -730,6 +774,14 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         onChanged: chatProvider.setIncludeWholeConversation,
                         tooltip: 'Include conversation',
                       ),
+                      if (kDebugMode)
+                        ToggleButtonAdvenced(
+                          checked: false,
+                          icon: ic.FluentIcons.brain_circuit_20_regular,
+                          onChanged: (v) {},
+                          tooltip:
+                              'Summarize conversation and populate the knowlade about the user (DISABLED)',
+                        ),
                       ToggleButtonAdvenced(
                         icon: ic.FluentIcons.settings_20_regular,
                         onChanged: (_) => showDialog(
