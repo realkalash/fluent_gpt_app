@@ -56,7 +56,7 @@ class NavigationProvider with ChangeNotifier {
     LinkPaneItemAction(
       icon: const Icon(FluentIcons.link_24_regular),
       title: const Text('Source code'),
-      link: 'https://github.com/realkalash/fluent_gpt',
+      link: 'https://github.com/realkalash/fluent_gpt_app',
       body: const SizedBox.shrink(),
     ),
   ];
