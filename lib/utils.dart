@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -41,6 +42,12 @@ extension ChatMessageExtension on ChatMessage {
         'content': message.content,
       };
     }
+    // Extended custom messages should be checked before CustomChatMessage
+    // because they are extended from CustomChatMessage
+    if (this is WebResultCustomMessage) {
+      return (this as WebResultCustomMessage).toJson();
+    }
+
     if (this is CustomChatMessage) {
       final message = this as CustomChatMessage;
       return {

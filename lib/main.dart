@@ -16,6 +16,7 @@ import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -269,7 +270,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
   @override
   void dispose() {
     // final navigationProvider = context.read<NavigationProvider>();
-    // windowManager.removeListener(this);
+    windowManager.removeListener(this);
     // navigationProvider.searchController.dispose();
     // navigationProvider.searchFocusNode.dispose();
     super.dispose();
@@ -372,21 +373,31 @@ class MainPageWithNavigation extends StatelessWidget {
               );
             },
             pane: NavigationPane(
-              // selected: selectedIndex,
-              displayMode: PaneDisplayMode.auto,
               autoSuggestBox: AutoSuggestBox(
-                onSelected: (item) {
-                  final provider = context.read<ChatProvider>();
-                  final id = item.value;
-                  provider.selectChatRoom(chatRoomsStream.value[id]!);
-                },
-                items: [
-                  for (final item in chatRoomsStream.value.values)
-                    AutoSuggestBoxItem(
-                      label: item.chatRoomName,
-                      value: item.id,
+                placeholder: 'Search by name',
+                itemBuilder: (context, item) {
+                  return ListTile(
+                    leading: Icon(
+                      IconData(
+                        chatRoomsStream.value[item.value]!.iconCodePoint,
+                        fontPackage: 'fluentui_system_icons',
+                        fontFamily: 'FluentSystemIcons-Filled',
+                      ),
                     ),
-                ],
+                    title: Text(item.label, maxLines: 1),
+                    onPressed: () {
+                      final provider = context.read<ChatProvider>();
+                      final id = item.value;
+                      provider.selectChatRoom(chatRoomsStream.value[id]!);
+                    },
+                  );
+                },
+                items: chatRoomsStream.value.values
+                    .map((item) => AutoSuggestBoxItem(
+                          label: item.chatRoomName,
+                          value: item.id,
+                        ))
+                    .toList(),
                 leadingIcon: const Padding(
                     padding: EdgeInsets.all(8.0),
                     child: Icon(FluentIcons.search_24_regular)),
@@ -450,7 +461,7 @@ class MainPageWithNavigation extends StatelessWidget {
                           fontPackage: 'fluentui_system_icons',
                           fontFamily: 'FluentSystemIcons-Filled',
                         ),
-                        size: 24,
+                        size: 20,
                       ),
                       title: Text(room.chatRoomName),
                       trailing: Row(

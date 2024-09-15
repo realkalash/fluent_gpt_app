@@ -13,7 +13,8 @@ class ChatModelAi {
     );
   }
 
-  static ChatModelAi fromServerJson(Map<String, dynamic> json, {String apiKey = ''}) {
+  static ChatModelAi fromServerJson(Map<String, dynamic> json,
+      {String apiKey = ''}) {
     // ['id'] -> '"id" -> "LWDCLS/DarkIdol-Llama-3.1-8B-Instruct-1.2-Uncensored-GGUF-IQ-Imatrix-Request/DarkIdol-Llama-3.1-8B-Instruct-1.2-Uncensored-Q4_K_…"'
     // ['object'] -> 'model'
     // ['owned_by'] -> 'lm_studio'
@@ -30,5 +31,10 @@ class ChatModelAi {
       'name': name,
       'ownedBy': ownedBy,
     };
+  }
+
+  @override
+  String toString() {
+    return '{"name": "$name", "ownedBy": "$ownedBy"}';
   }
 }

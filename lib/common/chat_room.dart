@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
 
@@ -90,7 +91,7 @@ class ChatRoom {
       chatRoomName: map['chatRoomName'],
       temp: map['temp'],
       topk: map['topk'],
-      iconCodePoint: map['iconCodePoint'] as int? ?? 62087,
+      iconCodePoint: map['iconCode'] as int? ?? 62087,
       promptBatchSize: map['promptBatchSize'],
       repeatPenaltyTokens: map['repeatPenaltyTokens'],
       topP: map['topP'],
@@ -99,7 +100,8 @@ class ChatRoom {
       systemMessage: map['commandPrefix'],
       indexSort: map['indexSort'] ?? 999999,
       messages: messages,
-      dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ?? DateTime.now().millisecondsSinceEpoch,
+      dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ??
+          DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -152,6 +154,11 @@ class ChatRoom {
       if (json['content'] is String) {
         return SystemChatMessage(content: json['content'] as String);
       }
+    }
+    // Extended custom messages should be checked before CustomChatMessage
+    // because they are extended from CustomChatMessage
+    if (json['role'] == WebResultCustomMessage.defaultPrefix) {
+      return WebResultCustomMessage.fromJson(json);
     }
     // custom message
     if (json['prefix'] is String && json['content'] is String) {

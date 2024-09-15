@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
 
@@ -136,6 +138,10 @@ class ChatProvider with ChangeNotifier {
   int _messageTextSize = 14;
 
   int maxMessagesToIncludeInHistory = 30;
+  void setMaxMessagesToIncludeInHistory(int? v) {
+    maxMessagesToIncludeInHistory = v ?? 30;
+    notifyListeners();
+  }
 
   set textSize(int v) {
     _messageTextSize = v;
@@ -182,7 +188,7 @@ class ChatProvider with ChangeNotifier {
         final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
         if (chatRoom.id == selectedChatRoomId) {
-          initCurrentChat();
+          initModelsApi();
           await _loadMessagesFromDisk(chatRoom.id);
           if (messages.value.isNotEmpty) scrollToEnd();
         }
@@ -225,15 +231,18 @@ class ChatProvider with ChangeNotifier {
     await initChatsFromDisk();
   }
 
-  _retrieveLocalModels() async {
+  Future<bool> _retrieveLocalModels() async {
     var localApi = AppCache.localApiUrl.value;
-    if (localApi == null || localApi.isEmpty == true) return;
-
+    if (localApi == null || localApi.isEmpty == true) return false;
+    // basic
     localApi = localApi.replaceAll('/api', '');
-    // retrieve models
-    // curl http://0.0.0.0:1234/v1/models/
+    // Msty
+    final localApiWithApi = '$localApi/api';
+    // LM studio
+    final localApiWithV1 = '$localApi/v1';
+
+    final dio = Dio();
     try {
-      final dio = Dio();
       final response = await dio.get('$localApi/models/');
       final respJson = response.data as Map<String, dynamic>;
       final models = respJson['data'] as List;
@@ -244,12 +253,47 @@ class ChatProvider with ChangeNotifier {
           )
           .toList();
       allModels.add([...defaultChatModels, ...listModels]);
+      log('Success retrieving models: $listModels');
+      return true;
     } catch (e) {
-      logError('Error retrieving local models: $e');
+      logError('Error retrieving local models raw: $e');
     }
+    try {
+      final response = await dio.get('$localApiWithApi/models/');
+      final respJson = response.data as Map<String, dynamic>;
+      final models = respJson['data'] as List;
+      final listModels = models
+          .map(
+            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
+                apiKey: AppCache.openAiApiKey.value ?? ''),
+          )
+          .toList();
+      allModels.add([...defaultChatModels, ...listModels]);
+      log('Success retrieving models: $listModels');
+      return true;
+    } catch (e) {
+      logError('Error retrieving local models api: $e');
+    }
+    try {
+      final response = await dio.get('$localApiWithV1/models/');
+      final respJson = response.data as Map<String, dynamic>;
+      final models = respJson['data'] as List;
+      final listModels = models
+          .map(
+            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
+                apiKey: AppCache.openAiApiKey.value ?? ''),
+          )
+          .toList();
+      log('Success retrieving models: $listModels');
+      allModels.add([...defaultChatModels, ...listModels]);
+      return true;
+    } catch (e) {
+      logError('Error retrieving local models v1: $e');
+    }
+    return false;
   }
 
-  initChatModels() async {
+  Future initChatModels() async {
     // final listModelsJsonString = await AppCache.savedModels.value();
     // if (listModelsJsonString?.isNotEmpty == true) {
     //   final listModelsJson = jsonDecode(listModelsJsonString!) as List;
@@ -259,11 +303,11 @@ class ChatProvider with ChangeNotifier {
     //   allModels.add(listModels);
     // }
     allModels.add(defaultChatModels);
-    await _retrieveLocalModels();
+    return _retrieveLocalModels();
   }
 
   /// Should be called after we load all chat rooms
-  void initCurrentChat() {
+  void initModelsApi() {
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
     if (AppCache.localApiUrl.value != null &&
         AppCache.localApiUrl.value!.isNotEmpty)
@@ -346,18 +390,33 @@ class ChatProvider with ChangeNotifier {
     for (var result in webpage) {
       results.add(result.toJson());
     }
-    values[DateTime.now().toIso8601String()] = CustomChatMessage(
+    values[DateTime.now().toIso8601String()] = WebResultCustomMessage(
       content: jsonEncode(results),
-      role: ChatMessageRole.custom.name,
+      searchResults: webpage,
     );
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
   }
 
-  void renameCurrentChatRoom(String newName) {
+  void renameCurrentChatRoom(String newName, [bool applyIcon = true]) {
     final chatRoom = chatRooms[selectedChatRoomId]!;
     chatRoom.chatRoomName = newName;
+    if (applyIcon) {
+      final words = newName.split(' ');
+      for (var word in words) {
+        if (tagToIconMap.containsKey(word.toLowerCase())) {
+          chatRoom.iconCodePoint = tagToIconMap[word.toLowerCase()]!.codePoint;
+          break;
+        }
+        // for (var entry in tagToIconMap.entries) {
+        //   if (entry.key.contains(word.toLowerCase())) {
+        //     chatRoom.iconCodePoint = entry.value.codePoint;
+        //     break;
+        //   }
+        // }
+      }
+    }
     notifyRoomsStream();
     saveToDisk([selectedChatRoom]);
   }
@@ -671,13 +730,9 @@ class ChatProvider with ChangeNotifier {
       if (e is AIChatMessage) {
         return 'Ai: ${e.content}';
       }
-      if (e is CustomChatMessage) {
-        final jsonContent = jsonDecode(e.content);
-        if (jsonContent is List) {
-          final results =
-              jsonContent.map((e) => SearchResult.fromJson(e)).toList();
-          return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
-        }
+      if (e is WebResultCustomMessage) {
+        final results = e.searchResults;
+        return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
       }
       return '';
     }).join('\n');
@@ -1178,6 +1233,7 @@ class ChatProvider with ChangeNotifier {
 
   Stream<List<int>>? micStream;
   DeepgramLiveTranscriber? transcriber;
+  AudioRecorder? recorder;
   Future<bool> startListeningForInput() async {
     try {
       if (!DeepgramSpeech.isValid()) {
@@ -1200,7 +1256,8 @@ class ChatProvider with ChangeNotifier {
         });
         return false;
       }
-      micStream = await AudioRecorder().startStream(const RecordConfig(
+      recorder = AudioRecorder();
+      micStream = await recorder!.startStream(const RecordConfig(
         encoder: AudioEncoder.pcm16bits,
         sampleRate: 16000,
         numChannels: 1,
@@ -1238,12 +1295,19 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> stopListeningForInput() async {
     try {
-      transcriber!.pause();
+      transcriber!.pause(keepAlive: false);
       await transcriber!.close();
+      transcriber = null;
     } catch (e, stack) {
       logError('Error while stopping listening: $e', stack);
     }
-
+    try {
+      await recorder!.cancel();
+      await Future.delayed(const Duration(milliseconds: 500));
+      await recorder!.dispose();
+    } catch (e, stack) {
+      logError('Error while stopping audio stream: $e', stack);
+    }
     micStream = null;
   }
 }

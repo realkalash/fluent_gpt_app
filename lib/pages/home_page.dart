@@ -14,6 +14,7 @@ import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
@@ -763,7 +764,31 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
-                        onChanged: (_) => chatProvider.toggleWebSearch(),
+                        onChanged: (_) {
+                          if (AppCache.braveSearchApiKey.value?.isNotEmpty ==
+                              true) {
+                            chatProvider.toggleWebSearch();
+                          } else {
+                            displayInfoBar(context, builder: (context, close) {
+                              return InfoBar(
+                                title: const Text(
+                                    'You need to obtain Brave API key to use web search'),
+                                severity: InfoBarSeverity.warning,
+                                action: Button(
+                                  onPressed: () {
+                                    close();
+                                    Navigator.of(context).push(
+                                      FluentPageRoute(
+                                          builder: (context) =>
+                                              const SettingsPage()),
+                                    );
+                                  },
+                                  child: const Text('Settings->API and URLs'),
+                                ),
+                              );
+                            });
+                          }
+                        },
                         tooltip: chatProvider.isWebSearchEnabled
                             ? 'Disable web search'
                             : 'Enable web search',
@@ -773,6 +798,37 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         icon: ic.FluentIcons.history_20_filled,
                         onChanged: chatProvider.setIncludeWholeConversation,
                         tooltip: 'Include conversation',
+                        maxWidthContextMenu: 300,
+                        maxHeightContextMenu: 64,
+                        contextItems: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Tooltip(
+                                message:
+                                    'To prevent token overflows unnecessary cost we propose to limit the conversation length',
+                                child: Icon(
+                                    ic.FluentIcons.question_circle_24_filled,
+                                    size: 24),
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                  child: Text('Max messages to include')),
+                              Expanded(
+                                child: NumberBox(
+                                  value: chatProvider
+                                      .maxMessagesToIncludeInHistory,
+                                  min: 1,
+                                  mode: SpinButtonPlacementMode.inline,
+                                  onChanged: (v) {
+                                    chatProvider
+                                        .setMaxMessagesToIncludeInHistory(v);
+                                  },
+                                ),
+                              ),
+                            ],
+                          )
+                        ],
                       ),
                       if (kDebugMode)
                         ToggleButtonAdvenced(
@@ -822,6 +878,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
     this.maxWidthContextMenu = 200,
     this.maxHeightContextMenu = 300,
+    this.shrinkWrapActions = false,
   });
   final bool checked;
   final IconData icon;
@@ -831,6 +888,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
   final EdgeInsets padding;
   final double maxWidthContextMenu;
   final double maxHeightContextMenu;
+  final bool shrinkWrapActions;
 
   @override
   Widget build(BuildContext context) {
@@ -844,9 +902,16 @@ class ToggleButtonAdvenced extends StatelessWidget {
             if (contextItems.isEmpty) return;
             controller.showFlyout(builder: (context) {
               return FlyoutContent(
-                constraints:
-                    const BoxConstraints(maxWidth: 200, maxHeight: 300),
-                child: ListView(children: contextItems),
+                constraints: BoxConstraints(
+                  minWidth: 100,
+                  minHeight: 64,
+                  maxWidth: maxWidthContextMenu,
+                  maxHeight: maxHeightContextMenu,
+                ),
+                child: ListView(
+                  shrinkWrap: shrinkWrapActions,
+                  children: contextItems,
+                ),
               );
             });
           },

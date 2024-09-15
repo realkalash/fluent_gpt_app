@@ -367,6 +367,7 @@ class ServerSettings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kReleaseMode) return const SizedBox.shrink();
     final server = context.watch<ServerProvider>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +552,7 @@ class _GlobalSettingsState extends State<GlobalSettings> {
                       AppCache.learnAboutUserAfterCreateNewChat.value = value;
                     },
                     child: const Text(
-                        'Learn about the user after creating new chat'),
+                        'Learn about the user after creating new chat \$\$'),
                   ),
                   const Icon(FluentIcons.brain_circuit_24_filled)
                 ],
@@ -739,10 +740,27 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
               TextFormBox(
                 initialValue: AppCache.localApiUrl.value,
                 placeholder: AppCache.localApiUrl.value,
-                onFieldSubmitted: (value) {
+                onFieldSubmitted: (value) async {
                   AppCache.localApiUrl.value = value;
-                  Provider.of<ChatProvider>(context, listen: false)
-                      .initChatModels();
+                  final provider =
+                      Provider.of<ChatProvider>(context, listen: false);
+                  final isSuccess = await provider.initChatModels();
+                  if (isSuccess) {
+                    provider.initModelsApi();
+                    // ignore: use_build_context_synchronously
+                    displayInfoBar(context, builder: (context, _) {
+                      return const InfoBar(
+                          title: Text('Success'),
+                          severity: InfoBarSeverity.success);
+                    });
+                  } else {
+                    // ignore: use_build_context_synchronously
+                    displayInfoBar(context, builder: (context, _) {
+                      return const InfoBar(
+                          title: Text('Error'),
+                          severity: InfoBarSeverity.error);
+                    });
+                  }
                 },
                 onChanged: (value) {
                   AppCache.localApiUrl.value = value;
