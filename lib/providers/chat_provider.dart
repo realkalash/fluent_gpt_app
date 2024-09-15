@@ -1,8 +1,10 @@
 import 'dart:convert';
 // ignore: implementation_imports
+import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
 
@@ -10,6 +12,7 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -21,6 +24,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
+import 'package:record/record.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -368,7 +372,7 @@ class ChatProvider with ChangeNotifier {
     log('Generated user knowladge: "$response"');
     final personalKnowladge = await AppCache.userInfo.value();
     // final currentDate = DateTime.now();
-    // final stringDate = '${currentDate.year}/${currentDate.month}/${currentDate.day}'; 
+    // final stringDate = '${currentDate.year}/${currentDate.month}/${currentDate.day}';
     /// I think it would be better to keep it short...
     final finalString = response;
     // append to the end
@@ -472,7 +476,7 @@ class ChatProvider with ChangeNotifier {
       messagesToSend.addAll(
         await getLastFewMessages(count: maxMessagesToIncludeInHistory),
       );
-    } 
+    }
     if (!includeConversationGlobal) {
       if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
         final systemMessage = await getFormattedSystemPrompt(
@@ -484,7 +488,7 @@ class ChatProvider with ChangeNotifier {
       messagesToSend.add(
         HumanChatMessage(content: ChatMessageContent.text(messageContent)),
       );
-      if (isImageAttached){
+      if (isImageAttached) {
         messagesToSend.add(
           HumanChatMessage(
             content: ChatMessageContent.image(
@@ -749,7 +753,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(values);
     if (scrollToBottomOnAnswer) {
       listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent + 200,
+        listItemsScrollController.position.maxScrollExtent + 50,
         duration: const Duration(milliseconds: 1),
         curve: Curves.easeOut,
       );
@@ -1170,6 +1174,77 @@ class ChatProvider with ChangeNotifier {
       }
     }
     return -1;
+  }
+
+  Stream<List<int>>? micStream;
+  DeepgramLiveTranscriber? transcriber;
+  Future<bool> startListeningForInput() async {
+    try {
+      if (!DeepgramSpeech.isValid()) {
+        displayInfoBar(context!, builder: (ctx, close) {
+          return InfoBar(
+            title: const Text('Deepgram API key is not set'),
+            severity: InfoBarSeverity.warning,
+            action: Button(
+              onPressed: () async {
+                close();
+                // ensure its closed
+                await Future.delayed(const Duration(milliseconds: 200));
+                Navigator.of(context!).push(
+                  FluentPageRoute(builder: (ctx) => const SettingsPage()),
+                );
+              },
+              child: const Text('Settings'),
+            ),
+          );
+        });
+        return false;
+      }
+      micStream = await AudioRecorder().startStream(const RecordConfig(
+        encoder: AudioEncoder.pcm16bits,
+        sampleRate: 16000,
+        numChannels: 1,
+      ));
+
+      final streamParams = {
+        'detect_language': false, // not supported by streaming API
+        'language': AppCache.speechLanguage.value!,
+        // must specify encoding and sample_rate according to the audio stream
+        'encoding': 'linear16',
+        'sample_rate': 16000,
+      };
+      transcriber = DeepgramSpeech.deepgram
+          .createLiveTranscriber(micStream!, queryParams: streamParams);
+      transcriber!.stream.listen((res) {
+        if (res.transcript?.isNotEmpty == true) {
+          messageController.text += '${res.transcript!} ';
+        }
+      });
+      transcriber!.start();
+    } catch (e, stack) {
+      logError('Speech error:\n$e', stack);
+      return false;
+    }
+    return true;
+
+    // you can pause and resume the transcription (stop sending audio data to the server)
+    //     transcriber.pause();
+    //
+    //     transcriber.resume();
+
+    // then close the stream when you're done, you can call start() again if you want to restart a transcription
+    // transcriber!.close();
+  }
+
+  Future<void> stopListeningForInput() async {
+    try {
+      transcriber!.pause();
+      await transcriber!.close();
+    } catch (e, stack) {
+      logError('Error while stopping listening: $e', stack);
+    }
+
+    micStream = null;
   }
 }
 

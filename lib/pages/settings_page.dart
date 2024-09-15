@@ -8,6 +8,7 @@ import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -733,7 +734,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('LLama url',
+              Text('LLama url (local AI)',
                   style: FluentTheme.of(context).typography.subtitle),
               TextFormBox(
                 initialValue: AppCache.localApiUrl.value,
@@ -748,7 +749,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 },
               ),
               Text(
-                'Brave API key',
+                'Brave API key (search engine) \$',
                 style: FluentTheme.of(context).typography.subtitle,
               ),
               TextFormBox(
@@ -775,7 +776,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 ),
               ),
               Text(
-                'OpenAi global API key',
+                'OpenAi global API key \$',
                 style: FluentTheme.of(context).typography.subtitle,
               ),
               TextFormBox(
@@ -797,6 +798,51 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 child: LinkTextButton(
                   'https://platform.openai.com/api-keys',
                   url: 'https://platform.openai.com/api-keys',
+                ),
+              ),
+              Text(
+                'Deepgram API key (speech) \$\$',
+                style: FluentTheme.of(context).typography.subtitle,
+              ),
+              TextFormBox(
+                initialValue: AppCache.deepgramApiKey.value,
+                placeholder: AppCache.deepgramApiKey.value,
+                obscureText: true,
+                suffix: DropDownButton(
+                    leading:
+                        Text('Voice: ${AppCache.deepgramVoiceModel.value}'),
+                    items: [
+                      for (var model in DeepgramSpeech.listModels)
+                        MenuFlyoutItem(
+                          selected: AppCache.deepgramVoiceModel.value == model,
+                          trailing: SqueareIconButton(
+                            onTap: () {
+                              if (DeepgramSpeech.isValid()) {
+                                DeepgramSpeech.readAloud(
+                                    'This is a sample text to read aloud');
+                              }
+                            },
+                            icon: const Icon(FluentIcons.play_circle_24_filled),
+                            tooltip: 'Read sample',
+                          ),
+                          onPressed: () {
+                            AppCache.deepgramVoiceModel.value = model;
+                            DeepgramSpeech.init();
+                            setState(() {});
+                          },
+                          text: Text(model),
+                        ),
+                    ]),
+                onChanged: (value) {
+                  AppCache.deepgramApiKey.value = value.trim();
+                  DeepgramSpeech.init();
+                },
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: LinkTextButton(
+                  'https://console.deepgram.com',
+                  url: 'https://console.deepgram.com',
                 ),
               ),
             ],
@@ -1037,6 +1083,24 @@ class _HotKeySectionState extends State<_HotKeySection> {
   }
 }
 
+// const supportedLocales = FluentLocalizations.supportedLocales;
+const supportedLocales = [
+  Locale('en'),
+];
+const gptLocales = [
+  Locale('en'),
+  Locale('ru'),
+  Locale('uk'),
+  Locale('es'),
+  Locale('fr'),
+  Locale('de'),
+  Locale('it'),
+  Locale('ja'),
+  Locale('ko'),
+  Locale('pt'),
+  Locale('zh'),
+];
+
 class _LocaleSection extends StatelessWidget {
   const _LocaleSection({super.key});
 
@@ -1044,23 +1108,6 @@ class _LocaleSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
 
-    // const supportedLocales = FluentLocalizations.supportedLocales;
-    const supportedLocales = [
-      Locale('en'),
-    ];
-    const gptLocales = [
-      Locale('en'),
-      Locale('ru'),
-      Locale('uk'),
-      Locale('es'),
-      Locale('fr'),
-      Locale('de'),
-      Locale('it'),
-      Locale('ja'),
-      Locale('ko'),
-      Locale('pt'),
-      Locale('zh'),
-    ];
     final currentLocale =
         appTheme.locale ?? Localizations.maybeLocaleOf(context);
     return Column(
@@ -1089,26 +1136,38 @@ class _LocaleSection extends StatelessWidget {
         ),
         spacer,
         Text('GPT Locale', style: FluentTheme.of(context).typography.subtitle),
+        const CaptionText('Language LLM will use to generate answers'),
         spacer,
-        Wrap(
-          spacing: 15.0,
-          runSpacing: 10.0,
-          children: List.generate(
-            gptLocales.length,
-            (index) {
-              final locale = gptLocales[index];
-              return RadioButton(
-                checked: defaultGPTLanguage.value == locale.languageCode,
-                onChanged: (value) {
-                  if (value) {
-                    defaultGPTLanguage.add(locale.languageCode);
-                    appTheme.updateUI();
-                  }
-                },
-                content: Text('$locale'),
-              );
-            },
-          ),
+        DropDownButton(
+          leading: Text(defaultGPTLanguage.value),
+          items: gptLocales.map((locale) {
+            return MenuFlyoutItem(
+              selected: defaultGPTLanguage.value == locale.languageCode,
+              onPressed: () {
+                defaultGPTLanguage.add(locale.languageCode);
+                appTheme.updateUI();
+              },
+              text: Text('$locale'),
+            );
+          }).toList(),
+        ),
+        Text('Speech Language',
+            style: FluentTheme.of(context).typography.subtitle),
+        const CaptionText(
+            'Language you are using to talk to the AI (Used in Deepgram)'),
+        spacer,
+        DropDownButton(
+          leading: Text(AppCache.speechLanguage.value!),
+          items: gptLocales.map((locale) {
+            return MenuFlyoutItem(
+              selected: AppCache.speechLanguage.value == locale.languageCode,
+              onPressed: () {
+                AppCache.speechLanguage.value = locale.languageCode;
+                appTheme.updateUI();
+              },
+              text: Text('$locale'),
+            );
+          }).toList(),
         ),
       ],
     );

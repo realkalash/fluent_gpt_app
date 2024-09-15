@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
@@ -10,10 +11,12 @@ import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -21,7 +24,9 @@ import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:record/record.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_provider.dart';
@@ -163,6 +168,7 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
+                suffix: _MicrophoneButton(),
                 prefix: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -291,6 +297,99 @@ class _InputFieldState extends State<InputField> {
         ],
       );
     });
+  }
+}
+
+class _MicrophoneButton extends StatefulWidget {
+  const _MicrophoneButton({super.key});
+
+  @override
+  State<_MicrophoneButton> createState() => __MicrophoneButtonState();
+}
+
+class __MicrophoneButtonState extends State<_MicrophoneButton> {
+  bool isRecording = false;
+  Future<bool> checkPermission() async {
+    // final permission = await Permission.speech.request();
+    // if (permission.isGranted) {
+    //   return true;
+    // } else {
+    //   return false;
+    // }
+    final result = await AudioRecorder().hasPermission();
+    if (!result) {
+      // ignore: use_build_context_synchronously
+      displayInfoBar(context, builder: (ctx, close) {
+        return const InfoBar(
+          title: Text('Permission required'),
+          severity: InfoBarSeverity.warning,
+        );
+      });
+    }
+    return result;
+  }
+
+  Future startRecording() async {
+    final permission = await checkPermission();
+    if (!permission) {
+      return;
+    }
+    setState(() {
+      isRecording = true;
+    });
+    // ignore: use_build_context_synchronously
+    final provider = context.read<ChatProvider>();
+    final resultStart = await provider.startListeningForInput();
+    if (!resultStart) {
+      setState(() {
+        isRecording = false;
+      });
+    }
+  }
+
+  void stopRecording() {
+    setState(() {
+      isRecording = false;
+    });
+    final provider = context.read<ChatProvider>();
+    provider.stopListeningForInput();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        width: 42,
+        height: 30,
+        margin: const EdgeInsets.only(right: 4),
+        child: ToggleButtonAdvenced(
+          onChanged: (v) {
+            if (isRecording) {
+              stopRecording();
+            } else {
+              startRecording();
+            }
+          },
+          contextItems: [
+            for (final locale in gptLocales)
+              FlyoutListTile(
+                text: Text(locale.languageCode),
+                selected: AppCache.speechLanguage.value == locale.languageCode,
+                onPressed: () {
+                  AppCache.speechLanguage.value = locale.languageCode;
+                  setState(() {});
+                  Navigator.of(context).pop();
+                },
+              ),
+          ],
+          checked: isRecording,
+          padding: EdgeInsets.zero,
+          icon: ic.FluentIcons.mic_24_regular,
+          tooltip: 'Use voice input',
+        ),
+      ),
+    );
   }
 }
 
@@ -559,40 +658,41 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
     final txtController = chatProvider.messageController;
 
     return StreamBuilder(
-      stream: customPrompts,
-      builder: (context, snapshot) {
-        if (snapshot.data == null) {
-          return const SizedBox.shrink();
-        }
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: SizedBox(
-            width: double.infinity,
-            child: Wrap(
-              alignment: WrapAlignment.start,
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                for (final prompt in customPrompts.value)
-                  if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
-                Button(
-                    child: const Text('Answer with tags'),
-                    onPressed: () async {
-                      final textFromClipboard =
-                          (await Clipboard.getData('text/plain'))?.text ?? '';
-                      final text = txtController.text.trim().isEmpty
-                          ? textFromClipboard
-                          : txtController.text;
-                      // ignore: use_build_context_synchronously
-                      HotShurtcutsWidget.showAnswerWithTagsDialog(context, text);
-                      txtController.clear();
-                    }),
-              ],
+        stream: customPrompts,
+        builder: (context, snapshot) {
+          if (snapshot.data == null) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.start,
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  for (final prompt in customPrompts.value)
+                    if (prompt.showInChatField)
+                      PromptChipWidget(prompt: prompt),
+                  Button(
+                      child: const Text('Answer with tags'),
+                      onPressed: () async {
+                        final textFromClipboard =
+                            (await Clipboard.getData('text/plain'))?.text ?? '';
+                        final text = txtController.text.trim().isEmpty
+                            ? textFromClipboard
+                            : txtController.text;
+                        // ignore: use_build_context_synchronously
+                        HotShurtcutsWidget.showAnswerWithTagsDialog(
+                            context, text);
+                        txtController.clear();
+                      }),
+                ],
+              ),
             ),
-          ),
-        );
-      }
-    );
+          );
+        });
   }
 }
 
@@ -664,7 +764,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
 
   _onRightClick(BuildContext context) {
     final item = widget.prompt;
-    
+
     flyoutContr.showFlyout(builder: (ctx) {
       return FlyoutContent(
         constraints: const BoxConstraints(maxWidth: 220),

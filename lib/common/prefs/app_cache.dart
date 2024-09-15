@@ -17,6 +17,8 @@ class AppCache {
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
+  static const speechLanguage = StringPref("speechLanguage", 'en');
+  static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
 
   static StringPref backgroundEffect =
       StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');
@@ -54,16 +56,21 @@ class AppCache {
   static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
   static const imgurClientId = StringPref("braveSearchApiKey", '');
+  static const deepgramApiKey = StringPref("deepgramApiKey", '');
 
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
   static const useSecondRequestForNamingChats =
       BoolPref("useSecondRequestForNamingChats", false);
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
-  static const includeUserNameToSysPrompt = BoolPref("includeUserNameToSysPrompt", false);
-  static const includeSysInfoToSysPrompt = BoolPref("includeSysInfoToSysPrompt", false);
-  static const includeKnowledgeAboutUserToSysPrompt = BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
-  static const learnAboutUserAfterCreateNewChat = BoolPref("learnAboutUserAfterCreateNewChat", false);
+  static const includeUserNameToSysPrompt =
+      BoolPref("includeUserNameToSysPrompt", false);
+  static const includeSysInfoToSysPrompt =
+      BoolPref("includeSysInfoToSysPrompt", false);
+  static const includeKnowledgeAboutUserToSysPrompt =
+      BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
+  static const learnAboutUserAfterCreateNewChat =
+      BoolPref("learnAboutUserAfterCreateNewChat", false);
 
   static const useGoogleApi = BoolPref("useGoogleApi", false);
   static const useImgurApi = BoolPref("useImgurApi", false);

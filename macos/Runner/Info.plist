@@ -45,5 +45,7 @@
 	<string>This app needs accessibility permissions to detect text selection in other applications.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>This app needs to access selected text for processing.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to the microphone for recording audio.</string>
 </dict>
 </plist>

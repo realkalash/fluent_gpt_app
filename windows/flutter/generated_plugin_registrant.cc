@@ -6,6 +6,7 @@
 
 #include "generated_plugin_registrant.h"
 
+#include <audioplayers_windows/audioplayers_windows_plugin.h>
 #include <file_selector_windows/file_selector_windows.h>
 #include <flutter_acrylic/flutter_acrylic_plugin.h>
 #include <hotkey_manager_windows/hotkey_manager_windows_plugin_c_api.h>
@@ -14,6 +15,7 @@
 #include <pasteboard/pasteboard_plugin.h>
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
 #include <protocol_handler_windows/protocol_handler_windows_plugin_c_api.h>
+#include <record_windows/record_windows_plugin_c_api.h>
 #include <screen_retriever/screen_retriever_plugin.h>
 #include <super_native_extensions/super_native_extensions_plugin_c_api.h>
 #include <system_theme/system_theme_plugin.h>
@@ -23,6 +25,8 @@
 #include <windows_single_instance/windows_single_instance_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
+  AudioplayersWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("AudioplayersWindowsPlugin"));
   FileSelectorWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSelectorWindows"));
   FlutterAcrylicPluginRegisterWithRegistrar(
@@ -39,6 +43,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("PermissionHandlerWindowsPlugin"));
   ProtocolHandlerWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ProtocolHandlerWindowsPluginCApi"));
+  RecordWindowsPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("RecordWindowsPluginCApi"));
   ScreenRetrieverPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ScreenRetrieverPlugin"));
   SuperNativeExtensionsPluginCApiRegisterWithRegistrar(

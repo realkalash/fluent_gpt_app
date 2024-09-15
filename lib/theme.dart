@@ -112,9 +112,11 @@ class AppTheme extends ChangeNotifier {
     } else {
       /// if the effect is transperent or blur
       if (isDark) {
-        darkBackgroundColor = defaultDarkBackgroundColor.withOpacity(windowEffectOpacity);
+        darkBackgroundColor =
+            defaultDarkBackgroundColor.withOpacity(windowEffectOpacity);
       } else {
-        lightBackgroundColor = defaultLightBackgroundColor.withOpacity(windowEffectOpacity);
+        lightBackgroundColor =
+            defaultLightBackgroundColor.withOpacity(windowEffectOpacity);
       }
     }
     _windowEffect = effect;
@@ -161,7 +163,9 @@ class AppTheme extends ChangeNotifier {
   buildInfoBarDecoration(InfoBarSeverity severity) {
     if (severity == InfoBarSeverity.warning) {
       return BoxDecoration(
-          color: Colors.yellow, borderRadius: BorderRadius.circular(8.0));
+        color: Colors.orange.dark,
+        borderRadius: BorderRadius.circular(8.0),
+      );
     } else if (severity == InfoBarSeverity.error) {
       return BoxDecoration(
           color: Colors.red, borderRadius: BorderRadius.circular(8.0));

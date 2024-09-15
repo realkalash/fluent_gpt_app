@@ -2,13 +2,17 @@ import 'dart:convert';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
@@ -312,77 +316,102 @@ class _MessageCardState extends State<MessageCard> {
               child: Wrap(
                 spacing: 4,
                 children: [
-                  Tooltip(
-                    message: _isMarkdownView ? 'Show text' : 'Show markdown',
-                    child: SizedBox.square(
-                      dimension: 30,
-                      child: ToggleButton(
-                        onChanged: (_) {
-                          AppCache.isMarkdownViewEnabled.value =
-                              !_isMarkdownView;
-                          setState(() {
-                            _isMarkdownView = !_isMarkdownView;
+                  SqueareIconButton(
+                    tooltip: _isMarkdownView ? 'Show text' : 'Show markdown',
+                    icon: const Icon(FluentIcons.paint_brush_12_regular),
+                    onTap: () {
+                      AppCache.isMarkdownViewEnabled.value = !_isMarkdownView;
+                      setState(() {
+                        _isMarkdownView = !_isMarkdownView;
+                      });
+                    },
+                  ),
+                  SqueareIconButton(
+                    tooltip: 'Edit message',
+                    icon: const Icon(FluentIcons.edit_12_regular),
+                    onTap: () {
+                      _showEditMessageDialog(context, widget.message);
+                    },
+                  ),
+                  if (widget.message is AIChatMessage ||
+                      (widget.message is HumanChatMessage &&
+                          (widget.message as HumanChatMessage).content
+                              is ChatMessageContentText))
+                    SqueareIconButton(
+                      tooltip: 'Read aloud (Requires Deepgram API)',
+                      icon: DeepgramSpeech.isReadingAloud
+                          ? Icon(
+                              FluentIcons.stop_24_filled,
+                              color: context.theme.accentColor,
+                            )
+                          : const Icon(
+                              FluentIcons.sound_wave_circle_24_regular),
+                      onTap: () async {
+                        if (DeepgramSpeech.isValid() == false) {
+                          displayInfoBar(context, builder: (ctx, close) {
+                            return InfoBar(
+                              title: const Text('Deepgram API key is not set'),
+                              severity: InfoBarSeverity.warning,
+                              action: Button(
+                                  child: const Text('Settings'),
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      FluentPageRoute(builder: (context) {
+                                        return const SettingsPage();
+                                      }),
+                                    );
+                                  }),
+                            );
                           });
-                        },
-                        checked: _isMarkdownView,
-                        child: const Icon(FluentIcons.paint_brush_12_regular,
-                            size: 10),
-                      ),
+                          return;
+                        }
+                        if (DeepgramSpeech.isReadingAloud) {
+                          DeepgramSpeech.stopReadingAloud();
+                        } else {
+                          await DeepgramSpeech.readAloud(
+                            widget.message.contentAsString,
+                            onCompleteReadingAloud: () {
+                              setState(() {});
+                            },
+                          );
+                        }
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        setState(() {});
+                      },
                     ),
-                  ),
-                  Tooltip(
-                    message: 'Edit message',
-                    child: SizedBox.square(
-                      dimension: 30,
-                      child: ToggleButton(
-                        onChanged: (_) {
-                          _showEditMessageDialog(context, widget.message);
-                        },
-                        checked: false,
-                        child:
-                            const Icon(FluentIcons.edit_12_regular, size: 10),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: 'Copy to clipboard',
-                    child: SizedBox.square(
-                      dimension: 30,
-                      child: Button(
-                        onPressed: () async {
-                          if (widget.message is HumanChatMessage) {
-                            if ((widget.message as HumanChatMessage).content
-                                is ChatMessageContentImage) {
-                              final bytes =
-                                  decodeImage(widget.message.contentAsString);
-                              await Pasteboard.writeImage(bytes);
-                              displayCopiedToClipboard();
-                              return;
-                            }
-                          }
-                          Clipboard.setData(ClipboardData(
-                              text: widget.message.contentAsString));
+
+                  SqueareIconButton(
+                    tooltip: 'Copy to clipboard',
+                    icon: const Icon(FluentIcons.copy_16_regular),
+                    onTap: () async {
+                      if (widget.message is HumanChatMessage) {
+                        if ((widget.message as HumanChatMessage).content
+                            is ChatMessageContentImage) {
+                          final bytes =
+                              decodeImage(widget.message.contentAsString);
+                          await Pasteboard.writeImage(bytes);
                           displayCopiedToClipboard();
-                        },
-                        child:
-                            const Icon(FluentIcons.copy_16_regular, size: 10),
-                      ),
-                    ),
+                          return;
+                        }
+                      }
+                      Clipboard.setData(
+                          ClipboardData(text: widget.message.contentAsString));
+                      displayCopiedToClipboard();
+                    },
                   ),
                   // additional options
-                  SizedBox.square(
-                    dimension: 30,
-                    child: FlyoutTarget(
-                      controller: flyoutController,
-                      child: Button(
-                        onPressed: () => flyoutController.showFlyout(
+                  FlyoutTarget(
+                    controller: flyoutController,
+                    child: SqueareIconButton(
+                      icon: const Icon(FluentIcons.more_vertical_16_filled),
+                      onTap: () {
+                        flyoutController.showFlyout(
                           builder: (context) => _showOptionsFlyout(context),
-                        ),
-                        child: const Icon(FluentIcons.more_vertical_16_filled,
-                            size: 10),
-                      ),
+                        );
+                      },
+                      tooltip: 'More',
                     ),
-                  )
+                  ),
                 ],
               ),
             ),

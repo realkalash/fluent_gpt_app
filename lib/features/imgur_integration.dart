@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class ImgurIntegration {
   static String clientId = 'YOUR_IMGUR_CLIENT_ID';
 
-  void init() {
+  static void init() {
     clientId = AppCache.imgurClientId.value!;
   }
 

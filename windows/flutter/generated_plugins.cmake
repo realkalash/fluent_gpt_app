@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
   file_selector_windows
   flutter_acrylic
   hotkey_manager_windows
@@ -11,6 +12,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   pasteboard
   permission_handler_windows
   protocol_handler_windows
+  record_windows
   screen_retriever
   super_native_extensions
   system_theme

@@ -819,12 +819,18 @@ class ToggleButtonAdvenced extends StatelessWidget {
     required this.onChanged,
     required this.tooltip,
     this.contextItems = const [],
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    this.maxWidthContextMenu = 200,
+    this.maxHeightContextMenu = 300,
   });
   final bool checked;
   final IconData icon;
   final void Function(bool) onChanged;
   final String tooltip;
   final List<Widget> contextItems;
+  final EdgeInsets padding;
+  final double maxWidthContextMenu;
+  final double maxHeightContextMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -837,12 +843,27 @@ class ToggleButtonAdvenced extends StatelessWidget {
           onSecondaryTap: () {
             if (contextItems.isEmpty) return;
             controller.showFlyout(builder: (context) {
-              return FlyoutContent(child: Column(children: contextItems));
+              return FlyoutContent(
+                constraints:
+                    const BoxConstraints(maxWidth: 200, maxHeight: 300),
+                child: ListView(children: contextItems),
+              );
             });
           },
           child: ToggleButton(
             checked: checked,
             onChanged: onChanged,
+            style: ToggleButtonThemeData(
+              checkedButtonStyle: ButtonStyle(
+                padding: WidgetStateProperty.all(padding),
+                backgroundColor: WidgetStateProperty.all(
+                  context.theme.accentColor,
+                ),
+              ),
+              uncheckedButtonStyle: ButtonStyle(
+                padding: WidgetStateProperty.all(padding),
+              ),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

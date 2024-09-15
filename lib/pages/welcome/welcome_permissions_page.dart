@@ -6,6 +6,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:record/record.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -152,8 +153,8 @@ class _WelcomePermissionsPageState extends State<WelcomePermissionsPage>
                                 'Allows you to record your voice and send it to LLM',
                             isGranted: AppCache.isMicAccessGranted.value!,
                             onGrantAccessTap: () async {
-                              final result = await NativeChannelUtils
-                                  .requestMicrophonePermissions();
+                              final result =
+                                  await AudioRecorder().hasPermission();
                               if (result == false) return;
                               AppCache.isMicAccessGranted.value = true;
                               setState(() {});
