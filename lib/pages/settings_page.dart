@@ -349,7 +349,7 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
                 const Text('Accessibility granted'),
                 const SizedBox(width: 10.0),
                 if (isGranted)
-                  Icon(FluentIcons.check_20_filled, color: Colors.green)
+                  Icon(FluentIcons.checkmark_20_regular, color: Colors.green)
                 else
                   Icon(FluentIcons.error_circle_20_regular, color: Colors.red)
               ],
