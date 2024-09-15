@@ -13,13 +13,13 @@ PODS:
     - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
-  - FluentIcons (1.1.179):
-    - FluentIcons/Assets (= 1.1.179)
-    - FluentIcons/Code (= 1.1.179)
-    - FluentIcons/RemovalScript (= 1.1.179)
-  - FluentIcons/Assets (1.1.179)
-  - FluentIcons/Code (1.1.179)
-  - FluentIcons/RemovalScript (1.1.179)
+  - FluentIcons (1.1.258):
+    - FluentIcons/Assets (= 1.1.258)
+    - FluentIcons/Code (= 1.1.258)
+    - FluentIcons/RemovalScript (= 1.1.258)
+  - FluentIcons/Assets (1.1.258)
+  - FluentIcons/Code (1.1.258)
+  - FluentIcons/RemovalScript (1.1.258)
   - flutter_gpt_tokenizer (0.1.1)
   - flutter_local_notifications (0.0.1):
     - FlutterMacOS
@@ -85,7 +85,7 @@ DEPENDENCIES:
   - cryptography_flutter (from `Flutter/ephemeral/.symlinks/plugins/cryptography_flutter/macos`)
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
-  - FluentIcons (= 1.1.179)
+  - FluentIcons (= 1.1.258)
   - flutter_gpt_tokenizer (from `Flutter/ephemeral/.symlinks/plugins/flutter_gpt_tokenizer/macos`)
   - flutter_local_notifications (from `Flutter/ephemeral/.symlinks/plugins/flutter_local_notifications/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
@@ -172,7 +172,7 @@ SPEC CHECKSUMS:
   cryptography_flutter: c9fa581b52e6fe19475432b6f44489c387f61e19
   device_info_plus: ce1b7762849d3ec103d0e0517299f2db7ad60720
   file_selector_macos: 54fdab7caa3ac3fc43c9fac4d7d8d231277f8cf2
-  FluentIcons: 7108227e1958959ed02dc981b2e0451c98074fe9
+  FluentIcons: 7d6e501bf569ebd7257261fdcf20f359b4267e79
   flutter_gpt_tokenizer: 0d9e224c1ff3bc0ae48f802fc87258c08057350c
   flutter_local_notifications: 3805ca215b2fb7f397d78b66db91f6a747af52e4
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
@@ -198,6 +198,6 @@ SPEC CHECKSUMS:
   url_launcher_macos: 5f437abeda8c85500ceb03f5c1938a8c5a705399
   window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8
 
-PODFILE CHECKSUM: 1b9e4d062248ca3b9851eda10d05671f7a816a34
+PODFILE CHECKSUM: 02f3fa41bae8281b903b8ddfc7b7ca6c2b1966a8
 
 COCOAPODS: 1.15.2
