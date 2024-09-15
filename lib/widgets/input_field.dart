@@ -16,7 +16,6 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
-import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -24,7 +23,6 @@ import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:window_manager/window_manager.dart';
@@ -168,7 +166,7 @@ class _InputFieldState extends State<InputField> {
                 controller: chatProvider.messageController,
                 minLines: 2,
                 maxLines: 30,
-                suffix: _MicrophoneButton(),
+                suffix: const _MicrophoneButton(),
                 prefix: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -683,9 +681,11 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                         final text = txtController.text.trim().isEmpty
                             ? textFromClipboard
                             : txtController.text;
-                        // ignore: use_build_context_synchronously
                         HotShurtcutsWidget.showAnswerWithTagsDialog(
-                            context, text);
+                          // ignore: use_build_context_synchronously
+                          context,
+                          text,
+                        );
                         txtController.clear();
                       }),
                 ],

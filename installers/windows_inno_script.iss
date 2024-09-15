@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "FluentGPT"
-#define MyAppVersion "0.9.21+21"
+#define MyAppVersion "0.9.22+22"
 #define MyAppPublisher "realkalash"
 #define MyAppURL "https://github.com/realkalash/fluent_gpt_app"
 #define MyAppExeName "fluent_gpt.exe"
@@ -53,6 +53,8 @@ Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\gpt
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\hotkey_manager_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\irondash_engine_context_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\pasteboard_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\audioplayers_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\record_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\permission_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\protocol_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\screen_retriever_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
