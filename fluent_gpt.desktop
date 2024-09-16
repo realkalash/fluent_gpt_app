@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Fluent GPT
 Comment=An open-source, multi-platform desktop application that brings the power of GPT models to your fingertips.

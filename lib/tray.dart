@@ -39,7 +39,7 @@ Future<void> initSystemTray() async {
   } else if (Platform.isMacOS) {
     path = 'assets/transparent_app_icon_32x32.png';
   } else if (Platform.isLinux) {
-    path = 'assets/app_icon.png';
+    path = 'assets/app_icon512.png';
   }
   if (path == null) return;
 
