@@ -44,7 +44,6 @@ dependencies:
   permission_handler: ^11.3.1
   http: ^1.2.1
   animated_list_plus: ^0.5.2
-  # scrollable_positioned_list: ^0.3.8
   scroll_to_index: ^3.0.1
   nanoid2: ^2.0.1
   widget_and_text_animator: ^1.1.5
@@ -85,19 +84,3 @@ flutter:
   assets:
     - assets/
   uses-material-design: true
-
-msix_config:
-  display_name: Fluent GPT
-  publisher_display_name: Realkalash
-  msix_version: 0.8.0.0
-  logo_path: C:\Users\realk\repos\pet\fluent_gpt\assets\app_icon.png
-  capabilities: internetClient, microphone
-  languages: en-us
-  protocol_activation: fluentgpt
-  app_installer:
-    publish_folder_path: msi_flutter_builds
-    hours_between_update_checks: 0
-    automatic_background_task: false
-    update_blocks_activation: true
-    show_prompt: true
-    force_update_from_any_version: false
