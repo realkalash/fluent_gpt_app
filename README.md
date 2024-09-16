@@ -41,19 +41,6 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 ---
 (optional)
 
-### Guide how to use keybindings:
-1. Open settings page
-2. Click Custom prompts button
-3. Select custom prompt
-4. Tap on a button "Select keybinding"
-5. Create your shortcut (avoid shortcuts that already been created and using, e.x. ctrl+shift+1, ctrl+y)
-6. Click Apply
-7. Select any text in any app.
-8. Copy it to clipboard (I will remove this step later. It will send the text to the app automatically)
-9. Press your shortcut combination
-10. mini window of FluentGPT will appear near cursor
-11. It will start to use your command using the prompt+selected text
----
 
 ### Using ChatGPT from OpenAI
 
@@ -67,30 +54,15 @@ To use ChatGPT from OpenAI, you need to obtain a token:
 Fluent GPT App allows the integration of custom GPT models. To use your own model:
 
 1. Ensure your GPT model is accessible via a URL.
-2. In the app, tap on the Plus icon to add a new Chat Room. Then tap on the pencil icon to edit the room.
-3. Check "Custom GPT" and enter your URL in the "Custom GPT URL" field.
-4. Click "Save" to save your changes.
-
-### Specific Instructions for gpt4All
-
-If you're using [gpt4All](https://github.com/nomic-ai/gpt4all), follow these steps:
-
-1. Visit the [gpt4All GitHub page](https://github.com/nomic-ai/gpt4all).
-2. Install gpt4All on your from the Releases section.
-3. Ensure you enable the "Enable API server" setting in gpt4All. This allows Fluent GPT App to communicate with your gpt4All model.
-4. Once gpt4All is running with the API server enabled, use the provided URL in Fluent GPT App to connect to your gpt4All model.
-
-By following these steps, you can seamlessly integrate gpt4All or any other custom GPT model with Fluent GPT App.
+2. Open FluentGPT
+3. Go to the settings page
+4. Paste the URL of your model in the "API and URLs"-> "Local AI" field.
 
 ### Configuration
 
 - **Hiding to Tray**: Enable this in settings to allow the app to minimize to the system tray.
 - **Setting Custom Shortcut**: Define your custom shortcut in the settings menu.
 - **Adding/Managing Chat Rooms**: Create and manage chat rooms through the main interface. Assign different GPT models and set custom instructions for each room.
-
-## Usage
-
-Once you've set up your chat rooms, you're ready to start interacting with the GPT models. Simply select a chat room and start typing your queries or commands.
 
 ## Contributing
 
@@ -107,62 +79,5 @@ Copyright (c) 2024 Alex Kalashnikov.
 - OpenAI for providing the GPT models.
 - Contributors and supporters of the Fluent GPT App.
 
-## Packages Used
-- Flutter
-- fluent_ui
-- system_theme
-- flutter_acrylic
-- go_router
-- provider
-- url_launcher
-- window_manager
-- shared_preferences
-- chat_gpt_flutter
-- tray_manager
-- hotkey_manager
-- process_run
-- shell
-- file
-- markdown_widget
-- fluentui_system_icons
-- rxdart
-- dio
-- windows_single_instance
-- flutter_highlighter
-- file_picker
-- background_downloader
-- cross_file
-- mime_type
-- pasteboard
-- easy_image_viewer
-- path_provider
-- protocol_handler
-- package_info_plus
-- flutter_gpt_tokenizer
-- super_drag_and_drop
-- file_selector
-- super_clipboard
-- permission_handler
-- http
-- animated_list_plus
-- scrollable_positioned_list
-- nanoid2
-- widget_and_text_animator
-- simple_animations
-- flutter_moving_background
-- smooth_page_indicator
-- adaptive_layout
-- flutter_local_notifications
-- cryptography
-- cryptography_flutter
-- keypress_simulator
-- langchain
-- langchain_openai
-- langchain_ollama
-- html
-- googleapis
-- googleapis_auth
-- google_sign_in
-
 ---
-Some content was generated with ChatGPT-4o
+Some content was generated with ChatGPT-4o, Claude and LLama 3
