@@ -1,4 +1,12 @@
 @echo off
+echo Compiling a build for Windows...
+call flutter build windows --release
+if %errorlevel% neq 0 (
+    echo Build failed.
+    exit /b %errorlevel%
+)
+echo Building installer...
+
 cd /d %~dp0\installers
 ISCC windows_inno_script.iss
 if %errorlevel% neq 0 (
