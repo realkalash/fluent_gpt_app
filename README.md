@@ -47,10 +47,6 @@ Windows
 
 ## Getting Started
 
-### Prerequisites
-
-- Ensure you have the latest version of your operating system (Windows, macOS, Linux).
-
 ### Installation
 
 1. Download the Fluent GPT App from [GitHub Releases](#).
