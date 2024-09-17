@@ -3,6 +3,10 @@
 # Build the Flutter app for Linux
 flutter build linux
 
+# Copy external files. Example of windows build
+cp -r external_files/* build/linux/x64/release/bundle/
+
+
 # Create temporary AppDir structure
 mkdir -p linux-temp-installer/AppDir/usr/bin
 cp -r build/linux/x64/release/bundle/* linux-temp-installer/AppDir/usr/bin/

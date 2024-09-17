@@ -7,6 +7,9 @@ if %errorlevel% neq 0 (
 )
 echo Building installer...
 
+@REM Copy everything in the external_files directory to the build directory
+xcopy external_files build\windows\x64\runner\Release /E /Y
+
 cd /d %~dp0\installers
 ISCC windows_inno_script.iss
 if %errorlevel% neq 0 (

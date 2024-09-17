@@ -15,6 +15,8 @@ mkdir -p "$OUTPUT_DIR"
 
 # Copy only the .app file to a temporary directory
 cp -R "$APP_PATH" "$TMP_DIR"
+# Copy everything in 'external_files' to the .app file
+cp -r external_files/* "$TMP_DIR/${APP_NAME}.app/Contents/MacOS"
 
 # Create DMG
 create-dmg \
