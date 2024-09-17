@@ -49,7 +49,7 @@ Windows
 
 ### Installation
 
-1. Download the Fluent GPT App from [GitHub Releases](#).
+1. Download the Fluent GPT App from [GitHub Releases](https://github.com/realkalash/fluent_gpt_app/releases).
 2. Follow the installation instructions specific to your OS.
 3. To use Python download and install python from [here](https://www.python.org/downloads/).
    
