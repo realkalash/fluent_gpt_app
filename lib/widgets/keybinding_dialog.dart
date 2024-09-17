@@ -1,5 +1,4 @@
-
-
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
@@ -30,6 +29,7 @@ class KeybindingDialog extends StatefulWidget {
 
 class _KeybindingDialogState extends State<KeybindingDialog> {
   HotKey? hotKey;
+  bool canApply = true;
   @override
   void initState() {
     hotKey = widget.initHotkey;
@@ -46,10 +46,9 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
           onPressed: () => Navigator.of(context).pop(widget.initHotkey),
           child: const Text('Cancel'),
         ),
-        Button(
-          onPressed: apply,
-          child: const Text('Apply'),
-        ),
+        canApply
+            ? Button(onPressed: apply, child: const Text('Apply'))
+            : const FilledRedButton(child: Text('Apply')),
       ],
       content: Center(
         child: Column(
@@ -66,12 +65,24 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
                   cancel();
                   return;
                 }
+                final listHotKeys = HotKeyManager.instance.registeredHotKeyList;
+                final pressedKey = v.debugName;
+                if (listHotKeys.any((element) => element.debugName == pressedKey)) {
+                  canApply = false;
+                } else {
+                  canApply = true;
+                }
                 setState(() {
                   hotKey = v;
                 });
               },
               initalHotKey: hotKey,
             ),
+            if (!canApply)
+              Text(
+                'This hotkey is already in use',
+                style: TextStyle(color: Colors.red),
+              ),
           ],
         ),
       ),
@@ -88,4 +99,3 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
     Navigator.of(context).pop(hotKey);
   }
 }
-

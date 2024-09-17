@@ -1,6 +1,7 @@
 import 'dart:convert';
 // ignore: implementation_imports
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
@@ -372,15 +373,27 @@ class ChatProvider with ChangeNotifier {
       } else if (command == 'reset_chat') {
         clearChatMessages();
       } else if (command == 'escape_cancel_select') {
+      } else if (command == 'paste_attachment') {
+        final path = text;
+        final attachment = Attachment.fromInternalScreenshot(
+          XFile(path, mimeType: 'image/jpeg'),
+        );
+        addAttachmentToInput(attachment);
       } else {
         throw Exception('Unknown command: $command');
       }
     });
   }
 
-  XFile? fileInput;
+  Attachment? fileInput;
+
   void addFileToInput(XFile file) {
-    fileInput = file;
+    fileInput = Attachment.fromFile(file);
+    notifyListeners();
+  }
+
+  void addAttachmentToInput(Attachment attachment) {
+    fileInput = attachment;
     notifyListeners();
   }
 
@@ -651,6 +664,9 @@ class ChatProvider with ChangeNotifier {
       isAnswering = false;
     }
 
+    if (fileInput?.isInternalScreenshot == true) {
+      FileUtils.deleteFile(fileInput!.path);
+    }
     fileInput = null;
     notifyListeners();
     saveToDisk([selectedChatRoom]);
@@ -806,7 +822,7 @@ class ChatProvider with ChangeNotifier {
     values[id ?? DateTime.now().toIso8601String()] =
         AIChatMessage(content: newString);
     messages.add(values);
-    if (scrollToBottomOnAnswer) {
+    if (scrollToBottomOnAnswer && listItemsScrollController.hasListeners) {
       listItemsScrollController.animateTo(
         listItemsScrollController.position.maxScrollExtent + 50,
         duration: const Duration(milliseconds: 1),
@@ -1081,6 +1097,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   void removeFileFromInput() {
+    if (fileInput?.isInternalScreenshot == true) {
+      FileUtils.deleteFile(fileInput!.path);
+    }
     fileInput = null;
     notifyListeners();
   }

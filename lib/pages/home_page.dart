@@ -12,6 +12,7 @@ import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
+import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
@@ -761,6 +762,15 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
+                      ToggleButtonAdvenced(
+                        checked: false,
+                        icon: ic.FluentIcons.eye_tracking_24_filled,
+                        onChanged: (_) async {
+                          final image = await ScreenshotTool.takeScreenshot();
+                          if (image != null) chatProvider.addAttachmentToInput(image);
+                        },
+                        tooltip: 'Capture screenshot',
+                      ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
