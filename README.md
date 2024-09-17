@@ -17,13 +17,33 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 - **Custom Prompts**: Users can create their custom prompts to use them faster in the chat and overlay.
 - **Overlay Mode on Text Selection (macOS only)**: When users select text, the app will show a compact horizontal overlay with pre-created user's quick prompts.
 - **Sidebar Mode**: The app will switch to a compact vertical overlay that will show custom user prompts.
-- **Run Python Code**: GPT can run Python code locally, allowing for seamless integration and execution of scripts.
+- **Run Python Code**: The Fluent GPT App enables seamless integration and execution of Python code locally.
+- **Web Search**: Utilize the Brave API to perform web searches.
 
 ## Screenshots
+Macos
+<table>
+  <tr>
+    <td><img src="images-preview/1-macos.png" alt="Small width" width="400"/></td>
+    <td><img src="images-preview/2-macos.png" alt="Main window" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="images-preview/3-macos.png" alt="Mini Overlay" width="400"/></td>
+    <td><img src="images-preview/4-macos.png" alt="Mini overlay chat" width="400"/></td>
+  </tr>
+</table>
 
-![Screenshot 1](1.png)
-![Screenshot 2](2.png)
-![Screenshot 3](3.png)
+Windows
+<table>
+  <tr>
+  <td><img src="images-preview/4-win.png" alt="Screenshot 4" width="400"/></td>
+    <td><img src="images-preview/2-win.png" alt="Screenshot 2" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="images-preview/3-win.png" alt="Screenshot 3" width="400"/></td>
+    <td><img src="images-preview/1-win.png" alt="Screenshot 1" width="400"/></td>
+  </tr>
+</table>
 
 ## Getting Started
 
@@ -35,12 +55,9 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 
 1. Download the Fluent GPT App from [GitHub Releases](#).
 2. Follow the installation instructions specific to your OS.
-3. (Only windows) For using Search files functionality. Download the Everything search engine from [here](https://www.voidtools.com/support/everything/command_line_interface/) and place it inside the app folder.
-4. Download and install python from [here](https://www.python.org/downloads/).
+3. To use Python download and install python from [here](https://www.python.org/downloads/).
    
 ---
-(optional)
-
 
 ### Using ChatGPT from OpenAI
 
