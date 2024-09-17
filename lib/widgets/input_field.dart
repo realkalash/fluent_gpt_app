@@ -31,7 +31,8 @@ import 'package:window_manager/window_manager.dart';
 import '../providers/chat_provider.dart';
 
 class InputField extends StatefulWidget {
-  const InputField({super.key});
+  const InputField({super.key, this.isMini = false});
+  final bool isMini;
 
   @override
   State<InputField> createState() => _InputFieldState();
@@ -107,12 +108,6 @@ class _InputFieldState extends State<InputField> {
     // final previousClipboard = await Pasteboard.text;
     Pasteboard.writeText(lastMessage.contentAsString);
     displayCopiedToClipboard();
-    // await windowManager.minimize();
-    // // wait for the window to hideasdasd
-    // Future.delayed(const Duration(milliseconds: 400));
-    // await simulateCtrlVKeyPress();
-    // Future.delayed(const Duration(milliseconds: 100));
-    // if (previousClipboard != null) Pasteboard.writeText(previousClipboard);
   }
 
   Future<void> onShortcutSearchPressed() async {
@@ -152,112 +147,154 @@ class _InputFieldState extends State<InputField> {
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (chatProvider.fileInput == null)
-              _AddFileButton(chatProvider: chatProvider),
-            if (chatProvider.fileInput != null)
-              _FileThumbnail(chatProvider: chatProvider),
-            Expanded(
-              child: TextBox(
-                autofocus: true,
-                autocorrect: true,
-                focusNode: promptTextFocusNode,
-                prefixMode: OverlayVisibilityMode.always,
-                controller: chatProvider.messageController,
-                minLines: 2,
-                maxLines: 30,
-                suffix: const _MicrophoneButton(),
-                prefix: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const _ChooseModelButton(),
-                    AiLibraryButton(
-                      onPressed: () async {
-                        final prompt = await showDialog<CustomPrompt?>(
-                          context: context,
-                          builder: (ctx) => const AiPromptsLibraryDialog(),
-                          barrierDismissible: true,
-                        );
-                        if (prompt != null) {
-                          // ignore: use_build_context_synchronously
-                          final controller = context.read<ChatProvider>();
-                          controller.messageController.text = prompt
-                              .getPromptText(controller.messageController.text);
-                          promptTextFocusNode.requestFocus();
-                        }
-                      },
-                      isSmall: true,
-                    ),
-                  ],
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (value) {
-                  if (value.trim().isEmpty) {
-                    promptTextFocusNode.requestFocus();
-                    return;
-                  }
-                  if (_isShiftPressed == false) {
-                    onSubmit(value, chatProvider);
-                  }
-                  if (_isShiftPressed) {
-                    chatProvider.messageController.text =
-                        '${chatProvider.messageController.text}\n';
-                    promptTextFocusNode.requestFocus();
-                  }
-                },
-                placeholder: 'Type your message here',
+            if (widget.isMini) ...[
+              Row(
+                children: [
+                  if (chatProvider.fileInput == null)
+                    _AddFileButton(
+                        chatProvider: chatProvider, isMini: widget.isMini),
+                  if (chatProvider.fileInput != null)
+                    _FileThumbnail(chatProvider: chatProvider),
+                  const _ChooseModelButton(),
+                ],
               ),
-            ),
-            const SizedBox(width: 4),
-            if (_isShiftPressed)
-              const Icon(ic.FluentIcons.arrow_down_12_filled),
-            const SizedBox(width: 4),
-            if (chatProvider.isAnswering)
-              SizedBox.square(
-                dimension: 52,
-                child: AnimatedGradientBorder(
-                  borderRadius: BorderRadius.circular(5),
-                  gradientColors: [
-                    Colors.red,
-                    Colors.orange,
-                    Colors.yellow,
-                    Colors.green,
-                    Colors.blue,
-                  ],
-                  glowSize: 2,
-                  animationTime: 5,
-                  child: IconButton(
-                    style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(
-                      context.theme.scaffoldBackgroundColor,
-                    )),
-                    onPressed: () {
-                      // chatProvider.stopAnswering();
-                    },
-                    icon: const ProgressRing(),
-                  ),
+              Expanded(
+                child: TextBox(
+                  autofocus: true,
+                  autocorrect: true,
+                  focusNode: promptTextFocusNode,
+                  prefixMode: OverlayVisibilityMode.always,
+                  controller: chatProvider.messageController,
+                  minLines: 2,
+                  maxLines: 30,
+                  suffix: const _MicrophoneButton(),
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (value) {
+                    if (_isShiftPressed == false) {
+                      onSubmit(value, chatProvider);
+                    }
+                    if (_isShiftPressed) {
+                      chatProvider.messageController.text =
+                          '${chatProvider.messageController.text}\n';
+                      promptTextFocusNode.requestFocus();
+                    }
+                  },
+                  placeholder: 'Type your message here',
                 ),
               )
-            else
-              FlyoutTarget(
-                controller: menuController,
-                child: SizedBox.square(
-                  dimension: 44,
-                  child: GestureDetector(
-                    onSecondaryTap: _onSecondaryTap,
-                    child: Button(
-                      onPressed: () => onSubmit(
-                        chatProvider.messageController.text,
-                        chatProvider,
+            ],
+            if (!widget.isMini)
+              Row(
+                children: [
+                  if (chatProvider.fileInput == null)
+                    _AddFileButton(chatProvider: chatProvider),
+                  if (chatProvider.fileInput != null)
+                    _FileThumbnail(chatProvider: chatProvider),
+                  if (!widget.isMini)
+                    Expanded(
+                      child: TextBox(
+                        autofocus: true,
+                        autocorrect: true,
+                        focusNode: promptTextFocusNode,
+                        prefixMode: OverlayVisibilityMode.always,
+                        controller: chatProvider.messageController,
+                        minLines: 2,
+                        maxLines: 30,
+                        suffix: const _MicrophoneButton(),
+                        prefix: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const _ChooseModelButton(),
+                            AiLibraryButton(
+                              onPressed: () async {
+                                final prompt = await showDialog<CustomPrompt?>(
+                                  context: context,
+                                  builder: (ctx) =>
+                                      const AiPromptsLibraryDialog(),
+                                  barrierDismissible: true,
+                                );
+                                if (prompt != null) {
+                                  // ignore: use_build_context_synchronously
+                                  final controller =
+                                      context.read<ChatProvider>();
+                                  controller.messageController.text =
+                                      prompt.getPromptText(
+                                          controller.messageController.text);
+                                  promptTextFocusNode.requestFocus();
+                                }
+                              },
+                              isSmall: true,
+                            ),
+                          ],
+                        ),
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (value) {
+                          if (_isShiftPressed == false) {
+                            onSubmit(value, chatProvider);
+                          }
+                          if (_isShiftPressed) {
+                            chatProvider.messageController.text =
+                                '${chatProvider.messageController.text}\n';
+                            promptTextFocusNode.requestFocus();
+                          }
+                        },
+                        placeholder: 'Type your message here',
                       ),
-                      child:
-                          const Icon(ic.FluentIcons.send_24_filled, size: 24),
                     ),
-                  ),
-                ),
+                  const SizedBox(width: 4),
+                  if (_isShiftPressed)
+                    const Icon(ic.FluentIcons.arrow_down_12_filled),
+                  const SizedBox(width: 4),
+                  if (chatProvider.isAnswering)
+                    SizedBox.square(
+                      dimension: 52,
+                      child: AnimatedGradientBorder(
+                        borderRadius: BorderRadius.circular(5),
+                        gradientColors: [
+                          Colors.red,
+                          Colors.orange,
+                          Colors.yellow,
+                          Colors.green,
+                          Colors.blue,
+                        ],
+                        glowSize: 2,
+                        animationTime: 5,
+                        child: IconButton(
+                          style: ButtonStyle(
+                              backgroundColor: WidgetStatePropertyAll(
+                            context.theme.scaffoldBackgroundColor,
+                          )),
+                          onPressed: () {
+                            // chatProvider.stopAnswering();
+                          },
+                          icon: const ProgressRing(),
+                        ),
+                      ),
+                    )
+                  else
+                    FlyoutTarget(
+                      controller: menuController,
+                      child: SizedBox.square(
+                        dimension: 44,
+                        child: GestureDetector(
+                          onSecondaryTap: _onSecondaryTap,
+                          child: Button(
+                            onPressed: () => onSubmit(
+                              chatProvider.messageController.text,
+                              chatProvider,
+                            ),
+                            child: const Icon(ic.FluentIcons.send_24_filled,
+                                size: 24),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 10),
+                ],
               ),
-            const SizedBox(width: 10),
           ],
         ),
       ),
@@ -471,14 +508,16 @@ class _AddFileButton extends StatelessWidget {
   const _AddFileButton({
     super.key,
     required this.chatProvider,
+    this.isMini = false,
   });
 
   final ChatProvider chatProvider;
+  final bool isMini;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
-      dimension: 48,
+      dimension: isMini ? 30 : 48,
       child: IconButton(
         onPressed: () async {
           FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -490,7 +529,7 @@ class _AddFileButton extends StatelessWidget {
         },
         icon: chatProvider.isSendingFile
             ? const ProgressRing()
-            : const Icon(ic.FluentIcons.attach_24_filled, size: 24),
+            : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 16 : 24),
       ),
     );
   }
@@ -575,7 +614,6 @@ class HotShurtcutsWidget extends StatefulWidget {
       builder: (ctx) => AnswerWithTagsDialog(text: text),
     );
   }
-
 
   @override
   State<HotShurtcutsWidget> createState() => _HotShurtcutsWidgetState();

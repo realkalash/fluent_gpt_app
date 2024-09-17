@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -151,6 +152,7 @@ HotKey showOverlayForText = HotKey(
   modifiers: [HotKeyModifier.control],
   scope: HotKeyScope.system,
 );
+HotKey? takeScreenshot;
 Future<void> initShortcuts() async {
   await hotKeyManager.register(
     openWindowHotkey,
@@ -198,6 +200,7 @@ Future<void> initShortcuts() async {
       );
     },
   );
+
   initCachedHotKeys();
 }
 
@@ -216,7 +219,8 @@ Future<void> initCachedHotKeys() async {
         _isHotKeyRegistering = true;
 
         /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
-        final isAppVisible = await windowManager.isVisible();
+        final isAppVisible =
+            await windowManager.isVisible() && await windowManager.isVisible();
         final isInputFieldFocused = promptTextFocusNode.hasFocus;
         if (isAppVisible && isInputFieldFocused) {
           promptTextFocusNode.unfocus();
@@ -253,6 +257,19 @@ Future<void> initCachedHotKeys() async {
           windowManager.show();
           _isHotKeyRegistering = false;
           return;
+        }
+      },
+    );
+  }
+  final takeScreenshotKey = AppCache.takeScreenshotKey.value;
+  if (takeScreenshotKey != null) {
+    takeScreenshot = HotKey.fromJson(jsonDecode(takeScreenshotKey));
+    await hotKeyManager.register(
+      takeScreenshot!,
+      keyDownHandler: (hotKey) async {
+        final attachment = await ScreenshotTool.takeScreenshot();
+        if (attachment != null) {
+          onTrayButtonTapCommand(attachment.path, 'paste_attachment');
         }
       },
     );

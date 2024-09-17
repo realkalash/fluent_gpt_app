@@ -4,6 +4,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
@@ -277,16 +278,6 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   final newItem = item.copyWith(hotkey: hotkey);
                   // ignore: use_build_context_synchronously
                   updateItem(newItem, context);
-
-                  /// wait for the dialog to close and stream to apply the changes
-                  await Future.delayed(const Duration(milliseconds: 400));
-                  if (hotkey != null) {
-                    if (item.hotkey != null)
-                      await hotKeyManager.unregister(item.hotkey!);
-
-                    /// to ensure it's unbinded
-                    await Future.delayed(const Duration(milliseconds: 400));
-                  }
                 },
                 child: item.hotkey == null
                     ? const Text('Set keybinding')
@@ -296,7 +287,12 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                 icon: const Icon(FluentIcons.delete_24_filled),
                 onPressed: () {
                   final newItem = item.copyWith(hotkey: null);
-                  hotKeyManager.unregister(item.hotkey!);
+                  final wasRegistered = hotKeyManager.registeredHotKeyList
+                      .any((element) => element == item.hotkey);
+                  if (wasRegistered) {
+                    hotKeyManager.unregister(item.hotkey!);
+                  }
+
                   updateItem(newItem, context);
                 },
               ),
@@ -390,7 +386,12 @@ class _PromptListTile extends StatelessWidget {
       updateItem(prompt, item);
       //unbind old hotkey
       if (item.hotkey != null) {
-        await hotKeyManager.unregister(item.hotkey!);
+        //// Causes a crash on windows
+        final wasRegistered = hotKeyManager.registeredHotKeyList
+            .any((element) => element == item.hotkey);
+        if (wasRegistered) {
+          await hotKeyManager.unregister(item.hotkey!);
+        }
 
         /// wait native channel to finish
         await Future.delayed(const Duration(milliseconds: 200));

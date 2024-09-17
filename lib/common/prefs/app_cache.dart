@@ -30,6 +30,7 @@ class AppCache {
   static const isMicAccessGranted = BoolPref("isMicAccessGranted", false);
 
   static const openWindowKey = StringPref("openWindowKey");
+  static const takeScreenshotKey = StringPref("takeScreenshotKey");
 
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");

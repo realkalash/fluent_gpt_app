@@ -1,8 +1,10 @@
 import 'dart:io';
 
-class ScreenshotTool {
+import 'package:cross_file/cross_file.dart';
+import 'package:fluent_gpt/common/attachment.dart';
 
-  Future<File?> takeScreenshot() async {
+class ScreenshotTool {
+  static Future<Attachment?> takeScreenshot() async {
     try {
       // Path to the Python script
       String scriptPath = 'capture_screenshot.py';
@@ -13,7 +15,13 @@ class ScreenshotTool {
       if (result.exitCode == 0) {
         // Screenshot captured successfully
         String filePath = result.stdout.toString().trim();
-        return File(filePath);
+        final bytes = File(filePath).readAsBytesSync();
+        return Attachment.fromInternalScreenshot(XFile(
+          filePath,
+          mimeType: 'image/jpeg',
+          bytes: bytes,
+          length: bytes.length,
+        ));
       } else {
         // Handle error
         print('Error capturing screenshot: ${result.stderr}');

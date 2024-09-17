@@ -435,7 +435,13 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                   );
                 }),
           ),
-          const InputField(),
+          const Padding(
+            padding: EdgeInsets.only(left: 20),
+            child: SizedBox(
+              height: 86,
+              child: InputField(isMini: true),
+            ),
+          ),
         ],
       ),
     );

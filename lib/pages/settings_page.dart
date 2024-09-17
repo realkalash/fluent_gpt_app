@@ -1068,6 +1068,43 @@ class _HotKeySectionState extends State<_HotKeySection> {
               ),
             ),
             Button(
+              onPressed: () async {
+                final key = await KeybindingDialog.show(
+                  context,
+                  initHotkey: takeScreenshot,
+                  title: const Text('Open the window keybinding'),
+                );
+                final wasRegistered = HotKeyManager
+                    .instance.registeredHotKeyList
+                    .any((element) => element == key);
+                if (key != null && key != takeScreenshot) {
+                  setState(() {
+                    takeScreenshot = key;
+                  });
+                  if (!wasRegistered) {
+                    await HotKeyManager.instance.unregister(key);
+                  }
+                  await AppCache.takeScreenshotKey
+                      .set(jsonEncode(key.toJson()));
+                  initShortcuts();
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Use visual AI'),
+                  const SizedBox(width: 10.0),
+                  if (takeScreenshot != null)
+                    HotKeyVirtualView(hotKey: takeScreenshot!)
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2),
+                      child: Text('[Not set]'),
+                    ),
+                ],
+              ),
+            ),
+            Button(
                 child: const Text('Show all keybindings'),
                 onPressed: () {
                   Navigator.of(context).push(FluentPageRoute(
