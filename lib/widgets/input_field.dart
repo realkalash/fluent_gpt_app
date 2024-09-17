@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -571,79 +572,10 @@ class HotShurtcutsWidget extends StatefulWidget {
   static void showAnswerWithTagsDialog(BuildContext context, String text) {
     showDialog(
       context: context,
-      builder: (ctx) => ContentDialog(
-        title: const Text('Answer with tags'),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: ListView(
-                children: [
-                  const Text('Your message:'),
-                  Card(child: Text(text)),
-                ],
-              ),
-            ),
-            const Text('Quick Tags:'),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Button(
-                    onPressed: () => answerWithTags(ctx, text, 'Yes'),
-                    child: const Text('Answer Yes'),
-                  ),
-                  Button(
-                    onPressed: () => answerWithTags(ctx, text, 'No'),
-                    child: const Text('Answer No'),
-                  ),
-                  Button(
-                    onPressed: () =>
-                        answerWithTags(ctx, text, 'Explain please'),
-                    child: const Text('Answer Explain please'),
-                  ),
-                ],
-              ),
-            ),
-            TextBox(
-              autofocus: true,
-              placeholder: 'Type your tags here (e.g. yes, no, explain)',
-              onSubmitted: (value) {
-                if (value.trim().isEmpty) {
-                  return;
-                }
-                answerWithTags(ctx, text, value);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          Button(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
+      builder: (ctx) => AnswerWithTagsDialog(text: text),
     );
   }
 
-  static void answerWithTags(BuildContext context, String text, String tags) {
-    final chatProvider = context.read<ChatProvider>();
-    final formattedText = text.trim();
-    final formattedTags = tags.trim();
-    chatProvider.sendMessage(
-      'Based on the text message: "$formattedText" '
-      'and within the context defined by these tags: '
-      '"$formattedTags", '
-      'please provide an answer like you a real human.',
-      false,
-    );
-    Navigator.of(context).pop();
-  }
 
   @override
   State<HotShurtcutsWidget> createState() => _HotShurtcutsWidgetState();
