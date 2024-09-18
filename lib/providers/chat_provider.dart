@@ -6,6 +6,7 @@ import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
@@ -373,12 +374,9 @@ class ChatProvider with ChangeNotifier {
       } else if (command == 'reset_chat') {
         clearChatMessages();
       } else if (command == 'escape_cancel_select') {
-      } else if (command == 'paste_attachment') {
-        final path = text;
-        final attachment = Attachment.fromInternalScreenshot(
-          XFile(path, mimeType: 'image/jpeg'),
-        );
-        addAttachmentToInput(attachment);
+      } else if (command == 'paste_attachment_ai_lens') {
+        final base64String = text;
+        addAttachemntAiLens(base64String);
       } else {
         throw Exception('Unknown command: $command');
       }
@@ -395,6 +393,16 @@ class ChatProvider with ChangeNotifier {
   void addAttachmentToInput(Attachment attachment) {
     fileInput = attachment;
     notifyListeners();
+  }
+
+  Future<void> addAttachemntAiLens(String base64String) async {
+    final attachment = Attachment.fromInternalScreenshot(base64String);
+    addAttachmentToInput(attachment);
+    await showDialog(
+      context: context!,
+      barrierDismissible: true,
+      builder: (ctx) => AiLensDialog(base64String: base64String),
+    );
   }
 
   void addWebResultsToMessages(List<SearchResult> webpage) {
@@ -513,17 +521,16 @@ class ChatProvider with ChangeNotifier {
 
     /// add additional styles to the message
     messageContent = modifyMessageStyle(messageContent);
+    addHumanMessageToList(
+      HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+    );
 
     final isImageAttached =
         fileInput != null && fileInput!.mimeType?.contains('image') == true;
     if (isImageAttached) {
       final bytes = await fileInput!.readAsBytes();
       final base64 = base64Encode(bytes);
-      if (messageController.text.trim().isNotEmpty) {
-        addHumanMessageToList(
-          HumanChatMessage(content: ChatMessageContent.text(messageContent)),
-        );
-      }
+
       addHumanMessageToList(
         HumanChatMessage(
           content: ChatMessageContent.image(
@@ -533,11 +540,8 @@ class ChatProvider with ChangeNotifier {
         ),
         DateTime.now().add(const Duration(milliseconds: 50)).toIso8601String(),
       );
-    } else {
-      addHumanMessageToList(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
-      );
     }
+
     await selectedChatRoom.messages.chatHistory
         .addHumanChatMessage(messageContent);
     isAnswering = true;

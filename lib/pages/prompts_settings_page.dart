@@ -4,7 +4,6 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';

@@ -1,34 +1,56 @@
 import 'dart:io';
 
-import 'package:cross_file/cross_file.dart';
 import 'package:fluent_gpt/common/attachment.dart';
+import 'package:fluent_gpt/log.dart';
 
 class ScreenshotTool {
+  static bool isCapturingState = false;
   static Future<Attachment?> takeScreenshot() async {
     try {
       // Path to the Python script
       String scriptPath = 'capture_screenshot.py';
 
+      isCapturingState = true;
       // Run the Python script
       ProcessResult result = await Process.run('python', [scriptPath]);
+      isCapturingState = false;
+      if (result.exitCode == 0) {
+        // Screenshot captured successfully
+        String base64StringOutput = result.stdout.toString().trim();
+        return Attachment.fromInternalScreenshot(base64StringOutput);
+      } else {
+        // Handle error
+        logError('Error capturing screenshot: ${result.stderr}');
+      }
+    } catch (e) {
+      logError('Exception: $e');
+    }
+    isCapturingState = false;
+    return null;
+  }
+
+  static Future<String?> takeScreenshotReturnBase64() async {
+    try {
+      // Path to the Python script
+      String scriptPath = 'capture_screenshot.py';
+
+      isCapturingState = true;
+      // Run the Python script
+      ProcessResult result = await Process.run('python', [scriptPath]);
+      isCapturingState = false;
 
       if (result.exitCode == 0) {
         // Screenshot captured successfully
-        String filePath = result.stdout.toString().trim();
-        final bytes = File(filePath).readAsBytesSync();
-        return Attachment.fromInternalScreenshot(XFile(
-          filePath,
-          mimeType: 'image/jpeg',
-          bytes: bytes,
-          length: bytes.length,
-        ));
+        String base64StringOutput = result.stdout.toString().trim();
+        return base64StringOutput;
       } else {
         // Handle error
-        print('Error capturing screenshot: ${result.stderr}');
+        logError('Error capturing screenshot: ${result.stderr}');
       }
     } catch (e) {
-      print('Exception: $e');
+      logError('Exception: $e');
     }
+    isCapturingState = false;
     return null;
   }
 }

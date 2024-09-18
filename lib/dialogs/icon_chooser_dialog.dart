@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/fluent_icons_list.dart';
-import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class IconChooserDialog extends StatefulWidget {

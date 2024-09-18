@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
@@ -22,9 +23,15 @@ class Attachment {
     );
   }
 
-  factory Attachment.fromInternalScreenshot(XFile file) {
+  factory Attachment.fromInternalScreenshot(String stringBase64) {
+    final uintList = base64Decode(stringBase64);
     return Attachment(
-      file: file,
+      file: XFile.fromData(
+        uintList,
+        mimeType: 'image/jpeg',
+        length: uintList.length,
+        name: 'screenshot.jpg',
+      ),
       isInternalScreenshot: true,
     );
   }

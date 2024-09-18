@@ -5,11 +5,13 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:http/http.dart' as http;
 
 class ImgurIntegration {
-  static String clientId = 'YOUR_IMGUR_CLIENT_ID';
+  static String clientId = '';
 
   static void init() {
     clientId = AppCache.imgurClientId.value!;
   }
+
+  static bool isClientIdValid() => clientId.isNotEmpty;
 
   static authenticate(String clientId) {
     ImgurIntegration.clientId = clientId;
@@ -52,7 +54,8 @@ class ImgurIntegration {
       body: {
         'image': base64Image,
         'type': 'base64',
-        'privacy': 'hidden', // Ensure the image is not added to the public gallery
+        'privacy':
+            'hidden', // Ensure the image is not added to the public gallery
       },
     );
 
