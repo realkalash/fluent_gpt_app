@@ -56,7 +56,7 @@ class AppCache {
   static const localApiModelPaths = StringPref("localApiModels", '{}');
   static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
-  static const imgurClientId = StringPref("braveSearchApiKey", '');
+  static const imgurClientId = StringPref("imgurClientId", '');
   static const deepgramApiKey = StringPref("deepgramApiKey", '');
 
   static const gptToolCopyToClipboardEnabled =

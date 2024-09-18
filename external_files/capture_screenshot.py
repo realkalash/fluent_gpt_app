@@ -1,8 +1,10 @@
 import sys
+import base64
 from datetime import datetime
 from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtGui import QPainter, QColor, QPen, QGuiApplication
-from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtGui import QPainter, QColor, QPen, QGuiApplication, QPixmap
+from PyQt5.QtCore import Qt, QRect, QBuffer, QByteArray
+from io import BytesIO
 
 class ScreenshotApp(QWidget):
     def __init__(self):
@@ -42,6 +44,10 @@ class ScreenshotApp(QWidget):
         self.takeScreenshot()
         self.close()
 
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
     def takeScreenshot(self):
         x1 = min(self.start_point.x(), self.end_point.x())
         y1 = min(self.start_point.y(), self.end_point.y())
@@ -49,9 +55,15 @@ class ScreenshotApp(QWidget):
         y2 = max(self.start_point.y(), self.end_point.y())
         screen = QGuiApplication.primaryScreen()
         screenshot = screen.grabWindow(0, x1, y1, x2 - x1, y2 - y1)
-        file_name = f'screenshot_{datetime.now().strftime("%Y%m%d_%H%M%S")}.jpg'
-        screenshot.save(file_name, 'jpg')
-        print(file_name)  # Print the file name to stdout
+        
+        buffer = QByteArray()
+        qbuffer = QBuffer(buffer)
+        qbuffer.open(QBuffer.WriteOnly)
+        screenshot.save(qbuffer, 'jpg')
+        
+        img_str = base64.b64encode(buffer.data()).decode('utf-8')
+        
+        print(img_str)  # Print the base64 string to stdout
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

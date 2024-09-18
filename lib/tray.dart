@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
@@ -73,7 +74,7 @@ Future<void> initTrayMenuItems() async {
               'The image will be uploaded to Imgur and searched on SauceNao',
           icon: 'assets/saucenao_favicon.png',
           onClick: (menuItem) async {
-            if (AppCache.useImgurApi.value != true) {
+            if (ImgurIntegration.isClientIdValid() == false) {
               onTrayButtonTapCommand(
                 "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
                 'show_dialog',
@@ -267,9 +268,12 @@ Future<void> initCachedHotKeys() async {
     await hotKeyManager.register(
       takeScreenshot!,
       keyDownHandler: (hotKey) async {
-        final attachment = await ScreenshotTool.takeScreenshot();
-        if (attachment != null) {
-          onTrayButtonTapCommand(attachment.path, 'paste_attachment');
+        if (ScreenshotTool.isCapturingState) {
+          return;
+        }
+        final base64Result = await ScreenshotTool.takeScreenshotReturnBase64();
+        if (base64Result != null && base64Result.isNotEmpty) {
+          onTrayButtonTapCommand(base64Result, 'paste_attachment_ai_lens');
         }
       },
     );

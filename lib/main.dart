@@ -16,7 +16,6 @@ import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
-import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';

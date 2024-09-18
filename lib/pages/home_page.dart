@@ -762,17 +762,16 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
-                      if (kDebugMode)
-                        ToggleButtonAdvenced(
-                          checked: false,
-                          icon: ic.FluentIcons.eye_tracking_24_filled,
-                          onChanged: (_) async {
-                            final image = await ScreenshotTool.takeScreenshot();
-                            if (image != null)
-                              chatProvider.addAttachmentToInput(image);
-                          },
-                          tooltip: 'Capture screenshot',
-                        ),
+                      ToggleButtonAdvenced(
+                        checked: false,
+                        icon: ic.FluentIcons.eye_tracking_24_filled,
+                        onChanged: (_) async {
+                          final base64Result = await ScreenshotTool.takeScreenshotReturnBase64();
+                          if (base64Result != null && base64Result.isNotEmpty)
+                            chatProvider.addAttachemntAiLens(base64Result);
+                        },
+                        tooltip: 'Capture screenshot',
+                      ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
