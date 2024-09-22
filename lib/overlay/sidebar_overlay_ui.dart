@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -385,22 +386,28 @@ class ChatPageOverlayUI extends StatefulWidget {
 
 class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? messagesSubscription;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      chatRoomsStream.listen(
+      messagesSubscription = messages.listen(
         (event) async {
           await Future.delayed(const Duration(milliseconds: 300));
           if (!mounted) return;
           _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
+            _scrollController.position.maxScrollExtent + 200,
             duration: const Duration(milliseconds: 100),
             curve: Curves.easeOut,
           );
         },
       );
     });
+  }
+  @override
+  void dispose() {
+    messagesSubscription?.cancel();
+    super.dispose();
   }
 
   @override

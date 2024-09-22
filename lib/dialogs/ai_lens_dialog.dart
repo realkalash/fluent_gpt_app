@@ -116,12 +116,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
             ),
             spacer,
             Button(
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Search by image (Yandex)'),
-                ],
-              ),
+              child: const Text('Search by image (Yandex)'),
               onPressed: () {
                 if (ImgurIntegration.isClientIdValid() == false) {
                   onTrayButtonTapCommand(
@@ -136,6 +131,22 @@ class _AiLensDialogState extends State<AiLensDialog> {
               },
             ),
             spacer,
+            Wrap(
+              children: [
+                Button(
+                  child: const Text('Extract text'),
+                  onPressed: () {
+                    final provider = context.read<ChatProvider>();
+                    provider.sendSingleMessage(
+                      'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
+                      imageBase64: widget.base64String,
+                      showImageInChat: true,
+                    );
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
           ],
         ),
       ),

@@ -41,6 +41,7 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:system_info2/system_info2.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
 import '../widgets/confirmation_dialog.dart';
@@ -61,15 +62,18 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
     return Container(
       color: Colors.transparent,
       child: ScaffoldPage.scrollable(
-        header: PageHeader(
-            title: const Text('Settings'),
-            leading: canGoBack
-                ? IconButton(
-                    icon:
-                        const Icon(FluentIcons.arrow_left_24_filled, size: 24),
-                    onPressed: () => Navigator.of(context).pop(),
-                  )
-                : null),
+        header: GestureDetector(
+          onPanStart: (v) => WindowManager.instance.startDragging(),
+          child: PageHeader(
+              title: const Text('Settings'),
+              leading: canGoBack
+                  ? IconButton(
+                      icon: const Icon(FluentIcons.arrow_left_24_filled,
+                          size: 24),
+                      onPressed: () => Navigator.of(context).pop(),
+                    )
+                  : null),
+        ),
         children: [
           const EnabledGptTools(),
           const AdditionalTools(),
@@ -1316,7 +1320,6 @@ class _ThemeModeSection extends StatelessWidget {
             content: const Text('Dark'),
           ),
         ),
-
         Text('Background', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Wrap(
@@ -1382,23 +1385,39 @@ class _ThemeModeSection extends StatelessWidget {
             ),
           ],
         ),
-
-        /// transparency
         spacer,
-        Text('Transparency',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        SliderStatefull(
-          initValue: appTheme.windowEffectOpacity,
-          onChangeEnd: (value) {
-            appTheme.windowEffectOpacity = value;
-            appTheme.setEffect(appTheme.windowEffect);
+        if (appTheme.windowEffect != WindowEffect.disabled) ...[
+          Text('Transparency',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          SliderStatefull(
+            initValue: appTheme.windowEffectOpacity,
+            onChangeEnd: (value) {
+              appTheme.windowEffectOpacity = value;
+              appTheme.setEffect(appTheme.windowEffect);
+            },
+            label: 'Opacity',
+            min: 0.0,
+            max: 1.0,
+            divisions: 100,
+            onChanged: (_) {},
+          ),
+          spacer,
+        ],
+        Checkbox(
+          content: const Text('Set window as frameless'),
+          checked: AppCache.frameless.value,
+          onChanged: (value){
+            appTheme.setAsFrameless(value);
+            if (value == false){
+              displayInfoBar(context, builder: 
+                (context, _) => const InfoBar(
+                  title: Text('Restart the app to apply changes'),
+                  severity: InfoBarSeverity.warning,
+                )
+              );
+            }
           },
-          label: 'Opacity',
-          min: 0.0,
-          max: 1.0,
-          divisions: 100,
-          onChanged: (_) {},
         ),
       ],
     );

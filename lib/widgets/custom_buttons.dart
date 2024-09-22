@@ -52,7 +52,8 @@ class AiLibraryButton extends StatelessWidget {
         Colors.transparent,
         FluentTheme.of(context).accentColor,
       ],
-      glowSize: isSmall ? 2 : 4,
+      // glowSize: isSmall ? 2 : 4,
+      borderSize: 2,
       borderRadius: BorderRadius.circular(4),
       child: Button(
         style:

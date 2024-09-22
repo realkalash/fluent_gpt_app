@@ -42,8 +42,10 @@ SharedPreferences? prefs;
 
 const defaultMinimumWindowSize = Size(500, 600);
 Future<void> initWindow() async {
+  if (AppCache.frameless.value!) {
+    await windowManager.setAsFrameless();
+  }
   if (AppCache.hideTitleBar.value!) {
-    // causes breaking of acrylic and mica effects on windows
     windowManager.setTitleBarStyle(
       TitleBarStyle.hidden,
       windowButtonVisibility: false,
@@ -283,35 +285,38 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     if (AppCache.isWelcomeShown.value! == false) return const WelcomeTab();
     appContext = context;
 
-    return GestureDetector(
-      onPanStart: (v) => WindowManager.instance.startDragging(),
-      dragStartBehavior: DragStartBehavior.start,
-      behavior: HitTestBehavior.translucent,
-      child: KeyboardListener(
-        focusNode: _focusNode,
-        onKeyEvent: (event) {
-          if (event is KeyRepeatEvent) return;
-          if (!mounted) return;
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-            shiftPressedStream.add(true);
-          }
-          if (event is KeyUpEvent &&
-              event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-            shiftPressedStream.add(false);
-          }
-        },
-        child: StreamBuilder<OverlayStatus>(
-            stream: overlayVisibility,
-            builder: (context, snapshot) {
-              if (snapshot.data?.isShowingOverlay == true) {
-                return const OverlayUI();
-              }
-              if (snapshot.data?.isShowingSidebarOverlay == true) {
-                return const SidebarOverlayUI();
-              }
-              return const MainPageWithNavigation();
-            }),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16.0),
+      child: GestureDetector(
+        onPanStart: (v) => WindowManager.instance.startDragging(),
+        dragStartBehavior: DragStartBehavior.start,
+        behavior: HitTestBehavior.translucent,
+        child: KeyboardListener(
+          focusNode: _focusNode,
+          onKeyEvent: (event) {
+            if (event is KeyRepeatEvent) return;
+            if (!mounted) return;
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+              shiftPressedStream.add(true);
+            }
+            if (event is KeyUpEvent &&
+                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+              shiftPressedStream.add(false);
+            }
+          },
+          child: StreamBuilder<OverlayStatus>(
+              stream: overlayVisibility,
+              builder: (context, snapshot) {
+                if (snapshot.data?.isShowingOverlay == true) {
+                  return const OverlayUI();
+                }
+                if (snapshot.data?.isShowingSidebarOverlay == true) {
+                  return const SidebarOverlayUI();
+                }
+                return const MainPageWithNavigation();
+              }),
+        ),
       ),
     );
   }

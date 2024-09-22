@@ -242,6 +242,7 @@ class ChatProvider with ChangeNotifier {
     final localApiWithApi = '$localApi/api';
     // LM studio
     final localApiWithV1 = '$localApi/v1';
+    // ping  first
 
     final dio = Dio();
     try {
@@ -535,7 +536,7 @@ class ChatProvider with ChangeNotifier {
         HumanChatMessage(
           content: ChatMessageContent.image(
             data: base64,
-            mimeType: fileInput!.mimeType,
+            mimeType: fileInput!.mimeType ?? 'image/jpeg',
           ),
         ),
         DateTime.now().add(const Duration(milliseconds: 50)).toIso8601String(),
@@ -569,50 +570,50 @@ class ChatProvider with ChangeNotifier {
           HumanChatMessage(
             content: ChatMessageContent.image(
               data: base64Encode(await fileInput!.readAsBytes()),
-              mimeType: fileInput!.mimeType,
+              mimeType: fileInput!.mimeType ?? 'image/jpeg',
             ),
           ),
         );
       }
     }
-    if (selectedChatRoom.model.ownedBy == 'openai') {
-      if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
-        openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-      }
-      stream = openAI!.stream(
-        PromptValue.chat(messagesToSend),
-        options: ChatOpenAIOptions(
-          model: selectedChatRoom.model.name,
-          maxTokens: selectedChatRoom.maxTokenLength,
-          toolChoice: const ChatToolChoiceAuto(),
-          tools: const [
-            ToolSpec(
-              name: 'copy_to_clipboard_tool',
-              description: 'Tool to copy text to users clipboard',
-              inputJsonSchema: copyToClipboardFunctionParameters,
-            ),
-          ],
-        ),
-      );
-    } else {
-      stream = localModel!.stream(
-        PromptValue.chat(messagesToSend),
-        options: ChatOpenAIOptions(
-          model: selectedChatRoom.model.name,
-          maxTokens: selectedChatRoom.maxTokenLength,
-          toolChoice: const ChatToolChoiceAuto(),
-          tools: const [
-            ToolSpec(
-              name: 'copy_to_clipboard_tool',
-              description: 'Tool to copy text to users clipboard',
-              inputJsonSchema: copyToClipboardFunctionParameters,
-            ),
-          ],
-        ),
-      );
-    }
-
     try {
+      if (selectedChatRoom.model.ownedBy == 'openai') {
+        if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
+          openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
+        }
+        stream = openAI!.stream(
+          PromptValue.chat(messagesToSend),
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.name,
+            maxTokens: selectedChatRoom.maxTokenLength,
+            toolChoice: const ChatToolChoiceAuto(),
+            tools: const [
+              ToolSpec(
+                name: 'copy_to_clipboard_tool',
+                description: 'Tool to copy text to users clipboard',
+                inputJsonSchema: copyToClipboardFunctionParameters,
+              ),
+            ],
+          ),
+        );
+      } else {
+        stream = localModel!.stream(
+          PromptValue.chat(messagesToSend),
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.name,
+            maxTokens: selectedChatRoom.maxTokenLength,
+            toolChoice: const ChatToolChoiceAuto(),
+            tools: const [
+              ToolSpec(
+                name: 'copy_to_clipboard_tool',
+                description: 'Tool to copy text to users clipboard',
+                inputJsonSchema: copyToClipboardFunctionParameters,
+              ),
+            ],
+          ),
+        );
+      }
+
       String functionCallString = '';
       String functionName = '';
       await stream.forEach(
@@ -759,11 +760,40 @@ class ChatProvider with ChangeNotifier {
   }
 
   /// Will not use chat history.
-  /// Will populate messages
-  Future sendSingleMessage(String messageContent, {int? maxTokens}) async {
+  /// Use [showPromptInChat] to show [messageContent] as a request in the chat
+  /// Use [showImageInChat] to show [imageBase64] in the chat
+  Future sendSingleMessage(
+    String messageContent, {
+    int? maxTokens,
+    String? imageBase64,
+    bool showPromptInChat = false,
+    bool showImageInChat = false,
+  }) async {
     final messagesToSend = <ChatMessage>[];
-    messagesToSend.add(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)));
+    if (imageBase64 == null) {
+      messagesToSend.add(
+          HumanChatMessage(content: ChatMessageContent.text(messageContent)));
+    } else {
+      messagesToSend.add(
+        HumanChatMessage(
+            content: ChatMessageContent.multiModal([
+          ChatMessageContent.text(messageContent),
+          ChatMessageContent.image(data: imageBase64, mimeType: 'image/jpeg'),
+        ])),
+      );
+    }
+    if (showPromptInChat) {
+      addHumanMessageToList(
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+      );
+    }
+    if (showImageInChat && imageBase64 != null) {
+      addHumanMessageToList(
+        HumanChatMessage(
+          content: ChatMessageContent.image(data: imageBase64),
+        ),
+      );
+    }
     Stream<ChatResult> stream;
     if (selectedModel.ownedBy == 'openai') {
       stream = openAI!.stream(PromptValue.chat(messagesToSend),
@@ -826,13 +856,7 @@ class ChatProvider with ChangeNotifier {
     values[id ?? DateTime.now().toIso8601String()] =
         AIChatMessage(content: newString);
     messages.add(values);
-    if (scrollToBottomOnAnswer && listItemsScrollController.hasListeners) {
-      listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent + 50,
-        duration: const Duration(milliseconds: 1),
-        curve: Curves.easeOut,
-      );
-    }
+    scrollToEnd(withDelay: false);
   }
 
   void addBotErrorMessageToList(SystemChatMessage message, [String? id]) {
@@ -1108,19 +1132,14 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> scrollToEnd() async {
-    await Future.delayed(const Duration(milliseconds: 100));
+  Future<void> scrollToEnd({bool withDelay = true}) async {
+    if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
     if (messages.value.isEmpty) return;
-    if (listItemsScrollController.hasClients == false) return;
     listItemsScrollController.animateTo(
       listItemsScrollController.position.maxScrollExtent + 200,
       duration: const Duration(milliseconds: 1),
       curve: Curves.easeOut,
     );
-    // await scrollOffsetController.animateScroll(
-    //   offset: 200,
-    //   duration: const Duration(milliseconds: 400),
-    // );
   }
 
   Future<void> regenerateMessage(ChatMessage message) async {
