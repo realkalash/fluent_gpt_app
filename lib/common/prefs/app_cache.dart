@@ -17,6 +17,7 @@ class AppCache {
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
+  static const frameless = BoolPref("frameless", false);
   static const speechLanguage = StringPref("speechLanguage", 'en');
   static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
 

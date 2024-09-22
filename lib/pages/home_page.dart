@@ -766,7 +766,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         checked: false,
                         icon: ic.FluentIcons.eye_tracking_24_filled,
                         onChanged: (_) async {
-                          final base64Result = await ScreenshotTool.takeScreenshotReturnBase64();
+                          final base64Result =
+                              await ScreenshotTool.takeScreenshotReturnBase64();
                           if (base64Result != null && base64Result.isNotEmpty)
                             chatProvider.addAttachemntAiLens(base64Result);
                         },

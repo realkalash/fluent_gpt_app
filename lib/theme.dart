@@ -5,6 +5,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
+import 'package:googleapis/drive/v3.dart';
 import 'package:system_theme/system_theme.dart';
 
 import 'package:fluent_ui/fluent_ui.dart';
@@ -188,6 +189,12 @@ class AppTheme extends ChangeNotifier {
           : TitleBarStyle.normal,
       windowButtonVisibility: false,
     );
+    notifyListeners();
+  }
+
+  Future<void> setAsFrameless(bool? value) async {
+    windowManager.setAsFrameless();
+    await AppCache.frameless.set(value ?? false);
     notifyListeners();
   }
 }
