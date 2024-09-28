@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:entry/entry.dart';
@@ -437,6 +438,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
                   padding: const EdgeInsets.all(16),
                   alignment: Alignment.center,
                   child: BasicListTile(
+                    color: Colors.transparent,
                     title: const Center(
                         child: Text('Add system message',
                             style: TextStyle(
@@ -713,9 +715,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
           Column(
             children: <Widget>[
               if (messages.value.entries.isEmpty)
-                const Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                Expanded(
+                  child: ListView(
                     children: [
                       AddSystemMessageField(),
                       HomePagePlaceholdersCards(),
@@ -762,17 +763,20 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
-                      ToggleButtonAdvenced(
-                        checked: false,
-                        icon: ic.FluentIcons.eye_tracking_24_filled,
-                        onChanged: (_) async {
-                          final base64Result =
-                              await ScreenshotTool.takeScreenshotReturnBase64();
-                          if (base64Result != null && base64Result.isNotEmpty)
-                            chatProvider.addAttachemntAiLens(base64Result);
-                        },
-                        tooltip: 'Capture screenshot',
-                      ),
+                      // Because our screenshot tool is using fullscreen mode
+                      // macos will hide everything, so we need to disable it
+                      if (Platform.isMacOS == false)
+                        ToggleButtonAdvenced(
+                          checked: false,
+                          icon: ic.FluentIcons.eye_tracking_24_filled,
+                          onChanged: (_) async {
+                            final base64Result = await ScreenshotTool
+                                .takeScreenshotReturnBase64();
+                            if (base64Result != null && base64Result.isNotEmpty)
+                              chatProvider.addAttachemntAiLens(base64Result);
+                          },
+                          tooltip: 'Capture screenshot',
+                        ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,

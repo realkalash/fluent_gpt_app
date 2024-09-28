@@ -50,6 +50,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       child: Image.memory(
                         base64Decode(widget.base64String),
                         fit: BoxFit.cover,
+                        excludeFromSemantics: true,
                       ),
                     ),
                     Acrylic(
@@ -152,7 +153,10 @@ class _AiLensDialogState extends State<AiLensDialog> {
       ),
       actions: [
         FilledRedButton(
-          onPressed: () => Navigator.of(ctx).pop(),
+          onPressed: () {
+            context.read<ChatProvider>().removeFileFromInput();
+            Navigator.of(ctx).pop();
+          },
           child: const Text('Dismiss'),
         )
       ],

@@ -140,7 +140,8 @@ void main(List<String> args) async {
   // For hot reload, `unregisterAll()` needs to be called.
   await hotKeyManager.unregisterAll();
   OverlayManager.init();
-  AdditionalFeatures.initAdditionalFeatures();
+  AdditionalFeatures.initAdditionalFeatures(
+      isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
 
   runApp(const MyApp());
 }
@@ -223,6 +224,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                           appTheme.buildInfoBarDecoration(severity)),
                   accentColor: appTheme.color,
                   iconTheme: const IconThemeData(size: 20, color: Colors.white),
+                  cardColor: _appTheme.darkCardColor,
                 ),
                 theme: FluentThemeData(
                   accentColor: appTheme.color,
@@ -231,6 +233,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                       decoration: (severity) =>
                           appTheme.buildInfoBarDecoration(severity)),
                   iconTheme: const IconThemeData(size: 20),
+                  cardColor: _appTheme.lightCardColor,
                 ),
                 locale: appTheme.locale,
                 builder: (ctx, child) {
@@ -286,7 +289,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     appContext = context;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16.0),
+      borderRadius: BorderRadius.circular(10.0),
       child: GestureDetector(
         onPanStart: (v) => WindowManager.instance.startDragging(),
         dragStartBehavior: DragStartBehavior.start,

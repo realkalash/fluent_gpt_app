@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/dialogs/custom_action_dialog.dart';
 import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
@@ -23,6 +25,7 @@ import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -79,6 +82,8 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           const AdditionalTools(),
           spacer,
           const GlobalSettings(),
+          spacer,
+          const CustomActionsSection(),
           const OverlaySettings(),
           const AccessibilityPermissionButton(),
           const _CacheSection(),
@@ -94,6 +99,78 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           biggerSpacer,
           const ServerSettings(),
           const _OtherSettings(),
+        ],
+      ),
+    );
+  }
+}
+
+class CustomActionsSection extends StatefulWidget {
+  const CustomActionsSection({super.key});
+
+  @override
+  State<CustomActionsSection> createState() => _CustomActionsSectionState();
+}
+
+class _CustomActionsSectionState extends State<CustomActionsSection> {
+  @override
+  Widget build(BuildContext context) {
+    return Expander(
+      header: const Text('Custom actions (on response end)'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 200.0),
+            child: StreamBuilder(
+              stream: onMessageActions.stream,
+              builder: (ctx, list) => ListView.builder(
+                itemCount: list.data?.length ?? 0,
+                itemBuilder: (ctx, index) {
+                  final action = onMessageActions.value[index];
+                  return Card(
+                    padding: EdgeInsets.zero,
+                    child: BasicListTile(
+                      title: Text(action.actionName),
+                      padding: const EdgeInsets.all(8.0),
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (ctx) => CustomActionDialog(action: action),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(FluentIcons.delete_20_filled),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => ConfirmationDialog(
+                              onAcceptPressed: () {
+                                final actions = onMessageActions.value;
+                                actions.removeAt(index);
+                                onMessageActions.add(actions);
+                                final json =
+                                    actions.map((e) => e.toJson()).toList();
+                                AppCache.customActions.set(jsonEncode(json));
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Button(
+            child: const Text('Add custom action'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const CustomActionDialog(),
+              );
+            },
+          ),
+          spacer,
         ],
       ),
     );
@@ -1407,15 +1484,14 @@ class _ThemeModeSection extends StatelessWidget {
         Checkbox(
           content: const Text('Set window as frameless'),
           checked: AppCache.frameless.value,
-          onChanged: (value){
+          onChanged: (value) {
             appTheme.setAsFrameless(value);
-            if (value == false){
-              displayInfoBar(context, builder: 
-                (context, _) => const InfoBar(
-                  title: Text('Restart the app to apply changes'),
-                  severity: InfoBarSeverity.warning,
-                )
-              );
+            if (value == false) {
+              displayInfoBar(context,
+                  builder: (context, _) => const InfoBar(
+                        title: Text('Restart the app to apply changes'),
+                        severity: InfoBarSeverity.warning,
+                      ));
             }
           },
         ),

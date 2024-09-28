@@ -36,7 +36,7 @@ class BasicListTile extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
-          color: color,
+          color: color ?? Theme.of(context).cardColor,
           padding: padding,
           margin: margin,
           child: Row(

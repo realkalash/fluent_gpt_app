@@ -1,9 +1,21 @@
 import sys
 import base64
+import subprocess
 from datetime import datetime
-from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtGui import QPainter, QColor, QPen, QGuiApplication, QPixmap
-from PyQt5.QtCore import Qt, QRect, QBuffer, QByteArray
+
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+try:
+    from PyQt5.QtWidgets import QApplication, QWidget
+    from PyQt5.QtGui import QPainter, QColor, QPen, QGuiApplication, QPixmap
+    from PyQt5.QtCore import Qt, QRect, QBuffer, QByteArray
+except ImportError:
+    install('PyQt5')
+    from PyQt5.QtWidgets import QApplication, QWidget
+    from PyQt5.QtGui import QPainter, QColor, QPen, QGuiApplication, QPixmap
+    from PyQt5.QtCore import Qt, QRect, QBuffer, QByteArray
+
 from io import BytesIO
 
 class ScreenshotApp(QWidget):

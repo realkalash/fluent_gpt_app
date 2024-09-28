@@ -66,15 +66,33 @@ extension XFileUint8ListExtension on Uint8List {
       name: '$randomNumber.png',
     );
   }
+
+  /// Convert to base64
+  /// Ensure this bytes is an image!
+  String toBase64() => base64Encode(this);
+}
+
+extension XFileBaseExtension on XFile {
+  /// Converts the image to a base64 string.
+  /// Ensure this bytes is an image!
+  Future<String> imageToBase64() async {
+    final bytes = await readAsBytes();
+    return base64Encode(bytes);
+  }
 }
 
 class FileUtils {
   static String? documentDirectoryPath;
   static String? temporaryDirectoryPath;
 
+  /// ${documentDirectoryPath}${Platform.pathSeparator}external_tools
+  static String? externalToolsPath;
+
   static Future<void> init() async {
     documentDirectoryPath = (await getApplicationDocumentsDirectory()).path;
     temporaryDirectoryPath = (await getTemporaryDirectory()).path;
+    externalToolsPath =
+        '$documentDirectoryPath${Platform.pathSeparator}fluent_gpt/external_tools';
   }
 
   static Future _createTestFileInDir(Future<Directory?> dirFuture) async {
@@ -141,8 +159,8 @@ class FileUtils {
   }
 
   static Future<String> getChatRoomPath() async {
-    final dir =
-        documentDirectoryPath ?? (await getApplicationDocumentsDirectory()).path;
+    final dir = documentDirectoryPath ??
+        (await getApplicationDocumentsDirectory()).path;
     return '$dir/fluent_gpt/chat_rooms';
   }
 
