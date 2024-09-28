@@ -1,5 +1,5 @@
-import 'dart:developer';
-
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:cross_file/cross_file.dart';
@@ -53,8 +53,19 @@ class HomeDropRegion extends StatelessWidget {
               mimeType: 'image/png',
               length: data.length,
             );
+            if (data.lengthInBytes == 0) {
+              // ignore: use_build_context_synchronously
+              displayInfoBar(context, builder: (ctx, close) {
+                return InfoBar(
+                  title: Text('File is empty'),
+                  content: Text('File is empty or not supported'),
+                  severity: InfoBarSeverity.error,
+                );
+              });
+              return;
+            }
             log('File dropped: ${xfile.mimeType} ${data.length} bytes');
-            provider.addFileToInput(xfile);
+            provider.addAttachemntAiLens(await xfile.imageToBase64());
           }, onError: (error) {
             log('Error reading value $error');
           });
