@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing
@@ -74,7 +75,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
   ),
   CustomPrompt(
     id: 5,
-    title: 'Translate this',
+    title: 'Translate',
     index: 5,
     iconCodePoint: 63540, // FluentIcons.translate_24_regular,
     prompt:
@@ -86,6 +87,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
       CustomPrompt(
         id: 6,
         title: 'Translate to English',
+        iconCodePoint: 63540, // FluentIcons.translate_24_regular,
         prompt:
             '''Please translate the following text to English. Only give me the output and nothing else:
     "\${input}"''',
@@ -93,6 +95,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
       CustomPrompt(
         id: 7,
         title: 'Translate to Russian',
+        iconCodePoint: 63540, // FluentIcons.translate_24_regular,
         prompt:
             '''Please translate the following text to Russian. Only give me the output and nothing else:
     "\${input}"''',
@@ -100,6 +103,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
       CustomPrompt(
         id: 8,
         title: 'Translate to Ukrainian',
+        iconCodePoint: 63540, // FluentIcons.translate_24_regular,
         prompt:
             '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
     "\${input}"''',

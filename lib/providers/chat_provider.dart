@@ -5,6 +5,7 @@ import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
+import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
@@ -39,6 +40,8 @@ ChatOpenAI? localModel;
 /// First is ID, second is ChatRoom
 BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
     BehaviorSubject.seeded({});
+BehaviorSubject<List<OnMessageAction>> onMessageActions =
+    BehaviorSubject.seeded([]);
 
 /// first is ID, second is ChatRoom
 Map<String, ChatRoom> get chatRooms => chatRoomsStream.value;
@@ -231,6 +234,18 @@ class ChatProvider with ChangeNotifier {
   init() async {
     await initChatModels();
     await initChatsFromDisk();
+    initCustomActions();
+  }
+
+  Future initCustomActions() async {
+    final actionsJson = await AppCache.customActions.value();
+    if (actionsJson?.isNotEmpty == true) {
+      final actions = jsonDecode(actionsJson!) as List;
+      final listActions = actions
+          .map((e) => OnMessageAction.fromJson(e as Map<String, dynamic>))
+          .toList();
+      onMessageActions.add(listActions);
+    }
   }
 
   Future<bool> _retrieveLocalModels() async {
@@ -616,8 +631,17 @@ class ChatProvider with ChangeNotifier {
 
       String functionCallString = '';
       String functionName = '';
+      int chunkNumber = 0;
       await stream.forEach(
         (final chunk) {
+          chunkNumber++;
+          if (chunkNumber == 1) {
+            if (fileInput?.isInternalScreenshot == true) {
+              FileUtils.deleteFile(fileInput!.path);
+            }
+            fileInput = null;
+            notifyListeners();
+          }
           final message = chunk.output;
           // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
           if (message.toolCalls.isEmpty)
@@ -669,16 +693,31 @@ class ChatProvider with ChangeNotifier {
       isAnswering = false;
     }
 
-    if (fileInput?.isInternalScreenshot == true) {
-      FileUtils.deleteFile(fileInput!.path);
-    }
-    fileInput = null;
-    notifyListeners();
     saveToDisk([selectedChatRoom]);
   }
 
   void onResponseEnd(String userContent, String id) async {
-    /* do nothing for now */
+    /* TODO: add more */
+    final ChatMessage? response = messages.value[id];
+    if (response == null) return;
+    if (response is! AIChatMessage) {
+      logError('aiResponse is not AIChatMessage');
+      return;
+    }
+    final AIChatMessage aiResponse = response;
+    for (var action in onMessageActions.value) {
+      if (action.regExp.hasMatch(aiResponse.content)) {
+        if (action.actionEnum == OnMessageActionEnum.copyTextInsideQuotes) {
+          final match = action.regExp.firstMatch(aiResponse.content);
+          if (match != null) {
+            final text = match.group(1);
+            await Clipboard.setData(ClipboardData(text: text ?? ''));
+          }
+        } else if (action.actionEnum == OnMessageActionEnum.copyText) {
+          await Clipboard.setData(ClipboardData(text: aiResponse.content));
+        }
+      }
+    }
   }
 
   Future<int> getTokensFromMessages(List<ChatMessage> messages) async {

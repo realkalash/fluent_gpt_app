@@ -151,6 +151,8 @@ class AppTheme extends ChangeNotifier {
 
   Color lightBackgroundColor = const Color(0xffF3F2F1);
   Color darkBackgroundColor = const Color(0xff201f1e);
+  Color lightCardColor = const Color.fromARGB(255, 255, 255, 255);
+  Color darkCardColor = const Color.fromARGB(255, 25, 24, 23);
   Locale? get locale => _locale;
   set locale(Locale? locale) {
     _locale = locale;

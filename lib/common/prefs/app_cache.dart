@@ -19,14 +19,15 @@ class AppCache {
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
   static const frameless = BoolPref("frameless", false);
   static const speechLanguage = StringPref("speechLanguage", 'en');
-  static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const deepgramVoiceModel =
+      StringPref("deepgramVoiceModel", 'aura-asteria-en');
 
   static StringPref backgroundEffect =
       StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');
 
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);
-  static const isFoldersAccessGranted =
+  static const isStorageAccessGranted =
       BoolPref("isFoldersAccessGranted", false);
   static const isMicAccessGranted = BoolPref("isMicAccessGranted", false);
 
@@ -47,6 +48,7 @@ class AppCache {
   static const costTotal = DoublePref("costTotal");
 
   static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
+  static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const userInfo = FileStringPref("fluent_gpt/userInfo.json");
   static const userName = StringPref("userName", 'User');
