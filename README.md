@@ -93,4 +93,4 @@ Copyright (c) 2024 Alex Kalashnikov.
 - Contributors and supporters of the Fluent GPT App.
 
 ---
-Some content was generated with ChatGPT-4o, Claude and LLama 3
+Some content for this README was generated with ChatGPT-4o, Claude and LLama 3
