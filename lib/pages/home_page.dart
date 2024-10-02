@@ -405,19 +405,9 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
               ),
               suffix: IconButton(
                 icon: const Icon(ic.FluentIcons.send_24_regular, size: 24),
-                onPressed: () {
-                  setState(() {
-                    isExpanded = false;
-                    systemMessage = controller.text;
-                  });
-                },
+                onPressed: () => submit(),
               ),
-              onSubmitted: (value) {
-                setState(() {
-                  isExpanded = false;
-                  systemMessage = value;
-                });
-              },
+              onSubmitted: (value) => submit(),
             )
           : GestureDetector(
               onTap: () {
