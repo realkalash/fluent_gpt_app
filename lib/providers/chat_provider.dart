@@ -249,6 +249,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<bool> _retrieveLocalModels() async {
+    if (AppCache.useLocalApiUrl.value == false) return false;
     var localApi = AppCache.localApiUrl.value;
     if (localApi == null || localApi.isEmpty == true) return false;
     // basic

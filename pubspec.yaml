@@ -69,6 +69,7 @@ dependencies:
   record: ^5.1.2
   deepgram_speech_to_text: ^2.3.2
   audioplayers: ^6.1.0
+  launch_at_startup: ^0.3.1
   
 
 dev_dependencies:

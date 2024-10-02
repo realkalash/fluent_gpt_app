@@ -56,6 +56,7 @@ class AppCache {
 
   static const localApiUrl =
       StringPref("localApiUrl", 'http://localhost:11434/api');
+  static const useLocalApiUrl = BoolPref("useLocalApiUrl", false);
   static const localApiModelPaths = StringPref("localApiModels", '{}');
   static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');

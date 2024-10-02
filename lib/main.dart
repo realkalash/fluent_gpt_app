@@ -12,6 +12,7 @@ import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
@@ -24,6 +25,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:protocol_handler/protocol_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -78,6 +81,7 @@ Future<void> initWindow() async {
 }
 
 String appVersion = '-';
+PackageInfo? packageInfo;
 BehaviorSubject<bool> shiftPressedStream = BehaviorSubject<bool>.seeded(false);
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -142,6 +146,17 @@ void main(List<String> args) async {
   OverlayManager.init();
   AdditionalFeatures.initAdditionalFeatures(
       isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
+  packageInfo = await PackageInfo.fromPlatform();
+  launchAtStartup.setup(
+    appName: packageInfo!.appName,
+    appPath: Platform.resolvedExecutable,
+    // Set packageName parameter to support MSIX.
+    packageName: packageInfo!.packageName,
+  );
+  
+  launchAtStartup.isEnabled().then((value) {
+    isLaunchAtStartupEnabled = value;
+  });
 
   runApp(const MyApp());
 }
