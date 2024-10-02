@@ -34,6 +34,7 @@ import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,6 +51,7 @@ import '../theme.dart';
 import '../widgets/confirmation_dialog.dart';
 
 BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
+bool isLaunchAtStartupEnabled = false;
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -821,6 +823,17 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
               TextFormBox(
                 initialValue: AppCache.localApiUrl.value,
                 placeholder: AppCache.localApiUrl.value,
+                prefix: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Checkbox(
+                    checked: AppCache.useLocalApiUrl.value!,
+                    onChanged: (value) {
+                      setState(() {
+                        AppCache.useLocalApiUrl.value = value;
+                      });
+                    },
+                  ),
+                ),
                 onFieldSubmitted: (value) async {
                   AppCache.localApiUrl.value = value;
                   final provider =
@@ -979,6 +992,21 @@ class _OtherSettings extends StatelessWidget {
             content: const Text('Hide window title'),
             checked: AppCache.hideTitleBar.value,
             onChanged: (value) => appTheme.toggleHideTitleBar()),
+        // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
+        if (!Platform.isMacOS)
+          Checkbox(
+            content: const Text('Launch at startup'),
+            checked: isLaunchAtStartupEnabled,
+            onChanged: (value) async {
+              if (value == true) {
+                await launchAtStartup.enable();
+              } else {
+                await launchAtStartup.disable();
+              }
+              isLaunchAtStartupEnabled = value!;
+              appTheme.updateUI();
+            },
+          ),
         Tooltip(
           message: 'Can cause additional charges!',
           child: Checkbox(
