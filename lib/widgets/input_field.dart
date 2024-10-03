@@ -267,9 +267,12 @@ class _InputFieldState extends State<InputField> {
                             context.theme.scaffoldBackgroundColor,
                           )),
                           onPressed: () {
-                            // chatProvider.stopAnswering();
+                            chatProvider.stopAnswering();
                           },
-                          icon: const ProgressRing(),
+                          icon: Icon(
+                            ic.FluentIcons.stop_24_filled,
+                            size: 24,
+                          ),
                         ),
                       ),
                     )
@@ -285,8 +288,10 @@ class _InputFieldState extends State<InputField> {
                               chatProvider.messageController.text,
                               chatProvider,
                             ),
-                            child: const Icon(ic.FluentIcons.send_24_filled,
-                                size: 24),
+                            child: const Icon(
+                              ic.FluentIcons.send_24_filled,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ),

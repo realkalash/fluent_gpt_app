@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 // ignore: implementation_imports
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
@@ -477,6 +478,9 @@ class ChatProvider with ChangeNotifier {
     return response;
   }
 
+  Stream<ChatResult>? responseStream;
+  StreamSubscription<ChatResult>? listenerResponseStream;
+
   Future<void> sendMessage(
     String messageContent, [
     bool hidePrompt = false,
@@ -563,7 +567,6 @@ class ChatProvider with ChangeNotifier {
         .addHumanChatMessage(messageContent);
     isAnswering = true;
     notifyListeners();
-    late Stream<ChatResult> stream;
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
       messagesToSend.addAll(
@@ -597,7 +600,7 @@ class ChatProvider with ChangeNotifier {
         if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
           openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
         }
-        stream = openAI!.stream(
+        responseStream = openAI!.stream(
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.name,
@@ -613,7 +616,7 @@ class ChatProvider with ChangeNotifier {
           ),
         );
       } else {
-        stream = localModel!.stream(
+        responseStream = localModel!.stream(
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.name,
@@ -633,7 +636,8 @@ class ChatProvider with ChangeNotifier {
       String functionCallString = '';
       String functionName = '';
       int chunkNumber = 0;
-      await stream.forEach(
+
+      listenerResponseStream = responseStream!.listen(
         (final chunk) {
           chunkNumber++;
           if (chunkNumber == 1) {
@@ -685,16 +689,19 @@ class ChatProvider with ChangeNotifier {
             refreshTokensForCurrentChat();
           }
         },
+        onDone: () {
+          print('chunk onDone');
+          saveToDisk([selectedChatRoom]);
+        },
+        onError: (e, stack) {
+          logError('Error while answering: $e', stack);
+          addBotErrorMessageToList(
+            SystemChatMessage(content: 'Error while answering: $e'),
+          );
+          isAnswering = false;
+        },
       );
-    } catch (e, stack) {
-      logError('Error while answering: $e', stack);
-      addBotErrorMessageToList(
-        SystemChatMessage(content: 'Error while answering: $e'),
-      );
-      isAnswering = false;
-    }
-
-    saveToDisk([selectedChatRoom]);
+    } catch (e, stack) {}
   }
 
   void onResponseEnd(String userContent, String id) async {
@@ -1039,6 +1046,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> selectChatRoom(ChatRoom room) async {
+    stopAnswering();
     selectedChatRoomId = room.id;
     openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
     messages.add({});
@@ -1137,14 +1145,16 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
-  @Deprecated('Is not implemented on the plugin level')
   void stopAnswering() {
+    // TODO: Is not implemented on the plugin level, so we just ignore the result
     try {
       cancelToken?.cancel('canceled ');
+      listenerResponseStream?.cancel();
       log('Canceled');
     } catch (e) {
       log('Error while canceling: $e');
     } finally {
+      listenerResponseStream = null;
       isAnswering = false;
       notifyListeners();
     }
