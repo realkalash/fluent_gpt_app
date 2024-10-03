@@ -63,7 +63,7 @@ class FileStringPref {
     return '';
   }
 
-  Future<String?> value() async {
+  Future<String> value() async {
     final path = await appDirectoryPath();
     final filePath = '$path/$fileName';
     //if not exist, create file and return empty string

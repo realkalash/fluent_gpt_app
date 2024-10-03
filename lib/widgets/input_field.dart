@@ -6,6 +6,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
+import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
@@ -441,16 +442,6 @@ class _ChooseModelButton extends StatefulWidget {
 }
 
 class _ChooseModelButtonState extends State<_ChooseModelButton> {
-  Widget getModelIcon(String ownedBy) {
-    if (ownedBy == 'openai') {
-      return Image.asset(
-        'assets/openai_icon.png',
-        fit: BoxFit.contain,
-      );
-    }
-    return const Icon(ic.FluentIcons.chat_24_regular);
-  }
-
   final FlyoutController flyoutController = FlyoutController();
 
   @override
@@ -475,7 +466,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
             onTap: () => openFlyout(context),
             child: SizedBox.square(
               dimension: 20,
-              child: getModelIcon(selectedModel.ownedBy ?? ''),
+              child: selectedModel.modelIcon,
             ),
           ),
         ),
@@ -489,20 +480,28 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
     final selectedModel = selectedChatRoom.model;
     flyoutController.showFlyout(builder: (ctx) {
       return MenuFlyout(
-        items: models
-            .map(
-              (e) => MenuFlyoutItem(
-                selected: e.name == selectedModel.name,
-                trailing: e.name == selectedModel.name
-                    ? const Icon(ic.FluentIcons.checkmark_16_filled)
-                    : null,
-                leading: SizedBox.square(
-                    dimension: 24, child: getModelIcon(e.ownedBy ?? '')),
-                text: Text(e.name),
-                onPressed: () => provider.selectNewModel(e),
-              ),
-            )
-            .toList(),
+        items: [
+          ...models.map(
+            (e) => MenuFlyoutItem(
+              selected: e.modelName == selectedModel.modelName,
+              trailing: e.modelName == selectedModel.modelName
+                  ? const Icon(ic.FluentIcons.checkmark_16_filled)
+                  : null,
+              leading: SizedBox.square(dimension: 24, child: e.modelIcon),
+              text: Text(e.customName),
+              onPressed: () => provider.selectNewModel(e),
+            ),
+          ),
+          const MenuFlyoutSeparator(),
+          MenuFlyoutItem(
+            leading: const Icon(ic.FluentIcons.add_24_filled),
+            text: const Text('Add'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              showDialog(context: context, builder: (ctx)=> ModelsListDialog());
+            },
+          ),
+        ],
       );
     });
   }

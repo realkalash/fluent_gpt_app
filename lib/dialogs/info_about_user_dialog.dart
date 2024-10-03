@@ -19,7 +19,7 @@ class _InfoAboutUserDialogState extends State<InfoAboutUserDialog> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      textController.text = await AppCache.userInfo.value() ?? '';
+      textController.text = await AppCache.userInfo.value();
       if (mounted) {
         words = textController.text.split(' ').length;
         Tokenizer tokenizer = Tokenizer();

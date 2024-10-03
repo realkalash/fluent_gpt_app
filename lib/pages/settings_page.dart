@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
-import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/custom_action_dialog.dart';
 import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
@@ -813,53 +813,61 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             biggerSpacer,
           ],
         ),
+        Button(
+          child: Text('Models List'),
+          onPressed: () {
+            showDialog(
+                context: context, builder: (ctx) => const ModelsListDialog());
+          },
+        ),
+        spacer,
         Expander(
           header: const Text('API and URLs'),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('LLama url (local AI)',
-                  style: FluentTheme.of(context).typography.subtitle),
-              TextFormBox(
-                initialValue: AppCache.localApiUrl.value,
-                placeholder: AppCache.localApiUrl.value,
-                prefix: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Checkbox(
-                    checked: AppCache.useLocalApiUrl.value!,
-                    onChanged: (value) {
-                      setState(() {
-                        AppCache.useLocalApiUrl.value = value;
-                      });
-                    },
-                  ),
-                ),
-                onFieldSubmitted: (value) async {
-                  AppCache.localApiUrl.value = value;
-                  final provider =
-                      Provider.of<ChatProvider>(context, listen: false);
-                  final isSuccess = await provider.initChatModels();
-                  if (isSuccess) {
-                    provider.initModelsApi();
-                    // ignore: use_build_context_synchronously
-                    displayInfoBar(context, builder: (context, _) {
-                      return const InfoBar(
-                          title: Text('Success'),
-                          severity: InfoBarSeverity.success);
-                    });
-                  } else {
-                    // ignore: use_build_context_synchronously
-                    displayInfoBar(context, builder: (context, _) {
-                      return const InfoBar(
-                          title: Text('Error'),
-                          severity: InfoBarSeverity.error);
-                    });
-                  }
-                },
-                onChanged: (value) {
-                  AppCache.localApiUrl.value = value;
-                },
-              ),
+              // Text('LLama url (local AI)',
+              //     style: FluentTheme.of(context).typography.subtitle),
+              // TextFormBox(
+              //   initialValue: AppCache.localApiUrl.value,
+              //   placeholder: AppCache.localApiUrl.value,
+              //   prefix: Padding(
+              //     padding: const EdgeInsets.only(left: 8),
+              //     child: Checkbox(
+              //       checked: AppCache.useLocalApiUrl.value!,
+              //       onChanged: (value) {
+              //         setState(() {
+              //           AppCache.useLocalApiUrl.value = value;
+              //         });
+              //       },
+              //     ),
+              //   ),
+              //   onFieldSubmitted: (value) async {
+              //     AppCache.localApiUrl.value = value;
+              //     final provider =
+              //         Provider.of<ChatProvider>(context, listen: false);
+              //     final isSuccess = await provider.initChatModels();
+              //     if (isSuccess) {
+              //       provider.initModelsApi();
+              //       // ignore: use_build_context_synchronously
+              //       displayInfoBar(context, builder: (context, _) {
+              //         return const InfoBar(
+              //             title: Text('Success'),
+              //             severity: InfoBarSeverity.success);
+              //       });
+              //     } else {
+              //       // ignore: use_build_context_synchronously
+              //       displayInfoBar(context, builder: (context, _) {
+              //         return const InfoBar(
+              //             title: Text('Error'),
+              //             severity: InfoBarSeverity.error);
+              //       });
+              //     }
+              //   },
+              //   onChanged: (value) {
+              //     AppCache.localApiUrl.value = value;
+              //   },
+              // ),
               Text(
                 'Brave API key (search engine) \$',
                 style: FluentTheme.of(context).typography.subtitle,
@@ -887,31 +895,31 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                   url: 'https://api.search.brave.com/app/keys',
                 ),
               ),
-              Text(
-                'OpenAi global API key \$',
-                style: FluentTheme.of(context).typography.subtitle,
-              ),
-              TextFormBox(
-                initialValue: AppCache.openAiApiKey.value,
-                placeholder: AppCache.openAiApiKey.value,
-                obscureText: obscureOpenAiText,
-                suffix: IconButton(
-                  icon: const Icon(FluentIcons.eye_20_regular),
-                  onPressed: () {
-                    setState(() {
-                      obscureOpenAiText = !obscureOpenAiText;
-                    });
-                  },
-                ),
-                onChanged: (value) => AppCache.openAiApiKey.value = value,
-              ),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: LinkTextButton(
-                  'https://platform.openai.com/api-keys',
-                  url: 'https://platform.openai.com/api-keys',
-                ),
-              ),
+              // Text(
+              //   'OpenAi global API key \$',
+              //   style: FluentTheme.of(context).typography.subtitle,
+              // ),
+              // TextFormBox(
+              //   initialValue: AppCache.openAiApiKey.value,
+              //   placeholder: AppCache.openAiApiKey.value,
+              //   obscureText: obscureOpenAiText,
+              //   suffix: IconButton(
+              //     icon: const Icon(FluentIcons.eye_20_regular),
+              //     onPressed: () {
+              //       setState(() {
+              //         obscureOpenAiText = !obscureOpenAiText;
+              //       });
+              //     },
+              //   ),
+              //   onChanged: (value) => AppCache.openAiApiKey.value = value,
+              // ),
+              // const Align(
+              //   alignment: Alignment.centerLeft,
+              //   child: LinkTextButton(
+              //     'https://platform.openai.com/api-keys',
+              //     url: 'https://platform.openai.com/api-keys',
+              //   ),
+              // ),
               Text(
                 'Deepgram API key (speech) \$\$',
                 style: FluentTheme.of(context).typography.subtitle,
