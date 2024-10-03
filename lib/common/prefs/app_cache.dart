@@ -54,11 +54,7 @@ class AppCache {
   static const userName = StringPref("userName", 'User');
   static const archivedPrompts = StringPref("archivedPrompts");
 
-  static const localApiUrl =
-      StringPref("localApiUrl", 'http://localhost:11434/api');
-  static const useLocalApiUrl = BoolPref("useLocalApiUrl", false);
   static const localApiModelPaths = StringPref("localApiModels", '{}');
-  static const openAiApiKey = StringPref("openAiApiKey", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
   static const imgurClientId = StringPref("imgurClientId", '');
   static const deepgramApiKey = StringPref("deepgramApiKey", '');

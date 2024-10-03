@@ -245,8 +245,7 @@ class PageHeaderText extends StatelessWidget {
                       maxLines: 2,
                       textAlign: TextAlign.center,
                     )),
-                    if (AppCache.openAiApiKey.value == null ||
-                        AppCache.openAiApiKey.value!.isEmpty)
+                    if (selectedModel.apiKey.isEmpty)
                       Tooltip(
                         message: 'API token is empty!',
                         child: Icon(ic.FluentIcons.warning_24_filled,

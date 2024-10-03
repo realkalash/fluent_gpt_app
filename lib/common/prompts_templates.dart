@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/custom_prompt.dart';
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing

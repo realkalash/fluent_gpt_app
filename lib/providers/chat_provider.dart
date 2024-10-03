@@ -53,7 +53,10 @@ String get selectedChatRoomId => selectedChatRoomIdStream.value;
 set selectedChatRoomId(String v) => selectedChatRoomIdStream.add(v);
 
 ChatModelAi get selectedModel =>
-    chatRooms[selectedChatRoomId]?.model ?? allModels.value.last;
+    chatRooms[selectedChatRoomId]?.model ??
+    (allModels.value.isNotEmpty
+        ? allModels.value.first
+        : const ChatModelAi(modelName: 'Unknown', apiKey: ''));
 ChatRoom get selectedChatRoom =>
     chatRooms[selectedChatRoomId] ??
     (chatRooms.values.isEmpty == true
@@ -116,14 +119,7 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
   return newContent;
 }
 
-const defaultChatModels = [
-  ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
-];
-
-final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([
-  /// gpt-4o
-  const ChatModelAi(name: 'gpt-4o', apiKey: '', ownedBy: 'openai'),
-]);
+final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
 
 class ChatProvider with ChangeNotifier {
   final listItemsScrollController = AutoScrollController();
@@ -203,7 +199,7 @@ class ChatProvider with ChangeNotifier {
         chatRooms[file.path] = ChatRoom(
           id: file.path,
           chatRoomName: 'Error ${file.path}',
-          model: const ChatModelAi(name: 'error', apiKey: ''),
+          model: const ChatModelAi(modelName: 'error', apiKey: ''),
           messages: ConversationBufferMemory(),
           temp: temp,
           topk: topk,
@@ -240,8 +236,8 @@ class ChatProvider with ChangeNotifier {
 
   Future initCustomActions() async {
     final actionsJson = await AppCache.customActions.value();
-    if (actionsJson?.isNotEmpty == true) {
-      final actions = jsonDecode(actionsJson!) as List;
+    if (actionsJson.isNotEmpty == true) {
+      final actions = jsonDecode(actionsJson) as List;
       final listActions = actions
           .map((e) => OnMessageAction.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -249,92 +245,44 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> _retrieveLocalModels() async {
-    if (AppCache.useLocalApiUrl.value == false) return false;
-    var localApi = AppCache.localApiUrl.value;
-    if (localApi == null || localApi.isEmpty == true) return false;
-    // basic
-    localApi = localApi.replaceAll('/api', '');
-    // Msty
-    final localApiWithApi = '$localApi/api';
-    // LM studio
-    final localApiWithV1 = '$localApi/v1';
-    // ping  first
-
-    final dio = Dio();
-    try {
-      final response = await dio.get('$localApi/models/');
-      final respJson = response.data as Map<String, dynamic>;
-      final models = respJson['data'] as List;
-      final listModels = models
-          .map(
-            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
-                apiKey: AppCache.openAiApiKey.value ?? ''),
-          )
+  Future initChatModels() async {
+    final listModelsJsonString = await AppCache.savedModels.value();
+    if (listModelsJsonString.isNotEmpty == true) {
+      final listModelsJson = jsonDecode(listModelsJsonString) as List;
+      final listModels = listModelsJson
+          .map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>))
           .toList();
-      allModels.add([...defaultChatModels, ...listModels]);
-      log('Success retrieving models: $listModels');
-      return true;
-    } catch (e) {
-      logError('Error retrieving local models raw: $e');
+      allModels.add(listModels);
     }
-    try {
-      final response = await dio.get('$localApiWithApi/models/');
-      final respJson = response.data as Map<String, dynamic>;
-      final models = respJson['data'] as List;
-      final listModels = models
-          .map(
-            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
-                apiKey: AppCache.openAiApiKey.value ?? ''),
-          )
-          .toList();
-      allModels.add([...defaultChatModels, ...listModels]);
-      log('Success retrieving models: $listModels');
-      return true;
-    } catch (e) {
-      logError('Error retrieving local models api: $e');
-    }
-    try {
-      final response = await dio.get('$localApiWithV1/models/');
-      final respJson = response.data as Map<String, dynamic>;
-      final models = respJson['data'] as List;
-      final listModels = models
-          .map(
-            (e) => ChatModelAi.fromServerJson(e as Map<String, dynamic>,
-                apiKey: AppCache.openAiApiKey.value ?? ''),
-          )
-          .toList();
-      log('Success retrieving models: $listModels');
-      allModels.add([...defaultChatModels, ...listModels]);
-      return true;
-    } catch (e) {
-      logError('Error retrieving local models v1: $e');
-    }
-    return false;
   }
 
-  Future initChatModels() async {
-    // final listModelsJsonString = await AppCache.savedModels.value();
-    // if (listModelsJsonString?.isNotEmpty == true) {
-    //   final listModelsJson = jsonDecode(listModelsJsonString!) as List;
-    //   final listModels = listModelsJson
-    //       .map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>))
-    //       .toList();
-    //   allModels.add(listModels);
-    // }
-    allModels.add(defaultChatModels);
-    return _retrieveLocalModels();
+  Future<void> addNewCustomModel(ChatModelAi model) async {
+    final allModelsList = allModels.value;
+    allModelsList.add(model);
+    allModels.add(allModelsList);
+    await saveModelsToDisk();
+  }
+
+  Future removeCustomModel(ChatModelAi model) async {
+    final allModelsList = allModels.value;
+    allModelsList.remove(model);
+    allModels.add(allModelsList);
+    await saveModelsToDisk();
+  }
+
+  Future<void> saveModelsToDisk() async {
+    final allModelsList = allModels.value;
+    final listModelsJson = allModelsList.map((e) => e.toJson()).toList();
+    await AppCache.savedModels.set(jsonEncode(listModelsJson));
   }
 
   /// Should be called after we load all chat rooms
   void initModelsApi() {
-    openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-    if (AppCache.localApiUrl.value != null &&
-        AppCache.localApiUrl.value!.isNotEmpty)
-      localModel = ChatOpenAI(
-        baseUrl: AppCache.localApiUrl.value!,
-        apiKey: AppCache.openAiApiKey.value,
-      );
+    openAI = ChatOpenAI(apiKey: selectedModel.apiKey);
+    localModel = ChatOpenAI(
+      baseUrl: selectedModel.uri ?? '',
+      apiKey: selectedModel.apiKey,
+    );
   }
 
   void listenTray() {
@@ -596,14 +544,13 @@ class ChatProvider with ChangeNotifier {
       }
     }
     try {
-      if (selectedChatRoom.model.ownedBy == 'openai') {
-        if (openAI?.apiKey == null || openAI?.apiKey.isEmpty == true) {
-          openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
-        }
+      initModelsApi();
+
+      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
         responseStream = openAI!.stream(
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.name,
+            model: selectedChatRoom.model.modelName,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
             tools: const [
@@ -616,10 +563,17 @@ class ChatProvider with ChangeNotifier {
           ),
         );
       } else {
+        if (selectedChatRoom.model.ownedBy == OwnedByEnum.gemini.name) {
+          throw Exception('Gemini is not supported yet');
+          // TODO: add more models
+        } else if (selectedChatRoom.model.ownedBy == OwnedByEnum.claude.name) {
+          throw Exception('Claude is not supported yet');
+          // TODO: add more models
+        }
         responseStream = localModel!.stream(
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.name,
+            model: selectedChatRoom.model.modelName,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
             tools: const [
@@ -690,8 +644,7 @@ class ChatProvider with ChangeNotifier {
           }
         },
         onDone: () {
-          print('chunk onDone');
-          saveToDisk([selectedChatRoom]);
+          // saveToDisk([selectedChatRoom]);
         },
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
@@ -701,7 +654,14 @@ class ChatProvider with ChangeNotifier {
           isAnswering = false;
         },
       );
-    } catch (e, stack) {}
+    } catch (e, stack) {
+      logError('Error while answering: $e', stack);
+      addBotErrorMessageToList(
+        SystemChatMessage(content: 'Error while answering: $e'),
+      );
+      isAnswering = false;
+      notifyListeners();
+    }
   }
 
   void onResponseEnd(String userContent, String id) async {
@@ -732,8 +692,8 @@ class ChatProvider with ChangeNotifier {
     int tokens = 0;
     if (selectedChatRoom.model.ownedBy == 'openai') {
       final tokenizer = Tokenizer();
-      if (selectedChatRoom.model.name == 'gpt-4o' ||
-          selectedChatRoom.model.name == 'gpt-3.5-turbo') {
+      if (selectedChatRoom.model.modelName == 'gpt-4o' ||
+          selectedChatRoom.model.modelName == 'gpt-3.5-turbo') {
         for (var message in messages) {
           if (message is AIChatMessage) {
             tokens += await tokenizer.count(
@@ -845,14 +805,14 @@ class ChatProvider with ChangeNotifier {
     if (selectedModel.ownedBy == 'openai') {
       stream = openAI!.stream(PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.name,
+            model: selectedChatRoom.model.modelName,
             maxTokens: maxTokens,
           ));
     } else {
       stream = localModel!.stream(
         PromptValue.chat(messagesToSend),
         options: ChatOpenAIOptions(
-          model: selectedChatRoom.model.name,
+          model: selectedChatRoom.model.modelName,
           maxTokens: maxTokens,
         ),
       );
@@ -1048,13 +1008,9 @@ class ChatProvider with ChangeNotifier {
   Future<void> selectChatRoom(ChatRoom room) async {
     stopAnswering();
     selectedChatRoomId = room.id;
-    openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
+    initModelsApi();
+
     messages.add({});
-    if (AppCache.localApiUrl.value!.isNotEmpty)
-      localModel = ChatOpenAI(
-        apiKey: AppCache.openAiApiKey.value,
-        baseUrl: AppCache.localApiUrl.value!,
-      );
     totalTokensForCurrentChat = 0;
     await _loadMessagesFromDisk(room.id);
     refreshTokensForCurrentChat();
@@ -1078,7 +1034,7 @@ class ChatProvider with ChangeNotifier {
     }
     FileUtils.getChatRoomPath().then((dir) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
-      if (chatRoomToDelete?.model.name == 'error') {
+      if (chatRoomToDelete?.model.modelName == 'error') {
         // in this case id is the path
         FileUtils.deleteFile(chatRoomId);
       } else {
@@ -1090,7 +1046,7 @@ class ChatProvider with ChangeNotifier {
     /// 2. Delete messages file
     FileUtils.getChatRoomMessagesFileById(chatRoomId).then((file) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
-      if (chatRoomToDelete?.model.name == 'error') {
+      if (chatRoomToDelete?.model.modelName == 'error') {
         FileUtils.deleteFile(chatRoomId);
       } else {
         FileUtils.moveFile(
@@ -1109,7 +1065,6 @@ class ChatProvider with ChangeNotifier {
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
     if (selectedChatRoomId == oldChatRoomId) {
-      openAI = ChatOpenAI(apiKey: AppCache.openAiApiKey.value);
       switchToForeground = true;
     }
     chatRooms.remove(oldChatRoomId);

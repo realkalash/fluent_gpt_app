@@ -83,7 +83,7 @@ class ChatRoom {
     return ChatRoom(
       model: map['model'] is String
           ? ChatModelAi(
-              name: map['model'],
+              modelName: map['model'],
               ownedBy: map['model'] == 'gpt-4o' ? 'openai' : 'custom',
             )
           : ChatModelAi.fromJson(map['model']),

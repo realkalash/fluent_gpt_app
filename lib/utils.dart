@@ -119,7 +119,7 @@ Future<String> getFormattedSystemPrompt(
   /// we append them line by line
   final userName = AppCache.userName.value;
   final systemInfo = getSystemInfoString();
-  infoAboutUser = await AppCache.userInfo.value() ?? '';
+  infoAboutUser = await AppCache.userInfo.value();
   final userInfo = infoAboutUser;
   String prompt = basicPrompt;
   bool isIncludeAdditionalEnabled = AppCache.includeSysInfoToSysPrompt.value! ||

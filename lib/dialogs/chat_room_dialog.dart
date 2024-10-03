@@ -1,9 +1,7 @@
 import 'package:fluent_gpt/common/chat_room.dart';
-import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:langchain_openai/langchain_openai.dart';
 import 'package:provider/provider.dart';
 
 class EditChatRoomDialog extends StatefulWidget {
@@ -42,7 +40,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
     var roomName = widget.room.chatRoomName;
     var systemMessage = widget.room.systemMessage;
     var maxLength = widget.room.maxTokenLength;
-    var token = AppCache.openAiApiKey.value;
+    var token = widget.room.model.apiKey;
     var index = widget.room.indexSort;
     return ContentDialog(
       title: const Text('Edit chat room'),
@@ -60,8 +58,6 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                   indexSort: index,
                   iconCodePoint: ico,
                 ));
-            AppCache.openAiApiKey.value = token;
-            openAI = ChatOpenAI(apiKey: token);
             Navigator.of(context).pop();
             widget.onOkPressed();
           },
@@ -136,7 +132,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
           const Text('Token'),
           TextBox(
             controller:
-                TextEditingController(text: AppCache.openAiApiKey.value),
+                TextEditingController(text: widget.room.model.apiKey),
             obscureText: true,
             onChanged: (value) {
               token = value;

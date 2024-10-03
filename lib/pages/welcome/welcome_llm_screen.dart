@@ -1,14 +1,12 @@
-import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
-import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart'
     show
+        Button,
         FlyoutController,
         FlyoutTarget,
         MenuFlyout,
-        MenuFlyoutItem,
-        TextBox,
-        TextFormBox;
+        MenuFlyoutItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +20,6 @@ class WelcomeLLMConfigPage extends StatefulWidget {
 }
 
 class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
-  bool obscureText = true;
   @override
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
@@ -91,56 +88,16 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const ListTile(
-                            title: Text('Choose your AI model'),
+                            title: Text('Add your models'),
                             trailing: _ChooseModelButton()),
                         const SizedBox(height: 24),
-                        TextBox(
-                          placeholder: 'Enter your API key',
-                          obscureText: obscureText,
-                          autofocus: true,
-                          suffix: IconButton(
-                            icon: Icon(
-                              obscureText
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
+                        Button(
+                            child: Text('Add'),
                             onPressed: () {
-                              setState(() {
-                                obscureText = !obscureText;
-                              });
-                            },
-                          ),
-                          onChanged: (v) {
-                            AppCache.openAiApiKey.value = v.trim();
-                          },
-                        ),
-                        const Wrap(
-                          spacing: 8,
-                          children: [
-                            SizedBox(width: 8),
-                            Text('Obtain your API key:'),
-                            LinkTextButton(
-                              'OpenAI',
-                              url: 'https://platform.openai.com/api-keys',
-                            ),
-                            LinkTextButton(
-                              'Gemini',
-                              url: 'https://exchange.gemini.com/settings/api',
-                            ),
-                            LinkTextButton(
-                              'Claude',
-                              url: 'https://claude.ai/settings',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        TextFormBox(
-                          initialValue: AppCache.localApiUrl.value,
-                          placeholder: 'Enter llamaUrl e.g: ${AppCache.localApiUrl.value}',
-                          onChanged: (value) {
-                            AppCache.localApiUrl.value = value;
-                          },
-                        ),
+                              showDialog(
+                                  context: context,
+                                  builder: (ctx) => ModelsListDialog());
+                            })
                       ],
                     ),
                   ),
@@ -183,8 +140,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
       child: ElevatedButton.icon(
         onPressed: () => openFlyout(context),
         icon: SizedBox.square(
-            dimension: 24, child: getModelIcon(selectedModel.name)),
-        label: Text(selectedModel.name),
+            dimension: 24, child: getModelIcon(selectedModel.modelName)),
+        label: Text(selectedModel.modelName),
       ),
     );
   }
@@ -198,13 +155,13 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
         items: models
             .map(
               (e) => MenuFlyoutItem(
-                selected: e.name == selectedModel.name,
-                trailing: e.name == selectedModel.name
+                selected: e.modelName == selectedModel.modelName,
+                trailing: e.modelName == selectedModel.modelName
                     ? const Icon(FluentIcons.checkmark_16_filled)
                     : null,
-                leading:
-                    SizedBox.square(dimension: 24, child: getModelIcon(e.name)),
-                text: Text(e.name),
+                leading: SizedBox.square(
+                    dimension: 24, child: getModelIcon(e.modelName)),
+                text: Text(e.modelName),
                 onPressed: () => provider.selectNewModel(e),
               ),
             )
