@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-// ignore: implementation_imports
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
@@ -26,6 +25,7 @@ import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
@@ -279,10 +279,11 @@ class ChatProvider with ChangeNotifier {
   /// Should be called after we load all chat rooms
   void initModelsApi() {
     openAI = ChatOpenAI(apiKey: selectedModel.apiKey);
-    localModel = ChatOpenAI(
-      baseUrl: selectedModel.uri ?? '',
-      apiKey: selectedModel.apiKey,
-    );
+    if (selectedModel.uri != null && selectedModel.uri!.isNotEmpty)
+      localModel = ChatOpenAI(
+        baseUrl: selectedModel.uri!,
+        apiKey: selectedModel.apiKey,
+      );
   }
 
   void listenTray() {
@@ -832,19 +833,29 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
-  /// will not use chat history.
+  /// Will not use chat history.
   /// Will not populate messages
   Future<String> retrieveResponseFromPrompt(String message) async {
     final messagesToSend = <ChatMessage>[];
 
     messagesToSend
         .add(HumanChatMessage(content: ChatMessageContent.text(message)));
+    if (kDebugMode) {
+      log('messagesToSend: $messagesToSend');
+    }
 
     AIChatMessage response;
     if (selectedModel.ownedBy == 'openai') {
-      response = await openAI!.call(messagesToSend);
+      response = await openAI!.call(messagesToSend,
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.modelName,
+            maxTokens: 100,
+          ));
     } else {
       response = await localModel!.call(messagesToSend);
+    }
+    if (kDebugMode) {
+      log('response: $response');
     }
     return response.content;
   }

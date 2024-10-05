@@ -1,8 +1,8 @@
-// import 'package:chat_gpt_flutter/chat_gpt_flutter.dart';
 import 'dart:async';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
@@ -27,6 +27,7 @@ import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
+import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_provider.dart';
@@ -121,6 +122,10 @@ class _InputFieldState extends State<InputField> {
   }
 
   bool _isShiftPressed = false;
+  bool _useShimmer = false;
+
+  final debouncer = Debouncer(milliseconds: 500);
+
   @override
   Widget build(BuildContext context) {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
@@ -195,53 +200,96 @@ class _InputFieldState extends State<InputField> {
                     _FileThumbnail(chatProvider: chatProvider),
                   if (!widget.isMini)
                     Expanded(
-                      child: TextBox(
-                        autofocus: true,
-                        autocorrect: true,
-                        focusNode: promptTextFocusNode,
-                        prefixMode: OverlayVisibilityMode.always,
-                        controller: chatProvider.messageController,
-                        minLines: 2,
-                        maxLines: 30,
-                        suffix: const _MicrophoneButton(),
-                        prefix: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const _ChooseModelButton(),
-                            AiLibraryButton(
-                              onPressed: () async {
-                                final prompt = await showDialog<CustomPrompt?>(
-                                  context: context,
-                                  builder: (ctx) =>
-                                      const AiPromptsLibraryDialog(),
-                                  barrierDismissible: true,
-                                );
-                                if (prompt != null) {
-                                  // ignore: use_build_context_synchronously
-                                  final controller =
-                                      context.read<ChatProvider>();
-                                  controller.messageController.text =
-                                      prompt.getPromptText(
-                                          controller.messageController.text);
-                                  promptTextFocusNode.requestFocus();
-                                }
-                              },
-                              isSmall: true,
-                            ),
-                          ],
+                      child: Shimmer(
+                        enabled: _useShimmer,
+                        duration: const Duration(milliseconds: 600),
+                        color: context.theme.accentColor,
+                        child: TextBox(
+                          autofocus: true,
+                          autocorrect: true,
+                          focusNode: promptTextFocusNode,
+                          prefixMode: OverlayVisibilityMode.always,
+                          controller: chatProvider.messageController,
+                          minLines: 2,
+                          maxLines: 30,
+                          onChanged: (value) {
+                            debouncer.call(() {
+                              setState(() {});
+                            });
+                          },
+                          suffix: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const _MicrophoneButton(),
+                              if (chatProvider
+                                  .messageController.text.isNotEmpty)
+                                ImproveTextSparkleButton(
+                                  onStateChange: (state) {
+                                    if (state ==
+                                        ImproveTextSparkleButtonState
+                                            .improving) {
+                                      setState(() {
+                                        _useShimmer = true;
+                                      });
+                                    }
+                                    if (state ==
+                                        ImproveTextSparkleButtonState
+                                            .improved) {
+                                      setState(() {
+                                        _useShimmer = false;
+                                      });
+                                    }
+                                  },
+                                  onTextImproved: (text) {
+                                    chatProvider.messageController.text = text;
+                                  },
+                                  input: () => chatProvider
+                                      .messageController.text
+                                      .trim(),
+                                ),
+                            ],
+                          ),
+                          prefix: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _ChooseModelButton(),
+                              AiLibraryButton(
+                                onPressed: () async {
+                                  final prompt =
+                                      await showDialog<CustomPrompt?>(
+                                    context: context,
+                                    builder: (ctx) =>
+                                        const AiPromptsLibraryDialog(),
+                                    barrierDismissible: true,
+                                  );
+                                  if (prompt != null) {
+                                    // ignore: use_build_context_synchronously
+                                    final controller =
+                                        context.read<ChatProvider>();
+                                    controller.messageController.text =
+                                        prompt.getPromptText(
+                                            controller.messageController.text);
+                                    promptTextFocusNode.requestFocus();
+                                  }
+                                },
+                                isSmall: true,
+                              ),
+                            ],
+                          ),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (value) {
+                            if (_isShiftPressed == false) {
+                              onSubmit(value, chatProvider);
+                            }
+                            if (_isShiftPressed) {
+                              chatProvider.messageController.text =
+                                  '${chatProvider.messageController.text}\n';
+                              promptTextFocusNode.requestFocus();
+                            }
+                          },
+                          placeholder: 'Type your message here',
                         ),
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (value) {
-                          if (_isShiftPressed == false) {
-                            onSubmit(value, chatProvider);
-                          }
-                          if (_isShiftPressed) {
-                            chatProvider.messageController.text =
-                                '${chatProvider.messageController.text}\n';
-                            promptTextFocusNode.requestFocus();
-                          }
-                        },
-                        placeholder: 'Type your message here',
                       ),
                     ),
                   const SizedBox(width: 4),
@@ -498,7 +546,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
             text: const Text('Add'),
             onPressed: () {
               Navigator.of(ctx).pop();
-              showDialog(context: context, builder: (ctx)=> ModelsListDialog());
+              showDialog(
+                  context: context, builder: (ctx) => ModelsListDialog());
             },
           ),
         ],

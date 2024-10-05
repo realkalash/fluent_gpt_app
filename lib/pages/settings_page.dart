@@ -95,6 +95,8 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           Text('Appearance', style: FluentTheme.of(context).typography.title),
           const _ThemeModeSection(),
           spacer,
+          MessageAppearanceSettings(),
+          spacer,
           // biggerSpacer,
           // const _LocaleSection(),
           const _LocaleSection(),
@@ -104,6 +106,70 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         ],
       ),
     );
+  }
+}
+
+class MessageAppearanceSettings extends StatelessWidget {
+  const MessageAppearanceSettings({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final gptProvider = context.watch<ChatProvider>();
+    return Expander(
+        header: Text('Message Appearance'),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Message Text size',
+                style: FluentTheme.of(context).typography.subtitle),
+            spacer,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text('Basic Message Text Size',
+                          style: FluentTheme.of(context).typography.subtitle),
+                      SizedBox(
+                        width: 200.0,
+                        child: NumberBox(
+                          value: gptProvider.textSize,
+                          onChanged: (value) {
+                            gptProvider.textSize = value ?? 14;
+                          },
+                          mode: SpinButtonPlacementMode.inline,
+                        ),
+                      ),
+                      const MessageSamplePreviewCard(isCompact: false),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text('Compact Message Text Size',
+                          style: FluentTheme.of(context).typography.subtitle),
+                      SizedBox(
+                        width: 200.0,
+                        child: NumberBox(
+                          value: AppCache.compactMessageTextSize.value,
+                          onChanged: (value) {
+                            AppCache.compactMessageTextSize.value = value ?? 10;
+                            Provider.of<ChatProvider>(context, listen: false)
+                                .updateUI();
+                          },
+                          mode: SpinButtonPlacementMode.inline,
+                        ),
+                      ),
+                      const MessageSamplePreviewCard(isCompact: true),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ],
+        ));
   }
 }
 
@@ -1025,82 +1091,6 @@ class _OtherSettings extends StatelessWidget {
               appTheme.updateUI();
             },
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ResolutionsSelector extends StatelessWidget {
-  const _ResolutionsSelector({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final appTheme = context.watch<AppTheme>();
-    final gptProvider = context.watch<ChatProvider>();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ListTile(
-          title: const Text('Resolution'),
-          subtitle: Text(
-              '${appTheme.resolution?.width}x${appTheme.resolution?.height}'),
-          trailing: kDebugMode
-              ? IconButton(
-                  icon: const Icon(FluentIcons.delete_20_filled),
-                  onPressed: () async {
-                    await AppCache.resolution.remove();
-                  })
-              : null,
-        ),
-        const SizedBox(height: 8.0),
-        Text('Message Text size',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Expanded(
-              child: Column(
-                children: [
-                  Text('Basic Message Text Size',
-                      style: FluentTheme.of(context).typography.subtitle),
-                  SizedBox(
-                    width: 200.0,
-                    child: NumberBox(
-                      value: gptProvider.textSize,
-                      onChanged: (value) {
-                        gptProvider.textSize = value ?? 14;
-                      },
-                      mode: SpinButtonPlacementMode.inline,
-                    ),
-                  ),
-                  const MessageSamplePreviewCard(isCompact: false),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Column(
-                children: [
-                  Text('Compact Message Text Size',
-                      style: FluentTheme.of(context).typography.subtitle),
-                  SizedBox(
-                    width: 200.0,
-                    child: NumberBox(
-                      value: AppCache.compactMessageTextSize.value,
-                      onChanged: (value) {
-                        AppCache.compactMessageTextSize.value = value ?? 10;
-                        Provider.of<ChatProvider>(context, listen: false)
-                            .updateUI();
-                      },
-                      mode: SpinButtonPlacementMode.inline,
-                    ),
-                  ),
-                  const MessageSamplePreviewCard(isCompact: true),
-                ],
-              ),
-            )
-          ],
         ),
       ],
     );

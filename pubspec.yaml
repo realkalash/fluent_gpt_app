@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.5+1
+version: 1.0.6+1
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
@@ -70,6 +70,7 @@ dependencies:
   deepgram_speech_to_text: ^2.3.2
   audioplayers: ^6.1.0
   launch_at_startup: ^0.3.1
+  shimmer_animation: ^2.2.1
   
 
 dev_dependencies:

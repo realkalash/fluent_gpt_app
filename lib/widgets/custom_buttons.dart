@@ -1,7 +1,18 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
-import 'package:fluent_ui/fluent_ui.dart';
+import 'dart:async';
+
+import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:glowy_borders/glowy_borders.dart';
+import 'package:provider/provider.dart';
+import 'package:shimmer_animation/shimmer_animation.dart';
 
 class FilledRedButton extends StatelessWidget {
   const FilledRedButton({
@@ -35,7 +46,6 @@ class FilledRedButton extends StatelessWidget {
   }
 }
 
-
 class AiLibraryButton extends StatelessWidget {
   const AiLibraryButton({
     super.key,
@@ -63,6 +73,99 @@ class AiLibraryButton extends StatelessWidget {
             ? const Text('AI', style: TextStyle(color: Colors.white))
             : const Text('AI library', style: TextStyle(color: Colors.white)),
       ),
+    );
+  }
+}
+
+enum ImproveTextSparkleButtonState { improving, improved }
+
+class ImproveTextSparkleButton extends StatefulWidget {
+  const ImproveTextSparkleButton({
+    super.key,
+    required this.onTextImproved,
+    required this.input,
+    this.onStateChange,
+  });
+  final void Function(String) onTextImproved;
+  final void Function(ImproveTextSparkleButtonState state)? onStateChange;
+  final FutureOr<String> Function() input;
+  static const String promptToImprove = '''You are very smart prompt generator for ChatGPT.
+Do: improve user input to create a better prompt. It should be clear, concise, and comprehendible.
+Don't: write anything except the prompt.
+Optional: You can use  brackets like \${this} to indicate a variable. Example "Act as \${character}". Currently supported variables are: \${input}, \${lang}, but you can create your own.
+User input to improve: """{{input}}"""
+''';
+
+  @override
+  State<ImproveTextSparkleButton> createState() =>
+      _ImproveTextSparkleButtonState();
+}
+
+class _ImproveTextSparkleButtonState extends State<ImproveTextSparkleButton> {
+  bool isImproving = false;
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      duration: const Duration(milliseconds: 600),
+      colorOpacity: 0.5,
+      color: context.theme.accentColor,
+      enabled: isImproving,
+      child: SqueareIconButton(
+        icon: Icon(FluentIcons.sparkle_24_filled),
+        tooltip: 'Improve',
+        onTap: () async {
+          try {
+            if (isImproving) return;
+            final provider = context.read<ChatProvider>();
+            setState(() {
+              isImproving = true;
+            });
+            widget.onStateChange?.call(ImproveTextSparkleButtonState.improving);
+            final input = await widget.input();
+
+            final improvedText = await provider.retrieveResponseFromPrompt(
+                ImproveTextSparkleButton.promptToImprove
+                    .replaceAll('{{input}}', input));
+            if (improvedText.isNotEmpty) {
+              widget.onTextImproved(improvedText);
+            }
+          } catch (e) {
+            logError(e.toString());
+          } finally {
+            widget.onStateChange?.call(ImproveTextSparkleButtonState.improved);
+            if (mounted)
+              setState(() {
+                isImproving = false;
+              });
+          }
+        },
+      ),
+    );
+  }
+}
+
+class PromptLibraryButton extends StatelessWidget {
+  const PromptLibraryButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AiLibraryButton(
+      onPressed: () async {
+        final prompt = await showDialog<CustomPrompt?>(
+          context: context,
+          builder: (ctx) => const AiPromptsLibraryDialog(),
+          barrierDismissible: true,
+        );
+        if (prompt != null) {
+          // ignore: use_build_context_synchronously
+          final controller = context.read<ChatProvider>();
+          controller.editChatRoom(
+            selectedChatRoomId,
+            selectedChatRoom.copyWith(systemMessage: prompt.prompt),
+          );
+          controller.updateUI();
+        }
+      },
     );
   }
 }
