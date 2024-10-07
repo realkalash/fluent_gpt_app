@@ -383,6 +383,15 @@ class _InputFieldState extends State<InputField> {
                     DateTime.now().toIso8601String());
                 clearFieldAndFocus();
               }),
+          MenuFlyoutSeparator(),
+          MenuFlyoutItem(
+            text: const Text(
+                'Send not in real-time (can help with some LLM providers)'),
+            onPressed: () {
+              provider.sendMessage(controller.text, false, false);
+              clearFieldAndFocus();
+            },
+          )
         ],
       );
     });
