@@ -8,6 +8,7 @@ import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
+import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
@@ -21,6 +22,7 @@ import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -803,6 +805,7 @@ class ChatProvider with ChangeNotifier {
     String? imageBase64,
     bool showPromptInChat = false,
     bool showImageInChat = false,
+    bool sendAsStream = true,
   }) async {
     final messagesToSend = <ChatMessage>[];
     if (imageBase64 == null) {
@@ -829,35 +832,51 @@ class ChatProvider with ChangeNotifier {
         ),
       );
     }
-    Stream<ChatResult> stream;
-    if (selectedModel.ownedBy == 'openai') {
-      stream = openAI!.stream(PromptValue.chat(messagesToSend),
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-            maxTokens: maxTokens,
-          ));
-    } else {
-      stream = localModel!.stream(
-        PromptValue.chat(messagesToSend),
-        options: ChatOpenAIOptions(
-          model: selectedChatRoom.model.modelName,
-          maxTokens: maxTokens,
-        ),
-      );
-    }
-
-    await stream.forEach(
-      (final chunk) {
-        final message = chunk.output;
-        totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
-        addBotMessageToList(message, chunk.id);
-        if (chunk.finishReason == FinishReason.stop) {
-          saveToDisk([selectedChatRoom]);
-        } else if (chunk.finishReason == FinishReason.length) {
-          saveToDisk([selectedChatRoom]);
-        }
-      },
+    final options = ChatOpenAIOptions(
+      model: selectedChatRoom.model.modelName,
+      maxTokens: maxTokens,
     );
+    try {
+      if (sendAsStream) {
+        Stream<ChatResult> stream;
+        if (selectedModel.ownedBy == 'openai') {
+          stream = openAI!
+              .stream(PromptValue.chat(messagesToSend), options: options);
+        } else {
+          stream = localModel!
+              .stream(PromptValue.chat(messagesToSend), options: options);
+        }
+        await stream.forEach(
+          (final chunk) {
+            final message = chunk.output;
+            totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+            addBotMessageToList(message, chunk.id);
+            if (chunk.finishReason == FinishReason.stop) {
+              saveToDisk([selectedChatRoom]);
+            } else if (chunk.finishReason == FinishReason.length) {
+              saveToDisk([selectedChatRoom]);
+            }
+          },
+        );
+      } else if (!sendAsStream) {
+        AIChatMessage response;
+        if (selectedModel.ownedBy == 'openai') {
+          response = await openAI!.call(messagesToSend, options: options);
+        } else {
+          response = await localModel!.call(messagesToSend, options: options);
+        }
+        addBotMessageToList(response);
+        saveToDisk([selectedChatRoom]);
+        notifyListeners();
+      }
+    } catch (e) {
+      logError('Error while sending single message: $e');
+      addBotErrorMessageToList(
+        SystemChatMessage(content: 'Error while sending single message: $e'),
+      );
+      fileInput = null;
+      notifyListeners();
+    }
   }
 
   /// Will not use chat history.
@@ -904,11 +923,28 @@ class ChatProvider with ChangeNotifier {
     scrollToEnd(withDelay: false);
   }
 
-  void addBotErrorMessageToList(SystemChatMessage message, [String? id]) {
+  Future<void> addBotErrorMessageToList(SystemChatMessage message,
+      [String? id]) async {
     final values = messages.value;
-    values[id ?? DateTime.now().toIso8601String()] = message;
+    final newId = id ?? DateTime.now().toIso8601String();
+    values[newId] = message;
     messages.add(values);
-    scrollToEnd();
+    await scrollToEnd();
+    final content = message.content;
+    if (content.contains('Tool calling is not supported for model')) {
+      ToolCallingNotSupportedDialog.show(context!);
+    }
+    if (content.contains('Multimodal is not supported for model')) {
+      await MultimodalNotSupportedDialog.show(context!);
+      // remove last 2 messages from list
+      final values = messages.value;
+      final indexError = values.keys.toList().indexOf(newId);
+      final newIdPrev = values.keys.toList()[indexError - 1];
+      values.remove(newId);
+      values.remove(newIdPrev);
+      messages.add(values);
+      saveToDisk([selectedChatRoom]);
+    }
   }
 
   /// Used to add message silently to the list
@@ -1176,13 +1212,19 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> scrollToEnd({bool withDelay = true}) async {
-    if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
-    if (messages.value.isEmpty) return;
-    listItemsScrollController.animateTo(
-      listItemsScrollController.position.maxScrollExtent + 200,
-      duration: const Duration(milliseconds: 1),
-      curve: Curves.easeOut,
-    );
+    try {
+      if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
+      if (messages.value.isEmpty) return;
+      listItemsScrollController.animateTo(
+        listItemsScrollController.position.maxScrollExtent + 200,
+        duration: const Duration(milliseconds: 1),
+        curve: Curves.easeOut,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error while scrolling to end: $e');
+      }
+    }
   }
 
   Future<void> regenerateMessage(ChatMessage message) async {
