@@ -45,6 +45,38 @@ class FilledRedButton extends StatelessWidget {
     );
   }
 }
+class FilledAccentButton extends StatelessWidget {
+  const FilledAccentButton({
+    super.key,
+    this.onPressed,
+    required this.child,
+    this.onLongPressed,
+    this.autofocus = false,
+  });
+  final void Function()? onPressed;
+  final void Function()? onLongPressed;
+  final Widget child;
+  final bool autofocus;
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = context.theme.accentColor;
+    return FilledButton(
+      onPressed: onPressed,
+      autofocus: autofocus,
+      onLongPress: onLongPressed,
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(Colors.white),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.isDisabled) return accentColor.withOpacity(0.25);
+          if (states.isHovered) return accentColor['lighter'];
+          if (states.isFocused) return accentColor['light'];
+          return accentColor['normal'];
+        }),
+      ),
+      child: child,
+    );
+  }
+}
 
 class AiLibraryButton extends StatelessWidget {
   const AiLibraryButton({

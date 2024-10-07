@@ -47,7 +47,11 @@ class AppCache {
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 
+  /// Contains custom prompts for the buttons in the chat
   static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
+
+  /// Contains all the prompts from the library like system messages, helpers etc.
+  static const promptsLibrary = FileStringPref("fluent_gpt/promptsLibrary.json");
   static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const userInfo = FileStringPref("fluent_gpt/userInfo.json");

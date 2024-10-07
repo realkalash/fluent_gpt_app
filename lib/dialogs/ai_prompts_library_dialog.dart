@@ -1,11 +1,18 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:convert';
+
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:nanoid2/nanoid2.dart';
 
 class AiPromptsLibraryDialog extends StatefulWidget {
   /// will return the selected [CustomPrompt] or null if the dialog is dismissed
@@ -17,28 +24,63 @@ class AiPromptsLibraryDialog extends StatefulWidget {
 
 class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
   List<CustomPrompt> prompts = [];
+  bool isLoading = false;
   @override
   void initState() {
     super.initState();
-
-    /// Load prompts from the database
-    prompts.addAll(promptsLibrary);
-    groups = prompts.expand((element) => element.tags).toSet().toList();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await loadPrompts();
+      if (mounted) setState(() {});
+    });
   }
 
-  void resetLibrary() {
+  Future loadPrompts() async {
+    isLoading = true;
+    if (mounted) setState(() {});
+    try {
+      final fileString = await AppCache.promptsLibrary.value();
+
+      if (fileString.isEmpty) {
+        prompts.addAll(promptsLibrary);
+      } else {
+        final decoded = jsonDecode(fileString) as List;
+        prompts = decoded.map((e) => CustomPrompt.fromJson(e)).toList();
+      }
+      groups = prompts.expand((element) => element.tags).toSet().toList();
+    } catch (e) {
+      logError('Error loading prompts from file: $e');
+    }
+
+    isLoading = false;
+    if (mounted) setState(() {});
+  }
+
+  Future savePrompts() async {
+    final encoded = jsonEncode(prompts);
+    await AppCache.promptsLibrary.set(encoded);
+  }
+
+  Future<void> resetLibrary() async {
     prompts.clear();
     textController.clear();
     selectedGroup = '';
-    prompts.addAll(promptsLibrary);
-    setState(() {});
+    await loadPrompts();
+  }
+
+  void fullReset() async {
+    final confirmed = await ConfirmationDialog.show(context: context);
+    if (confirmed) {
+      prompts.clear();
+      prompts.addAll(promptsLibrary);
+      await savePrompts();
+      await loadPrompts();
+    }
   }
 
   String selectedGroup = '';
 
-  void searchByGroup(String group) {
-    prompts.clear();
-    prompts.addAll(promptsLibrary);
+  Future<void> searchByGroup(String group) async {
+    await loadPrompts();
     prompts = prompts.where((element) => element.tags.contains(group)).toList();
     selectedGroup = group;
     setState(() {});
@@ -54,39 +96,51 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextBox(
-            controller: textController,
-            expands: false,
-            minLines: 1,
-            maxLines: 1,
-            prefix: const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: Icon(FluentIcons.search_20_regular, size: 20),
-            ),
-            suffix: IconButton(
-              icon: const Icon(FluentIcons.dismiss_20_regular, size: 20),
-              onPressed: () {
-                resetLibrary();
-              },
-            ),
-            onChanged: (value) {
-              if (value.isEmpty) {
-                resetLibrary();
-              } else {
-                prompts = prompts.where((element) {
-                  final isTitleContains =
-                      element.title.toLowerCase().contains(value.toLowerCase());
-                  final isPromptContains = element.prompt
-                      .toLowerCase()
-                      .contains(value.toLowerCase());
-                  return isTitleContains || isPromptContains;
-                }).toList();
-              }
-              setState(() {});
-            },
-            placeholder: 'Search for a prompt',
+          Row(
+            children: [
+              Expanded(
+                child: TextBox(
+                  controller: textController,
+                  expands: false,
+                  minLines: 1,
+                  maxLines: 1,
+                  prefix: const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(FluentIcons.search_20_regular, size: 20),
+                  ),
+                  suffix: IconButton(
+                    icon: const Icon(FluentIcons.dismiss_20_regular, size: 20),
+                    onPressed: () {
+                      resetLibrary();
+                    },
+                  ),
+                  onChanged: (value) {
+                    if (value.isEmpty) {
+                      resetLibrary();
+                    } else {
+                      prompts = prompts.where((element) {
+                        final isTitleContains = element.title
+                            .toLowerCase()
+                            .contains(value.toLowerCase());
+                        final isPromptContains = element.prompt
+                            .toLowerCase()
+                            .contains(value.toLowerCase());
+                        return isTitleContains || isPromptContains;
+                      }).toList();
+                    }
+                    setState(() {});
+                  },
+                  placeholder: 'Search for a prompt',
+                ),
+              ),
+              Button(
+                onPressed: fullReset,
+                child: const Text('Reset to Default'),
+              ),
+            ],
           ),
           spacer,
+          if (isLoading) ProgressBar(),
           Wrap(
             spacing: 4,
             children: groups
@@ -141,10 +195,10 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                     ],
                   ),
                   leading: Icon(item.icon, size: 24),
-                  // trailing: IconButton(
-                  //   icon: const Icon(FluentIcons.edit, size: 24),
-                  //   onPressed: () {},
-                  // ),
+                  trailing: IconButton(
+                    icon: const Icon(FluentIcons.delete_20_filled, size: 24),
+                    onPressed: () => removePrompt(index),
+                  ),
                   onPressed: () async {
                     // isConta
                     final isContainsPlaceHolder =
@@ -173,11 +227,47 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       ),
       actions: [
         Button(
+          onPressed: () => addNewPrompt(context),
+          child: const Text('Add new'),
+        ),
+        Button(
           onPressed: () => Navigator.of(context).pop(null),
           child: const Text('Dismiss'),
         ),
       ],
     );
+  }
+
+  Future<void> addNewPrompt(BuildContext context) async {
+    final result = await showDialog(
+      context: context,
+      builder: (context) => EditPromptDialog(
+        allowKeybinding: false,
+        allowSubPrompts: false,
+        prompt: CustomPrompt(title: '', prompt: 'You are a helpful ai'),
+        autocompleteTagsList: groups,
+      ),
+    );
+    if (result is CustomPrompt && result.title.isNotEmpty) {
+      prompts.insert(
+        0,
+        result.copyWith(
+            id: int.parse(nanoid(alphabet: Alphabet.numbers, length: 10))),
+      );
+      groups = prompts.expand((element) => element.tags).toSet().toList();
+      await savePrompts();
+      setState(() {});
+    }
+  }
+
+  void removePrompt(int index) async {
+    final confirmed = await ConfirmationDialog.show(context: context);
+    if (confirmed) {
+      await resetLibrary();
+      prompts.removeAt(index);
+      await savePrompts();
+      await loadPrompts();
+    }
   }
 }
 
