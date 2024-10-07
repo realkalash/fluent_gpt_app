@@ -433,6 +433,7 @@ class ChatProvider with ChangeNotifier {
   Future<void> sendMessage(
     String messageContent, [
     bool hidePrompt = false,
+    bool sendStream = true,
   ]) async {
     bool isFirstMessage = messages.value.isEmpty;
     if (isFirstMessage) {
@@ -546,7 +547,31 @@ class ChatProvider with ChangeNotifier {
     }
     try {
       initModelsApi();
-
+      if (!sendStream) {
+        late AIChatMessage response;
+        if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
+        } else {
+          response = await localModel!.call(
+            messagesToSend,
+            options: ChatOpenAIOptions(
+              model: selectedChatRoom.model.modelName,
+              maxTokens: selectedChatRoom.maxTokenLength,
+            ),
+          );
+        }
+        if (response.toolCalls.isNotEmpty) {
+          final lastChar = response.toolCalls.first.argumentsRaw;
+          if (lastChar == '}') {
+            final decoded = jsonDecode(response.toolCalls.first.argumentsRaw);
+            _onToolsResponseEnd(messageContent, decoded, response.content);
+          }
+        }
+        addBotMessageToList(response);
+        saveToDisk([selectedChatRoom]);
+        isAnswering = false;
+        refreshTokensForCurrentChat();
+        return;
+      }
       if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
         responseStream = openAI!.stream(
           PromptValue.chat(messagesToSend),
@@ -554,12 +579,13 @@ class ChatProvider with ChangeNotifier {
             model: selectedChatRoom.model.modelName,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
-            tools: const [
-              ToolSpec(
-                name: 'copy_to_clipboard_tool',
-                description: 'Tool to copy text to users clipboard',
-                inputJsonSchema: copyToClipboardFunctionParameters,
-              ),
+            tools: [
+              if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                ToolSpec(
+                  name: 'copy_to_clipboard_tool',
+                  description: 'Tool to copy text to users clipboard',
+                  inputJsonSchema: copyToClipboardFunctionParameters,
+                ),
             ],
           ),
         );
@@ -577,12 +603,13 @@ class ChatProvider with ChangeNotifier {
             model: selectedChatRoom.model.modelName,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
-            tools: const [
-              ToolSpec(
-                name: 'copy_to_clipboard_tool',
-                description: 'Tool to copy text to users clipboard',
-                inputJsonSchema: copyToClipboardFunctionParameters,
-              ),
+            tools: [
+              if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                ToolSpec(
+                  name: 'copy_to_clipboard_tool',
+                  description: 'Tool to copy text to users clipboard',
+                  inputJsonSchema: copyToClipboardFunctionParameters,
+                ),
             ],
           ),
         );

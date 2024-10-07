@@ -22,6 +22,7 @@ class AiLensDialog extends StatefulWidget {
 
 class _AiLensDialogState extends State<AiLensDialog> {
   final textContr = TextEditingController();
+  final flyoutController = FlyoutController();
   @override
   void dispose() {
     super.dispose();
@@ -82,10 +83,18 @@ class _AiLensDialogState extends State<AiLensDialog> {
                     onSubmitted: (value) => sendMessage(),
                   ),
                 ),
-                SqueareIconButton(
-                  onTap: sendMessage,
-                  icon: const Icon(ic.FluentIcons.send_24_filled),
-                  tooltip: 'Send message',
+                FlyoutTarget(
+                  controller: flyoutController,
+                  child: GestureDetector(
+                    onSecondaryTap: () {
+                      _rightClickSendMessage(context);
+                    },
+                    child: SqueareIconButton(
+                      onTap: sendMessage,
+                      icon: const Icon(ic.FluentIcons.send_24_filled),
+                      tooltip: 'Send message',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -163,9 +172,26 @@ class _AiLensDialogState extends State<AiLensDialog> {
     );
   }
 
-  void sendMessage() {
+  void sendMessage([bool asStream = true]) {
     final provider = context.read<ChatProvider>();
-    provider.sendMessage(textContr.text);
+    provider.sendMessage(textContr.text, false, asStream);
     Navigator.of(context).pop();
+  }
+
+  void _rightClickSendMessage(BuildContext context) {
+    flyoutController.showFlyout(builder: (context) {
+      return MenuFlyout(
+        items: [
+          MenuFlyoutItem(
+            text: const Text(
+                'Send not in real-time (can help with some LLM providers)'),
+            onPressed: () {
+              Navigator.of(context).pop();
+              sendMessage(false);
+            },
+          )
+        ],
+      );
+    });
   }
 }
