@@ -8,6 +8,7 @@ import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -169,8 +170,17 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
 }
 
 class EditPromptDialog extends StatefulWidget {
-  const EditPromptDialog({super.key, required this.prompt});
+  const EditPromptDialog({
+    super.key,
+    required this.prompt,
+    this.allowKeybinding = true,
+    this.allowSubPrompts = true,
+    this.autocompleteTagsList = const [],
+  });
   final CustomPrompt prompt;
+  final bool allowKeybinding;
+  final bool allowSubPrompts;
+  final List<String> autocompleteTagsList;
   @override
   State<EditPromptDialog> createState() => _EditPromptDialogState();
 }
@@ -180,12 +190,17 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
   final promptCtr = TextEditingController();
   final indexCtr = TextEditingController();
   final titleCtr = TextEditingController();
+  final tagsCtr = TextEditingController();
+  final List<String> tags = [];
+  final autoSuggestOverlayController = GlobalKey<AutoSuggestBoxState>();
   @override
   void initState() {
     item = widget.prompt;
     promptCtr.text = item.prompt;
     indexCtr.text = item.index.toString();
     titleCtr.text = item.title;
+    tags.addAll(item.tags);
+    tagsCtr.text = tags.join(';');
     super.initState();
   }
 
@@ -233,6 +248,14 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           TextBox(
             controller: promptCtr,
             placeholder: 'Prompt',
+            suffix: ImproveTextSparkleButton(
+              input: () => promptCtr.text,
+              onTextImproved: (improvedText) {
+                promptCtr.text = improvedText;
+                final newItem = item.copyWith(prompt: improvedText);
+                updateItem(newItem, context);
+              },
+            ),
             maxLines: 20,
             minLines: 1,
             onChanged: (value) {
@@ -242,6 +265,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           ),
           const Text('Add data to prompt:'),
           Wrap(
+            spacing: 4,
             children: [
               Button(
                 child: const Text('User input'),
@@ -266,70 +290,101 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
             ],
           ),
-          biggerSpacer,
-          Row(
+          spacer,
+          Text('Tags (Use ; to separate tags)'),
+          TextBox(
+            controller: tagsCtr,
+            placeholder: 'Tags',
+            onChanged: (value) {
+              final newTags = value.split(';');
+              final newItem = item.copyWith(tags: newTags);
+              updateItem(newItem, context);
+            },
+          ),
+          SizedBox(height: 4),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
             children: [
-              const Text('Keybinding:'),
-              const SizedBox(width: 8),
-              Button(
-                onPressed: () async {
-                  final hotkey = await KeybindingDialog.show(context);
-                  final newItem = item.copyWith(hotkey: hotkey);
-                  // ignore: use_build_context_synchronously
-                  updateItem(newItem, context);
-                },
-                child: item.hotkey == null
-                    ? const Text('Set keybinding')
-                    : HotKeyVirtualView(hotKey: item.hotkey!),
-              ),
-              IconButton(
-                icon: const Icon(FluentIcons.delete_24_filled),
-                onPressed: () {
-                  final newItem = item.copyWith(hotkey: null);
-                  final wasRegistered = hotKeyManager.registeredHotKeyList
-                      .any((element) => element == item.hotkey);
-                  if (wasRegistered) {
-                    hotKeyManager.unregister(item.hotkey!);
-                  }
-
-                  updateItem(newItem, context);
-                },
-              ),
+              for (var tag in widget.autocompleteTagsList)
+                Button(
+                  child: Text(tag),
+                  onPressed: () {
+                    final text = tagsCtr.text;
+                    tagsCtr.text = text.isEmpty ? tag : '$text;$tag';
+                    final newTags = tagsCtr.text.split(';');
+                    final newItem = item.copyWith(tags: newTags);
+                    updateItem(newItem, context);
+                  },
+                ),
             ],
           ),
+          biggerSpacer,
+          if (widget.allowKeybinding)
+            Row(
+              children: [
+                const Text('Keybinding:'),
+                const SizedBox(width: 8),
+                Button(
+                  onPressed: () async {
+                    final hotkey = await KeybindingDialog.show(context);
+                    final newItem = item.copyWith(hotkey: hotkey);
+                    // ignore: use_build_context_synchronously
+                    updateItem(newItem, context);
+                  },
+                  child: item.hotkey == null
+                      ? const Text('Set keybinding')
+                      : HotKeyVirtualView(hotKey: item.hotkey!),
+                ),
+                IconButton(
+                  icon: const Icon(FluentIcons.delete_24_filled),
+                  onPressed: () {
+                    final newItem = item.copyWith(hotkey: null);
+                    final wasRegistered = hotKeyManager.registeredHotKeyList
+                        .any((element) => element == item.hotkey);
+                    if (wasRegistered) {
+                      hotKeyManager.unregister(item.hotkey!);
+                    }
+
+                    updateItem(newItem, context);
+                  },
+                ),
+              ],
+            ),
         ],
       ),
       actions: [
         Button(
           onPressed: () {
-            Navigator.of(context).pop(widget.prompt);
-          },
-          child: const Text('Close'),
-        ),
-        Button(
-          onPressed: () {
-            final lenght = calcAllPromptsLenght();
-            item = item.copyWith(
-              children: [
-                ...item.children,
-                CustomPrompt(
-                  id: lenght,
-                  iconCodePoint: FluentIcons.info_24_filled.codePoint,
-                  title: 'New sub-prompt $lenght',
-                  prompt: 'Sub-prompt',
-                  index: customPrompts.value.length,
-                ),
-              ],
-            );
-            Navigator.of(context).pop(item);
-          },
-          child: const Text('Add sub-prompt list'),
-        ),
-        Button(
-          onPressed: () {
             Navigator.of(context).pop(item);
           },
           child: const Text('Apply'),
+        ),
+        if (widget.allowSubPrompts)
+          Button(
+            onPressed: () {
+              final lenght = calcAllPromptsLenght();
+              item = item.copyWith(
+                children: [
+                  ...item.children,
+                  CustomPrompt(
+                    id: lenght,
+                    iconCodePoint: FluentIcons.info_24_filled.codePoint,
+                    title: 'New sub-prompt $lenght',
+                    prompt: 'Sub-prompt',
+                    index: customPrompts.value.length,
+                  ),
+                ],
+              );
+              Navigator.of(context).pop(item);
+            },
+            child: const Text('Add sub-prompt list'),
+          ),
+        Button(
+          onPressed: () {
+            Navigator.of(context).pop(widget.prompt);
+          },
+          child: const Text('Close'),
         ),
       ],
     );

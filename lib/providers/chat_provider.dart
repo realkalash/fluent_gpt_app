@@ -891,14 +891,14 @@ class ChatProvider with ChangeNotifier {
     }
 
     AIChatMessage response;
+    final options = ChatOpenAIOptions(
+      model: selectedChatRoom.model.modelName,
+      maxTokens: 100,
+    );
     if (selectedModel.ownedBy == 'openai') {
-      response = await openAI!.call(messagesToSend,
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-            maxTokens: 100,
-          ));
+      response = await openAI!.call(messagesToSend, options: options);
     } else {
-      response = await localModel!.call(messagesToSend);
+      response = await localModel!.call(messagesToSend, options: options);
     }
     if (kDebugMode) {
       log('response: $response');
