@@ -143,17 +143,44 @@ class _AiLensDialogState extends State<AiLensDialog> {
             spacer,
             Wrap(
               children: [
-                Button(
-                  child: const Text('Extract text'),
-                  onPressed: () {
-                    final provider = context.read<ChatProvider>();
-                    provider.sendSingleMessage(
-                      'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
-                      imageBase64: widget.base64String,
-                      showImageInChat: true,
-                    );
-                    Navigator.of(context).pop();
+                GestureDetector(
+                  onSecondaryTap: () {
+                    flyoutController.showFlyout(builder: (context) {
+                      return MenuFlyout(
+                        items: [
+                          MenuFlyoutItem(
+                            text: const Text(
+                                'Send not in real-time (can help with some LLM providers)'),
+                            onPressed: () {
+                              // close flyout
+                              Navigator.of(context).pop();
+                              final provider = context.read<ChatProvider>();
+                              provider.sendSingleMessage(
+                                'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
+                                imageBase64: widget.base64String,
+                                showImageInChat: true,
+                                sendAsStream: false,
+                              );
+                              // close dialog
+                              Navigator.of(context).pop();
+                            },
+                          )
+                        ],
+                      );
+                    });
                   },
+                  child: Button(
+                    child: const Text('Extract text'),
+                    onPressed: () {
+                      final provider = context.read<ChatProvider>();
+                      provider.sendSingleMessage(
+                        'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
+                        imageBase64: widget.base64String,
+                        showImageInChat: true,
+                      );
+                      Navigator.of(context).pop();
+                    },
+                  ),
                 ),
               ],
             ),
