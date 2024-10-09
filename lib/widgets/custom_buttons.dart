@@ -89,14 +89,8 @@ class AiLibraryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedGradientBorder(
-      gradientColors: [
-        Colors.transparent,
-        FluentTheme.of(context).accentColor,
-      ],
-      // glowSize: isSmall ? 2 : 4,
-      borderSize: 2,
-      borderRadius: BorderRadius.circular(4),
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
       child: Button(
         style:
             ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
