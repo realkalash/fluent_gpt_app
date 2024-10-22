@@ -238,6 +238,16 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           TextBox(
             controller: titleCtr,
             placeholder: 'Title',
+            suffix: ImproveTextSparkleButton(
+              onTextImproved: (newText) {
+                final clearText = newText.removeWrappedQuotes;
+                titleCtr.text = clearText;
+                final newItem = item.copyWith(title: clearText);
+                updateItem(newItem, context);
+              },
+              input: () => promptCtr.text,
+              customPromptToImprove: 'Generate a 3-5 words title based on this prompt: "{{input}}"',
+            ),
             onChanged: (value) {
               final newItem = item.copyWith(title: value);
               updateItem(newItem, context);

@@ -263,19 +263,17 @@ class _AdditionalToolsState extends State<AdditionalTools> {
           Text('Additional tools',
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Checkbox(
-                content: const Text('Imgur'),
-                checked: AppCache.useImgurApi.value,
-                onChanged: (value) async {
-                  setState(() {
-                    AppCache.useImgurApi.value = value;
-                  });
-                },
-              ),
-            ],
+          Checkbox(
+            content: Expanded(
+              child: const Text(
+                  'Imgur (Used to upload your image to your private Imgur account and get image link)'),
+            ),
+            checked: AppCache.useImgurApi.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useImgurApi.value = value;
+              });
+            },
           ),
           if (AppCache.useImgurApi.value == true) ...[
             TextFormBox(
@@ -302,6 +300,26 @@ class _AdditionalToolsState extends State<AdditionalTools> {
             ),
           ],
           spacer,
+          Text('Image Search engines',
+              style: FluentTheme.of(context).typography.subtitle),
+          Checkbox(
+            content: const Text('SouceNao'),
+            checked: AppCache.useSouceNao.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useSouceNao.value = value;
+              });
+            },
+          ),
+          Checkbox(
+            content: const Text('Yandex Image search'),
+            checked: AppCache.useYandexImageSearch.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useYandexImageSearch.value = value;
+              });
+            },
+          ),
         ],
       ),
     );

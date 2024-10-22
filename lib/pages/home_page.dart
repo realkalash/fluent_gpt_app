@@ -291,6 +291,29 @@ class PageHeaderText extends StatelessWidget {
                   provider.scrollToMessage(elementkey);
                 },
               ),
+              FlyoutButton(
+                icon: ic.FluentIcons.text_font_size_24_regular,
+                tooltip: 'Text size',
+                shrinkWrapActions: true,
+                contextItems: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Text size'),
+                      NumberBox(
+                        value: chatProvider.textSize,
+                        min: 8,
+                        clearButton: false,
+                        autofocus: true,
+                        mode: SpinButtonPlacementMode.inline,
+                        onChanged: (v) {
+                          chatProvider.textSize = v ?? 14;
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -468,7 +491,6 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
     );
   }
 }
-
 
 class HomePagePlaceholdersCards extends StatefulWidget {
   const HomePagePlaceholdersCards({super.key});
@@ -801,7 +823,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         onChanged: chatProvider.setIncludeWholeConversation,
                         tooltip: 'Include conversation',
                         maxWidthContextMenu: 300,
-                        maxHeightContextMenu: 64,
+                        maxHeightContextMenu: 100,
                         contextItems: [
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -817,16 +839,61 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               const Expanded(
                                   child: Text('Max messages to include')),
                               Expanded(
-                                child: NumberBox(
-                                  value: chatProvider
-                                      .maxMessagesToIncludeInHistory,
-                                  min: 1,
-                                  mode: SpinButtonPlacementMode.inline,
-                                  onChanged: (v) {
+                                child: Consumer<ChatProvider>(
+                                  builder: (context, watch, child) {
+                                    return NumberBox(
+                                      value:
+                                          watch.maxMessagesToIncludeInHistory,
+                                      min: 1,
+                                      clearButton: false,
+                                      mode: SpinButtonPlacementMode.inline,
+                                      onChanged: (v) {
+                                        chatProvider
+                                            .setMaxMessagesToIncludeInHistory(
+                                                v);
+                                      },
+                                    );
+                                  },
+                                  child: NumberBox(
+                                    value: chatProvider
+                                        .maxMessagesToIncludeInHistory,
+                                    min: 1,
+                                    mode: SpinButtonPlacementMode.inline,
+                                    onChanged: (v) {
+                                      chatProvider
+                                          .setMaxMessagesToIncludeInHistory(v);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Button(
+                                  child: Text('Min'),
+                                  onPressed: () {
                                     chatProvider
-                                        .setMaxMessagesToIncludeInHistory(v);
+                                        .setMaxMessagesToIncludeInHistory(3);
                                   },
                                 ),
+                              ),
+                              Expanded(
+                                child: Button(
+                                    child: Text('Medium'),
+                                    onPressed: () {
+                                      chatProvider
+                                          .setMaxMessagesToIncludeInHistory(10);
+                                    }),
+                              ),
+                              Expanded(
+                                child: Button(
+                                    child: Text('Max'),
+                                    onPressed: () {
+                                      chatProvider
+                                          .setMaxMessagesToIncludeInHistory(30);
+                                    }),
                               ),
                             ],
                           )
@@ -864,83 +931,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             child: _ScrollToBottomButton(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ToggleButtonAdvenced extends StatelessWidget {
-  const ToggleButtonAdvenced({
-    super.key,
-    this.checked = false,
-    required this.icon,
-    required this.onChanged,
-    required this.tooltip,
-    this.contextItems = const [],
-    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-    this.maxWidthContextMenu = 200,
-    this.maxHeightContextMenu = 300,
-    this.shrinkWrapActions = false,
-  });
-  final bool checked;
-  final IconData icon;
-  final void Function(bool) onChanged;
-  final String tooltip;
-  final List<Widget> contextItems;
-  final EdgeInsets padding;
-  final double maxWidthContextMenu;
-  final double maxHeightContextMenu;
-  final bool shrinkWrapActions;
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = FlyoutController();
-    return Tooltip(
-      message: tooltip,
-      child: FlyoutTarget(
-        controller: controller,
-        child: GestureDetector(
-          onSecondaryTap: () {
-            if (contextItems.isEmpty) return;
-            controller.showFlyout(builder: (context) {
-              return FlyoutContent(
-                constraints: BoxConstraints(
-                  minWidth: 100,
-                  minHeight: 64,
-                  maxWidth: maxWidthContextMenu,
-                  maxHeight: maxHeightContextMenu,
-                ),
-                child: ListView(
-                  shrinkWrap: shrinkWrapActions,
-                  children: contextItems,
-                ),
-              );
-            });
-          },
-          child: ToggleButton(
-            checked: checked,
-            onChanged: onChanged,
-            style: ToggleButtonThemeData(
-              checkedButtonStyle: ButtonStyle(
-                padding: WidgetStateProperty.all(padding),
-                backgroundColor: WidgetStateProperty.all(
-                  context.theme.accentColor,
-                ),
-              ),
-              uncheckedButtonStyle: ButtonStyle(
-                padding: WidgetStateProperty.all(padding),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 20),
-                if (contextItems.isNotEmpty)
-                  const Icon(ic.FluentIcons.chevron_down_20_regular),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -79,4 +79,6 @@ class AppCache {
 
   static const useGoogleApi = BoolPref("useGoogleApi", false);
   static const useImgurApi = BoolPref("useImgurApi", false);
+  static const useSouceNao = BoolPref("useSouceNao", false);
+  static const useYandexImageSearch = BoolPref("useYandexImageSearch", false);
 }
