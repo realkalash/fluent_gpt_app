@@ -752,17 +752,24 @@ class ChatProvider with ChangeNotifier {
 
   List<ChatMessage> getLastFewMessagesForContext() {
     final values = messages.value;
-    final lastMessages = values.values.toList().take(15).toList();
+    final lastMessages = values.values.toList().reversed.take(15).toList();
     return lastMessages;
   }
 
   Future<List<ChatMessage>> getLastFewMessages({int count = 15}) async {
     final values = messages.value;
+    // filter out custom messages
+    // do reverse because we want to get the last messages
+    // reverse again to get them in the right order
     final list = values.values
         .where(
           (element) => element is! CustomChatMessage,
         )
+        .toList()
+        .reversed
         .take(count)
+        .toList()
+        .reversed
         .toList();
     // append current global system message to the very beginning
     if (selectedChatRoom.systemMessage?.isNotEmpty == true) {

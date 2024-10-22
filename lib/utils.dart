@@ -98,6 +98,19 @@ extension HotKeyExtension on HotKey {
   }
 }
 
+/// String extensions
+extension StringExtension on String {
+  String get capitalize => '${this[0].toUpperCase()}${substring(1)}';
+  
+  /// If the string contains is wrapped with " it will remove them
+  String get removeWrappedQuotes {
+    if (startsWith('"') && endsWith('"')) {
+      return substring(1, length - 1);
+    }
+    return this;
+  } 
+}
+
 String getSystemInfoString() {
   final dateTime = DateTime.now();
   final formatter = DateFormat('yyyy-MM-dd HH:mm E');

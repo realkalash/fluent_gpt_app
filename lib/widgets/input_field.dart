@@ -18,6 +18,7 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -481,6 +482,7 @@ class __MicrophoneButtonState extends State<_MicrophoneButton> {
                 },
               ),
           ],
+          maxWidthContextMenu: 84,
           checked: isRecording,
           padding: EdgeInsets.zero,
           icon: ic.FluentIcons.mic_24_regular,

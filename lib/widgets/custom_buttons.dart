@@ -10,7 +10,6 @@ import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:glowy_borders/glowy_borders.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 
@@ -45,6 +44,7 @@ class FilledRedButton extends StatelessWidget {
     );
   }
 }
+
 class FilledAccentButton extends StatelessWidget {
   const FilledAccentButton({
     super.key,
@@ -111,11 +111,18 @@ class ImproveTextSparkleButton extends StatefulWidget {
     required this.onTextImproved,
     required this.input,
     this.onStateChange,
+    this.customPromptToImprove,
   });
   final void Function(String) onTextImproved;
   final void Function(ImproveTextSparkleButtonState state)? onStateChange;
   final FutureOr<String> Function() input;
-  static const String promptToImprove = '''You are very smart prompt generator for ChatGPT.
+
+  /// By default it will use this prompt to improve the text.
+  /// if null [customPromptToImprove] will be used.
+  /// You need to use "`{{input}}`" to indicate where the input should be placed.
+  final String? customPromptToImprove;
+  static const String promptToImprove =
+      '''You are very smart prompt generator for ChatGPT.
 Do: improve user input to create a better prompt. It should be clear, concise, and comprehendible.
 Don't: write anything except the prompt.
 Optional: You can use  brackets like \${this} to indicate a variable. Example "Act as \${character}". Currently supported variables are: \${input}, \${lang}, but you can create your own.
@@ -150,8 +157,10 @@ class _ImproveTextSparkleButtonState extends State<ImproveTextSparkleButton> {
             final input = await widget.input();
 
             final improvedText = await provider.retrieveResponseFromPrompt(
-                ImproveTextSparkleButton.promptToImprove
-                    .replaceAll('{{input}}', input));
+              (widget.customPromptToImprove ??
+                      ImproveTextSparkleButton.promptToImprove)
+                  .replaceAll('{{input}}', input),
+            );
             if (improvedText.isNotEmpty) {
               widget.onTextImproved(improvedText);
             }
@@ -192,6 +201,141 @@ class PromptLibraryButton extends StatelessWidget {
           controller.updateUI();
         }
       },
+    );
+  }
+}
+
+class ToggleButtonAdvenced extends StatelessWidget {
+  const ToggleButtonAdvenced({
+    super.key,
+    this.checked = false,
+    required this.icon,
+    required this.onChanged,
+    required this.tooltip,
+    this.contextItems = const [],
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    this.maxWidthContextMenu = 200,
+    this.maxHeightContextMenu = 300,
+    this.shrinkWrapActions = false,
+  });
+  final bool checked;
+  final IconData icon;
+  final void Function(bool) onChanged;
+  final String tooltip;
+  final List<Widget> contextItems;
+  final EdgeInsets padding;
+  final double maxWidthContextMenu;
+  final double maxHeightContextMenu;
+  final bool shrinkWrapActions;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = FlyoutController();
+    return Tooltip(
+      message: tooltip,
+      child: FlyoutTarget(
+        controller: controller,
+        child: GestureDetector(
+          onSecondaryTap: () {
+            if (contextItems.isEmpty) return;
+            controller.showFlyout(builder: (context) {
+              return FlyoutContent(
+                constraints: BoxConstraints(
+                  minWidth: 64,
+                  minHeight: 64,
+                  maxWidth: maxWidthContextMenu,
+                  maxHeight: maxHeightContextMenu,
+                ),
+                child: ListView(
+                  shrinkWrap: shrinkWrapActions,
+                  children: contextItems,
+                ),
+              );
+            });
+          },
+          child: ToggleButton(
+            checked: checked,
+            onChanged: onChanged,
+            style: ToggleButtonThemeData(
+              checkedButtonStyle: ButtonStyle(
+                padding: WidgetStateProperty.all(padding),
+                backgroundColor: WidgetStateProperty.all(
+                  context.theme.accentColor,
+                ),
+              ),
+              uncheckedButtonStyle: ButtonStyle(
+                padding: WidgetStateProperty.all(padding),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 20),
+                if (contextItems.isNotEmpty)
+                  const Icon(FluentIcons.chevron_down_20_regular),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class FlyoutButton extends StatelessWidget {
+  const FlyoutButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    this.contextItems = const [],
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    this.maxWidthContextMenu = 200,
+    this.maxHeightContextMenu = 300,
+    this.shrinkWrapActions = false,
+  });
+  final IconData icon;
+  final String tooltip;
+  final List<Widget> contextItems;
+  final EdgeInsets padding;
+  final double maxWidthContextMenu;
+  final double maxHeightContextMenu;
+  final bool shrinkWrapActions;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = FlyoutController();
+    return Tooltip(
+      message: tooltip,
+      child: FlyoutTarget(
+        controller: controller,
+        child: IconButton(
+          onPressed: () {
+            if (contextItems.isEmpty) return;
+            controller.showFlyout(builder: (context) {
+              return FlyoutContent(
+                constraints: BoxConstraints(
+                  minWidth: 100,
+                  minHeight: 64,
+                  maxWidth: maxWidthContextMenu,
+                  maxHeight: maxHeightContextMenu,
+                ),
+                child: ListView(
+                  shrinkWrap: shrinkWrapActions,
+                  children: contextItems,
+                ),
+              );
+            });
+          },
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 20),
+              if (contextItems.isNotEmpty)
+                const Icon(FluentIcons.chevron_down_20_regular),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

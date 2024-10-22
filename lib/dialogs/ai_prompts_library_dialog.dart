@@ -60,14 +60,14 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
     await AppCache.promptsLibrary.set(encoded);
   }
 
-  Future<void> resetLibrary() async {
+  Future<void> resetSearch() async {
     prompts.clear();
     textController.clear();
     selectedGroup = '';
     await loadPrompts();
   }
 
-  void fullReset() async {
+  void fullResetToDefaultTemplate() async {
     final confirmed = await ConfirmationDialog.show(context: context);
     if (confirmed) {
       prompts.clear();
@@ -111,12 +111,12 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                   suffix: IconButton(
                     icon: const Icon(FluentIcons.dismiss_20_regular, size: 20),
                     onPressed: () {
-                      resetLibrary();
+                      resetSearch();
                     },
                   ),
                   onChanged: (value) {
                     if (value.isEmpty) {
-                      resetLibrary();
+                      resetSearch();
                     } else {
                       prompts = prompts.where((element) {
                         final isTitleContains = element.title
@@ -134,7 +134,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                 ),
               ),
               Button(
-                onPressed: fullReset,
+                onPressed: fullResetToDefaultTemplate,
                 child: const Text('Reset to Default'),
               ),
             ],
@@ -151,7 +151,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                       if (enable)
                         searchByGroup(e);
                       else
-                        resetLibrary();
+                        resetSearch();
                     },
                     child: Text(e),
                   ),
@@ -195,12 +195,54 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                     ],
                   ),
                   leading: Icon(item.icon, size: 24),
-                  trailing: IconButton(
-                    icon: const Icon(FluentIcons.delete_20_filled, size: 24),
-                    onPressed: () => removePrompt(index),
+                  trailing: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(FluentIcons.edit_20_regular, size: 24),
+                        onPressed: () async {
+                          final result = await showDialog(
+                            context: context,
+                            builder: (context) => EditPromptDialog(
+                              allowKeybinding: false,
+                              allowSubPrompts: false,
+                              prompt: item,
+                              autocompleteTagsList: groups,
+                            ),
+                          );
+                          if (result is CustomPrompt) {
+                            await resetSearch();
+                            prompts[index] = result;
+                            await savePrompts();
+                            setState(() {});
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(FluentIcons.copy_20_regular, size: 24),
+                        onPressed: () async {
+                          await resetSearch();
+                          final newPrompt = item.copyWith(
+                            id: int.parse(
+                                nanoid(alphabet: Alphabet.numbers, length: 10)),
+                            title: '${item.title} 2',
+                          );
+                          prompts.insert(0, newPrompt);
+                          groups = prompts
+                              .expand((element) => element.tags)
+                              .toSet()
+                              .toList();
+                          await savePrompts();
+                          setState(() {});
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(FluentIcons.delete_20_filled,
+                            size: 24, color: Colors.red),
+                        onPressed: () => removePrompt(index),
+                      ),
+                    ],
                   ),
                   onPressed: () async {
-                    // isConta
                     final isContainsPlaceHolder =
                         placeholdersRegex.hasMatch(item.prompt);
                     // if not empty show new dialog with Wrap and TextBox for each placeholder
@@ -249,6 +291,9 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       ),
     );
     if (result is CustomPrompt && result.title.isNotEmpty) {
+      if (textController.text.isNotEmpty || selectedGroup.isNotEmpty) {
+        await resetSearch();
+      }
       prompts.insert(
         0,
         result.copyWith(
@@ -263,7 +308,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
   void removePrompt(int index) async {
     final confirmed = await ConfirmationDialog.show(context: context);
     if (confirmed) {
-      await resetLibrary();
+      await resetSearch();
       prompts.removeAt(index);
       await savePrompts();
       await loadPrompts();

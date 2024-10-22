@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/features/yandex_image_finder.dart';
@@ -102,44 +103,46 @@ class _AiLensDialogState extends State<AiLensDialog> {
               padding: EdgeInsets.all(8.0),
               child: Divider(),
             ),
-            Button(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Search by image (SauceNao)'),
-                  const SizedBox(width: 8),
-                  Image.asset('assets/saucenao_favicon.png'),
-                ],
+            if (AppCache.useSouceNao.value == true)
+              Button(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Search by image (SauceNao)'),
+                    const SizedBox(width: 8),
+                    Image.asset('assets/saucenao_favicon.png'),
+                  ],
+                ),
+                onPressed: () {
+                  if (ImgurIntegration.isClientIdValid() == false) {
+                    onTrayButtonTapCommand(
+                      "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
+                      'show_dialog',
+                    );
+                    return;
+                  }
+                  SauceNaoImageFinder.uploadToImgurAndFindImageBytes(
+                    base64Decode(widget.base64String),
+                  );
+                },
               ),
-              onPressed: () {
-                if (ImgurIntegration.isClientIdValid() == false) {
-                  onTrayButtonTapCommand(
-                    "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
-                    'show_dialog',
-                  );
-                  return;
-                }
-                SauceNaoImageFinder.uploadToImgurAndFindImageBytes(
-                  base64Decode(widget.base64String),
-                );
-              },
-            ),
             spacer,
-            Button(
-              child: const Text('Search by image (Yandex)'),
-              onPressed: () {
-                if (ImgurIntegration.isClientIdValid() == false) {
-                  onTrayButtonTapCommand(
-                    "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
-                    'show_dialog',
+            if (AppCache.useYandexImageSearch.value == true)
+              Button(
+                child: const Text('Search by image (Yandex)'),
+                onPressed: () {
+                  if (ImgurIntegration.isClientIdValid() == false) {
+                    onTrayButtonTapCommand(
+                      "You don't have Imgur integration enabled. Please, go to settings and set up ImgurAPI",
+                      'show_dialog',
+                    );
+                    return;
+                  }
+                  YandexImageFinder.uploadToImgurAndFindImageBytes(
+                    base64Decode(widget.base64String),
                   );
-                  return;
-                }
-                YandexImageFinder.uploadToImgurAndFindImageBytes(
-                  base64Decode(widget.base64String),
-                );
-              },
-            ),
+                },
+              ),
             spacer,
             Wrap(
               children: [
