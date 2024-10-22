@@ -1110,6 +1110,23 @@ class _OtherSettings extends StatelessWidget {
             },
           ),
         ),
+        spacer,
+        Text('Autoscroll speed (use it if the chat is jumping too hard)'),
+        Consumer<ChatProvider>(
+          builder: (context, provider, child) {
+            return NumberBox(
+              value: provider.autoScrollSpeed,
+              onChanged: (value) {
+                provider.setAutoScrollSpeed(value ?? 1);
+              },
+              min: 0.01,
+              max: 10,
+              smallChange: 0.1,
+              largeChange: 1,
+              mode: SpinButtonPlacementMode.inline,
+            );
+          },
+        ),
       ],
     );
   }

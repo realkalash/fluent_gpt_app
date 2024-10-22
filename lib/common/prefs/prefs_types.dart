@@ -157,10 +157,11 @@ class OffsetPref extends _Pref<Offset> {
 }
 
 class DoublePref extends _Pref<double> {
-  const DoublePref(super.key);
+  const DoublePref(super.key, [this.defaultValue]);
+  final double? defaultValue;
 
   @override
-  double? get value => prefs?.get(key) as double?;
+  double? get value => prefs?.get(key) as double? ?? defaultValue;
   @override
   Future<void> set(double value) => prefs!.setDouble(key, value);
 

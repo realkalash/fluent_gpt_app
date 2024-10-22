@@ -22,7 +22,6 @@ import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
-import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -154,6 +153,12 @@ class ChatProvider with ChangeNotifier {
   }
 
   int get textSize => _messageTextSize;
+  double autoScrollSpeed = 1.0;
+  void setAutoScrollSpeed(double v) {
+    autoScrollSpeed = v;
+    AppCache.autoScrollSpeed.set(v);
+    notifyListeners();
+  }
 
   void toggleScrollToBottomOnAnswer() {
     scrollToBottomOnAnswer = !scrollToBottomOnAnswer;
@@ -234,6 +239,11 @@ class ChatProvider with ChangeNotifier {
     await initChatModels();
     await initChatsFromDisk();
     initCustomActions();
+    initSettingsFromCache();
+  }
+
+  Future initSettingsFromCache() async {
+    autoScrollSpeed = AppCache.autoScrollSpeed.value!;
   }
 
   Future initCustomActions() async {
@@ -927,7 +937,7 @@ class ChatProvider with ChangeNotifier {
     values[id ?? DateTime.now().toIso8601String()] =
         AIChatMessage(content: newString);
     messages.add(values);
-    scrollToEnd(withDelay: false);
+    autoScrollToEnd(withDelay: false);
   }
 
   Future<void> addBotErrorMessageToList(SystemChatMessage message,
@@ -1223,7 +1233,8 @@ class ChatProvider with ChangeNotifier {
       if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
       if (messages.value.isEmpty) return;
       listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent + 200,
+        listItemsScrollController.position.maxScrollExtent +
+            (200 * autoScrollSpeed),
         duration: const Duration(milliseconds: 1),
         curve: Curves.easeOut,
       );
@@ -1231,6 +1242,12 @@ class ChatProvider with ChangeNotifier {
       if (kDebugMode) {
         print('Error while scrolling to end: $e');
       }
+    }
+  }
+
+  Future autoScrollToEnd({bool withDelay = true}) async {
+    if (scrollToBottomOnAnswer) {
+      return scrollToEnd(withDelay: withDelay);
     }
   }
 

@@ -18,7 +18,6 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
-import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -257,6 +256,9 @@ class _InputFieldState extends State<InputField> {
                               const _ChooseModelButton(),
                               AiLibraryButton(
                                 onPressed: () async {
+                                  // ignore: use_build_context_synchronously
+                                  final controller =
+                                      context.read<ChatProvider>();
                                   final prompt =
                                       await showDialog<CustomPrompt?>(
                                     context: context,
@@ -265,9 +267,6 @@ class _InputFieldState extends State<InputField> {
                                     barrierDismissible: true,
                                   );
                                   if (prompt != null) {
-                                    // ignore: use_build_context_synchronously
-                                    final controller =
-                                        context.read<ChatProvider>();
                                     controller.messageController.text =
                                         prompt.getPromptText(
                                             controller.messageController.text);

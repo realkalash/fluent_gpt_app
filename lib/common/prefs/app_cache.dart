@@ -40,6 +40,7 @@ class AppCache {
       OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
+  static const autoScrollSpeed = DoublePref("autoScrollSpeed", 1.0);
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
 
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');

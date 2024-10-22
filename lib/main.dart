@@ -153,10 +153,11 @@ void main(List<String> args) async {
     // Set packageName parameter to support MSIX.
     packageName: packageInfo!.packageName,
   );
-  
-  launchAtStartup.isEnabled().then((value) {
-    isLaunchAtStartupEnabled = value;
-  });
+  if (Platform.isMacOS == false) {
+    launchAtStartup.isEnabled().then((value) {
+      isLaunchAtStartupEnabled = value;
+    });
+  }
 
   runApp(const MyApp());
 }
