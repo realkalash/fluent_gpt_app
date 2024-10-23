@@ -63,6 +63,7 @@ class AppCache {
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
   static const imgurClientId = StringPref("imgurClientId", '');
   static const deepgramApiKey = StringPref("deepgramApiKey", '');
+  static const elevenLabsApiKey = StringPref("elevenLabsApiKey", '');
 
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
