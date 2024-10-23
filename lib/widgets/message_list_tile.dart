@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
@@ -376,6 +375,14 @@ class _MessageCardState extends State<MessageCard> {
                                       'Timeout exceeded. Please try again later.'),
                                 );
                               });
+                            } else {
+                              displayInfoBar(context, builder: (ctx, close) {
+                                return InfoBar(
+                                  severity: InfoBarSeverity.error,
+                                  title: Text('$e'),
+                                );
+                              });
+                              rethrow;
                             }
                           }
                         }

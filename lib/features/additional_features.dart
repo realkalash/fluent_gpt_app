@@ -1,13 +1,13 @@
-import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/g_drive_integration.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
+import 'package:fluent_gpt/features/text_to_speech.dart';
 
 class AdditionalFeatures {
   static void initAdditionalFeatures({bool isStorageAccessGranted = false}) {
     GDriveIntegration.init();
     ImgurIntegration.init();
-    DeepgramSpeech.init();
+    TextToSpeechService.init();
     ScreenshotTool.init(isStorageAccessGranted: isStorageAccessGranted);
   }
 }

@@ -28,6 +28,7 @@ class ElevenlabsSpeech {
     if (elevenLabsApiKey.isEmpty) {
       return;
     }
+
     _elevenLabs = ElevenLabsAPI();
     await _elevenLabs?.init(
       config: ElevenLabsConfig(
@@ -35,8 +36,9 @@ class ElevenlabsSpeech {
         apiKey: elevenLabsApiKey,
       ),
     );
-    ElevenlabsSpeech.selectedVoiceId = AppCache.elevenlabsVoiceModel.value;
-    ElevenlabsSpeech.selectedModel = AppCache.elevenlabsVoiceModelId.value;
+
+    selectedVoiceId = AppCache.elevenlabsVoiceModelId.value;
+    selectedVoiceName = AppCache.elevenlabsVoiceModel.value;
   }
 
   static bool isValid() {
@@ -197,6 +199,9 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
                     MenuFlyoutItem(
                       text: Text(voice['name']),
                       onPressed: () {
+                        AppCache.elevenlabsVoiceModelId.value =
+                            voice['voice_id'];
+                        AppCache.elevenlabsVoiceModel.value = voice['name'];
                         ElevenlabsSpeech.selectedVoiceId = voice['voice_id'];
                         ElevenlabsSpeech.selectedVoiceName = voice['name'];
                         setState(() {});
