@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
@@ -326,8 +328,8 @@ class _MessageCardState extends State<MessageCard> {
                           (widget.message as HumanChatMessage).content
                               is ChatMessageContentText))
                     SqueareIconButton(
-                      tooltip: 'Read aloud (Requires Deepgram API)',
-                      icon: DeepgramSpeech.isReadingAloud
+                      tooltip: 'Read aloud (Requires Speech API)',
+                      icon: TextToSpeechService.isReadingAloud
                           ? Icon(
                               FluentIcons.stop_24_filled,
                               color: context.theme.accentColor,
@@ -335,11 +337,12 @@ class _MessageCardState extends State<MessageCard> {
                           : const Icon(
                               FluentIcons.sound_wave_circle_24_regular),
                       onTap: () async {
-                        if (DeepgramSpeech.isValid() == false) {
+                        if (TextToSpeechService.isValid() == false) {
                           displayInfoBar(context, builder: (ctx, close) {
                             return InfoBar(
-                              title: const Text('Deepgram API key is not set'),
                               severity: InfoBarSeverity.warning,
+                              title: Text(
+                                  '${TextToSpeechService.serviceName} API key is not set'),
                               action: Button(
                                   child: const Text('Settings'),
                                   onPressed: () {
@@ -353,15 +356,28 @@ class _MessageCardState extends State<MessageCard> {
                           });
                           return;
                         }
-                        if (DeepgramSpeech.isReadingAloud) {
-                          DeepgramSpeech.stopReadingAloud();
+                        if (TextToSpeechService.isReadingAloud) {
+                          TextToSpeechService.stopReadingAloud();
                         } else {
-                          await DeepgramSpeech.readAloud(
-                            widget.message.contentAsString,
-                            onCompleteReadingAloud: () {
-                              setState(() {});
-                            },
-                          );
+                          try {
+                            await TextToSpeechService.readAloud(
+                              widget.message.contentAsString,
+                              onCompleteReadingAloud: () {
+                                setState(() {});
+                              },
+                            );
+                          } catch (e) {
+                            if (e is DeadlineExceededException) {
+                              // ignore: use_build_context_synchronously
+                              displayInfoBar(context, builder: (ctx, close) {
+                                return InfoBar(
+                                  severity: InfoBarSeverity.error,
+                                  title: Text(
+                                      'Timeout exceeded. Please try again later.'),
+                                );
+                              });
+                            }
+                          }
                         }
                         await Future.delayed(const Duration(milliseconds: 100));
                         setState(() {});

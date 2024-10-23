@@ -19,8 +19,10 @@ class AppCache {
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
   static const frameless = BoolPref("frameless", false);
   static const speechLanguage = StringPref("speechLanguage", 'en');
-  static const deepgramVoiceModel =
-      StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const textToSpeechService = StringPref("textToSpeechService", 'deepgram');
+  static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
+  static const elevenlabsVoiceModelId = StringPref("elevenlabsVoiceModelId", '');
 
   static StringPref backgroundEffect =
       StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');

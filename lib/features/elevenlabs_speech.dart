@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:elevenlabs_flutter/elevenlabs_config.dart';
 import 'package:elevenlabs_flutter/elevenlabs_types.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class ElevenlabsSpeech {
@@ -27,12 +28,15 @@ class ElevenlabsSpeech {
     if (elevenLabsApiKey.isEmpty) {
       return;
     }
-    await elevenLabs.init(
+    _elevenLabs = ElevenLabsAPI();
+    await _elevenLabs?.init(
       config: ElevenLabsConfig(
         baseUrl: 'https://api.elevenlabs.io',
         apiKey: elevenLabsApiKey,
       ),
     );
+    ElevenlabsSpeech.selectedVoiceId = AppCache.elevenlabsVoiceModel.value;
+    ElevenlabsSpeech.selectedModel = AppCache.elevenlabsVoiceModelId.value;
   }
 
   static bool isValid() {
@@ -53,20 +57,20 @@ class ElevenlabsSpeech {
     if (!isValid()) {
       return;
     }
-    final result = await _elevenLabs!.synthesize(
+    final result = await _elevenLabs!.synthesizeBytes(
       TextToSpeechRequest(
         voiceId: selectedVoiceId!,
         text: text,
-        modelId: selectedModel ?? 'eleven_monolingual_v1',
+        // modelId: selectedModel ?? 'eleven_monolingual_v1',
         voiceSettings: VoiceSettings(
-          similarityBoost: 75,
-          stability: 50,
+          similarityBoost: 0.75,
+          stability: 0.50,
         ),
       ),
     );
-    final audio = await result.readAsBytes();
+    final audio = result;
     player = AudioPlayer();
-    await player!.setSourceBytes(audio, mimeType: 'audio/mpeg');
+    await player!.setSourceBytes(audio, mimeType: 'audio/wav');
     player!.onPlayerComplete.listen((onData) {
       player!.dispose();
       player = null;
@@ -93,23 +97,52 @@ class ElevenLabsConfigDialog extends StatefulWidget {
 
 class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
   bool isLoadingVoices = false;
-  List<Voice> voices = [];
+  List<Map<String, dynamic>> voices = [];
   @override
-  Future<void> initState() async {
+  void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       loadVoices();
     });
   }
 
-  loadVoices() async {
+  Future loadVoices() async {
+    if (!ElevenlabsSpeech.isValid()) {
+      return;
+    }
     setState(() {
       isLoadingVoices = true;
     });
-    voices = await ElevenlabsSpeech.elevenLabs.listVoices();
+    voices = await ElevenlabsSpeech.elevenLabs.listVoicesRaw();
     setState(() {
       isLoadingVoices = false;
     });
+  }
+
+  Future loadUsage(BuildContext ctx) async {
+    final Map user = await ElevenlabsSpeech.elevenLabs.getCurrentUserRaw();
+    // final json = user.subscription.toJson();
+    final jsonString = const JsonEncoder.withIndent('  ').convert(user);
+    if (mounted)
+      showDialog(
+        // ignore: use_build_context_synchronously
+        context: ctx,
+        builder: (ctx) {
+          return ContentDialog(
+            content: SingleChildScrollView(
+              child: Text(jsonString),
+            ),
+            actions: [
+              Button(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: Text('Ok'),
+              ),
+            ],
+          );
+        },
+      );
   }
 
   @override
@@ -133,6 +166,17 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
               AppCache.elevenLabsApiKey.value = value;
             },
             initialValue: AppCache.elevenLabsApiKey.value,
+            onFieldSubmitted: (value) async {
+              AppCache.elevenLabsApiKey.value = value;
+              await ElevenlabsSpeech.init();
+              loadVoices();
+            },
+            suffix: Button(
+                child: Text('Load voices'),
+                onPressed: () async {
+                  await ElevenlabsSpeech.init();
+                  loadVoices();
+                }),
             validator: (value) {
               if ((value ?? '').isEmpty) {
                 return 'Please enter a valid API key';
@@ -140,20 +184,34 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
               return null;
             },
           ),
-          Text('Voice ID*'),
-          DropDownButton(
-            title: Text(ElevenlabsSpeech.selectedVoiceName ?? 'Select a voice'),
-            items: [
-              for (final voice in voices)
-                MenuFlyoutItem(
-                  text: Text(voice.name),
-                  onPressed: () {
-                    ElevenlabsSpeech.selectedVoiceId = voice.voiceId;
-                    ElevenlabsSpeech.selectedVoiceName = voice.name;
-                    setState(() {});
-                  },
-                ),
-            ],
+          if (voices.isNotEmpty) ...[
+            Text('Voice ID*'),
+            if (isLoadingVoices)
+              ProgressBar()
+            else
+              DropDownButton(
+                title: Text(
+                    ElevenlabsSpeech.selectedVoiceName ?? 'Select a voice'),
+                items: [
+                  for (final voice in voices)
+                    MenuFlyoutItem(
+                      text: Text(voice['name']),
+                      onPressed: () {
+                        ElevenlabsSpeech.selectedVoiceId = voice['voice_id'];
+                        ElevenlabsSpeech.selectedVoiceName = voice['name'];
+                        setState(() {});
+                      },
+                    ),
+                ],
+              ),
+          ],
+          spacer,
+          Divider(),
+          Button(
+            child: Text('Usage'),
+            onPressed: () {
+              loadUsage(context);
+            },
           )
         ],
       ),

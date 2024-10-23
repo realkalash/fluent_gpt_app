@@ -71,7 +71,9 @@ dependencies:
   audioplayers: ^6.1.0
   launch_at_startup: ^0.3.1
   shimmer_animation: ^2.2.1
-  elevenlabs_flutter: ^0.0.1
+  # elevenlabs_flutter: ^0.0.1
+  elevenlabs_flutter:
+    path: forked-plugins/elevenlabs_flutter
   
 
 dev_dependencies:

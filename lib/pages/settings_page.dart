@@ -11,6 +11,7 @@ import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/elevenlabs_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -1004,6 +1005,21 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
               //     url: 'https://platform.openai.com/api-keys',
               //   ),
               // ),
+              spacer,
+              DropDownButton(
+                items: [
+                  for (var serv in TextToSpeechServiceEnum.values)
+                    MenuFlyoutItem(
+                      selected: AppCache.textToSpeechService.value == serv.name,
+                      onPressed: () {
+                        AppCache.textToSpeechService.value = serv.name;
+                        setState(() {});
+                      },
+                      text: Text(serv.name),
+                    ),
+                ],
+                title: Text('Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
+              ),
               Text(
                 'Deepgram API key (speech) \$\$',
                 style: FluentTheme.of(context).typography.subtitle,
@@ -1049,6 +1065,22 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                   url: 'https://console.deepgram.com',
                 ),
               ),
+              Text(
+                'ElevenLabs API key (speech) \$\$\$',
+                style: FluentTheme.of(context).typography.subtitle,
+              ),
+              Button(
+                child: const Text('Configure ElevenLabs'),
+                onPressed: () => ElevenlabsSpeech.showConfigureDialog(context),
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: LinkTextButton(
+                  'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
+                  url:
+                      'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
+                ),
+              ),
             ],
           ),
         ),
@@ -1057,6 +1089,8 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
     );
   }
 }
+
+enum TextToSpeechServiceEnum { deepgram, elevenlabs }
 
 class _OtherSettings extends StatelessWidget {
   const _OtherSettings({super.key});
@@ -1351,7 +1385,7 @@ class _LocaleSection extends StatelessWidget {
         Text('Speech Language',
             style: FluentTheme.of(context).typography.subtitle),
         const CaptionText(
-            'Language you are using to talk to the AI (Used in Deepgram)'),
+            'Language you are using to talk to the AI (Used in Speech to Text)'),
         spacer,
         DropDownButton(
           leading: Text(AppCache.speechLanguage.value!),

@@ -369,10 +369,9 @@ packages:
   elevenlabs_flutter:
     dependency: "direct main"
     description:
-      name: elevenlabs_flutter
-      sha256: "10176f96951f22f514f55c335d9d34235620e45326908e05ec27df7d866fc99a"
-      url: "https://pub.dev"
-    source: hosted
+      path: "forked-plugins/elevenlabs_flutter"
+      relative: true
+    source: path
     version: "0.0.1"
   entry:
     dependency: "direct main"
