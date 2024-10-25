@@ -21,7 +21,8 @@ class AppCache {
   static const speechLanguage = StringPref("speechLanguage", 'en');
   static const textToSpeechService = StringPref("textToSpeechService", 'deepgram');
   static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
-  static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
+  static const elevenlabsVoiceModelName = StringPref("elevenlabsVoiceModel", '');
+  static const elevenlabsModel = StringPref("elevenlabsModel", '');
   static const elevenlabsVoiceModelId = StringPref("elevenlabsVoiceModelId", '');
 
   static StringPref backgroundEffect =
