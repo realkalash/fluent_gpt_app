@@ -32,16 +32,24 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
   void initState() {
     ico = widget.room.iconCodePoint;
     super.initState();
+
+    roomName = widget.room.chatRoomName;
+    systemMessage = widget.room.systemMessage ?? '';
+    maxLength = widget.room.maxTokenLength;
+    token = widget.room.model.apiKey;
+    index = widget.room.indexSort;
   }
+
+  var roomName = '';
+  String systemMessage = '';
+  int maxLength = 1024;
+  var token = '';
+  var index = 1;
 
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ChatProvider>();
-    var roomName = widget.room.chatRoomName;
-    var systemMessage = widget.room.systemMessage;
-    var maxLength = widget.room.maxTokenLength;
-    var token = widget.room.model.apiKey;
-    var index = widget.room.indexSort;
+
     return ContentDialog(
       title: const Text('Edit chat room'),
       constraints: const BoxConstraints(maxWidth: 800),
@@ -131,8 +139,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
           ),
           const Text('Token'),
           TextBox(
-            controller:
-                TextEditingController(text: widget.room.model.apiKey),
+            controller: TextEditingController(text: widget.room.model.apiKey),
             obscureText: true,
             onChanged: (value) {
               token = value;
