@@ -161,10 +161,10 @@ Future<String> getFormattedSystemPrompt(
   if (AppCache.includeWeatherPrompt.value!) {
     final todayMax = weatherTodayMax;
     final todayMin = weatherTodayMin;
-    final tomorrowAvg = weatherTomorrowAvg;
+    final tomorrowAvg = weatherTomorrowMax;
     prompt +=
         "\nCurrent weather in ${todayMax?.units ?? 'Celsius'} (DONT EXPOSE IT UNTIL IT IS NECESSARY): max: ${todayMax?.temperature} min: ${todayMin?.temperature} status: ${todayMax?.weatherStatus.name}"
-        "\nTomorrow weather avg: ${tomorrowAvg?.temperature} ${tomorrowAvg?.units} status: ${tomorrowAvg?.weatherStatus.name}";
+        "\nTomorrow weather max: ${tomorrowAvg?.temperature} ${tomorrowAvg?.units} status: ${tomorrowAvg?.weatherStatus.name}";
   }
   if (AppCache.includeUserCityNamePrompt.value!) {
     prompt += '\nUser located in: ${AppCache.userCityName.value}';

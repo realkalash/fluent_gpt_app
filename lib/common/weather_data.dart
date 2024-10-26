@@ -23,10 +23,17 @@ class WeatherData {
 
   List<WeatherDay> getWeatherDays() {
     List<WeatherDay> weatherDays = [];
+    final myTimezoneOffset = DateTime.now().timeZoneOffset;
     if (hourly != null && hourlyUnits != null) {
       for (int i = 0; i < hourly!.time!.length; i++) {
+        /// it's in GMT-0 we need to convert it to Local time
+        final time = hourly!.time![i];
+        final date = DateTime.parse(time)
+            .add(Duration(hours: myTimezoneOffset.inHours))
+            .toLocal();
+
         weatherDays.add(WeatherDay(
-          date: hourly!.time![i],
+          date: date,
           temperature: hourly!.temperature2m![i].toString(),
           units: hourlyUnits!.temperature2m,
           precipitation: hourly!.precipitation![i],
@@ -77,7 +84,7 @@ enum WeatherCode {
 }
 
 class WeatherDay {
-  final String? date;
+  final DateTime? date;
   final String? temperature;
   final String? units;
   final num? precipitation;

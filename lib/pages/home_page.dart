@@ -32,6 +32,7 @@ import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -719,6 +720,7 @@ class WeatherCard extends StatelessWidget {
         final provider = ctx.watch<WeatherProvider>();
         final isWeatherPresent = provider.filteredWeather.isNotEmpty;
         final weatherDays = provider.filteredWeather;
+        WeatherDay? previousDay;
         return SizedBox(
           width: 200,
           child: Padding(
@@ -764,12 +766,17 @@ class WeatherCard extends StatelessWidget {
                           itemBuilder: (ctx, i) {
                             final weather = weatherDays[i];
                             final weatherStatus = weather.weatherStatus;
+                            final date = weather.date ?? DateTime(1970);
+                            final formatter = DateFormat('yyyy-MM-dd HH:mm');
+                            final formattedDate =
+                                formatter.format(date).replaceAll(' ', '\n');
+                            previousDay = weather;
                             return Card(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    (weather.date ?? '').replaceAll('T', '\n'),
+                                    formattedDate,
                                     textAlign: TextAlign.center,
                                   ),
                                   if (weatherStatus == WeatherCode.clearSky)
