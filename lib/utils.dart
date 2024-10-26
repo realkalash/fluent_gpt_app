@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -101,14 +102,14 @@ extension HotKeyExtension on HotKey {
 /// String extensions
 extension StringExtension on String {
   String get capitalize => '${this[0].toUpperCase()}${substring(1)}';
-  
+
   /// If the string contains is wrapped with " it will remove them
   String get removeWrappedQuotes {
     if (startsWith('"') && endsWith('"')) {
       return substring(1, length - 1);
     }
     return this;
-  } 
+  }
 }
 
 String getSystemInfoString() {
@@ -137,9 +138,18 @@ Future<String> getFormattedSystemPrompt(
   String prompt = basicPrompt;
   bool isIncludeAdditionalEnabled = AppCache.includeSysInfoToSysPrompt.value! ||
       AppCache.includeUserNameToSysPrompt.value! ||
+      AppCache.includeWeatherPrompt.value! ||
+      AppCache.includeUserCityNamePrompt.value! ||
       AppCache.includeKnowledgeAboutUserToSysPrompt.value!;
+  if (AppCache.includeTimeToSystemPrompt.value!) {
+    final dateTime = DateTime.now();
+    final formatter = DateFormat('yyyy-MM-dd HH:mm a E');
+    final formattedDate = formatter.format(dateTime);
+    prompt += '\n\nCurrent date and time: $formattedDate';
+  }
   if (isIncludeAdditionalEnabled) {
-    prompt += '\n\nNext will be a contextual information about the user\n"""';
+    prompt +=
+        '\n\nNext will be a contextual information about the user. Dont use it until it is necessary!\n"""';
   }
 
   if (AppCache.includeSysInfoToSysPrompt.value!) {
@@ -148,6 +158,18 @@ Future<String> getFormattedSystemPrompt(
   if (AppCache.includeUserNameToSysPrompt.value!) {
     prompt += '\nUser name: $userName';
   }
+  if (AppCache.includeWeatherPrompt.value!) {
+    final todayMax = weatherTodayMax;
+    final todayMin = weatherTodayMin;
+    final tomorrowAvg = weatherTomorrowAvg;
+    prompt +=
+        "\nCurrent weather in ${todayMax?.units ?? 'Celsius'} (DONT EXPOSE IT UNTIL IT IS NECESSARY): max: ${todayMax?.temperature} min: ${todayMin?.temperature} status: ${todayMax?.weatherStatus.name}"
+        "\nTomorrow weather avg: ${tomorrowAvg?.temperature} ${tomorrowAvg?.units} status: ${tomorrowAvg?.weatherStatus.name}";
+  }
+  if (AppCache.includeUserCityNamePrompt.value!) {
+    prompt += '\nUser located in: ${AppCache.userCityName.value}';
+  }
+
   if (AppCache.includeKnowledgeAboutUserToSysPrompt.value!) {
     prompt +=
         '\n\nKnowladge base you remembered from previous dialogs: """$userInfo"""';
@@ -159,4 +181,15 @@ Future<String> getFormattedSystemPrompt(
     prompt += '\n\n$appendText';
   }
   return prompt;
+}
+
+extension ListExtension<T> on List<T> {
+  T? firstWhereOrNull(bool Function(T element) test) {
+    for (final element in this) {
+      if (test(element)) {
+        return element;
+      }
+    }
+    return null;
+  }
 }

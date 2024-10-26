@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/cities_list.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/enums.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/custom_action_dialog.dart';
@@ -614,6 +616,7 @@ class GlobalSettings extends StatefulWidget {
 
 class _GlobalSettingsState extends State<GlobalSettings> {
   final systemPromptController = TextEditingController();
+  final cities = CitiesList.getAllCitiesList();
   @override
   void initState() {
     super.initState();
@@ -676,6 +679,28 @@ class _GlobalSettingsState extends State<GlobalSettings> {
           ),
           const CaptionText('Your name that will be used in the chat'),
           spacer,
+          AutoSuggestBox(
+            leadingIcon: const _BadgePrefix(Text('User city')),
+            placeholder: AppCache.userCityName.value,
+            onChanged: (value, reason) {
+              AppCache.userCityName.value = value;
+            },
+            clearButtonEnabled: false,
+            trailingIcon: IconButton(
+              icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
+              onPressed: () {
+                AppCache.userCityName.value = '';
+                setState(() {});
+              },
+            ),
+            items: [
+              for (var city in cities)
+                AutoSuggestBoxItem(label: city, value: city)
+            ],
+          ),
+          const CaptionText(
+              'Your city name that will be used in the chat and to get weather'),
+          spacer,
           const LabelText('System info'),
           Card(
             child: Column(
@@ -692,11 +717,32 @@ class _GlobalSettingsState extends State<GlobalSettings> {
                 ]),
           ),
           _CheckBoxTile(
+            isChecked: AppCache.includeUserCityNamePrompt.value!,
+            onChanged: (value) {
+              AppCache.includeUserCityNamePrompt.value = value;
+            },
+            child: const Text('Include user city name in system prompt'),
+          ),
+          _CheckBoxTile(
+            isChecked: AppCache.includeWeatherPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeWeatherPrompt.value = value;
+            },
+            child: const Text('Include weather in system prompt'),
+          ),
+          _CheckBoxTile(
             isChecked: AppCache.includeUserNameToSysPrompt.value!,
             onChanged: (value) {
               AppCache.includeUserNameToSysPrompt.value = value;
             },
             child: const Text('Include user name in system prompt'),
+          ),
+          _CheckBoxTile(
+            isChecked: AppCache.includeTimeToSystemPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeTimeToSystemPrompt.value = value;
+            },
+            child: const Text('Include current date and time in system prompt'),
           ),
           _CheckBoxTile(
             isChecked: AppCache.includeSysInfoToSysPrompt.value!,
@@ -705,6 +751,7 @@ class _GlobalSettingsState extends State<GlobalSettings> {
             },
             child: const Text('Include system info in system prompt'),
           ),
+         
           // TODO: enable when ready
           if (kDebugMode)
             Tooltip(
@@ -1018,7 +1065,8 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                       text: Text(serv.name),
                     ),
                 ],
-                title: Text('Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
+                title: Text(
+                    'Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
               ),
               Text(
                 'Deepgram API key (speech) \$\$',
@@ -1089,8 +1137,6 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
     );
   }
 }
-
-enum TextToSpeechServiceEnum { deepgram, elevenlabs }
 
 class _OtherSettings extends StatelessWidget {
   const _OtherSettings({super.key});

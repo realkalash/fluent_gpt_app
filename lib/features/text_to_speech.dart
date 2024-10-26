@@ -1,7 +1,7 @@
+import 'package:fluent_gpt/common/enums.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
 
 class TextToSpeechService {
   static get serviceName => AppCache.textToSpeechService.value;

@@ -1,0 +1,1 @@
+enum TextToSpeechServiceEnum { deepgram, elevenlabs }

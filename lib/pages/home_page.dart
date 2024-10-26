@@ -7,6 +7,7 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/common/weather_data.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
@@ -16,10 +17,12 @@ import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/shell_driver.dart';
@@ -33,6 +36,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_provider.dart';
@@ -700,6 +704,149 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
   }
 }
 
+class WeatherCard extends StatelessWidget {
+  const WeatherCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (AppCache.userCityName.value?.isEmpty == true) {
+      return const SizedBox.shrink();
+    }
+    final scrollController = ScrollController();
+    return ChangeNotifierProvider(
+      create: (BuildContext context) => WeatherProvider(context),
+      builder: (ctx, _) {
+        final provider = ctx.watch<WeatherProvider>();
+        final isWeatherPresent = provider.filteredWeather.isNotEmpty;
+        final weatherDays = provider.filteredWeather;
+        return SizedBox(
+          width: 200,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Card(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text('Weather in',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text(' ${AppCache.userCityName.value}',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Spacer(),
+                      GestureDetector(
+                        onTap: () => launchUrlString('https://open-meteo.com/'),
+                        child: Text(
+                          'by Open-Meteo',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w100,
+                            decoration: TextDecoration.underline,
+                            color: Colors.blue.lighter,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (provider.isLoading) const Center(child: ProgressBar()),
+                  SizedBox(
+                    height: isWeatherPresent ? 130 : 0,
+                    child: Scrollbar(
+                      controller: scrollController,
+                      child: ListView.builder(
+                          controller: scrollController,
+                          scrollDirection: Axis.horizontal,
+                          itemCount: weatherDays.length,
+                          itemBuilder: (ctx, i) {
+                            final weather = weatherDays[i];
+                            final weatherStatus = weather.weatherStatus;
+                            return Card(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    (weather.date ?? '').replaceAll('T', '\n'),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (weatherStatus == WeatherCode.clearSky)
+                                    Icon(
+                                      ic.FluentIcons.weather_sunny_20_filled,
+                                      color: Colors.yellow,
+                                    ),
+                                  if (weatherStatus == WeatherCode.partlyCloudy)
+                                    Icon(
+                                      ic.FluentIcons
+                                          .weather_partly_cloudy_day_20_filled,
+                                      color: Colors.blue,
+                                    ),
+                                  if (weatherStatus == WeatherCode.cloudy)
+                                    Icon(
+                                      ic.FluentIcons.weather_cloudy_20_filled,
+                                      color: Colors.blue,
+                                    ),
+                                  if (weatherStatus == WeatherCode.foggy)
+                                    Icon(
+                                      ic.FluentIcons.weather_fog_20_filled,
+                                      color: Colors.teal,
+                                    ),
+                                  if (weatherStatus == WeatherCode.partlyCloudy)
+                                    Icon(
+                                      ic.FluentIcons
+                                          .weather_partly_cloudy_day_20_filled,
+                                      color: Colors.yellow,
+                                    ),
+                                  if (weatherStatus == WeatherCode.rain)
+                                    Icon(
+                                      ic.FluentIcons.weather_rain_20_filled,
+                                      color: Colors.blue,
+                                    ),
+                                  if (weatherStatus == WeatherCode.snow)
+                                    Icon(
+                                      ic.FluentIcons.weather_snow_20_filled,
+                                      color: Colors.blue,
+                                    ),
+                                  Text('${weather.precipitation} mm'),
+                                  Text(
+                                      '${weather.temperature}${weather.units}'),
+                                ],
+                              ),
+                            );
+                          }),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SqueareIconButton(
+                        onTap: () {
+                          provider.fetchWeather(AppCache.userCityName.value!);
+                        },
+                        icon: Icon(
+                            ic.FluentIcons.arrow_counterclockwise_12_regular),
+                        tooltip: 'Refresh',
+                      ),
+                      const SizedBox(width: 8),
+                      Button(
+                        onPressed: () =>
+                            launchUrlString('https://weatherian.com/'),
+                        child: const Text('More'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class ChatGPTContent extends StatefulWidget {
   const ChatGPTContent({super.key});
 
@@ -728,6 +875,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     children: [
                       AddSystemMessageField(),
                       HomePagePlaceholdersCards(),
+                      WeatherCard(),
                     ],
                   ),
                 )

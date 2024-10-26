@@ -24,6 +24,7 @@ class AppCache {
   static const elevenlabsVoiceModelName = StringPref("elevenlabsVoiceModel", '');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
   static const elevenlabsVoiceModelId = StringPref("elevenlabsVoiceModelId", '');
+  static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
 
   static StringPref backgroundEffect =
       StringPref("backgroundEffect", Platform.isLinux ? 'disabled' : 'acrylic');
@@ -55,11 +56,14 @@ class AppCache {
   static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
 
   /// Contains all the prompts from the library like system messages, helpers etc.
-  static const promptsLibrary = FileStringPref("fluent_gpt/promptsLibrary.json");
+  static const promptsLibrary =
+      FileStringPref("fluent_gpt/promptsLibrary.json");
   static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const userInfo = FileStringPref("fluent_gpt/userInfo.json");
   static const userName = StringPref("userName", 'User');
+  static const userCityName = StringPref("userCityName", '');
+  static const weatherData = StringPref("weatherData");
   static const archivedPrompts = StringPref("archivedPrompts");
 
   static const localApiModelPaths = StringPref("localApiModels", '{}');
@@ -75,10 +79,15 @@ class AppCache {
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
   static const includeUserNameToSysPrompt =
       BoolPref("includeUserNameToSysPrompt", false);
+  static const includeUserCityNamePrompt =
+      BoolPref("includeUserCityNamePrompt", false);
+  static const includeWeatherPrompt = BoolPref("includeWeatherPrompt", false);
   static const includeSysInfoToSysPrompt =
       BoolPref("includeSysInfoToSysPrompt", false);
   static const includeKnowledgeAboutUserToSysPrompt =
       BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
+  static const includeTimeToSystemPrompt =
+      BoolPref("includeTimeToSystemPrompt", false);
   static const learnAboutUserAfterCreateNewChat =
       BoolPref("learnAboutUserAfterCreateNewChat", false);
 
