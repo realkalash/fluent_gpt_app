@@ -36,9 +36,7 @@ class WeatherProvider extends ChangeNotifier {
     final currentDateTime = DateTime.now();
     for (WeatherDay weatherDay in allWeatherHourly ?? []) {
       final date = (weatherDay.date ?? DateTime(1970));
-      if (currentDateTime.isBefore(date)) {
-        list.add(weatherDay);
-      }
+      if (date.isAfter(currentDateTime)) list.add(weatherDay);
     }
     return list;
   }

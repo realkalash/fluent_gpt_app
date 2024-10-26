@@ -720,7 +720,6 @@ class WeatherCard extends StatelessWidget {
         final provider = ctx.watch<WeatherProvider>();
         final isWeatherPresent = provider.filteredWeather.isNotEmpty;
         final weatherDays = provider.filteredWeather;
-        WeatherDay? previousDay;
         return SizedBox(
           width: 200,
           child: Padding(
@@ -767,10 +766,12 @@ class WeatherCard extends StatelessWidget {
                             final weather = weatherDays[i];
                             final weatherStatus = weather.weatherStatus;
                             final date = weather.date ?? DateTime(1970);
-                            final formatter = DateFormat('yyyy-MM-dd HH:mm');
-                            final formattedDate =
-                                formatter.format(date).replaceAll(' ', '\n');
-                            previousDay = weather;
+
+                            final formatter =
+                                MediaQuery.of(context).alwaysUse24HourFormat
+                                    ? DateFormat('yyyy-MM-dd\nHH:mm')
+                                    : DateFormat('yyyy-MM-dd\nh:mm a');
+                            final formattedDate = formatter.format(date);
                             return Card(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,

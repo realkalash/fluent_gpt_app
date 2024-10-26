@@ -28,9 +28,8 @@ class WeatherData {
       for (int i = 0; i < hourly!.time!.length; i++) {
         /// it's in GMT-0 we need to convert it to Local time
         final time = hourly!.time![i];
-        final date = DateTime.parse(time)
-            .add(Duration(hours: myTimezoneOffset.inHours))
-            .toLocal();
+        final date =
+            DateTime.parse(time).add(Duration(hours: myTimezoneOffset.inHours));
 
         weatherDays.add(WeatherDay(
           date: date,
