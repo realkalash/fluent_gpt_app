@@ -204,7 +204,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
 
   void sendMessage([bool asStream = true]) {
     final provider = context.read<ChatProvider>();
-    provider.sendMessage(textContr.text, false, asStream);
+    provider.sendMessage(textContr.text,
+        hidePrompt: false, sendStream: asStream);
     Navigator.of(context).pop();
   }
 

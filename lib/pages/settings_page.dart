@@ -1182,10 +1182,10 @@ class _OtherSettings extends StatelessWidget {
         Tooltip(
           message: 'Can cause additional charges!',
           child: Checkbox(
-            content: const Text('Use second request for naming chats'),
-            checked: AppCache.useSecondRequestForNamingChats.value,
+            content: const Text('Use ai to name chat'),
+            checked: AppCache.useAiToNameChat.value,
             onChanged: (value) {
-              AppCache.useSecondRequestForNamingChats.value = value;
+              AppCache.useAiToNameChat.value = value;
               appTheme.updateUI();
             },
           ),

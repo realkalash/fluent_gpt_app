@@ -317,10 +317,10 @@ class ChatProvider with ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 150));
       if (command == 'paste') {
         if (text.trim().isNotEmpty == true) {
-          sendMessage(text, true);
+          sendMessage(text, hidePrompt: true);
         }
       } else if (command == 'custom') {
-        sendMessage(text, true);
+        sendMessage(text, hidePrompt: true);
       } else if (command == 'show_dialog') {
         showDialog(
             context: context!,
@@ -334,18 +334,18 @@ class ChatProvider with ChangeNotifier {
                   ],
                 ));
       } else if (command == 'grammar') {
-        sendMessage('Check spelling and grammar: "$text"', true);
+        sendMessage('Check spelling and grammar: "$text"', hidePrompt: true);
       } else if (command == 'explain') {
-        sendMessage('Explain: "$text"', true);
+        sendMessage('Explain: "$text"', hidePrompt: true);
       } else if (command == 'to_rus') {
-        sendMessage('Translate to Rus: "$text"', true);
+        sendMessage('Translate to Rus: "$text"', hidePrompt: true);
       } else if (command == 'to_eng') {
-        sendMessage('Translate to English: "$text"', true);
+        sendMessage('Translate to English: "$text"', hidePrompt: true);
       } else if (command == 'impove_writing') {
-        sendMessage('Improve writing: "$text"', true);
+        sendMessage('Improve writing: "$text"', hidePrompt: true);
       } else if (command == 'summarize_markdown_short') {
-        sendMessage(
-            'Summarize using markdown. Use short summary: "$text"', false);
+        sendMessage('Summarize using markdown. Use short summary: "$text"',
+            hidePrompt: false);
       } else if (command == 'answer_with_tags') {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
       } else if (command == 'create_new_chat') {
@@ -401,7 +401,7 @@ class ChatProvider with ChangeNotifier {
 
   void renameCurrentChatRoom(String newName, [bool applyIcon = true]) {
     final chatRoom = chatRooms[selectedChatRoomId]!;
-    chatRoom.chatRoomName = newName;
+    chatRoom.chatRoomName = newName.removeWrappedQuotes;
     if (applyIcon) {
       final words = newName.split(' ');
       for (var word in words) {
@@ -443,27 +443,34 @@ class ChatProvider with ChangeNotifier {
   StreamSubscription<ChatResult>? listenerResponseStream;
 
   Future<void> sendMessage(
-    String messageContent, [
+    String messageContent, {
     bool hidePrompt = false,
     bool sendStream = true,
-  ]) async {
+    void Function()? onFinishResponse,
+    void Function()? onMessageSent,
+  }) async {
     bool isFirstMessage = messages.value.isEmpty;
+    bool isThirdMessage = messages.value.length == 2;
     if (isFirstMessage) {
       // regenerate system message to update time/weather etc
-      final systemMessage = await getFormattedSystemPrompt(basicPrompt: selectedChatRoom.systemMessage ?? '');
+      final systemMessage = await getFormattedSystemPrompt(
+          basicPrompt: selectedChatRoom.systemMessage ?? '');
       selectedChatRoom.systemMessage = systemMessage;
 
       /// Name chat room
-      if (AppCache.useSecondRequestForNamingChats.value!) {
-        retrieveResponseFromPrompt(
-          '$nameTopicPrompt "$messageContent"',
-        ).then(renameCurrentChatRoom);
-      } else {
+      if (AppCache.useAiToNameChat.value == false) {
         final first50CharsIfPossible = messageContent.length > 50
             ? messageContent.substring(0, 50)
             : messageContent;
         renameCurrentChatRoom(first50CharsIfPossible);
       }
+    }
+    if (isThirdMessage) {
+      String lastMessages = getLastFewMessagesForContextAsString();
+      lastMessages += ' Human: $messageContent';
+      retrieveResponseFromPrompt(
+        '$nameTopicPrompt "$lastMessages"',
+      ).then(renameCurrentChatRoom);
     }
     if (isWebSearchEnabled) {
       addHumanMessageToList(
@@ -561,6 +568,7 @@ class ChatProvider with ChangeNotifier {
         );
       }
     }
+    onMessageSent?.call();
     try {
       initModelsApi();
       if (!sendStream) {
@@ -688,7 +696,7 @@ class ChatProvider with ChangeNotifier {
           }
         },
         onDone: () {
-          // saveToDisk([selectedChatRoom]);
+          onFinishResponse?.call();
         },
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
@@ -1042,6 +1050,7 @@ class ChatProvider with ChangeNotifier {
 
   void selectNewModel(ChatModelAi model) {
     chatRooms[selectedChatRoomId]!.model = model;
+    initModelsApi();
     notifyListeners();
     saveToDisk([selectedChatRoom]);
   }
@@ -1256,7 +1265,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> regenerateMessage(ChatMessage message) async {
-    await sendMessage(message.contentAsString, true);
+    await sendMessage(message.contentAsString, hidePrompt: true);
   }
 
   void updateUI() {
@@ -1464,6 +1473,81 @@ class ChatProvider with ChangeNotifier {
       logError('Error while stopping audio stream: $e', stack);
     }
     micStream = null;
+  }
+
+  void editMessage(String id, String text) {
+    final message = messages.value[id];
+    if (message is HumanChatMessage &&
+        message.content is ChatMessageContentText) {
+      final newMessage = HumanChatMessage(
+        content: ChatMessageContent.text(text),
+      );
+      messages.value[id] = newMessage;
+    } else if (message is AIChatMessage) {
+      final newMessage = AIChatMessage(content: text);
+      messages.value[id] = newMessage;
+    }
+    saveToDisk([selectedChatRoom]);
+    notifyListeners();
+  }
+
+  Future<void> createNewBranchFromLastMessage(String id) async {
+    final listNewMessages = <String, ChatMessage>{};
+    for (var message in messages.value.entries) {
+      // All messages are sorted. So if we face the message with the same id, we add it and stop
+      if (message.key == id) {
+        listNewMessages[message.key] = message.value;
+        break;
+      }
+      listNewMessages[message.key] = message.value;
+    }
+    // create new chat room with new messages
+    final chatRoomName = '${selectedChatRoom.chatRoomName}*';
+    final newChatId = generateChatID();
+    final newChatRoom = selectedChatRoom.copyWith(
+      id: newChatId,
+      chatRoomName: chatRoomName,
+      messages: ConversationBufferMemory(
+        chatHistory:
+            ChatMessageHistory(messages: listNewMessages.values.toList()),
+      ),
+      dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
+    );
+    final chatRooms = chatRoomsStream.value;
+    chatRooms[newChatId] = newChatRoom;
+    chatRoomsStream.add(chatRooms);
+    selectedChatRoomId = newChatId;
+    messages.add(listNewMessages);
+    notifyRoomsStream();
+    saveToDisk([newChatRoom]);
+    // wait until the new chat room is created and opened
+    await Future.delayed(const Duration(milliseconds: 300));
+    await scrollToEnd(withDelay: false);
+  }
+
+  Future continueMessage(String id) async {
+    final ChatMessage? lastMessageToMerge = messages.value[id];
+    final lastMessages = await getLastFewMessages(count: 3);
+    sendMessage(
+      '$continuePrompt $lastMessages',
+      hidePrompt: true,
+      onMessageSent: () {
+        final continueRequestMessage = messages.value.entries.last;
+        final listMessages = messages.value;
+        listMessages.remove(continueRequestMessage.key);
+        messages.add(listMessages);
+      },
+      onFinishResponse: () {
+        final aiAnswer = messages.value.entries.last;
+
+        final concatMessage = lastMessageToMerge!.concat(aiAnswer.value);
+        final listMessages = messages.value;
+        listMessages.remove(aiAnswer.key);
+        listMessages[id] = concatMessage;
+        messages.add(listMessages);
+        saveToDisk([selectedChatRoom]);
+      },
+    );
   }
 }
 

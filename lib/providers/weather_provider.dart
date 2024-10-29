@@ -4,7 +4,6 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 
 WeatherDay? weatherTodayMax;
 WeatherDay? weatherTodayMin;

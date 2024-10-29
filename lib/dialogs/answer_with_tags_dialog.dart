@@ -36,7 +36,8 @@ class AnswerWithTagsDialog extends StatelessWidget {
                   child: const Text('Answer No'),
                 ),
                 Button(
-                  onPressed: () => answerWithTags(context, text, 'Explain please'),
+                  onPressed: () =>
+                      answerWithTags(context, text, 'Explain please'),
                   child: const Text('Answer Explain please'),
                 ),
               ],
@@ -74,7 +75,7 @@ class AnswerWithTagsDialog extends StatelessWidget {
       'and within the context defined by these tags: '
       '"$formattedTags", '
       'please provide an answer like you a real human.',
-      false,
+      hidePrompt: false,
     );
     Navigator.of(context).pop();
   }

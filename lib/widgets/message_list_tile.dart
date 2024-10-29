@@ -116,6 +116,7 @@ class MessageCard extends StatefulWidget {
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
   bool _isFocused = false;
+  bool _isLoadingReadAloud = false;
   final flyoutController = FlyoutController();
 
   @override
@@ -285,7 +286,9 @@ class _MessageCardState extends State<MessageCard> {
         children: [
           GestureDetector(
             onSecondaryTap: () {
-              _onSecondaryTap(context, widget.message);
+              flyoutController.showFlyout(
+                builder: (context) => _showOptionsFlyout(context),
+              );
             },
             child: Card(
               margin: const EdgeInsets.all(4),
@@ -328,13 +331,15 @@ class _MessageCardState extends State<MessageCard> {
                               is ChatMessageContentText))
                     SqueareIconButton(
                       tooltip: 'Read aloud (Requires Speech API)',
-                      icon: TextToSpeechService.isReadingAloud
-                          ? Icon(
-                              FluentIcons.stop_24_filled,
-                              color: context.theme.accentColor,
-                            )
-                          : const Icon(
-                              FluentIcons.sound_wave_circle_24_regular),
+                      icon: _isLoadingReadAloud
+                          ? ProgressRing()
+                          : TextToSpeechService.isReadingAloud
+                              ? Icon(
+                                  FluentIcons.stop_24_filled,
+                                  color: context.theme.accentColor,
+                                )
+                              : const Icon(
+                                  FluentIcons.sound_wave_circle_24_regular),
                       onTap: () async {
                         if (TextToSpeechService.isValid() == false) {
                           displayInfoBar(context, builder: (ctx, close) {
@@ -359,12 +364,20 @@ class _MessageCardState extends State<MessageCard> {
                           TextToSpeechService.stopReadingAloud();
                         } else {
                           try {
+                            setState(() {
+                              _isLoadingReadAloud = true;
+                            });
                             await TextToSpeechService.readAloud(
                               widget.message.contentAsString,
                               onCompleteReadingAloud: () {
-                                setState(() {});
+                                setState(() {
+                                  _isLoadingReadAloud = false;
+                                });
                               },
                             );
+                            setState(() {
+                              _isLoadingReadAloud = false;
+                            });
                           } catch (e) {
                             if (e is DeadlineExceededException) {
                               // ignore: use_build_context_synchronously
@@ -376,6 +389,7 @@ class _MessageCardState extends State<MessageCard> {
                                 );
                               });
                             } else {
+                              // ignore: use_build_context_synchronously
                               displayInfoBar(context, builder: (ctx, close) {
                                 return InfoBar(
                                   severity: InfoBarSeverity.error,
@@ -481,6 +495,14 @@ class _MessageCardState extends State<MessageCard> {
         actions: [
           Button(
             onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.editMessage(widget.id, contentController.text);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Apply'),
+          ),
+          Button(
+            onPressed: () {
               Navigator.of(ctx).pop();
             },
             child: const Text('Dismiss'),
@@ -575,99 +597,6 @@ class _MessageCardState extends State<MessageCard> {
     );
   }
 
-  void _onSecondaryTap(BuildContext context, ChatMessage message) {
-    showDialog(
-        context: context,
-        builder: (ctx) {
-          final provider = context.read<ChatProvider>();
-          return ContentDialog(
-            title: const Text('Message options'),
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Button(
-                  onPressed: () async {
-                    Navigator.of(context).maybePop();
-
-                    final item = DataWriterItem();
-                    final imageBytesString = widget.message.contentAsString;
-                    final imageBytes = base64.decode(imageBytesString);
-
-                    item.add(Formats.png(imageBytes));
-                    await SystemClipboard.instance!.write([item]);
-                    // ignore: use_build_context_synchronously
-                    displayCopiedToClipboard();
-                  },
-                  child: const Text('Copy image data'),
-                ),
-                const SizedBox(height: 8),
-                Button(
-                  onPressed: () async {
-                    final fileBytesString = widget.message.contentAsString;
-                    final fileBytes = base64.decode(fileBytesString);
-                    final file = XFile.fromData(
-                      fileBytes,
-                      name: 'image.png',
-                      mimeType: 'image/png',
-                      length: fileBytes.lengthInBytes,
-                    );
-
-                    final FileSaveLocation? location = await getSaveLocation(
-                      suggestedName: '${fileBytes.lengthInBytes}.png',
-                      acceptedTypeGroups: [
-                        const XTypeGroup(
-                          label: 'images',
-                          extensions: ['png', 'jpg', 'jpeg'],
-                        ),
-                      ],
-                    );
-
-                    if (location != null) {
-                      await file.saveTo(location.path);
-                      displayInfoBar(
-                        // ignore: use_build_context_synchronously
-                        context,
-                        builder: (context, close) => const InfoBar(
-                          title: Text('Image saved to file'),
-                          severity: InfoBarSeverity.success,
-                        ),
-                      );
-                      // ignore: use_build_context_synchronously
-                      Navigator.of(context).maybePop();
-                    }
-                  },
-                  child: const Text('Save image to file'),
-                ),
-                const SizedBox(height: 8),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Divider(),
-                ),
-                const SizedBox(height: 8),
-                Button(
-                    onPressed: () {
-                      Navigator.of(context).maybePop();
-                      provider.deleteMessage(widget.id);
-                    },
-                    style: ButtonStyle(
-                        backgroundColor: WidgetStateProperty.all(Colors.red)),
-                    child: const Text('Delete')),
-              ],
-            ),
-            actions: [
-              Button(
-                onPressed: () {
-                  Navigator.of(context).maybePop();
-                },
-                child: const Text('Dismiss'),
-              ),
-            ],
-          );
-        });
-  }
-
   MenuFlyout _showOptionsFlyout(BuildContext context) {
     final message = widget.message;
     return MenuFlyout(
@@ -692,7 +621,7 @@ class _MessageCardState extends State<MessageCard> {
             leading: const Icon(FluentIcons.arrow_forward_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.sendMessage('Continue');
+              provider.continueMessage(widget.id);
             }),
         MenuFlyoutItem(
           text: const Text('Generate again'),
@@ -723,6 +652,29 @@ class _MessageCardState extends State<MessageCard> {
               });
             },
           ),
+        if (message is HumanChatMessage &&
+            message.content is ChatMessageContentImage) ...[
+          const MenuFlyoutSeparator(),
+          MenuFlyoutItem(
+            text: const Text('Save image to file'),
+            leading: const Icon(FluentIcons.copy_16_regular),
+            onPressed: () => _saveImageToFile(context),
+          ),
+          MenuFlyoutItem(
+            text: const Text('Copy image'),
+            leading: const Icon(FluentIcons.copy_16_regular),
+            onPressed: () => _copyImageToClipboard(context),
+          ),
+        ],
+        const MenuFlyoutSeparator(),
+        MenuFlyoutItem(
+          text: const Text('New conversation branch from here'),
+          leading: const Icon(FluentIcons.branch_20_regular),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.createNewBranchFromLastMessage(widget.id);
+          },
+        ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: Text('Delete', style: TextStyle(color: Colors.red)),
@@ -734,5 +686,53 @@ class _MessageCardState extends State<MessageCard> {
         ),
       ],
     );
+  }
+
+  Future<void> _saveImageToFile(BuildContext context) async {
+    final fileBytesString = widget.message.contentAsString;
+    final fileBytes = base64.decode(fileBytesString);
+    final file = XFile.fromData(
+      fileBytes,
+      name: 'image.png',
+      mimeType: 'image/png',
+      length: fileBytes.lengthInBytes,
+    );
+
+    final FileSaveLocation? location = await getSaveLocation(
+      suggestedName: '${fileBytes.lengthInBytes}.png',
+      acceptedTypeGroups: [
+        const XTypeGroup(
+          label: 'images',
+          extensions: ['png', 'jpg', 'jpeg'],
+        ),
+      ],
+    );
+
+    if (location != null) {
+      await file.saveTo(location.path);
+      displayInfoBar(
+        // ignore: use_build_context_synchronously
+        context,
+        builder: (context, close) => const InfoBar(
+          title: Text('Image saved to file'),
+          severity: InfoBarSeverity.success,
+        ),
+      );
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  _copyImageToClipboard(BuildContext context) async {
+    Navigator.of(context).maybePop();
+
+    final item = DataWriterItem();
+    final imageBytesString = widget.message.contentAsString;
+    final imageBytes = base64.decode(imageBytesString);
+
+    item.add(Formats.png(imageBytes));
+    await SystemClipboard.instance!.write([item]);
+    // ignore: use_build_context_synchronously
+    displayCopiedToClipboard();
   }
 }

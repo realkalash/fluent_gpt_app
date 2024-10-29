@@ -76,7 +76,7 @@ class AppCache {
 
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
-  static const useSecondRequestForNamingChats =
+  static const useAiToNameChat =
       BoolPref("useSecondRequestForNamingChats", false);
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
   static const includeUserNameToSysPrompt =
