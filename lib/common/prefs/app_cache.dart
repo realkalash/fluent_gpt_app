@@ -64,6 +64,8 @@ class AppCache {
   static const userName = StringPref("userName", 'User');
   static const userCityName = StringPref("userCityName", '');
   static const weatherData = StringPref("weatherData");
+  /// DateTime in milliseconds since epoch. default is 0
+  static const lastTimeWeatherFetched = IntPref("lastTimeWeatherFetched", 0);
   static const archivedPrompts = StringPref("archivedPrompts");
 
   static const localApiModelPaths = StringPref("localApiModels", '{}');

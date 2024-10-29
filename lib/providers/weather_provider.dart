@@ -23,6 +23,17 @@ class WeatherProvider extends ChangeNotifier {
       refreshGlobalVariables();
       notifyListeners();
     }
+    final lastTimeWeatherFetched = AppCache.lastTimeWeatherFetched.value;
+    // if fetched more than 1 day ago, fetch again
+    if (lastTimeWeatherFetched != null) {
+      final lastTime =
+          DateTime.fromMillisecondsSinceEpoch(lastTimeWeatherFetched);
+      final now = DateTime.now();
+      final difference = now.difference(lastTime).inDays;
+      if (difference > 0 && AppCache.userCityName.value != null) {
+        fetchWeather(AppCache.userCityName.value!);
+      }
+    }
   }
 
   final BuildContext? context;
@@ -64,9 +75,11 @@ class WeatherProvider extends ChangeNotifier {
           (a, b) => (a.temperature ?? '0').compareTo(b.temperature ?? '0'));
       tomorrowWeather.sort(
           (a, b) => (a.temperature ?? '0').compareTo(b.temperature ?? '0'));
+      if (todayWeather.isNotEmpty) {
+        weatherTodayMax = todayWeather.first;
+        weatherTodayMin = todayWeather.last;
+      }
 
-      weatherTodayMax = todayWeather.first;
-      weatherTodayMin = todayWeather.last;
       if (tomorrowWeather.isNotEmpty)
         weatherTomorrowMax = tomorrowWeather.first;
     }
@@ -88,6 +101,8 @@ class WeatherProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         AppCache.weatherData.value = response.body;
+        AppCache.lastTimeWeatherFetched.value =
+            DateTime.now().millisecondsSinceEpoch;
         final weather = WeatherData.fromJson(data);
         weatherData = weather;
         filteredWeather = getFilteredWeather();
