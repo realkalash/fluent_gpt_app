@@ -13,3 +13,8 @@ const String nameTopicPrompt =
 const String webSearchPrompt =
     'Based on these messages generate a searchPrompt for a google search engine:';
 const String continuePrompt = 'Based on these messages continue the response:';
+
+const String summarizeConversationToRememberUser =
+    'Based on these messages summarize the conversation to remember the most important info about {user}. It should maximum short and max 1-2 sentences. E.g. "Alex is a student". If there is no important info, write "No important info". Messages:';
+const String summarizeUserKnowledge =
+    'This is knowladge about {user}. Reduce length by summarizing the most important info about {user}. Dont remove any important info. Just reduce lenght. You can remove duplicate items. Info: "{knowledge}"';

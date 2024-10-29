@@ -439,6 +439,110 @@ class ChatProvider with ChangeNotifier {
     return response;
   }
 
+  /// returns generated info about user
+  Future<void> generateUserKnowladgeBasedOnConversation() async {
+    final userName = AppCache.userName.value!;
+    final limitedMessages = await getLastMessagesLimitToTokens(4096);
+    final mainPrompt =
+        summarizeConversationToRememberUser.replaceAll('{user}', userName);
+    final messagesAsString = await convertMessagesToString(limitedMessages);
+    final finalPrompt = '$mainPrompt\n"$messagesAsString"';
+    final messageToSend = ChatMessage.humanText(finalPrompt);
+    log('prompt: \n"$finalPrompt"');
+
+    final options = ChatOpenAIOptions(
+      model: selectedChatRoom.model.modelName,
+      maxTokens: 512,
+    );
+    AIChatMessage response;
+    if (selectedModel.ownedBy == 'openai') {
+      response = await openAI!.call([messageToSend], options: options);
+    } else {
+      response = await localModel!.call([messageToSend], options: options);
+    }
+
+    final personalKnowladge = await AppCache.userInfo.value();
+    log('Generated user knowladge: "$response"');
+    // final currentDate = DateTime.now();
+    // final stringDate = '${currentDate.year}/${currentDate.month}/${currentDate.day}';
+    /// I think it would be better to keep it short...
+    final newKnowladge = response;
+    if (newKnowladge.content == 'No important info' ||
+        newKnowladge.content == 'No important info.' ||
+        newKnowladge.content == '"No important info"') {
+      return;
+    }
+    final appended = '$personalKnowladge\n${newKnowladge.content}';
+    // append to the end
+    AppCache.userInfo.set('$personalKnowladge\n${newKnowladge.content}');
+    // count tokens for personalKnowladge
+    final tokensCount = await Tokenizer().count(appended, modelName: 'gpt-4');
+    if (tokensCount > AppCache.maxTokensUserInfo.value!) {
+      final shorterKnowladge = await retrieveResponseFromPrompt(
+        summarizeUserKnowledge.replaceAll('{knowledge}', appended),
+      );
+      await AppCache.userInfo.set(shorterKnowladge);
+    }
+  }
+
+  Future<String> convertMessagesToString(List<ChatMessage> messages,
+      {bool includeSystemMessages = false}) async {
+    final result = messages.map((e) {
+      if (e is AIChatMessage) {
+        return 'AI: ${e.content}';
+      }
+      if (e is HumanChatMessage) {
+        return 'Human: ${(e.content as ChatMessageContentText).text}';
+      }
+      if (e is WebResultCustomMessage) {
+        final results = e.searchResults;
+        return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
+      }
+      if (includeSystemMessages && e is SystemChatMessage) {
+        return 'System: ${e.content}';
+      }
+      return '';
+    }).join('\n');
+    return result;
+  }
+
+  Future<List<ChatMessage>> getLastMessagesLimitToTokens(int tokens) async {
+    final tokenizer = Tokenizer();
+    int currentTokens = 0;
+    final result = <ChatMessage>[];
+    for (var message in messages.value.values) {
+      if (message is AIChatMessage) {
+        final tokensCount =
+            await tokenizer.count(message.content, modelName: 'gpt-4');
+        if (currentTokens + tokensCount > tokens) {
+          break;
+        }
+        currentTokens += tokensCount;
+        result.add(message);
+      }
+      if (message is HumanChatMessage) {
+        final tokensCount = await tokenizer.count(
+            (message.content as ChatMessageContentText).text,
+            modelName: 'gpt-4');
+        if (currentTokens + tokensCount > tokens) {
+          break;
+        }
+        currentTokens += tokensCount;
+        result.add(message);
+      }
+      if (message is SystemChatMessage) {
+        final tokensCount =
+            await tokenizer.count(message.content, modelName: 'gpt-4');
+        if (currentTokens + tokensCount > tokens) {
+          break;
+        }
+        currentTokens += tokensCount;
+        result.add(message);
+      }
+    }
+    return result;
+  }
+
   Stream<ChatResult>? responseStream;
   StreamSubscription<ChatResult>? listenerResponseStream;
 
@@ -910,7 +1014,8 @@ class ChatProvider with ChangeNotifier {
 
   /// Will not use chat history.
   /// Will not populate messages
-  Future<String> retrieveResponseFromPrompt(String message) async {
+  Future<String> retrieveResponseFromPrompt(String message,
+      {int maxTokensResponse = 100}) async {
     final messagesToSend = <ChatMessage>[];
 
     messagesToSend
@@ -922,7 +1027,7 @@ class ChatProvider with ChangeNotifier {
     AIChatMessage response;
     final options = ChatOpenAIOptions(
       model: selectedChatRoom.model.modelName,
-      maxTokens: 100,
+      maxTokens: maxTokensResponse,
     );
     if (selectedModel.ownedBy == 'openai') {
       response = await openAI!.call(messagesToSend, options: options);
@@ -1062,6 +1167,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> createNewChatRoom() async {
+    if (AppCache.learnAboutUserAfterCreateNewChat.value!) {
+      generateUserKnowladgeBasedOnConversation();
+    }
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
     final id = generateChatID();
     String systemMessage = '';

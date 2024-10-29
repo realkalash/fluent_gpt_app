@@ -751,28 +751,40 @@ class _GlobalSettingsState extends State<GlobalSettings> {
             },
             child: const Text('Include system info in system prompt'),
           ),
-         
-          // TODO: enable when ready
-          if (kDebugMode)
-            Tooltip(
-              message:
-                  'If enabled will summarize chat conversation and append the most'
-                  ' important information about the user to a file.'
-                  '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
-              child: Row(
-                children: [
-                  _CheckBoxTile(
-                    isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
-                    onChanged: (value) {
-                      AppCache.learnAboutUserAfterCreateNewChat.value = value;
-                    },
-                    child: const Text(
-                        'Learn about the user after creating new chat \$\$'),
-                  ),
-                  const Icon(FluentIcons.brain_circuit_24_filled)
-                ],
-              ),
+          Tooltip(
+            message:
+                'If enabled will summarize chat conversation and append the most'
+                ' important information about the user to a file.'
+                '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
+            child: Row(
+              children: [
+                _CheckBoxTile(
+                  isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+                  onChanged: (value) {
+                    AppCache.learnAboutUserAfterCreateNewChat.value = value;
+                  },
+                  child: const Text(
+                      'Learn about the user after creating new chat \$\$'),
+                ),
+                const Icon(FluentIcons.brain_circuit_24_filled),
+                SizedBox(width: 10.0),
+                SizedBox(
+                  width: 200,
+                  height: 30,
+                  child: NumberBox(
+                      value: AppCache.maxTokensUserInfo.value!,
+                      clearButton: false,
+                      smallChange: 64,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        if (value < 64) value = 64;
+                        AppCache.maxTokensUserInfo.value = value;
+                      },
+                      mode: SpinButtonPlacementMode.inline),
+                ),
+              ],
             ),
+          ),
           Row(
             children: [
               _CheckBoxTile(

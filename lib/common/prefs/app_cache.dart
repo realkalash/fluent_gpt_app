@@ -61,6 +61,7 @@ class AppCache {
   static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const userInfo = FileStringPref("fluent_gpt/userInfo.json");
+  static const maxTokensUserInfo = IntPref("maxTokensUserInfo", 1024);
   static const userName = StringPref("userName", 'User');
   static const userCityName = StringPref("userCityName", '');
   static const weatherData = StringPref("weatherData");
