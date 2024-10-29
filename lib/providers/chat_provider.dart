@@ -450,7 +450,7 @@ class ChatProvider with ChangeNotifier {
     bool isFirstMessage = messages.value.isEmpty;
     if (isFirstMessage) {
       // regenerate system message to update time/weather etc
-      final systemMessage = await getFormattedSystemPrompt(basicPrompt: '');
+      final systemMessage = await getFormattedSystemPrompt(basicPrompt: selectedChatRoom.systemMessage ?? '');
       selectedChatRoom.systemMessage = systemMessage;
 
       /// Name chat room
