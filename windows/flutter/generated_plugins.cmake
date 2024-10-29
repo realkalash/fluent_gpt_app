@@ -13,7 +13,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   permission_handler_windows
   protocol_handler_windows
   record_windows
-  screen_retriever
+  screen_retriever_windows
   super_native_extensions
   system_theme
   tray_manager
