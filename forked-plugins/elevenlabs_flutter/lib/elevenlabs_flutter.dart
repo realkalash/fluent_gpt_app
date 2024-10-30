@@ -241,13 +241,16 @@ class ElevenLabsAPI {
   /// Synthesize text to speech
   /// Takes a [TextToSpeechRequest] object and a value from 0 to 1 on how much to optimize for streaming latency
   /// Returns a [HistoryItem] object
-  Future<Uint8List> synthesizeBytes(TextToSpeechRequest request,
-      {int optimizeStreamingLatency = 0}) async {
+  Future<Uint8List> synthesizeBytes(
+    TextToSpeechRequest request, {
+    int optimizeStreamingLatency = 0,
+    required String voiceId,
+  }) async {
     try {
       Response<dynamic> response;
       if (optimizeStreamingLatency != 0) {
         response = await _dio.post(
-          '/v1/text-to-speech/${request.voiceId}',
+          '/v1/text-to-speech/$voiceId',
           data: request,
           queryParameters: {
             'optimize_streaming_latency': optimizeStreamingLatency
@@ -258,7 +261,7 @@ class ElevenLabsAPI {
         );
       } else {
         response = await _dio.post(
-          '/v1/text-to-speech/${request.voiceId}',
+          '/v1/text-to-speech/$voiceId',
           data: request,
           options: Options(
             responseType: ResponseType.bytes,
