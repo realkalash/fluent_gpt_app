@@ -122,7 +122,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     'gpt-3.5-turbo',
   ];
   ChatModelAi model = ChatModelAi(
-    modelName: 'chatgpt-4o',
+    modelName: 'gpt-4o',
     customName: 'ChatGpt 4o',
     ownedBy: OwnedByEnum.openai.name,
     uri: 'https://api.openai.com/v1',
@@ -185,7 +185,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
                 ...autosuggestAdditionalItems.map(
                   (e) => AutoSuggestBoxItem(
                     value: e,
-                    child: Text(e,maxLines: 1),
+                    child: Text(e, maxLines: 1),
                     label: e,
                   ),
                 ),
