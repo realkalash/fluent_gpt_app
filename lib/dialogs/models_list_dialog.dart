@@ -100,6 +100,7 @@ class AddAiModelDialog extends StatefulWidget {
 
 class _AddAiModelDialogState extends State<AddAiModelDialog> {
   final openAiModels = [
+    'gpt-4o',
     'chatgpt-4o-latest',
     'gpt-4',
     'gpt-4-32k',
@@ -113,7 +114,6 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     'gpt-4-turbo-2024-04-09',
     'gpt-4-turbo-preview',
     'gpt-4-vision-preview',
-    'gpt-4o',
     'gpt-4o-2024-05-13',
     'gpt-4o-2024-08-06',
     'gpt-4o-2024-08-06',
@@ -122,8 +122,10 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     'gpt-3.5-turbo',
   ];
   ChatModelAi model = ChatModelAi(
-    modelName: 'chatgpt-4o-latest',
+    modelName: 'chatgpt-4o',
+    customName: 'ChatGpt 4o',
     ownedBy: OwnedByEnum.openai.name,
+    uri: 'https://api.openai.com/v1',
   );
   final _formKey = GlobalKey<FormState>();
   bool obscureKey = true;
@@ -131,6 +133,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     debugLabel: 'autoSuggest model name',
   );
   final autoSuggestController = TextEditingController();
+  final modelUriController = TextEditingController();
 
   @override
   void initState() {
@@ -138,6 +141,10 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     if (widget.initialModel != null) {
       model = widget.initialModel!;
       autoSuggestController.text = model.modelName;
+      modelUriController.text = model.uri ?? 'https://';
+    } else {
+      autoSuggestController.text = openAiModels.first;
+      modelUriController.text = 'https://api.openai.com/v1';
     }
   }
 
@@ -236,7 +243,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
             spacer,
             Text('Url or Path'),
             TextFormBox(
-              initialValue: model.uri,
+              controller: modelUriController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a path';
