@@ -16,7 +16,7 @@
 #include <permission_handler_windows/permission_handler_windows_plugin.h>
 #include <protocol_handler_windows/protocol_handler_windows_plugin_c_api.h>
 #include <record_windows/record_windows_plugin_c_api.h>
-#include <screen_retriever/screen_retriever_plugin.h>
+#include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <super_native_extensions/super_native_extensions_plugin_c_api.h>
 #include <system_theme/system_theme_plugin.h>
 #include <tray_manager/tray_manager_plugin.h>
@@ -45,8 +45,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("ProtocolHandlerWindowsPluginCApi"));
   RecordWindowsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("RecordWindowsPluginCApi"));
-  ScreenRetrieverPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("ScreenRetrieverPlugin"));
+  ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("ScreenRetrieverWindowsPluginCApi"));
   SuperNativeExtensionsPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("SuperNativeExtensionsPluginCApi"));
   SystemThemePluginRegisterWithRegistrar(
