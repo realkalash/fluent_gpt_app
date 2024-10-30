@@ -6,6 +6,7 @@ import 'package:elevenlabs_flutter/elevenlabs_config.dart';
 import 'package:elevenlabs_flutter/elevenlabs_types.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -53,6 +54,9 @@ class ElevenlabsSpeech {
     selectedVoiceId = AppCache.elevenlabsVoiceModelId.value;
     selectedVoiceName = AppCache.elevenlabsVoiceModelName.value;
     selectedModel = AppCache.elevenlabsModel.value ?? selectedModel;
+    if (selectedModel.isEmpty){
+      selectedModel = 'eleven_turbo_v2';
+    }
   }
 
   static bool isValid() {
@@ -73,17 +77,21 @@ class ElevenlabsSpeech {
     if (!isValid()) {
       return;
     }
-    final result = await _elevenLabs!.synthesizeBytes(
-      TextToSpeechRequest(
-        voiceId: selectedVoiceId!,
-        text: text,
-        modelId: selectedModel,
-        voiceSettings: VoiceSettings(
-          similarityBoost: 0.75,
-          stability: 0.50,
-        ),
+    if (_elevenLabs == null) {
+      await init();
+    }
+    final requestObj = TextToSpeechRequest(
+      voiceId: selectedVoiceId!,
+      text: text,
+      modelId: selectedModel,
+      voiceSettings: VoiceSettings(
+        similarityBoost: 0.75,
+        stability: 0.50,
       ),
     );
+    final json = requestObj.toJson();
+    log('Request elevenlabs: $json');
+    final result = await _elevenLabs!.synthesizeBytes(requestObj, voiceId: selectedVoiceId!);
     final audio = result;
     player = AudioPlayer();
     await player!.setSourceBytes(audio, mimeType: 'audio/wav');

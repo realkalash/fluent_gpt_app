@@ -21,7 +21,7 @@ Map<String, dynamic> _$TextToSpeechRequestToJson(
         TextToSpeechRequest instance) =>
     <String, dynamic>{
       'voice_id': instance.voiceId,
-      'model_id': instance.modelId,
+      'model_id': instance.modelId ?? "eleven_monolingual_v1",
       'text': instance.text,
       'voice_settings': instance.voiceSettings?.toJson(),
     };
