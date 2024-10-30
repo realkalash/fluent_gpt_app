@@ -20,7 +20,7 @@ import pasteboard
 import path_provider_foundation
 import protocol_handler_macos
 import record_darwin
-import screen_retriever
+import screen_retriever_macos
 import shared_preferences_foundation
 import super_native_extensions
 import system_theme
@@ -44,7 +44,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   ProtocolHandlerMacosPlugin.register(with: registry.registrar(forPlugin: "ProtocolHandlerMacosPlugin"))
   RecordPlugin.register(with: registry.registrar(forPlugin: "RecordPlugin"))
-  ScreenRetrieverPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverPlugin"))
+  ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   SuperNativeExtensionsPlugin.register(with: registry.registrar(forPlugin: "SuperNativeExtensionsPlugin"))
   SystemThemePlugin.register(with: registry.registrar(forPlugin: "SystemThemePlugin"))
