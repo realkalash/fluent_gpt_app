@@ -44,7 +44,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: widget.title ?? const Text('Choose a hotkey'),
-      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 320),
+      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(widget.initHotkey),
@@ -54,81 +54,84 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
             ? Button(onPressed: apply, child: const Text('Apply'))
             : const FilledRedButton(child: Text('Apply')),
       ],
-      content: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (hotKey == null)
-              const Text(
-                  'Press a key combination to set a new hotkey (escape to cancel)'),
-            const Text('Current hotkey:'),
-            spacer,
-            HotKeyRecorder(
-              onHotKeyRecorded: (v) async {
-                if (v.physicalKey == PhysicalKeyboardKey.escape) {
-                  cancel();
-                  return;
-                }
-                final listHotKeys = HotKeyManager.instance.registeredHotKeyList;
-                final pressedKey = v.debugName;
-                if (listHotKeys
-                    .any((element) => element.debugName == pressedKey)) {
-                  canApply = false;
-                } else {
-                  canApply = true;
-                }
-                listUsedHotkeys = listHotKeys;
-                setState(() {
-                  hotKey = v;
-                });
-              },
-              initalHotKey: hotKey,
-            ),
-            if (!canApply)
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'This hotkey is already in use',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
-                ],
+      content: ListView(
+        shrinkWrap: true,
+        children: [
+          if (hotKey == null)
+            const Text(
+                'Press a key combination to set a new hotkey (escape to cancel)'),
+          Row(
+            children: [
+              const Text('Current hotkey:'),
+              const SizedBox(width: 8),
+              HotKeyRecorder(
+                onHotKeyRecorded: (v) async {
+                  if (v.physicalKey == PhysicalKeyboardKey.escape) {
+                    cancel();
+                    return;
+                  }
+                  final listHotKeys =
+                      HotKeyManager.instance.registeredHotKeyList;
+                  final pressedKey = v.debugName;
+                  if (listHotKeys
+                      .any((element) => element.debugName == pressedKey)) {
+                    canApply = false;
+                  } else {
+                    canApply = true;
+                  }
+                  listUsedHotkeys = listHotKeys;
+                  setState(() {
+                    hotKey = v;
+                  });
+                },
+                initalHotKey: hotKey,
               ),
-            spacer,
-            Divider(),
-            spacer,
-            ListTile(
-              title: const Text('Hotkeys in use (click for details)'),
-              onPressed: () {
-                showDialog(
-                    context: context,
-                    barrierDismissible: true,
-                    builder: (ctx) {
-                      return ContentDialog(
-                        title: const Text('Hotkeys in use'),
-                        content: ListView(
-                          shrinkWrap: true,
-                          children: listUsedHotkeys
-                              .map((e) => BasicListTile(
-                                    title: Text(e.debugName),
-                                    color: Colors.transparent,
-                                  ))
-                              .toList(),
-                        ),
-                        actions: [
-                          Button(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      );
-                    });
-              },
-              trailing: Icon(FluentIcons.question_circle_20_filled),
+            ],
+          ),
+          if (!canApply)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'This hotkey is already in use',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          spacer,
+          Divider(),
+          spacer,
+          ListTile(
+            title: const Text('Hotkeys in use (click for details)'),
+            onPressed: () {
+              showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (ctx) {
+                    return ContentDialog(
+                      title: const Text('Hotkeys in use'),
+                      content: ListView(
+                        shrinkWrap: true,
+                        children: listUsedHotkeys
+                            .map((e) => BasicListTile(
+                                  title: Text(e.debugName),
+                                  color: Colors.transparent,
+                                ))
+                            .toList(),
+                      ),
+                      actions: [
+                        Button(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    );
+                  });
+            },
+            trailing: Icon(FluentIcons.question_circle_20_filled),
+          ),
+        ],
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
@@ -29,10 +31,15 @@ class PushToTalkTool {
     text = '';
     try {
       _recorder = AudioRecorder();
-      micStream = await _recorder!.startStream(const RecordConfig(
+      micStream = await _recorder!.startStream(RecordConfig(
         encoder: AudioEncoder.pcm16bits,
         sampleRate: 16000,
         numChannels: 1,
+        device: AppCache.micrpohoneDeviceId.value != null
+            ? InputDevice(
+                id: AppCache.micrpohoneDeviceId.value!,
+                label: AppCache.micrpohoneDeviceName.value!)
+            : null,
       ));
       final streamParams = {
         'detect_language': false, // not supported by streaming API
@@ -67,8 +74,14 @@ class PushToTalkTool {
       return null;
     } finally {
       transcriber = null;
+      await _recorder?.stop();
+      await _recorder?.dispose();
       _recorder = null;
       isRecording = false;
+      if (Platform.isWindows) {
+        // disposing the recorder on windows can take a little bit longer. To prevent audio output issues we wait a bit
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
     }
   }
 }

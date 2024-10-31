@@ -48,6 +48,8 @@ class AppCache {
   static const windowHeight = IntPref("windowHeight");
   static const autoScrollSpeed = DoublePref("autoScrollSpeed", 1.0);
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
+  static const micrpohoneDeviceId = StringPref("micrpohoneDeviceId");
+  static const micrpohoneDeviceName = StringPref("micrpohoneDeviceName");
 
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
 

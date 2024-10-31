@@ -11,6 +11,7 @@ import 'package:fluent_gpt/dialogs/custom_action_dialog.dart';
 import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
@@ -1162,6 +1163,13 @@ class _OtherSettings extends StatelessWidget {
         Text('Other settings',
             style: FluentTheme.of(context).typography.subtitle),
         spacer,
+        Button(child: Text('Audio and Microphone'), onPressed: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => const MicrophoneSettingsDialog(),
+          );
+        }),
+        spacer,
         Checkbox(
           content: const Text('Prevent close app'),
           checked: appTheme.preventClose,
@@ -1316,7 +1324,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                   setState(() {
                     takeScreenshot = key;
                   });
-                  if (!wasRegistered) {
+                  if (wasRegistered) {
                     await HotKeyManager.instance.unregister(key);
                   }
                   await AppCache.takeScreenshotKey
@@ -1353,7 +1361,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                   setState(() {
                     pttScreenshotKey = key;
                   });
-                  if (!wasRegistered) {
+                  if (wasRegistered) {
                     await HotKeyManager.instance.unregister(key);
                   }
                   await AppCache.pttScreenshotKey.set(jsonEncode(key.toJson()));
@@ -1389,7 +1397,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                   setState(() {
                     pttKey = key;
                   });
-                  if (!wasRegistered) {
+                  if (wasRegistered) {
                     await HotKeyManager.instance.unregister(key);
                   }
                   await AppCache.pttKey.set(jsonEncode(key.toJson()));

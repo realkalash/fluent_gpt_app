@@ -6,7 +6,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:flutter/services.dart';
 import 'package:keypress_simulator/keypress_simulator.dart';
 
-const overlayChannel = MethodChannel('com.realk.fluent_gpt/overlay');
+const overlayChannel = MethodChannel('com.realk.fluent_gpt');
 
 class NativeChannelUtils {
   static void testChannel() async {
