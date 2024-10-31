@@ -1,6 +1,8 @@
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
@@ -30,9 +32,11 @@ class KeybindingDialog extends StatefulWidget {
 class _KeybindingDialogState extends State<KeybindingDialog> {
   HotKey? hotKey;
   bool canApply = true;
+  List<HotKey> listUsedHotkeys = [];
   @override
   void initState() {
     hotKey = widget.initHotkey;
+    listUsedHotkeys = HotKeyManager.instance.registeredHotKeyList;
     super.initState();
   }
 
@@ -40,7 +44,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: widget.title ?? const Text('Choose a hotkey'),
-      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 280),
+      constraints: const BoxConstraints(maxWidth: 400, maxHeight: 320),
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(widget.initHotkey),
@@ -67,11 +71,13 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
                 }
                 final listHotKeys = HotKeyManager.instance.registeredHotKeyList;
                 final pressedKey = v.debugName;
-                if (listHotKeys.any((element) => element.debugName == pressedKey)) {
+                if (listHotKeys
+                    .any((element) => element.debugName == pressedKey)) {
                   canApply = false;
                 } else {
                   canApply = true;
                 }
+                listUsedHotkeys = listHotKeys;
                 setState(() {
                   hotKey = v;
                 });
@@ -79,10 +85,48 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
               initalHotKey: hotKey,
             ),
             if (!canApply)
-              Text(
-                'This hotkey is already in use',
-                style: TextStyle(color: Colors.red),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'This hotkey is already in use',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
               ),
+            spacer,
+            Divider(),
+            spacer,
+            ListTile(
+              title: const Text('Hotkeys in use (click for details)'),
+              onPressed: () {
+                showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    builder: (ctx) {
+                      return ContentDialog(
+                        title: const Text('Hotkeys in use'),
+                        content: ListView(
+                          shrinkWrap: true,
+                          children: listUsedHotkeys
+                              .map((e) => BasicListTile(
+                                    title: Text(e.debugName),
+                                    color: Colors.transparent,
+                                  ))
+                              .toList(),
+                        ),
+                        actions: [
+                          Button(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Close'),
+                          ),
+                        ],
+                      );
+                    });
+              },
+              trailing: Icon(FluentIcons.question_circle_20_filled),
+            ),
           ],
         ),
       ),

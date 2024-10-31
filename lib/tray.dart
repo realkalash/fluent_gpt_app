@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
+import 'package:fluent_gpt/features/push_to_talk_tool.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
@@ -124,12 +125,12 @@ Future<void> onTrayButtonTapCommand(String promptText,
   trayButtonStream.add(uri.toString());
   final visible = await windowManager.isVisible();
   if (!visible) {
-    windowManager.show();
+    await windowManager.show();
   }
 }
 
 showWindow() {
-  windowManager.show();
+  windowManager.show(inactive: Platform.isMacOS ? true : false);
 }
 
 /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
@@ -154,6 +155,8 @@ HotKey showOverlayForText = HotKey(
   scope: HotKeyScope.system,
 );
 HotKey? takeScreenshot;
+HotKey? pttScreenshotKey;
+HotKey? pttKey;
 Future<void> initShortcuts() async {
   await hotKeyManager.register(
     openWindowHotkey,
@@ -210,6 +213,10 @@ Future<void> initShortcuts() async {
 bool _isHotKeyRegistering = false;
 Future<void> initCachedHotKeys() async {
   final openWindowKey = AppCache.openWindowKey.value;
+  final takeScreenshotKey = AppCache.takeScreenshotKey.value;
+  final pttScreenshotKeyCached = AppCache.pttScreenshotKey.value;
+  final pttKeyCached = AppCache.pttKey.value;
+
   if (openWindowKey != null) {
     await hotKeyManager.unregister(openWindowHotkey);
     openWindowHotkey = HotKey.fromJson(jsonDecode(openWindowKey));
@@ -262,7 +269,6 @@ Future<void> initCachedHotKeys() async {
       },
     );
   }
-  final takeScreenshotKey = AppCache.takeScreenshotKey.value;
   if (takeScreenshotKey != null) {
     takeScreenshot = HotKey.fromJson(jsonDecode(takeScreenshotKey));
     await hotKeyManager.register(
@@ -271,12 +277,54 @@ Future<void> initCachedHotKeys() async {
         if (ScreenshotTool.isCapturingState) {
           return;
         }
-        final base64Result = await ScreenshotTool.takeScreenshotReturnBase64();
+        final base64Result = Platform.isMacOS
+            ? await ScreenshotTool.takeScreenshotReturnBase64Native()
+            : await ScreenshotTool.takeScreenshotReturnBase64();
         if (base64Result != null && base64Result.isNotEmpty) {
           onTrayButtonTapCommand(base64Result, 'paste_attachment_ai_lens');
+          if (Platform.isMacOS) {
+            await Future.delayed(const Duration(milliseconds: 200));
+            showWindow();
+          }
         }
       },
     );
+  }
+  if (pttScreenshotKeyCached != null) {
+    pttScreenshotKey = HotKey.fromJson(jsonDecode(pttScreenshotKeyCached));
+    await hotKeyManager.register(
+      pttScreenshotKey!,
+      keyDownHandler: (hotKey) async {
+        PushToTalkTool.start();
+      },
+      keyUpHandler: (hotKey) async {
+        final text = await PushToTalkTool.stop();
+        if (text != null && text.isNotEmpty) {
+          final screenshot = Platform.isMacOS
+              ? await ScreenshotTool.takeScreenshotReturnBase64Native()
+              : await ScreenshotTool.takeScreenshotReturnBase64();
+          if (screenshot != null && screenshot.isNotEmpty) {
+            onTrayButtonTapCommand(screenshot, 'paste_attachment_silent');
+          }
+          onTrayButtonTapCommand(text, 'push_to_talk_message');
+        }
+      },
+    );
+    if (pttKeyCached != null) {
+      pttKey = HotKey.fromJson(jsonDecode(pttKeyCached));
+      await hotKeyManager.register(
+        pttKey!,
+        keyDownHandler: (hotKey) async {
+          PushToTalkTool.start();
+        },
+        keyUpHandler: (hotKey) async {
+          final text = await PushToTalkTool.stop();
+          if (text != null && text.isNotEmpty) {
+            onTrayButtonTapCommand(text, 'push_to_talk_message');
+          }
+        },
+      );
+    }
   }
 }
 

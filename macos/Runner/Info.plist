@@ -47,5 +47,7 @@
 	<string>This app needs to access selected text for processing.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to the microphone for recording audio.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>You need access to the camera in order to use camera for AI</string>
 </dict>
 </plist>

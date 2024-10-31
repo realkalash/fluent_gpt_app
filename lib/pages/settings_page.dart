@@ -1275,7 +1275,8 @@ class _HotKeySectionState extends State<_HotKeySection> {
         Text('Hotkeys', style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Wrap(
-          spacing: 12,
+          spacing: 4,
+          runSpacing: 4,
           children: [
             Button(
               onPressed: () async {
@@ -1306,7 +1307,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                 final key = await KeybindingDialog.show(
                   context,
                   initHotkey: takeScreenshot,
-                  title: const Text('Open the window keybinding'),
+                  title: const Text('Take a screenshot keybinding'),
                 );
                 final wasRegistered = HotKeyManager
                     .instance.registeredHotKeyList
@@ -1330,6 +1331,78 @@ class _HotKeySectionState extends State<_HotKeySection> {
                   const SizedBox(width: 10.0),
                   if (takeScreenshot != null)
                     HotKeyVirtualView(hotKey: takeScreenshot!)
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2),
+                      child: Text('[Not set]'),
+                    ),
+                ],
+              ),
+            ),
+            Button(
+              onPressed: () async {
+                final key = await KeybindingDialog.show(
+                  context,
+                  initHotkey: pttScreenshotKey,
+                  title: const Text('Push-to-talk with screenshot'),
+                );
+                final wasRegistered = HotKeyManager
+                    .instance.registeredHotKeyList
+                    .any((element) => element == key);
+                if (key != null && key != pttScreenshotKey) {
+                  setState(() {
+                    pttScreenshotKey = key;
+                  });
+                  if (!wasRegistered) {
+                    await HotKeyManager.instance.unregister(key);
+                  }
+                  await AppCache.pttScreenshotKey.set(jsonEncode(key.toJson()));
+                  initShortcuts();
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Push-to-talk with screenshot'),
+                  const SizedBox(width: 10.0),
+                  if (pttScreenshotKey != null)
+                    HotKeyVirtualView(hotKey: pttScreenshotKey!)
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2),
+                      child: Text('[Not set]'),
+                    ),
+                ],
+              ),
+            ),
+            Button(
+              onPressed: () async {
+                final key = await KeybindingDialog.show(
+                  context,
+                  initHotkey: pttKey,
+                  title: const Text('Push-to-talk'),
+                );
+                final wasRegistered = HotKeyManager
+                    .instance.registeredHotKeyList
+                    .any((element) => element == key);
+                if (key != null && key != pttKey) {
+                  setState(() {
+                    pttKey = key;
+                  });
+                  if (!wasRegistered) {
+                    await HotKeyManager.instance.unregister(key);
+                  }
+                  await AppCache.pttKey.set(jsonEncode(key.toJson()));
+                  initShortcuts();
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Push-to-talk'),
+                  const SizedBox(width: 10.0),
+                  if (pttKey != null)
+                    HotKeyVirtualView(hotKey: pttKey!)
                   else
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 2),

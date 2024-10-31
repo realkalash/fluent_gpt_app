@@ -121,12 +121,13 @@ void main(List<String> args) async {
   if (Platform.isMacOS || Platform.isWindows) {
     SystemTheme.accentColor.load();
   }
-  await WindowsSingleInstance.ensureSingleInstance(args, "fluent_gpt",
-      onSecondWindow: (secondWindowArgs) {
-    windowManager.show();
+  if (!Platform.isMacOS)
+    await WindowsSingleInstance.ensureSingleInstance(args, "fluent_gpt",
+        onSecondWindow: (secondWindowArgs) {
+      showWindow();
 
-    log('onSecondWindow. args: $args');
-  });
+      log('onSecondWindow. args: $args');
+    });
   prefs = await SharedPreferences.getInstance();
   if (AppCache.isWelcomeShown.value == true) {
     await FileUtils.init();

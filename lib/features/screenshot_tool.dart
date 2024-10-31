@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:flutter/services.dart';
 
 class ScreenshotTool {
+  static const platform = MethodChannel('com.example.screencapture');
   static bool isCapturingState = false;
   static const _fileName = 'capture_screenshot.py';
   static String get filePath =>
@@ -72,6 +74,21 @@ class ScreenshotTool {
     }
     isCapturingState = false;
     return null;
+  }
+
+  static Future<String?> takeScreenshotReturnBase64Native() async {
+    try {
+      isCapturingState = true;
+      final String base64Image =
+          await platform.invokeMethod('captureActiveScreen');
+
+      return base64Image;
+    } on PlatformException catch (e) {
+      logError('Failed to capture screenshot: ${e.message}');
+      return null;
+    } finally {
+      isCapturingState = false;
+    }
   }
 }
 
