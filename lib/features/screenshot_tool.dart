@@ -6,7 +6,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:flutter/services.dart';
 
 class ScreenshotTool {
-  static const platform = MethodChannel('com.example.screencapture');
+  static const platform = MethodChannel('com.realk.fluent_gpt');
   static bool isCapturingState = false;
   static const _fileName = 'capture_screenshot.py';
   static String get filePath =>
@@ -55,6 +55,7 @@ class ScreenshotTool {
   }
 
   static Future<String?> takeScreenshotReturnBase64() async {
+   
     try {
       isCapturingState = true;
       // Run the Python script

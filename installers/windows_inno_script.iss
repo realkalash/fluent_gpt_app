@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "FluentGPT"
-#define MyAppVersion "1.0.15"
+#define MyAppVersion "1.0.18"
 #define MyAppPublisher "realkalash"
 #define MyAppURL "https://github.com/realkalash/fluent_gpt_app"
 #define MyAppExeName "fluent_gpt.exe"
@@ -57,7 +57,7 @@ Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\aud
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\record_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\permission_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\protocol_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\screen_retriever_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\screen_retriever_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\system_theme_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion

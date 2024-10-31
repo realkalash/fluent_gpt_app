@@ -13,6 +13,16 @@
 #include <flutter/event_stream_handler_functions.h>
 #include <flutter/standard_method_codec.h>
 #include <iostream>
+#include <wincodec.h>
+#include <Shlwapi.h>
+#include <atlbase.h>
+#include <atlenc.h>
+#include <codecvt>
+#include <shlwapi.h>
+
+#pragma comment(lib, "Windowscodecs.lib")
+#pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Crypt32.lib")
 
 // START CUSTOM FUNCTIONS
 static int GetBatteryLevel()
@@ -132,6 +142,245 @@ static std::pair<int, int> GetMousePosition()
   return {0, 0}; // Return (0,0) if unable to get position
 }
 
+void logError(HRESULT hr, const char* msg) {
+    char* errorMsg = nullptr;
+    FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&errorMsg, 0, NULL);
+    std::cerr << msg << ": " << (errorMsg ? errorMsg : "Unknown error") << std::endl;
+    if (errorMsg) {
+        LocalFree(errorMsg);
+    }
+}
+
+std::string captureActiveScreen() {
+    // Get handle to active window
+    HWND hwnd = GetForegroundWindow();
+    // Get monitor handle
+    HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+
+    MONITORINFO monitorInfo = {};
+    monitorInfo.cbSize = sizeof(MONITORINFO);
+    if (!GetMonitorInfo(hMonitor, &monitorInfo)) {
+        std::cerr << "Failed to get monitor info" << std::endl;
+        return "";
+    }
+
+    int width = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+    int height = monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top;
+
+    HDC hScreenDC = GetDC(NULL);
+    HDC hMemoryDC = CreateCompatibleDC(hScreenDC);
+    HBITMAP hBitmap = CreateCompatibleBitmap(hScreenDC, width, height);
+    HGDIOBJ hOldBitmap = SelectObject(hMemoryDC, hBitmap);
+
+    BitBlt(hMemoryDC, 0, 0, width, height, hScreenDC,
+           monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top, SRCCOPY);
+
+    // Initialize COM
+    HRESULT hr = CoInitialize(NULL);
+    if (FAILED(hr)) {
+        logError(hr, "CoInitialize failed");
+        return "";
+    }
+
+    // Create WIC factory
+    CComPtr<IWICImagingFactory> pFactory;
+    hr = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
+                          IID_PPV_ARGS(&pFactory));
+    if (FAILED(hr)) {
+        logError(hr, "CoCreateInstance failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Create WIC bitmap from HBITMAP
+    CComPtr<IWICBitmap> pBitmap;
+    hr = pFactory->CreateBitmapFromHBITMAP(hBitmap, NULL,
+                                           WICBitmapIgnoreAlpha, &pBitmap);
+    if (FAILED(hr)) {
+        logError(hr, "CreateBitmapFromHBITMAP failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Create stream
+    CComPtr<IWICStream> pStream;
+    hr = pFactory->CreateStream(&pStream);
+    if (FAILED(hr)) {
+        logError(hr, "CreateStream failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Allocate memory for the stream
+    const size_t bufferSize = width * height * 4; // Assuming 4 bytes per pixel
+    std::vector<BYTE> buffer(bufferSize);
+
+    hr = pStream->InitializeFromMemory(buffer.data(), static_cast<DWORD>(buffer.size()));
+    if (FAILED(hr)) {
+        logError(hr, "InitializeFromMemory failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Create encoder for JPEG
+    CComPtr<IWICBitmapEncoder> pEncoder;
+    hr = pFactory->CreateEncoder(GUID_ContainerFormatJpeg, NULL, &pEncoder);
+    if (FAILED(hr)) {
+        logError(hr, "CreateEncoder failed");
+        CoUninitialize();
+        return "";
+    }
+
+    hr = pEncoder->Initialize(pStream, WICBitmapEncoderNoCache);
+    if (FAILED(hr)) {
+        logError(hr, "Encoder Initialize failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Create frame
+    CComPtr<IWICBitmapFrameEncode> pFrame;
+    CComPtr<IPropertyBag2> pProps;
+    hr = pEncoder->CreateNewFrame(&pFrame, &pProps);
+    if (FAILED(hr) || !pFrame) {
+        logError(hr, "CreateNewFrame failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Set JPEG quality (optional)
+    PROPBAG2 option = {};
+    option.pstrName = L"ImageQuality";
+    VARIANT varValue;
+    VariantInit(&varValue);
+    varValue.vt = VT_R4;       // VT_R4 is float type
+    varValue.fltVal = 0.9f;    // Quality level (0.0 - 1.0)
+    hr = pProps->Write(1, &option, &varValue);
+    VariantClear(&varValue);
+    if (FAILED(hr)) {
+        logError(hr, "Write ImageQuality failed");
+        CoUninitialize();
+        return "";
+    }
+
+    hr = pFrame->Initialize(pProps);
+    if (FAILED(hr)) {
+        logError(hr, "Frame Initialize failed");
+        CoUninitialize();
+        return "";
+    }
+
+    hr = pFrame->SetSize(width, height);
+    if (FAILED(hr)) {
+        logError(hr, "SetSize failed");
+        CoUninitialize();
+        return "";
+    }
+
+    WICPixelFormatGUID formatGUID = GUID_WICPixelFormat24bppBGR;
+    hr = pFrame->SetPixelFormat(&formatGUID);
+    if (FAILED(hr)) {
+        logError(hr, "SetPixelFormat failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Write to frame
+    hr = pFrame->WriteSource(pBitmap, NULL);
+    if (FAILED(hr)) {
+        logError(hr, "WriteSource failed");
+        CoUninitialize();
+        return "";
+    }
+
+    hr = pFrame->Commit();
+    if (FAILED(hr)) {
+        logError(hr, "Frame Commit failed");
+        CoUninitialize();
+        return "";
+    }
+
+    hr = pEncoder->Commit();
+    if (FAILED(hr)) {
+        logError(hr, "Encoder Commit failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Get the size of the stream
+    ULARGE_INTEGER ulnSize;
+    IStream* ipStream = (IStream*)pStream.p;
+    STATSTG stats;
+    hr = ipStream->Stat(&stats, STATFLAG_NONAME);
+    if (FAILED(hr)) {
+        logError(hr, "Stream Stat failed");
+        CoUninitialize();
+        return "";
+    }
+    ulnSize = stats.cbSize;
+
+    // Allocate memory and read the stream
+    std::vector<BYTE> bufferRead(static_cast<size_t>(ulnSize.QuadPart));
+    LARGE_INTEGER liZero = {};
+    hr = ipStream->Seek(liZero, STREAM_SEEK_SET, NULL);
+    if (FAILED(hr)) {
+        logError(hr, "Stream Seek failed");
+        CoUninitialize();
+        return "";
+    }
+
+    ULONG bytesRead = 0;
+    hr = ipStream->Read(bufferRead.data(), static_cast<ULONG>(bufferRead.size()), &bytesRead);
+    if (FAILED(hr) || bytesRead != bufferRead.size()) {
+        logError(hr, "Stream Read failed");
+        CoUninitialize();
+        return "";
+    }
+
+    // Encode to base64
+    DWORD base64Length = 0;
+    if (!CryptBinaryToStringA(bufferRead.data(), bytesRead,
+                              CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                              NULL, &base64Length)) {
+        std::cerr << "CryptBinaryToStringA (length) failed" << std::endl;
+        CoUninitialize();
+        return "";
+    }
+
+    std::string base64String(base64Length, '\0');
+    if (!CryptBinaryToStringA(bufferRead.data(), bytesRead,
+                              CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                              &base64String[0], &base64Length)) {
+        std::cerr << "CryptBinaryToStringA (conversion) failed" << std::endl;
+        CoUninitialize();
+        return "";
+    }
+
+    // Trim the null character from the end of the Base64 string
+    if (!base64String.empty() && base64String.back() == '\0') {
+        base64String.pop_back();
+    }
+
+    // Verify the length of the Base64 string
+    if (base64String.length() != base64Length) {
+        std::cerr << "Base64 string length mismatch: expected " << base64Length << ", got " << base64String.length() << std::endl;
+        CoUninitialize();
+        return "";
+    }
+
+    // Cleanup
+    SelectObject(hMemoryDC, hOldBitmap);
+    DeleteObject(hBitmap);
+    DeleteDC(hMemoryDC);
+    ReleaseDC(NULL, hScreenDC);
+
+    CoUninitialize();
+
+    return base64String;
+}
+
 // END CUSTOM FUNCTIONS
 
 FlutterWindow::FlutterWindow(const flutter::DartProject &project)
@@ -159,9 +408,9 @@ bool FlutterWindow::OnCreate()
   }
   RegisterPlugins(flutter_controller_->engine());
   flutter::MethodChannel<> channel(
-      flutter_controller_->engine()->messenger(), "com.realk.fluent_gpt/overlay",
+      flutter_controller_->engine()->messenger(), "com.realk.fluent_gpt",
       &flutter::StandardMethodCodec::GetInstance());
-
+ 
   channel.SetMethodCallHandler(
       [](const flutter::MethodCall<> &call,
          std::unique_ptr<flutter::MethodResult<>> result)
@@ -225,6 +474,12 @@ bool FlutterWindow::OnCreate()
           map[flutter::EncodableValue("positionY")] = flutter::EncodableValue(position.second);
           result->Success(flutter::EncodableValue(map));
         }
+        else if (call.method_name() == "captureActiveScreen")
+        {
+          std::cout << "[C++] captureActiveScreen called" << std::endl;
+          std::string base64String = captureActiveScreen();
+          result->Success(flutter::EncodableValue(base64String));
+        }
         else
         {
           result->NotImplemented();
@@ -239,6 +494,8 @@ bool FlutterWindow::OnCreate()
   // registered. The following call ensures a frame is pending to ensure the
   // window is shown. It is a no-op if the first frame hasn't completed yet.
   flutter_controller_->ForceRedraw();
+
+  
 
   return true;
 }
