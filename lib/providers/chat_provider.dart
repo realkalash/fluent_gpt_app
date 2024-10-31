@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
@@ -543,7 +544,8 @@ class ChatProvider with ChangeNotifier {
         currentTokens += tokensCount;
         result.add(message);
       }
-      if (message is HumanChatMessage) {
+      if (message is HumanChatMessage &&
+          message.content is ChatMessageContentText) {
         final tokensCount = await tokenizer.count(
             (message.content as ChatMessageContentText).text,
             modelName: 'gpt-4');
@@ -1559,11 +1561,38 @@ class ChatProvider with ChangeNotifier {
         return false;
       }
       recorder = AudioRecorder();
-      micStream = await recorder!.startStream(const RecordConfig(
-        encoder: AudioEncoder.pcm16bits,
-        sampleRate: 16000,
-        numChannels: 1,
-      ));
+      // if (Platform.isWindows) {
+      //   final path = FileUtils.temporaryDirectoryPath != null
+      //       ? '${FileUtils.temporaryDirectoryPath}\\tempaudio.wav'
+      //       : 'tempaudio.wav';
+      //   await recorder!.start(
+      //     RecordConfig(
+      //       encoder: AudioEncoder.pcm16bits,
+      //       sampleRate: 16000,
+      //       numChannels: 1,
+      //       device: AppCache.micrpohoneDeviceId.value != null
+      //           ? InputDevice(
+      //               id: AppCache.micrpohoneDeviceId.value!,
+      //               label:
+      //                   AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
+      //           : null,
+      //     ),
+      //     path: path,
+      //   );
+      //   return true;
+      // }
+      micStream = await recorder!.startStream(
+        RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: 16000,
+          numChannels: 1,
+          device: AppCache.micrpohoneDeviceId.value != null
+              ? InputDevice(
+                  id: AppCache.micrpohoneDeviceId.value!,
+                  label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
+              : null,
+        ),
+      );
 
       final streamParams = {
         'detect_language': false, // not supported by streaming API
@@ -1597,6 +1626,25 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> stopListeningForInput() async {
     try {
+      // if (Platform.isWindows) {
+      //   final filePath = await recorder!.stop();
+      //   if (filePath != null) {
+      //     final file = File(filePath);
+      //     final fileSize = await file.length();
+      //     if (kDebugMode) {
+      //       print('Audio File size: $fileSize. path "$filePath"');
+      //     }
+      //     final result = await DeepgramSpeech.deepgram
+      //         .transcribeFromPath(filePath, queryParams: {
+      //       'language': AppCache.speechLanguage.value!,
+      //       'encoding': 'linear16',
+      //       'sample_rate': 16000,
+      //     });
+      //     if (result.transcript != null)
+      //       messageController.text = result.transcript!;
+      //   }
+      //   return;
+      // }
       transcriber!.pause(keepAlive: false);
       await transcriber!.close();
       transcriber = null;

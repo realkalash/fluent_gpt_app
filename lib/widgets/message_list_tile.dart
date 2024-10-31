@@ -657,7 +657,7 @@ class _MessageCardState extends State<MessageCard> {
           const MenuFlyoutSeparator(),
           MenuFlyoutItem(
             text: const Text('Save image to file'),
-            leading: const Icon(FluentIcons.copy_16_regular),
+            leading: const Icon(FluentIcons.save_16_regular),
             onPressed: () => _saveImageToFile(context),
           ),
           MenuFlyoutItem(

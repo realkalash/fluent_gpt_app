@@ -24,7 +24,7 @@ class AppDelegate: FlutterAppDelegate {
       fatalError("[Swift] Flutter view controller not found")
     }
 
-    methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt/overlay", binaryMessenger: controller.engine.binaryMessenger)
+    methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt", binaryMessenger: controller.engine.binaryMessenger)
     let checkOptPrompt = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as NSString
 
     let options = [checkOptPrompt: true]
@@ -38,26 +38,6 @@ class AppDelegate: FlutterAppDelegate {
     setupMethodCallHandler()
     requestAccessibilityPermissions()
     setupEventMonitoring()
-
-    let methodChannel = FlutterMethodChannel(name: "com.example.screencapture", binaryMessenger: controller.engine.binaryMessenger)
-
-    methodChannel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
-      guard let self = self else { return }
-
-      if call.method == "captureActiveScreen" {
-        if let image = self.captureActiveScreen(),
-           let imageData = image.tiffRepresentation,
-           let bitmap = NSBitmapImageRep(data: imageData),
-           let pngData = bitmap.representation(using: .png, properties: [:]) {
-          let base64String = pngData.base64EncodedString(options: [])
-          result(base64String)
-        } else {
-          result(FlutterError(code: "UNAVAILABLE", message: "Image conversion failed", details: nil))
-        }
-      } else {
-        result(FlutterMethodNotImplemented)
-      }
-    }
 
     // customTimer.startTimer(interval: 3.0) {
     // print("[Swift] Timer fired")
@@ -100,6 +80,16 @@ class AppDelegate: FlutterAppDelegate {
       case "getMousePosition":
         let cursorPosition = getCurrentCursorPosition()
         result(["positionX": cursorPosition.x, "positionY": cursorPosition.y])
+      case "captureActiveScreen":
+        if let image = self.captureActiveScreen(),
+           let imageData = image.tiffRepresentation,
+           let bitmap = NSBitmapImageRep(data: imageData),
+           let pngData = bitmap.representation(using: .png, properties: [:]) {
+          let base64String = pngData.base64EncodedString(options: [])
+          result(base64String)
+        } else {
+          result(FlutterError(code: "UNAVAILABLE", message: "Image conversion failed", details: nil))
+        }
       default:
         result("not implemented")
       }

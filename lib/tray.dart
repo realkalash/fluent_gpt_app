@@ -277,7 +277,7 @@ Future<void> initCachedHotKeys() async {
         if (ScreenshotTool.isCapturingState) {
           return;
         }
-        final base64Result = Platform.isMacOS
+        final base64Result = (Platform.isMacOS || Platform.isWindows)
             ? await ScreenshotTool.takeScreenshotReturnBase64Native()
             : await ScreenshotTool.takeScreenshotReturnBase64();
         if (base64Result != null && base64Result.isNotEmpty) {
@@ -295,12 +295,30 @@ Future<void> initCachedHotKeys() async {
     await hotKeyManager.register(
       pttScreenshotKey!,
       keyDownHandler: (hotKey) async {
+        log('PTT Screenshot Key Down');
+        if (Platform.isWindows) {
+          // on windows we don't have keyUpHandler, so we need to stop the PTT on key down
+          if (PushToTalkTool.isRecording) {
+            final text = await PushToTalkTool.stop();
+            if (text != null && text.isNotEmpty) {
+              final screenshot = (Platform.isMacOS || Platform.isWindows)
+                  ? await ScreenshotTool.takeScreenshotReturnBase64Native()
+                  : await ScreenshotTool.takeScreenshotReturnBase64();
+              if (screenshot != null && screenshot.isNotEmpty) {
+                onTrayButtonTapCommand(screenshot, 'paste_attachment_silent');
+              }
+              onTrayButtonTapCommand(text, 'push_to_talk_message');
+            }
+            return;
+          }
+        }
         PushToTalkTool.start();
       },
       keyUpHandler: (hotKey) async {
+        log('PTT Screenshot Key Up');
         final text = await PushToTalkTool.stop();
         if (text != null && text.isNotEmpty) {
-          final screenshot = Platform.isMacOS
+          final screenshot = (Platform.isMacOS || Platform.isWindows)
               ? await ScreenshotTool.takeScreenshotReturnBase64Native()
               : await ScreenshotTool.takeScreenshotReturnBase64();
           if (screenshot != null && screenshot.isNotEmpty) {
@@ -315,9 +333,21 @@ Future<void> initCachedHotKeys() async {
       await hotKeyManager.register(
         pttKey!,
         keyDownHandler: (hotKey) async {
+          log('PTT Key Down');
+          if (Platform.isWindows) {
+            // on windows we don't have keyUpHandler, so we need to stop the PTT on key down
+            if (PushToTalkTool.isRecording) {
+              final text = await PushToTalkTool.stop();
+              if (text != null && text.isNotEmpty) {
+                onTrayButtonTapCommand(text, 'push_to_talk_message');
+              }
+              return;
+            }
+          }
           PushToTalkTool.start();
         },
         keyUpHandler: (hotKey) async {
+          log('PTT Key Up');
           final text = await PushToTalkTool.stop();
           if (text != null && text.isNotEmpty) {
             onTrayButtonTapCommand(text, 'push_to_talk_message');
