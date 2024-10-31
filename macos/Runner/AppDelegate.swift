@@ -3,6 +3,7 @@ import Cocoa
 import FlutterMacOS
 import Foundation
 import AVFoundation
+import Quartz
 
 @main
 class AppDelegate: FlutterAppDelegate {
@@ -18,7 +19,7 @@ class AppDelegate: FlutterAppDelegate {
     // customTimer.stopTimer()
   }
 
-  override func applicationDidFinishLaunching(_: Notification) {
+  override func applicationDidFinishLaunching(_ notification: Notification) {
     guard let controller = mainFlutterWindow?.contentViewController as? FlutterViewController else {
       fatalError("[Swift] Flutter view controller not found")
     }
@@ -38,11 +39,31 @@ class AppDelegate: FlutterAppDelegate {
     requestAccessibilityPermissions()
     setupEventMonitoring()
 
+    let methodChannel = FlutterMethodChannel(name: "com.example.screencapture", binaryMessenger: controller.engine.binaryMessenger)
+
+    methodChannel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
+      guard let self = self else { return }
+
+      if call.method == "captureActiveScreen" {
+        if let image = self.captureActiveScreen(),
+           let imageData = image.tiffRepresentation,
+           let bitmap = NSBitmapImageRep(data: imageData),
+           let pngData = bitmap.representation(using: .png, properties: [:]) {
+          let base64String = pngData.base64EncodedString(options: [])
+          result(base64String)
+        } else {
+          result(FlutterError(code: "UNAVAILABLE", message: "Image conversion failed", details: nil))
+        }
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     // customTimer.startTimer(interval: 3.0) {
     // print("[Swift] Timer fired")
     // self.methodChannel?.invokeMethod("onTimerFired", arguments: nil)
     // }
-    // super.applicationDidFinishLaunching(notification)
+    super.applicationDidFinishLaunching(notification)
   }
 
   func setupMethodCallHandler() {
@@ -220,6 +241,57 @@ class AppDelegate: FlutterAppDelegate {
     //   "positionY": cursorPosition.y,
     // ])
   }
+
+  func captureActiveScreen() -> NSImage? {
+    // Get the active application
+    guard let activeApp = NSWorkspace.shared.frontmostApplication else {
+        return nil
+    }
+
+    // Get all on-screen windows
+    guard let windowListInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as NSArray? as? [[String: Any]] else {
+        return nil
+    }
+
+    // Find the active window of the active application
+    let activeWindows = windowListInfo.filter { windowInfo in
+        if let ownerPID = windowInfo[kCGWindowOwnerPID as String] as? pid_t,
+           let isOnscreen = windowInfo[kCGWindowIsOnscreen as String] as? Bool,
+           isOnscreen,
+           ownerPID == activeApp.processIdentifier {
+            return true
+        }
+        return false
+    }
+
+    guard let activeWindow = activeWindows.first,
+          let boundsDict = activeWindow[kCGWindowBounds as String] as? [String: Any],
+          let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else {
+        return nil
+    }
+
+    // Get displays that intersect with the active window's bounds
+    let maxDisplays: UInt32 = 16
+    var displayCount: UInt32 = 0
+    var displays = [CGDirectDisplayID](repeating: 0, count: Int(maxDisplays))
+
+    let error = CGGetDisplaysWithRect(bounds, maxDisplays, &displays, &displayCount)
+    if error == .success, displayCount > 0 {
+        // Use the first display that matches
+        let displayID = displays[0]
+
+        // Capture the screenshot of the display
+        guard let cgImage = CGDisplayCreateImage(displayID) else {
+            return nil
+        }
+
+        let screenSize = CGSize(width: CGFloat(CGDisplayPixelsWide(displayID)), height: CGFloat(CGDisplayPixelsHigh(displayID)))
+        return NSImage(cgImage: cgImage, size: screenSize)
+    } else {
+        print("No displays found for the active window.")
+        return nil
+    }
+}
 }
 
 // Will be removed in the future

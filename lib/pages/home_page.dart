@@ -929,18 +929,24 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     children: [
                       // Because our screenshot tool is using fullscreen mode
                       // macos will hide everything, so we need to disable it
-                      if (Platform.isMacOS == false)
-                        ToggleButtonAdvenced(
-                          checked: false,
-                          icon: ic.FluentIcons.eye_tracking_24_filled,
-                          onChanged: (_) async {
-                            final base64Result = await ScreenshotTool
+                      ToggleButtonAdvenced(
+                        checked: false,
+                        icon: ic.FluentIcons.eye_tracking_24_filled,
+                        onChanged: (_) async {
+                          String? base64Result;
+                          if (Platform.isMacOS) {
+                            base64Result = await ScreenshotTool
+                                .takeScreenshotReturnBase64Native();
+                          } else {
+                            base64Result = await ScreenshotTool
                                 .takeScreenshotReturnBase64();
-                            if (base64Result != null && base64Result.isNotEmpty)
-                              chatProvider.addAttachemntAiLens(base64Result);
-                          },
-                          tooltip: 'Capture screenshot',
-                        ),
+                          }
+                          if (base64Result != null && base64Result.isNotEmpty)
+                            chatProvider.addAttachemntAiLens(base64Result);
+                        },
+                        tooltip: 'Capture screenshot',
+                      ),
+
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
@@ -1055,14 +1061,19 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           )
                         ],
                       ),
-                      if (kDebugMode)
-                        ToggleButtonAdvenced(
-                          checked: false,
-                          icon: ic.FluentIcons.brain_circuit_20_regular,
-                          onChanged: (v) {},
-                          tooltip:
-                              'Summarize conversation and populate the knowlade about the user (DISABLED)',
-                        ),
+
+                      ToggleButtonAdvenced(
+                        checked:
+                            AppCache.learnAboutUserAfterCreateNewChat.value!,
+                        icon: ic.FluentIcons.brain_circuit_20_regular,
+                        onChanged: (v) {
+                          setState(() {
+                            AppCache.learnAboutUserAfterCreateNewChat.value = v;
+                          });
+                        },
+                        tooltip:
+                            'Summarize conversation and populate the knowlade about the user',
+                      ),
                       ToggleButtonAdvenced(
                         icon: ic.FluentIcons.settings_20_regular,
                         onChanged: (_) => showDialog(

@@ -271,9 +271,15 @@ Future<void> initCachedHotKeys() async {
         if (ScreenshotTool.isCapturingState) {
           return;
         }
-        final base64Result = await ScreenshotTool.takeScreenshotReturnBase64();
+        final base64Result = Platform.isMacOS
+            ? await ScreenshotTool.takeScreenshotReturnBase64Native()
+            : await ScreenshotTool.takeScreenshotReturnBase64();
         if (base64Result != null && base64Result.isNotEmpty) {
           onTrayButtonTapCommand(base64Result, 'paste_attachment_ai_lens');
+          if (Platform.isMacOS) {
+            await Future.delayed(const Duration(milliseconds: 200));
+            showWindow();
+          }
         }
       },
     );

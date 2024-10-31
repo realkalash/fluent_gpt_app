@@ -1306,7 +1306,7 @@ class _HotKeySectionState extends State<_HotKeySection> {
                 final key = await KeybindingDialog.show(
                   context,
                   initHotkey: takeScreenshot,
-                  title: const Text('Open the window keybinding'),
+                  title: const Text('Take a screenshot keybinding'),
                 );
                 final wasRegistered = HotKeyManager
                     .instance.registeredHotKeyList
