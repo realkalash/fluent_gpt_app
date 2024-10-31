@@ -21,7 +21,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Custom prompts'),
+      title: const Text('Quick prompts'),
       constraints: const BoxConstraints(maxWidth: 800),
       actions: [
         Button(
@@ -245,7 +245,8 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                 updateItem(newItem, context);
               },
               input: () => promptCtr.text,
-              customPromptToImprove: 'Generate a 3-5 words title based on this prompt: "{{input}}"',
+              customPromptToImprove:
+                  'Generate a 3-5 words title based on this prompt: "{{input}}"',
             ),
             onChanged: (value) {
               final newItem = item.copyWith(title: value);
@@ -472,6 +473,7 @@ class _PromptListTile extends StatelessWidget {
         prompt.title,
         style: FluentTheme.of(context).typography.bodyLarge,
       ),
+      color: Colors.transparent,
       onTap: () => showEditItemDialog(prompt, context),
       subtitle: Column(
         mainAxisSize: MainAxisSize.min,
@@ -525,13 +527,8 @@ class _PromptListTile extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: HotKeyVirtualView(hotKey: prompt.hotkey!),
             ),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          Wrap(
+            spacing: 4,
             children: [
               SizedBox.square(
                 dimension: 48,
@@ -571,6 +568,11 @@ class _PromptListTile extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Tooltip(
             message: isArchived == false
                 ? 'Archive this prompt'

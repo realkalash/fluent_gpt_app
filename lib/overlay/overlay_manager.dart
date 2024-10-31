@@ -80,7 +80,7 @@ class OverlayStatus {
 
 class OverlayManager {
   static Future<void> init() async {
-    final customPromptsJson = await AppCache.customPrompts.value();
+    final customPromptsJson = await AppCache.quickPrompts.value();
     if (customPromptsJson.isNotEmpty) {
       final customPromptsList = jsonDecode(customPromptsJson) as List<dynamic>;
       final customPromptsListDecoded =
@@ -96,7 +96,7 @@ class OverlayManager {
       archivedPrompts.add(archivedPromptsListDecoded);
     }
     customPrompts.listen((newData) {
-      AppCache.customPrompts.set(
+      AppCache.quickPrompts.set(
         jsonEncode(newData.map((e) => e.toJson()).toList()),
       );
     });

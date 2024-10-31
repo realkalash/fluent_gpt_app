@@ -324,6 +324,8 @@ class ChatProvider with ChangeNotifier {
           sendMessage(text, hidePrompt: true);
         }
       } else if (command == 'custom') {
+        messageController.clear();
+        sendMessage(text, hidePrompt: true);
       } else if (command == 'push_to_talk_message') {
         messageController.clear();
         sendMessage(text, hidePrompt: true, onFinishResponse: () async {

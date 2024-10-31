@@ -19,11 +19,15 @@ class AppCache {
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
   static const frameless = BoolPref("frameless", false);
   static const speechLanguage = StringPref("speechLanguage", 'en');
-  static const textToSpeechService = StringPref("textToSpeechService", 'deepgram');
-  static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
-  static const elevenlabsVoiceModelName = StringPref("elevenlabsVoiceModel", '');
+  static const textToSpeechService =
+      StringPref("textToSpeechService", 'deepgram');
+  static const deepgramVoiceModel =
+      StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const elevenlabsVoiceModelName =
+      StringPref("elevenlabsVoiceModel", '');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
-  static const elevenlabsVoiceModelId = StringPref("elevenlabsVoiceModelId", '');
+  static const elevenlabsVoiceModelId =
+      StringPref("elevenlabsVoiceModelId", '');
   static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
 
   static StringPref backgroundEffect =
@@ -54,8 +58,8 @@ class AppCache {
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 
-  /// Contains custom prompts for the buttons in the chat
-  static const customPrompts = FileStringPref("fluent_gpt/customPrompts.json");
+  /// Contains quick prompts for the buttons in the chat
+  static const quickPrompts = FileStringPref("fluent_gpt/customPrompts.json");
 
   /// Contains all the prompts from the library like system messages, helpers etc.
   static const promptsLibrary =
@@ -67,6 +71,7 @@ class AppCache {
   static const userName = StringPref("userName", 'User');
   static const userCityName = StringPref("userCityName", '');
   static const weatherData = StringPref("weatherData");
+
   /// DateTime in milliseconds since epoch. default is 0
   static const lastTimeWeatherFetched = IntPref("lastTimeWeatherFetched", 0);
   static const archivedPrompts = StringPref("archivedPrompts");

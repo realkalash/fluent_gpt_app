@@ -420,11 +420,11 @@ class CustomPromptsButton extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         spacer,
-        Text('Custom prompts',
+        Text('Quick prompts',
             style: FluentTheme.of(context).typography.subtitle),
         spacer,
         Button(
-          child: const Text('Customize custom prompts'),
+          child: const Text('Customize quick prompts'),
           onPressed: () {
             showDialog(
               context: context,
