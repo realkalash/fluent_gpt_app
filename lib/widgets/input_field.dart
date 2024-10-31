@@ -8,6 +8,7 @@ import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
+import 'package:fluent_gpt/features/push_to_talk_tool.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -407,14 +408,7 @@ class _MicrophoneButton extends StatefulWidget {
 }
 
 class __MicrophoneButtonState extends State<_MicrophoneButton> {
-  bool isRecording = false;
   Future<bool> checkPermission() async {
-    // final permission = await Permission.speech.request();
-    // if (permission.isGranted) {
-    //   return true;
-    // } else {
-    //   return false;
-    // }
     final result = await AudioRecorder().hasPermission();
     if (!result) {
       // ignore: use_build_context_synchronously
@@ -433,63 +427,62 @@ class __MicrophoneButtonState extends State<_MicrophoneButton> {
     if (!permission) {
       return;
     }
-    setState(() {
-      isRecording = true;
-    });
+    PushToTalkTool.isRecording = true;
     // ignore: use_build_context_synchronously
     final provider = context.read<ChatProvider>();
     final resultStart = await provider.startListeningForInput();
     if (!resultStart) {
-      setState(() {
-        isRecording = false;
-      });
+      PushToTalkTool.isRecording = false;
     }
   }
 
   void stopRecording() {
-    setState(() {
-      isRecording = false;
-    });
+    PushToTalkTool.isRecording = false;
     final provider = context.read<ChatProvider>();
     provider.stopListeningForInput();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Container(
-        width: 42,
-        height: 30,
-        margin: const EdgeInsets.only(right: 4),
-        child: ToggleButtonAdvenced(
-          onChanged: (v) {
-            if (isRecording) {
-              stopRecording();
-            } else {
-              startRecording();
-            }
-          },
-          contextItems: [
-            for (final locale in gptLocales)
-              FlyoutListTile(
-                text: Text(locale.languageCode),
-                selected: AppCache.speechLanguage.value == locale.languageCode,
-                onPressed: () {
-                  AppCache.speechLanguage.value = locale.languageCode;
-                  setState(() {});
-                  Navigator.of(context).pop();
+    return StreamBuilder<Object>(
+        stream: PushToTalkTool.isRecordingStream,
+        builder: (context, _) {
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Container(
+              width: 42,
+              height: 30,
+              margin: const EdgeInsets.only(right: 4),
+              child: ToggleButtonAdvenced(
+                onChanged: (v) {
+                  if (PushToTalkTool.isRecording) {
+                    stopRecording();
+                  } else {
+                    startRecording();
+                  }
                 },
+                contextItems: [
+                  for (final locale in gptLocales)
+                    FlyoutListTile(
+                      text: Text(locale.languageCode),
+                      selected:
+                          AppCache.speechLanguage.value == locale.languageCode,
+                      onPressed: () {
+                        AppCache.speechLanguage.value = locale.languageCode;
+                        setState(() {});
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                ],
+                maxWidthContextMenu: 84,
+                checked: PushToTalkTool.isRecording,
+                padding: EdgeInsets.zero,
+                icon: ic.FluentIcons.mic_24_regular,
+                tooltip: 'Use voice input',
               ),
-          ],
-          maxWidthContextMenu: 84,
-          checked: isRecording,
-          padding: EdgeInsets.zero,
-          icon: ic.FluentIcons.mic_24_regular,
-          tooltip: 'Use voice input',
-        ),
-      ),
-    );
+            ),
+          );
+        });
   }
 }
 

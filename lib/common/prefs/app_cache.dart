@@ -37,6 +37,8 @@ class AppCache {
 
   static const openWindowKey = StringPref("openWindowKey");
   static const takeScreenshotKey = StringPref("takeScreenshotKey");
+  static const pttKey = StringPref("pttKey");
+  static const pttScreenshotKey = StringPref("pttScreenshotKey");
 
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");

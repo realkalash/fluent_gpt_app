@@ -10,6 +10,7 @@ import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/log.dart';
@@ -124,7 +125,10 @@ final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
 
 class ChatProvider with ChangeNotifier {
   final listItemsScrollController = AutoScrollController();
-  final TextEditingController messageController = TextEditingController();
+  static final TextEditingController messageControllerGlobal =
+      TextEditingController();
+  TextEditingController get messageController =>
+      ChatProvider.messageControllerGlobal;
 
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
@@ -320,7 +324,21 @@ class ChatProvider with ChangeNotifier {
           sendMessage(text, hidePrompt: true);
         }
       } else if (command == 'custom') {
-        sendMessage(text, hidePrompt: true);
+      } else if (command == 'push_to_talk_message') {
+        messageController.clear();
+        sendMessage(text, hidePrompt: true, onFinishResponse: () async {
+          final aiAnswer = messages.value.entries.last.value;
+          // use text-to-speech to read the answer
+          if (TextToSpeechService.isValid()) {
+            isAnswering = true;
+            notifyListeners();
+            await TextToSpeechService.readAloud(aiAnswer.contentAsString,
+                onCompleteReadingAloud: () {
+              isAnswering = false;
+              notifyListeners();
+            });
+          }
+        });
       } else if (command == 'show_dialog') {
         showDialog(
             context: context!,
@@ -353,6 +371,11 @@ class ChatProvider with ChangeNotifier {
       } else if (command == 'reset_chat') {
         clearChatMessages();
       } else if (command == 'escape_cancel_select') {
+      } else if (command == 'paste_attachment_silent') {
+        final base64String = text;
+        addHumanMessageToList(HumanChatMessage(
+            content: ChatMessageContent.image(
+                data: base64String, mimeType: 'image/jpeg')));
       } else if (command == 'paste_attachment_ai_lens') {
         final base64String = text;
         addAttachemntAiLens(base64String);
@@ -1088,6 +1111,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
+    notifyListeners();
   }
 
   Future _onToolsResponseEnd(
@@ -1313,7 +1337,13 @@ class ChatProvider with ChangeNotifier {
   }
 
   void stopAnswering() {
-    // TODO: Is not implemented on the plugin level, so we just ignore the result
+    try {
+      if (TextToSpeechService.isReadingAloud) {
+        TextToSpeechService.stopReadingAloud();
+      }
+    } catch (e) {
+      log('Error while stopping reading aloud: $e');
+    }
     try {
       cancelToken?.cancel('canceled ');
       listenerResponseStream?.cancel();
