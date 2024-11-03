@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:entry/entry.dart';
@@ -30,7 +29,6 @@ import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';

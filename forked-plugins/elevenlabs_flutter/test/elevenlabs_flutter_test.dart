@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_types.dart';
@@ -13,14 +15,14 @@ void main() {
   const ElevenLabsConfig config = ElevenLabsConfig(
     apiKey: "your_api_key",
   );
-  String tom_id = "tom_beal";
+  String tomId = "tom_beal";
   test('Check ElevenLabs listVoices endpoint', () async {
     elevenLabs.init(config: config);
     final voices = await elevenLabs.listVoices();
     for (var voice in voices) {
       print("Voice: ${voice.name}");
       if (voice.name.contains("Tom")) {
-        tom_id = voice.voiceId;
+        tomId = voice.voiceId;
       }
       expect(voice, isInstanceOf<Voice>());
     }
@@ -28,7 +30,7 @@ void main() {
   });
 
   test('Check ElevenLabs synthesize endpoint', () async {
-    final request = TextToSpeechRequest(text: "Hello", voiceId: tom_id);
+    final request = TextToSpeechRequest(text: "Hello", voiceId: tomId);
     final synthesized = await elevenLabs.synthesize(request);
     expect(synthesized, isInstanceOf<File>());
   });
