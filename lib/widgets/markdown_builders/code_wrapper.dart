@@ -11,6 +11,8 @@ class CodeWrapperWidget extends StatefulWidget {
   final String language;
   final PreConfig preConfig;
   final TextStyle style;
+  final Widget Function(BuildContext, SelectableRegionState)?
+      contextMenuBuilder;
 
   const CodeWrapperWidget({
     super.key,
@@ -18,6 +20,7 @@ class CodeWrapperWidget extends StatefulWidget {
     required this.language,
     required this.preConfig,
     required this.style,
+    this.contextMenuBuilder,
   });
 
   @override
@@ -27,7 +30,6 @@ class CodeWrapperWidget extends StatefulWidget {
 class _PreWrapperState extends State<CodeWrapperWidget> {
   late Widget _switchWidget;
   bool hasCopied = false;
-  bool isWordWrapped = true;
   final scrollController = ScrollController();
 
   @override
@@ -47,142 +49,106 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildHeader(context, isDark),
-        if (!isWordWrapped)
-          Container(
-            padding: const EdgeInsets.only(left: 8, right: 8),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.white,
-              border: Border.all(color: Colors.black),
-              borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8)),
-            ),
-            child: Scrollbar(
-              controller: scrollController,
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: scrollController,
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: List.generate(splitContents.length, (index) {
-                    final currentContent = splitContents[index];
-                    return ProxyRichText(TextSpan(
-                      children: highLightSpans(
-                        currentContent,
-                        language: widget.language,
-                        theme: widget.preConfig.theme,
-                        textStyle: widget.style,
-                        styleNotMatched: widget.preConfig.styleNotMatched,
-                      ),
-                    ));
-                  }),
-                ),
-              ),
-            ),
-          )
-        else
-          Container(
-            padding: const EdgeInsets.only(left: 8, right: 8),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? Colors.grey[900] : Colors.white,
-              border: Border.all(color: Colors.black),
-              borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8)),
-            ),
+        Container(
+          padding: const EdgeInsets.only(left: 8, right: 8),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: isDark ? Colors.grey[900] : Colors.white,
+            border: Border.all(color: Colors.black),
+            borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8)),
+          ),
+          child: SelectionArea(
+            contextMenuBuilder: widget.contextMenuBuilder,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: List.generate(splitContents.length, (index) {
                 final currentContent = splitContents[index];
-                return ProxyRichText(TextSpan(
-                  children: highLightSpans(
-                    currentContent,
-                    language: widget.language,
-                    theme: widget.preConfig.theme,
-                    textStyle: widget.style,
-                    styleNotMatched: widget.preConfig.styleNotMatched,
+                return ProxyRichText(
+                  TextSpan(
+                    children: highLightSpans(
+                      currentContent,
+                      language: widget.language,
+                      theme: widget.preConfig.theme,
+                      textStyle: widget.style,
+                      styleNotMatched: widget.preConfig.styleNotMatched,
+                    ),
                   ),
-                ));
+                );
               }),
             ),
           ),
+        ),
       ],
     );
   }
 
-  Container _buildHeader(BuildContext context, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: context.theme.accentColor.withOpacity(0.5),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
+  Widget _buildHeader(BuildContext context, bool isDark) {
+    return SelectionContainer.disabled(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(8.0),
+        decoration: BoxDecoration(
+          color: context.theme.accentColor.withOpacity(0.5),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(8),
+            topRight: Radius.circular(8),
+          ),
         ),
-      ),
-      child: Wrap(
-        spacing: 8,
-        alignment: WrapAlignment.end,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          fluent.Tooltip(
-            message: 'Run python code (only for python!)',
-            child:
-                RunCodeButton(code: widget.content, language: widget.language),
-          ),
-          SqueareIconButton(
-            icon: const Icon(Icons.wrap_text_rounded, size: 20),
-            onTap: () {
-              isWordWrapped = !isWordWrapped;
-              refresh();
-            },
-            tooltip: 'Toggle word wrap',
-          ),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: fluent.SizedBox.square(
-              dimension: 30,
-              child: fluent.Button(
-                style: fluent.ButtonStyle(
-                  padding:
-                      fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
-                ),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: _switchWidget,
-                ),
-                onPressed: () async {
-                  if (hasCopied) return;
-                  await Clipboard.setData(ClipboardData(text: widget.content));
-                  displayCopiedToClipboard();
-                  _switchWidget = Icon(Icons.check, key: UniqueKey());
-                  refresh();
-                  Future.delayed(const Duration(seconds: 2), () {
-                    hasCopied = false;
-                    _switchWidget = Icon(Icons.copy_rounded, key: UniqueKey());
+        child: Wrap(
+          spacing: 8,
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            fluent.Tooltip(
+              message: 'Run python code (only for python!)',
+              child: RunCodeButton(
+                  code: widget.content, language: widget.language),
+            ),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: fluent.SizedBox.square(
+                dimension: 30,
+                child: fluent.Button(
+                  style: fluent.ButtonStyle(
+                    padding:
+                        fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _switchWidget,
+                  ),
+                  onPressed: () async {
+                    if (hasCopied) return;
+                    await Clipboard.setData(
+                        ClipboardData(text: widget.content));
+                    displayCopiedToClipboard();
+                    _switchWidget = Icon(Icons.check, key: UniqueKey());
                     refresh();
-                  });
-                },
+                    Future.delayed(const Duration(seconds: 2), () {
+                      hasCopied = false;
+                      _switchWidget =
+                          Icon(Icons.copy_rounded, key: UniqueKey());
+                      refresh();
+                    });
+                  },
+                ),
               ),
             ),
-          ),
-          if (widget.language.isNotEmpty)
-            SelectionContainer.disabled(
-                child: Container(
-              margin: const EdgeInsets.only(right: 2),
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                      width: 0.5, color: isDark ? Colors.white : Colors.black)),
-              child: Text(widget.language),
-            )),
-        ],
+            if (widget.language.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(right: 2),
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                        width: 0.5,
+                        color: isDark ? Colors.white : Colors.black)),
+                child: Text(widget.language),
+              ),
+          ],
+        ),
       ),
     );
   }
