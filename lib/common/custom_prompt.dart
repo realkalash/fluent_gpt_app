@@ -73,11 +73,14 @@ class CustomPrompt {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is CustomPrompt && other.id == id && other.tags == tags;
+    return other is CustomPrompt &&
+        other.id == id &&
+        other.title == title &&
+        other.prompt == prompt;
   }
 
   @override
-  int get hashCode => id.hashCode ^ tags.hashCode;
+  int get hashCode => id.hashCode ^ title.hashCode ^ prompt.hashCode;
 
   @override
   String toString() {

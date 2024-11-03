@@ -5,63 +5,74 @@ import 'package:markdown_widget/widget/all.dart';
 
 import 'code_wrapper.dart';
 
-Widget buildMarkdown(BuildContext context, String data,
-    {String? language, double? textSize}) {
+Widget buildMarkdown(
+  BuildContext context,
+  String data, {
+  String? language,
+  double? textSize,
+  Widget Function(BuildContext, SelectableRegionState)? contextMenuBuilder,
+}) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final config =
       isDark ? MarkdownConfig.darkConfig : MarkdownConfig.defaultConfig;
 
   return Material(
     color: Colors.transparent,
-    child: MarkdownWidget(
-        data: data,
-        shrinkWrap: true,
-        config: config.copy(configs: [
-          PConfig(textStyle: TextStyle(fontSize: textSize ?? 16)),
-          isDark
-              ? PreConfig.darkConfig.copy(
-                  styleNotMatched: TextStyle(fontSize: textSize),
-                  theme: _a11yDarkTheme(textSize),
-                  wrapper: (child, code, lang) => CodeWrapperWidget(
-                    content: code,
-                    language: lang,
-                    preConfig: PreConfig.darkConfig,
-                    style: TextStyle(fontSize: textSize),
-                  ),
-                  language: language,
-                  textStyle: TextStyle(fontSize: textSize, color: Colors.red),
-                  margin: const EdgeInsets.all(0),
-                  decoration: BoxDecoration(
-                    color: context.theme.cardColor,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(8),
-                      bottomRight: Radius.circular(8),
+    child: SelectionArea(
+      contextMenuBuilder: contextMenuBuilder,
+      child: MarkdownWidget(
+          data: data,
+          shrinkWrap: true,
+          selectable: false,
+          config: config.copy(configs: [
+            PConfig(textStyle: TextStyle(fontSize: textSize ?? 16)),
+            isDark
+                ? PreConfig.darkConfig.copy(
+                    styleNotMatched: TextStyle(fontSize: textSize),
+                    theme: _a11yDarkTheme(textSize),
+                    wrapper: (child, code, lang) => CodeWrapperWidget(
+                      content: code,
+                      language: lang,
+                      preConfig: PreConfig.darkConfig,
+                      style: TextStyle(fontSize: textSize),
+                      contextMenuBuilder: contextMenuBuilder,
                     ),
-                  ),
-                )
-              : const PreConfig().copy(
-                  styleNotMatched: TextStyle(fontSize: textSize),
-                  theme: _a11yDarkTheme(textSize),
-                  wrapper: (child, code, lang) => CodeWrapperWidget(
-                    content: code,
-                    language: lang,
-                    preConfig: PreConfig.darkConfig,
-                    style: TextStyle(fontSize: textSize),
-                  ),
-                  language: language,
-                  margin: const EdgeInsets.all(0),
-                  textStyle: PreConfig.darkConfig.textStyle.copyWith(
-                    fontSize: textSize,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.theme.cardColor,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(4),
-                      bottomRight: Radius.circular(4),
+                    language: language,
+                    textStyle: TextStyle(fontSize: textSize, color: Colors.red),
+                    margin: const EdgeInsets.all(0),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
                     ),
-                  ),
-                )
-        ])),
+                  )
+                : const PreConfig().copy(
+                    styleNotMatched: TextStyle(fontSize: textSize),
+                    theme: _a11yDarkTheme(textSize),
+                    wrapper: (child, code, lang) => CodeWrapperWidget(
+                      content: code,
+                      language: lang,
+                      preConfig: PreConfig.darkConfig,
+                      style: TextStyle(fontSize: textSize),
+                      contextMenuBuilder: contextMenuBuilder,
+                    ),
+                    language: language,
+                    margin: const EdgeInsets.all(0),
+                    textStyle: PreConfig.darkConfig.textStyle.copyWith(
+                      fontSize: textSize,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(4),
+                        bottomRight: Radius.circular(4),
+                      ),
+                    ),
+                  )
+          ])),
+    ),
   );
 }
 
