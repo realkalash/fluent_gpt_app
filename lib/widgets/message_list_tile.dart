@@ -13,6 +13,7 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -262,11 +263,31 @@ class _MessageCardState extends State<MessageCard> {
                 context,
                 widget.message.contentAsString,
                 textSize: widget.textSize.toDouble(),
+                contextMenuBuilder: (ctx,textState)=>
+                    ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
+                      ctx,
+                      textState,
+                      () {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showOptionsFlyout(context),
+                        );
+                      },
+                    ),
               )
             : Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: SelectableText(
                   widget.message.contentAsString,
+                  contextMenuBuilder: (ctx, textState) =>
+                      ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                    ctx,
+                    textState,
+                    () {
+                      flyoutController.showFlyout(
+                        builder: (context) => _showOptionsFlyout(context),
+                      );
+                    },
+                  ),
                   style: TextStyle(
                     fontSize: widget.textSize.toDouble(),
                     fontWeight: FontWeight.normal,
