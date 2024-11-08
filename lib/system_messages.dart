@@ -1,4 +1,4 @@
-String defaultSystemMessage = '';
+String defaultSystemMessage = 'You are a helpful assistant';
 String infoAboutUser = '';
 final shellCommandRegex = RegExp(r'```Shell\n(.*?)\n```', dotAll: true);
 final pythonCommandRegex = RegExp(r'```python-exe\n(.*?)\n```', dotAll: true);

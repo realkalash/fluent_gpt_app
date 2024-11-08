@@ -79,20 +79,24 @@ class ChatRoomPage extends StatelessWidget {
         });
   }
 }
-
+enum DropOverlayState {
+  none,
+  dropOver,
+  dropInvalidFormat,
+}
 // isDropOverlayVisible is a BehaviorSubject that is used to show the overlay when a drag is over the drop region.
-final BehaviorSubject<bool> isDropOverlayVisible =
-    BehaviorSubject<bool>.seeded(false);
+final BehaviorSubject<DropOverlayState> isDropOverlayVisible =
+    BehaviorSubject<DropOverlayState>.seeded(DropOverlayState.none);
 
 class HomeDropOverlay extends StatelessWidget {
   const HomeDropOverlay({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<bool>(
+    return StreamBuilder<DropOverlayState>(
       stream: isDropOverlayVisible,
       builder: (context, snapshot) {
-        if (snapshot.data == true) {
+        if (snapshot.data == DropOverlayState.dropOver) {
           return Container(
             color: Colors.black.withOpacity(0.2),
             child: Center(
@@ -105,7 +109,29 @@ class HomeDropOverlay extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Icon(
-                    FluentIcons.file_image,
+                    ic.FluentIcons.attach_24_filled,
+                    size: 64,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        if (snapshot.data == DropOverlayState.dropInvalidFormat) {
+          return Container(
+            color: Colors.black.withOpacity(0.2),
+            child: Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+                child: const Center(
+                  child: Icon(
+                    ic.FluentIcons.warning_24_filled,
                     size: 48,
                     color: Colors.white,
                   ),

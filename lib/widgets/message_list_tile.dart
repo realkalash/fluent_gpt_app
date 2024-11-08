@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
@@ -18,12 +20,13 @@ import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
+import 'package:mime_type/mime_type.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
-
-// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -119,6 +122,7 @@ class _MessageCardState extends State<MessageCard> {
   bool _isFocused = false;
   bool _isLoadingReadAloud = false;
   final flyoutController = FlyoutController();
+  static Tokenizer tokenizer = Tokenizer();
 
   @override
   void initState() {
@@ -196,6 +200,23 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 ),
               ),
+            if ((widget.message as HumanChatMessage).content
+                is ChatMessageContentText)
+              FutureBuilder(
+                future: tokenizer.count(
+                    ((widget.message as HumanChatMessage).content
+                            as ChatMessageContentText)
+                        .text,
+                    modelName: 'gpt-4'),
+                builder: (context, snapshot) {
+                  if (snapshot.data is int) {
+                    return Text('Tokens: ${snapshot.data}',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.normal));
+                  }
+                  return const SizedBox();
+                },
+              ),
           ],
         ),
       );
@@ -248,6 +269,80 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
       );
+    } else if (widget.message is TextFileCustomMessage) {
+      final message = widget.message as TextFileCustomMessage;
+      tileWidget = _MessageListTile(
+        title: Text('You:', style: myMessageStyle),
+        subtitle: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Button(
+              onPressed: () async {
+                if (Platform.isWindows) {
+                  final content = message.content;
+                  showDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      builder: (ctx) {
+                        return ContentDialog(
+                          title: Text(message.fileName),
+                          constraints: const BoxConstraints(
+                            maxWidth: 800,
+                            maxHeight: 1200,
+                          ),
+                          actions: [
+                            Button(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                          content: SizedBox(
+                            width: 800,
+                            child: SingleChildScrollView(
+                              child: SelectableText(
+                                content,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        );
+                      });
+                  return;
+                }
+                final tempDir = Directory.systemTemp;
+                final file = File(
+                    '${tempDir.path}${Platform.pathSeparator}${message.fileName.isEmpty ? 'file' : message.fileName}');
+                await file.writeAsString(message.content);
+                final mimeType = mime(file.path);
+                await OpenFilex.open(file.path, type: mimeType);
+              },
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(FluentIcons.document_24_filled, size: 24),
+                  Text(
+                    message.fileName,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+            FutureBuilder(
+                future: message.tokensLenght,
+                builder: (context, snapshot) {
+                  if (snapshot.data is int) {
+                    return Text('Tokens: ${snapshot.data}',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.normal));
+                  }
+                  return const SizedBox();
+                })
+          ],
+        ),
+      );
     } else {
       tileWidget = _MessageListTile(
         tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
@@ -263,16 +358,16 @@ class _MessageCardState extends State<MessageCard> {
                 context,
                 widget.message.contentAsString,
                 textSize: widget.textSize.toDouble(),
-                contextMenuBuilder: (ctx,textState)=>
+                contextMenuBuilder: (ctx, textState) =>
                     ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
-                      ctx,
-                      textState,
-                      () {
-                        flyoutController.showFlyout(
-                          builder: (context) => _showOptionsFlyout(context),
-                        );
-                      },
-                    ),
+                  ctx,
+                  textState,
+                  () {
+                    flyoutController.showFlyout(
+                      builder: (context) => _showOptionsFlyout(context),
+                    );
+                  },
+                ),
               )
             : Padding(
                 padding: const EdgeInsets.only(bottom: 10),

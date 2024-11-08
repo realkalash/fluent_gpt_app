@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -361,39 +363,44 @@ class _InputFieldState extends State<InputField> {
     final provider = context.read<ChatProvider>();
     final controller = provider.messageController;
     menuController.showFlyout(builder: (ctx) {
+      final text = controller.text.trim();
       return MenuFlyout(
         items: [
-          MenuFlyoutItem(
-              text: const Text('Send as assistant (silently)'),
-              onPressed: () {
-                provider.addMessageSystem(controller.text);
-                clearFieldAndFocus();
-              }),
-          MenuFlyoutItem(
-              text: const Text('Send as user (silently)'),
-              onPressed: () {
-                provider.addHumanMessageToList(HumanChatMessage(
-                    content: ChatMessageContent.text(controller.text)));
-                clearFieldAndFocus();
-              }),
-          MenuFlyoutItem(
-              text: const Text('Send as AI answer (silently)'),
-              onPressed: () {
-                provider.addBotMessageToList(
-                    AIChatMessage(content: controller.text),
-                    DateTime.now().toIso8601String());
-                clearFieldAndFocus();
-              }),
+          if (text.isNotEmpty)
+            MenuFlyoutItem(
+                text: const Text('Send as assistant (silently)'),
+                onPressed: () {
+                  provider.addMessageSystem(controller.text);
+                  clearFieldAndFocus();
+                }),
+          if (text.isNotEmpty)
+            MenuFlyoutItem(
+                text: const Text('Send as user (silently)'),
+                onPressed: () async {
+                  provider.addHumanMessageToList(HumanChatMessage(
+                      content: ChatMessageContent.text(controller.text)));
+                  clearFieldAndFocus();
+                }),
+          if (text.isNotEmpty)
+            MenuFlyoutItem(
+                text: const Text('Send as AI answer (silently)'),
+                onPressed: () {
+                  provider.addBotMessageToList(
+                      AIChatMessage(content: controller.text),
+                      DateTime.now().toIso8601String());
+                  clearFieldAndFocus();
+                }),
           MenuFlyoutSeparator(),
-          MenuFlyoutItem(
-            text: const Text(
-                'Send not in real-time (can help with some LLM providers)'),
-            onPressed: () {
-              provider.sendMessage(controller.text,
-                  hidePrompt: false, sendStream: false);
-              clearFieldAndFocus();
-            },
-          )
+          if (text.isNotEmpty)
+            MenuFlyoutItem(
+              text: const Text(
+                  'Send not in real-time (can help with some LLM providers)'),
+              onPressed: () {
+                provider.sendMessage(controller.text,
+                    hidePrompt: false, sendStream: false);
+                clearFieldAndFocus();
+              },
+            )
         ],
       );
     });
@@ -572,20 +579,34 @@ class _AddFileButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: isMini ? 30 : 48,
-      child: IconButton(
-        onPressed: () async {
-          FilePickerResult? result = await FilePicker.platform.pickFiles();
-          if (result != null && result.files.isNotEmpty) {
-            chatProvider.addFileToInput(result.files.first.toXFile());
-            windowManager.focus();
-            promptTextFocusNode.requestFocus();
-          }
-        },
-        icon: chatProvider.isSendingFile
-            ? const ProgressRing()
-            : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 16 : 24),
+    return Tooltip(
+      message: 'Supports jpeg, png, docx, xlsx, txt, csv',
+      child: SizedBox.square(
+        dimension: isMini ? 30 : 48,
+        child: IconButton(
+          onPressed: () async {
+            FilePickerResult? result = await FilePicker.platform.pickFiles(
+              allowedExtensions: [
+                'jpg',
+                'jpeg',
+                'png',
+                'docx',
+                'xlsx',
+                'txt',
+                'csv',
+              ],
+              type: FileType.custom,
+            );
+            if (result != null && result.files.isNotEmpty) {
+              chatProvider.addFileToInput(result.files.first.toXFile());
+              windowManager.focus();
+              promptTextFocusNode.requestFocus();
+            }
+          },
+          icon: chatProvider.isSendingFile
+              ? const ProgressRing()
+              : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 16 : 24),
+        ),
       ),
     );
   }
@@ -604,21 +625,28 @@ class _FileThumbnail extends StatelessWidget {
     return SizedBox.square(
       dimension: 48,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          IconButton(
-            onPressed: () async {
-              if (chatProvider.isSendingFile) {
-                return;
-              }
-              FilePickerResult? result = await FilePicker.platform.pickFiles();
-              if (result != null && result.files.isNotEmpty) {
-                chatProvider.addFileToInput(result.files.first.toXFile());
-                windowManager.focus();
-                promptTextFocusNode.requestFocus();
-              }
-            },
-            icon: const Icon(ic.FluentIcons.document_number_1_16_regular,
-                size: 24),
+          Positioned(
+            top: 0,
+            right: 0,
+            left: 0,
+            child: IconButton(
+              onPressed: () async {
+                if (chatProvider.isSendingFile) {
+                  return;
+                }
+                FilePickerResult? result =
+                    await FilePicker.platform.pickFiles();
+                if (result != null && result.files.isNotEmpty) {
+                  chatProvider.addFileToInput(result.files.first.toXFile());
+                  windowManager.focus();
+                  promptTextFocusNode.requestFocus();
+                }
+              },
+              icon: const Icon(ic.FluentIcons.document_number_1_16_regular,
+                  size: 24),
+            ),
           ),
           if (chatProvider.fileInput!.mimeType?.contains('image') == true)
             Positioned.fill(
@@ -638,7 +666,24 @@ class _FileThumbnail extends StatelessWidget {
                       ),
                     );
                   }),
+            )
+          else if (chatProvider.fileInput!.name.isNotEmpty)
+            Positioned.fill(
+              top: 28,
+              right: 0,
+              left: 0,
+              child: Tooltip(
+                message: chatProvider.fileInput!.name.isEmpty
+                    ? '-'
+                    : chatProvider.fileInput!.name,
+                child: Text(
+                  chatProvider.fileInput!.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
+
           // if (chatProvider.isSendingFile)
           //   const Positioned.fill(
           //     child: Center(child: ProgressRing()),

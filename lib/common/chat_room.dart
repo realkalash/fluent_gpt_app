@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
@@ -159,6 +160,9 @@ class ChatRoom {
     // because they are extended from CustomChatMessage
     if (json['role'] == WebResultCustomMessage.defaultPrefix) {
       return WebResultCustomMessage.fromJson(json);
+    }
+    if (json['role'] == TextFileCustomMessage.defaultPrefix) {
+      return TextFileCustomMessage.fromJson(json);
     }
     // custom message
     if (json['prefix'] is String && json['content'] is String) {
