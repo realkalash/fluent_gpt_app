@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.18+1
+version: 1.0.19+1
 
 environment:
   sdk: ">=3.3.4 <4.0.0"
@@ -74,6 +74,9 @@ dependencies:
   # elevenlabs_flutter: ^0.0.1
   elevenlabs_flutter:
     path: forked-plugins/elevenlabs_flutter
+  open_filex: ^4.5.0
+  docx_to_text: ^1.0.1
+  excel: ^4.0.6
   
 
 dev_dependencies:

@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
+import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
+import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
@@ -643,14 +646,23 @@ class ChatProvider with ChangeNotifier {
       return;
     }
 
-    /// add additional styles to the message
-    messageContent = modifyMessageStyle(messageContent);
-    addHumanMessageToList(
-      HumanChatMessage(content: ChatMessageContent.text(messageContent)),
-    );
+    // to prevent empty messages posted to the chat
+    if (messageContent.isNotEmpty) {
+      /// add additional styles to the message
+      messageContent = modifyMessageStyle(messageContent);
+      addHumanMessageToList(
+        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+      );
+    }
 
     final isImageAttached =
         fileInput != null && fileInput!.mimeType?.contains('image') == true;
+    final isTextFileAttached =
+        fileInput != null && fileInput!.mimeType?.contains('text') == true;
+    final isWordFileAttached =
+        fileInput != null && (fileInput!.name.endsWith('.docx'));
+    final isExcelFileAttached = fileInput != null &&
+        (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
     if (isImageAttached) {
       final bytes = await fileInput!.readAsBytes();
       final base64 = base64Encode(bytes);
@@ -662,12 +674,52 @@ class ChatProvider with ChangeNotifier {
             mimeType: fileInput!.mimeType ?? 'image/jpeg',
           ),
         ),
-        DateTime.now().add(const Duration(milliseconds: 50)).toIso8601String(),
       );
     }
-
-    await selectedChatRoom.messages.chatHistory
-        .addHumanChatMessage(messageContent);
+    if (isTextFileAttached) {
+      final fileName = fileInput!.name;
+      final bytes = await fileInput!.readAsBytes();
+      final contentString = utf8.decode(bytes);
+      addCustomMessageToList(
+        TextFileCustomMessage(
+          fileName: fileName,
+          content: contentString,
+          path: fileInput!.path,
+        ),
+      );
+    }
+    if (isWordFileAttached) {
+      final fileName = fileInput!.name;
+      final bytes = await fileInput!.readAsBytes();
+      final contentString = docxToText(bytes);
+      addCustomMessageToList(
+        TextFileCustomMessage(
+          fileName: fileName,
+          content: contentString,
+          path: fileInput!.path,
+        ),
+      );
+    }
+    if (isExcelFileAttached) {
+      final fileName = fileInput!.name;
+      final bytes = await fileInput!.readAsBytes();
+      final excelToJson = ExcelToJson();
+      final contentString = await excelToJson.convert(bytes);
+      addCustomMessageToList(
+        TextFileCustomMessage(
+          fileName: fileName,
+          content: contentString ?? 'No data available',
+          path: fileInput!.path,
+        ),
+      );
+    }
+    if (fileInput != null) {
+      // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+    if (messageContent.isNotEmpty)
+      await selectedChatRoom.messages.chatHistory
+          .addHumanChatMessage(messageContent);
     isAnswering = true;
     notifyListeners();
     final messagesToSend = <ChatMessage>[];
@@ -684,9 +736,10 @@ class ChatProvider with ChangeNotifier {
         messagesToSend.add(SystemChatMessage(content: systemMessage));
       }
 
-      messagesToSend.add(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
-      );
+      if (messageContent.isNotEmpty)
+        messagesToSend.add(
+          HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+        );
       if (isImageAttached) {
         messagesToSend.add(
           HumanChatMessage(
@@ -910,29 +963,42 @@ class ChatProvider with ChangeNotifier {
 
   Future<List<ChatMessage>> getLastFewMessages({int count = 15}) async {
     final values = messages.value;
-    // filter out custom messages
-    // do reverse because we want to get the last messages
-    // reverse again to get them in the right order
-    final list = values.values
-        .where(
-          (element) => element is! CustomChatMessage,
-        )
-        .toList()
-        .reversed
-        .take(count)
-        .toList()
-        .reversed
-        .toList();
+    final list = <ChatMessage>[];
+    // Start from end to get last messages
+    final messagesIterator = values.values.toList().reversed;
+    int countAdded = 0;
+    for (var message in messagesIterator) {
+      if (countAdded >= count) break;
+      if (message is! WebResultCustomMessage) {
+        // map custom messages to human messages because openAi doesn't support them
+        if (message is TextFileCustomMessage) {
+          // insert at start to maintain order
+          list.insert(0, message.toHumanChatMessage());
+        } else {
+          // insert at start to maintain order
+          list.insert(0, message);
+        }
+        countAdded++;
+      }
+    }
     // append current global system message to the very beginning
     if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+      // if we exceed the limit, put the system message at the start
+      // and add system message "Previous messages were trimmed"
       list.insert(
         0,
         SystemChatMessage(
-          content: await getFormattedSystemPrompt(
-            basicPrompt: selectedChatRoom.systemMessage!,
-          ),
+          content: selectedChatRoom.systemMessage ?? defaultSystemMessage,
         ),
       );
+      if (values.length > count) {
+        list.insert(
+          1,
+          SystemChatMessage(
+            content: '(Previous messages were trimmed)',
+          ),
+        );
+      }
     }
 
     return list;
@@ -1109,6 +1175,16 @@ class ChatProvider with ChangeNotifier {
 
   /// Used to add message silently to the list
   void addHumanMessageToList(HumanChatMessage message, [String? id]) {
+    if (message.contentAsString.isEmpty) return;
+    final values = messages.value;
+    values[id ?? DateTime.now().toIso8601String()] = message;
+    messages.add(values);
+    saveToDisk([selectedChatRoom]);
+    scrollToEnd();
+    notifyListeners();
+  }
+
+  void addCustomMessageToList(CustomChatMessage message, [String? id]) {
     final values = messages.value;
     values[id ?? DateTime.now().toIso8601String()] = message;
     messages.add(values);
