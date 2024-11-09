@@ -5,6 +5,7 @@ import 'dart:ui';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:path_provider/path_provider.dart';
@@ -89,7 +90,10 @@ class FileUtils {
   static String? externalToolsPath;
 
   static Future<void> init() async {
-    documentDirectoryPath = (await getApplicationDocumentsDirectory()).path;
+    documentDirectoryPath = AppCache.appDocumentsDirectory.value!.isNotEmpty
+        ? AppCache.appDocumentsDirectory.value
+        : (await getApplicationDocumentsDirectory()).path;
+
     temporaryDirectoryPath = (await getTemporaryDirectory()).path;
     externalToolsPath =
         '$documentDirectoryPath${Platform.pathSeparator}fluent_gpt/external_tools';
@@ -171,13 +175,14 @@ class FileUtils {
   /// ```json
   /// [
   ///   {
-  ///    'id: '1',
-  ///    'message': {
-  ///       'prefix': 'AI',
-  ///       'message': 'Hello, how can I help you?'
+  ///    "id": "1",
+  ///    "message": {
+  ///       "prefix": "AI",
+  ///       "message": "Hello, how can I help you?"
   ///     }
   ///   }
   /// ]
+  /// ```
   static Future<File> getChatRoomMessagesFileById(String id) async {
     final path = await getChatRoomPath();
     return File('$path/$id-messages.json');
@@ -200,8 +205,8 @@ class FileUtils {
     }
 
     return files;
-  } 
-  
+  }
+
   /// It will not give messages files .git and .DS_Store
   static List<File> getFilesRecursiveWithChatMessages(String dirPath) {
     final files = <File>[];

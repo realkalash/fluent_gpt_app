@@ -2,22 +2,23 @@
 
 import 'dart:io';
 
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:flutter/gestures.dart';
 import 'package:path_provider/path_provider.dart';
 
-abstract class _Pref<T> {
+abstract class Pref<T> {
   final String key;
 
-  const _Pref(this.key);
+  const Pref(this.key);
   T? get value;
   set value(T? value);
   Future<void> set(T value);
   Future<void>? remove() => prefs?.remove(key);
 }
 
-class StringPref extends _Pref<String> {
+class StringPref extends Pref<String> {
   const StringPref(super.key, [this.defaultValue]);
   final String? defaultValue;
 
@@ -43,8 +44,9 @@ class FileStringPref {
   final String fileName;
   Future<String> appDirectoryPath() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      return dir.path;
+      final dir = FileUtils.documentDirectoryPath ??
+          (await getApplicationDocumentsDirectory()).path;
+      return dir;
     } catch (e) {
       print('Error getting app getApplicationDocumentsDirectory path: $e');
     }
@@ -111,7 +113,7 @@ class FileStringPref {
   }
 }
 
-class IntPref extends _Pref<int> {
+class IntPref extends Pref<int> {
   const IntPref(super.key, [this.defaultValue]);
   final int? defaultValue;
   @override
@@ -129,7 +131,7 @@ class IntPref extends _Pref<int> {
   }
 }
 
-class OffsetPref extends _Pref<Offset> {
+class OffsetPref extends Pref<Offset> {
   const OffsetPref(super.key, [this.defaultValue]);
   final Offset? defaultValue;
   @override
@@ -156,7 +158,7 @@ class OffsetPref extends _Pref<Offset> {
   }
 }
 
-class DoublePref extends _Pref<double> {
+class DoublePref extends Pref<double> {
   const DoublePref(super.key, [this.defaultValue]);
   final double? defaultValue;
 
@@ -175,7 +177,7 @@ class DoublePref extends _Pref<double> {
   }
 }
 
-class BoolPref extends _Pref<bool> {
+class BoolPref extends Pref<bool> {
   const BoolPref(super.key, [this.defaultValue]);
   final bool? defaultValue;
 

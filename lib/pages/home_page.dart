@@ -1181,6 +1181,25 @@ Future<void> displayCopiedToClipboard() {
   );
 }
 
+Future<void> displaySuccessInfoBar({String? title}) {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: Text(title ?? 'Success'),
+      severity: InfoBarSeverity.success,
+    ),
+  );
+}
+Future<void> displayErrorInfoBar({String? title}) {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: Text(title ?? 'Error'),
+      severity: InfoBarSeverity.error,
+    ),
+  );
+}
+
 void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
   showDialog(
     context: context,

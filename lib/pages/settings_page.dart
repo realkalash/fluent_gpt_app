@@ -13,6 +13,7 @@ import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
+import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
@@ -85,27 +86,33 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         ),
         children: [
           const EnabledGptTools(),
+          spacer,
           const AdditionalTools(),
           spacer,
           const GlobalSettings(),
           spacer,
           const CustomActionsSection(),
+          spacer,
           const OverlaySettings(),
+          spacer,
           const AccessibilityPermissionButton(),
+          spacer,
           const _CacheSection(),
-          if (kDebugMode) const _DebugSection(),
+          spacer,
+          // if (kDebugMode) const _DebugSection(),
           const _HotKeySection(),
+          spacer,
           const CustomPromptsButton(),
+          spacer,
           Text('Appearance', style: FluentTheme.of(context).typography.title),
           const _ThemeModeSection(),
           spacer,
           MessageAppearanceSettings(),
           spacer,
-          // biggerSpacer,
-          // const _LocaleSection(),
           const _LocaleSection(),
-          biggerSpacer,
+          spacer,
           const ServerSettings(),
+          spacer,
           const _OtherSettings(),
         ],
       ),
@@ -242,7 +249,6 @@ class _CustomActionsSectionState extends State<CustomActionsSection> {
               );
             },
           ),
-          spacer,
         ],
       ),
     );
@@ -401,6 +407,7 @@ class AccessibilityPermissionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Platform.isMacOS) return const SizedBox.shrink();
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -433,7 +440,6 @@ class CustomPromptsButton extends StatelessWidget {
             );
           },
         ),
-        biggerSpacer
       ],
     );
   }
@@ -475,16 +481,17 @@ class _OverlaySettingsState extends State<OverlaySettings> {
         ),
         spacer,
         NumberBox(
-          value: AppCache.overlayVisibleElements.value,
+          value: AppCache.overlayVisibleElements.value == -1
+              ? null
+              : AppCache.overlayVisibleElements.value,
           placeholder:
-              AppCache.overlayVisibleElements.value == null ? 'Adaptive' : null,
+              AppCache.overlayVisibleElements.value == -1 ? 'Adaptive' : null,
           onChanged: (value) {
-            AppCache.overlayVisibleElements.value = value;
+            AppCache.overlayVisibleElements.value = value ?? -1;
           },
           min: 4,
           mode: SpinButtonPlacementMode.inline,
         ),
-        biggerSpacer,
       ],
     );
   }
@@ -971,48 +978,6 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Text('LLama url (local AI)',
-              //     style: FluentTheme.of(context).typography.subtitle),
-              // TextFormBox(
-              //   initialValue: AppCache.localApiUrl.value,
-              //   placeholder: AppCache.localApiUrl.value,
-              //   prefix: Padding(
-              //     padding: const EdgeInsets.only(left: 8),
-              //     child: Checkbox(
-              //       checked: AppCache.useLocalApiUrl.value!,
-              //       onChanged: (value) {
-              //         setState(() {
-              //           AppCache.useLocalApiUrl.value = value;
-              //         });
-              //       },
-              //     ),
-              //   ),
-              //   onFieldSubmitted: (value) async {
-              //     AppCache.localApiUrl.value = value;
-              //     final provider =
-              //         Provider.of<ChatProvider>(context, listen: false);
-              //     final isSuccess = await provider.initChatModels();
-              //     if (isSuccess) {
-              //       provider.initModelsApi();
-              //       // ignore: use_build_context_synchronously
-              //       displayInfoBar(context, builder: (context, _) {
-              //         return const InfoBar(
-              //             title: Text('Success'),
-              //             severity: InfoBarSeverity.success);
-              //       });
-              //     } else {
-              //       // ignore: use_build_context_synchronously
-              //       displayInfoBar(context, builder: (context, _) {
-              //         return const InfoBar(
-              //             title: Text('Error'),
-              //             severity: InfoBarSeverity.error);
-              //       });
-              //     }
-              //   },
-              //   onChanged: (value) {
-              //     AppCache.localApiUrl.value = value;
-              //   },
-              // ),
               Text(
                 'Brave API key (search engine) \$',
                 style: FluentTheme.of(context).typography.subtitle,
@@ -1040,31 +1005,6 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                   url: 'https://api.search.brave.com/app/keys',
                 ),
               ),
-              // Text(
-              //   'OpenAi global API key \$',
-              //   style: FluentTheme.of(context).typography.subtitle,
-              // ),
-              // TextFormBox(
-              //   initialValue: AppCache.openAiApiKey.value,
-              //   placeholder: AppCache.openAiApiKey.value,
-              //   obscureText: obscureOpenAiText,
-              //   suffix: IconButton(
-              //     icon: const Icon(FluentIcons.eye_20_regular),
-              //     onPressed: () {
-              //       setState(() {
-              //         obscureOpenAiText = !obscureOpenAiText;
-              //       });
-              //     },
-              //   ),
-              //   onChanged: (value) => AppCache.openAiApiKey.value = value,
-              // ),
-              // const Align(
-              //   alignment: Alignment.centerLeft,
-              //   child: LinkTextButton(
-              //     'https://platform.openai.com/api-keys',
-              //     url: 'https://platform.openai.com/api-keys',
-              //   ),
-              // ),
               spacer,
               DropDownButton(
                 items: [
@@ -1145,7 +1085,6 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
             ],
           ),
         ),
-        spacer,
       ],
     );
   }
@@ -1163,12 +1102,14 @@ class _OtherSettings extends StatelessWidget {
         Text('Other settings',
             style: FluentTheme.of(context).typography.subtitle),
         spacer,
-        Button(child: Text('Audio and Microphone'), onPressed: () {
-          showDialog(
-            context: context,
-            builder: (ctx) => const MicrophoneSettingsDialog(),
-          );
-        }),
+        Button(
+            child: Text('Audio and Microphone'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const MicrophoneSettingsDialog(),
+              );
+            }),
         spacer,
         Checkbox(
           content: const Text('Prevent close app'),
@@ -1447,7 +1388,6 @@ class _HotKeySectionState extends State<_HotKeySection> {
                 }),
           ],
         ),
-        spacer,
       ],
     );
   }
@@ -1571,9 +1511,9 @@ class _ThemeModeSection extends StatelessWidget {
           alignment: AlignmentDirectional.center,
           child: appTheme.color == color
               ? Icon(
-                  FluentIcons.checkmark_20_filled,
+                  FluentIcons.radio_button_16_filled,
                   color: color.basedOnLuminance(),
-                  size: 22.0,
+                  size: 24.0,
                 )
               : null,
         ),
@@ -1803,8 +1743,17 @@ class __CacheSectionState extends State<_CacheSection> {
         const SizedBox(height: 10.0),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.start,
-          spacing: 15.0,
+          spacing: 8.0,
+          runSpacing: 8,
           children: [
+            Button(
+                child: Text('Application storage location'),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => const StorageAppDirConfigureDialog(),
+                  );
+                }),
             Button(
                 child: const Text('Delete all chat rooms'),
                 onPressed: () => ConfirmationDialog(
@@ -1839,38 +1788,8 @@ class __CacheSectionState extends State<_CacheSection> {
                     navigator.pop();
                   }
                 }),
-            FutureBuilder(
-              future: ShellDriver.calcTempFilesSize(),
-              builder: (context, snapshot) {
-                if (snapshot.data is int) {
-                  final size = snapshot.data as int;
-                  String formattedSize = '0';
-                  if (size > 1024 * 1024) {
-                    formattedSize =
-                        '${(size / (1024 * 1024)).toStringAsFixed(2)} MB';
-                  } else if (size > 1024) {
-                    formattedSize = '${(size / 1024).toStringAsFixed(2)} KB';
-                  } else {
-                    formattedSize = '$formattedSize B';
-                  }
-                  return Button(
-                    onPressed: () async {
-                      await ShellDriver.deleteAllTempFiles();
-                      setState(() {});
-                    },
-                    child: Text('Temp files size: $formattedSize'),
-                  );
-                }
-                return Button(
-                  onPressed: () {
-                    setState(() {});
-                  },
-                  child: const Text('Calculating temp files size...'),
-                );
-              },
-            )
           ],
-        )
+        ),
       ],
     );
   }

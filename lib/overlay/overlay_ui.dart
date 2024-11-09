@@ -27,7 +27,7 @@ class OverlayUI extends StatefulWidget {
 
   static Size defaultWindowSize() {
     var elementsLength = 5;
-    if (AppCache.overlayVisibleElements.value != null) {
+    if (AppCache.overlayVisibleElements.value != -1) {
       elementsLength = AppCache.overlayVisibleElements.value!;
     } else {
       customPrompts.value
