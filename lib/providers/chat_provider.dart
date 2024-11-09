@@ -784,6 +784,14 @@ class ChatProvider with ChangeNotifier {
       if (!sendStream) {
         late AIChatMessage response;
         if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
+          response = await openAI!.call(
+            messagesToSend,
+            options: ChatOpenAIOptions(
+              model: selectedChatRoom.model.modelName,
+              maxTokens: selectedChatRoom.maxTokenLength,
+              user: AppCache.userName.value,
+            ),
+          );
         } else {
           response = await localModel!.call(
             messagesToSend,
@@ -803,7 +811,6 @@ class ChatProvider with ChangeNotifier {
         addBotMessageToList(response);
         saveToDisk([selectedChatRoom]);
         isAnswering = false;
-        refreshTokensForCurrentChat();
         return;
       }
       if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
@@ -811,6 +818,7 @@ class ChatProvider with ChangeNotifier {
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.modelName,
+            user: AppCache.userName.value,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
             tools: [
@@ -835,6 +843,7 @@ class ChatProvider with ChangeNotifier {
           PromptValue.chat(messagesToSend),
           options: ChatOpenAIOptions(
             model: selectedChatRoom.model.modelName,
+            user: AppCache.userName.value,
             maxTokens: selectedChatRoom.maxTokenLength,
             toolChoice: const ChatToolChoiceAuto(),
             tools: [
@@ -864,14 +873,23 @@ class ChatProvider with ChangeNotifier {
             notifyListeners();
           }
           final message = chunk.output;
-          // totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+          // log tokens
           if (message.toolCalls.isEmpty)
-            addBotMessageToList(message, chunk.id);
+            addBotMessageToList(
+              message,
+              chunk.id,
+            );
           else {
             functionCallString += message.toolCalls.first.argumentsRaw;
             if (message.toolCalls.first.name.isNotEmpty == true) {
               functionName = message.toolCalls.first.name;
             }
+          }
+          if (chunk.usage.totalTokens != null) {
+            log('Total tokens: ${chunk.usage.toString()}');
+            totalTokens += chunk.usage.totalTokens ?? 0;
+            totalSentTokens += chunk.usage.promptTokens ?? 0;
+            totalReceivedTokens += chunk.usage.responseTokens ?? 0;
           }
           // print(
           //     'function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
@@ -879,7 +897,7 @@ class ChatProvider with ChangeNotifier {
             /// TODO: add more logic here
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
-            refreshTokensForCurrentChat();
+            notifyListeners();
             onResponseEnd(messageContent, chunk.id);
             if (functionCallString.isNotEmpty) {
               final lastChar =
@@ -894,7 +912,6 @@ class ChatProvider with ChangeNotifier {
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
             notifyListeners();
-            refreshTokensForCurrentChat();
           } else if (chunk.finishReason == FinishReason.toolCalls) {
             final lastChar = functionCallString[functionCallString.length - 1];
             if (lastChar == '}') {
@@ -902,7 +919,6 @@ class ChatProvider with ChangeNotifier {
               _onToolsResponseEnd(messageContent, decoded, functionName);
             }
             isAnswering = false;
-            refreshTokensForCurrentChat();
           }
         },
         onDone: () {
@@ -914,6 +930,7 @@ class ChatProvider with ChangeNotifier {
             SystemChatMessage(content: 'Error while answering: $e'),
           );
           isAnswering = false;
+          notifyListeners();
         },
       );
     } catch (e, stack) {
@@ -976,11 +993,12 @@ class ChatProvider with ChangeNotifier {
     return tokens;
   }
 
-  Future refreshTokensForCurrentChat() async {
-    final tokens = await getTokensFromMessages(messages.value.values.toList());
-    totalTokensForCurrentChat = tokens;
-    notifyListeners();
-  }
+  // not valid, because we send messages differently
+  // Future refreshTokensForCurrentChat() async {
+  //   final tokens = await getTokensFromMessages(messages.value.values.toList());
+  //   totalTokensForCurrentChat = tokens;
+  //   notifyListeners();
+  // }
 
   List<ChatMessage> getLastFewMessagesForContext() {
     final values = messages.value;
@@ -1101,7 +1119,9 @@ class ChatProvider with ChangeNotifier {
         await stream.forEach(
           (final chunk) {
             final message = chunk.output;
-            totalTokensForCurrentChat += chunk.usage.totalTokens ?? 0;
+            totalTokens += chunk.usage.totalTokens ?? 0;
+            totalSentTokens += chunk.usage.promptTokens ?? 0;
+            totalReceivedTokens += chunk.usage.responseTokens ?? 0;
             addBotMessageToList(message, chunk.id);
             if (chunk.finishReason == FinishReason.stop) {
               saveToDisk([selectedChatRoom]);
@@ -1159,7 +1179,25 @@ class ChatProvider with ChangeNotifier {
     return response.content;
   }
 
-  int totalTokensForCurrentChat = 0;
+  BehaviorSubject<int> totalTokensForCurrentChat = BehaviorSubject.seeded(0);
+  set totalTokens(int value) => totalTokensForCurrentChat.add(value);
+  int get totalTokens => totalTokensForCurrentChat.value;
+
+  BehaviorSubject<int> totalSentForCurrentChat = BehaviorSubject.seeded(0);
+  set totalSentTokens(int value) {
+    totalSentForCurrentChat.add(value);
+    selectedChatRoom.totalSentTokens = value;
+  }
+
+  int get totalSentTokens => totalSentForCurrentChat.value;
+
+  BehaviorSubject<int> totalReceivedForCurrentChat = BehaviorSubject.seeded(0);
+  set totalReceivedTokens(int value) {
+    totalReceivedForCurrentChat.add(value);
+    selectedChatRoom.totalReceivedTokens = value;
+  }
+
+  int get totalReceivedTokens => totalReceivedForCurrentChat.value;
 
   void addBotMessageToList(AIChatMessage message, [String? id]) {
     final values = messages.value;
@@ -1304,7 +1342,8 @@ class ChatProvider with ChangeNotifier {
     final id = generateChatID();
     String systemMessage = '';
 
-    systemMessage = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
+    systemMessage =
+        await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
 
     chatRooms[id] = ChatRoom(
       id: id,
@@ -1320,8 +1359,12 @@ class ChatProvider with ChangeNotifier {
       repeatPenalty: repeatPenalty,
       systemMessage: systemMessage,
       dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
+      totalReceivedTokens: 0,
+      totalSentTokens: 0,
     );
-    totalTokensForCurrentChat = 0;
+    totalTokens = 0;
+    totalSentTokens = 0;
+    totalReceivedTokens = 0;
     notifyListeners();
     notifyRoomsStream();
     selectedChatRoomId = id;
@@ -1351,9 +1394,10 @@ class ChatProvider with ChangeNotifier {
     initModelsApi();
 
     messages.add({});
-    totalTokensForCurrentChat = 0;
+    totalTokens = (room.totalReceivedTokens ?? 0) + (room.totalSentTokens ?? 0);
+    totalSentTokens = room.totalSentTokens ?? 0;
+    totalReceivedTokens = room.totalReceivedTokens ?? 0;
     await _loadMessagesFromDisk(room.id);
-    refreshTokensForCurrentChat();
     scrollToEnd();
   }
 
@@ -1363,7 +1407,8 @@ class ChatProvider with ChangeNotifier {
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       final newChatRoom = _generateDefaultChatroom(
-        systemMessage: await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage),
+        systemMessage: await getFormattedSystemPrompt(
+            basicPrompt: defaultGlobalSystemMessage),
       );
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;

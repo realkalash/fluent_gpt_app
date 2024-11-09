@@ -234,16 +234,17 @@ class _MessageCardState extends State<MessageCard> {
             if ((widget.message as HumanChatMessage).content
                 is ChatMessageContentText)
               FutureBuilder(
-                future: tokenizer.count(
+                future: (openAI ?? localModel)!.countTokens(PromptValue.string(
                     ((widget.message as HumanChatMessage).content
                             as ChatMessageContentText)
-                        .text,
-                    modelName: 'gpt-4'),
+                        .text)),
                 builder: (context, snapshot) {
                   if (snapshot.data is int) {
-                    return Text('Tokens: ${snapshot.data}',
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.normal));
+                    return Text(
+                      'Tokens: ${snapshot.data}',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.normal),
+                    );
                   }
                   return const SizedBox();
                 },
@@ -802,6 +803,19 @@ class _MessageCardState extends State<MessageCard> {
             provider.regenerateMessage(widget.message);
           },
         ),
+        // MenuFlyoutItem(
+        //   text: const Text('Calculate tokens'),
+        //   leading: const Icon(FluentIcons.translate_16_regular),
+        //   onPressed: () async {
+        //     final count = await tokenizer.count(widget.message.contentAsString,
+        //         modelName: 'gpt-4');
+        //     final openAiCounter = await openAI?.countTokens(
+        //       PromptValue.string(widget.message.contentAsString),
+        //     );
+        //     displaySuccessInfoBar(
+        //         title: 'Tokens count: $count. OpenAi counter: $openAiCounter');
+        //   },
+        // ),
         if (message is HumanChatMessage &&
             message.content is ChatMessageContentText)
           MenuFlyoutItem(
