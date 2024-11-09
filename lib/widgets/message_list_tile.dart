@@ -5,6 +5,7 @@ import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
@@ -818,6 +819,20 @@ class _MessageCardState extends State<MessageCard> {
                   content: Text(information),
                   severity: InfoBarSeverity.success,
                   isLong: true,
+                  action: Button(
+                    onPressed: () async {
+                      final provider = context.read<ChatProvider>();
+                      close();
+                      await Future.delayed(const Duration(milliseconds: 400));
+                      showDialog(
+                        // ignore: use_build_context_synchronously
+                        context: provider.context!,
+                        builder: (ctx) => const InfoAboutUserDialog(),
+                        barrierDismissible: true,
+                      );
+                    },
+                    child: Text('Open memory'),
+                  ),
                 );
               });
             },

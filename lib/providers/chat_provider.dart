@@ -12,6 +12,7 @@ import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
+import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
@@ -503,6 +504,34 @@ class ChatProvider with ChangeNotifier {
     final appended = '$personalKnowladge\n${newKnowladge.content}';
     // append to the end
     AppCache.userInfo.set('$personalKnowladge\n${newKnowladge.content}');
+    if (context != null) {
+      displayInfoBar(
+        context!,
+        builder: (ctx, close) {
+          return InfoBar(
+            title: Text('Memory updated'),
+            content: Text(newKnowladge.content,
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+            severity: InfoBarSeverity.info,
+            isLong: true,
+            action: Button(
+              onPressed: () async {
+                close();
+                await Future.delayed(const Duration(milliseconds: 400));
+                showDialog(
+                  context: context!,
+                  builder: (ctx) => const InfoAboutUserDialog(),
+                  barrierDismissible: true,
+                );
+              },
+              child: Text('Open memory'),
+            ),
+          );
+        },
+        alignment: Alignment.topCenter,
+        duration: const Duration(seconds: 6),
+      );
+    }
     // count tokens for personalKnowladge
     final tokensCount = await Tokenizer().count(appended, modelName: 'gpt-4');
     if (tokensCount > AppCache.maxTokensUserInfo.value!) {
@@ -1276,10 +1305,8 @@ class ChatProvider with ChangeNotifier {
     final chatRoomName = 'Chat ${chatRooms.length + 1}';
     final id = generateChatID();
     String systemMessage = '';
-    if (defaultSystemMessage.isNotEmpty == true) {
-      systemMessage =
-          await getFormattedSystemPrompt(basicPrompt: defaultSystemMessage);
-    }
+
+    systemMessage = await getFormattedSystemPrompt(basicPrompt: '');
 
     chatRooms[id] = ChatRoom(
       id: id,
@@ -1338,15 +1365,12 @@ class ChatProvider with ChangeNotifier {
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       final newChatRoom = _generateDefaultChatroom(
-        systemMessage:
-            await getFormattedSystemPrompt(basicPrompt: defaultSystemMessage),
+        systemMessage: await getFormattedSystemPrompt(basicPrompt: ''),
       );
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
-    if (chatRoomId == selectedChatRoomId) {
-      selectedChatRoomId = chatRooms.keys.last;
-    }
+
     FileUtils.getChatRoomPath().then((dir) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
       if (chatRoomToDelete?.model.modelName == 'error') {
@@ -1368,7 +1392,10 @@ class ChatProvider with ChangeNotifier {
             file.path, '$archivedChatRoomsPath/${file.path.split('/').last}');
       }
     });
-    notifyListeners();
+    if (chatRoomId == selectedChatRoomId) {
+      selectedChatRoomId = chatRooms.keys.first;
+      await _loadMessagesFromDisk(selectedChatRoomId);
+    }
   }
 
   /// Will remove all chat rooms with selected name

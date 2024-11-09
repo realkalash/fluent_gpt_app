@@ -28,7 +28,7 @@ class _GlobalSystemPromptSampleDialogState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      systemPrompt = await getFormattedSystemPrompt(basicPrompt: defaultSystemMessage);
+      systemPrompt = await getFormattedSystemPrompt(basicPrompt: '');
       await countWordsAndTokens(systemPrompt);
       if (mounted) setState(() {});
     });

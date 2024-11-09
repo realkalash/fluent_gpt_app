@@ -79,11 +79,13 @@ class ChatRoomPage extends StatelessWidget {
         });
   }
 }
+
 enum DropOverlayState {
   none,
   dropOver,
   dropInvalidFormat,
 }
+
 // isDropOverlayVisible is a BehaviorSubject that is used to show the overlay when a drag is over the drop region.
 final BehaviorSubject<DropOverlayState> isDropOverlayVisible =
     BehaviorSubject<DropOverlayState>.seeded(DropOverlayState.none);
@@ -1081,7 +1083,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           )
                         ],
                       ),
-
                       ToggleButtonAdvenced(
                         checked:
                             AppCache.learnAboutUserAfterCreateNewChat.value!,
@@ -1093,6 +1094,23 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         },
                         tooltip:
                             'Summarize conversation and populate the knowlade about the user',
+                      ),
+                      ToggleButtonAdvenced(
+                        checked: AppCache
+                            .includeKnowledgeAboutUserToSysPrompt.value!,
+                        icon: ic.FluentIcons.book_24_regular,
+                        onChanged: (v) async {
+                          setState(() {
+                            AppCache
+                                .includeKnowledgeAboutUserToSysPrompt.value = v;
+                          });
+                          final editedChatRoom = selectedChatRoom;
+                          editedChatRoom.systemMessage =
+                              await getFormattedSystemPrompt(basicPrompt: '');
+                          chatRooms[selectedChatRoomId] = editedChatRoom;
+                          chatProvider.notifyRoomsStream();
+                        },
+                        tooltip: 'Use memory about the user',
                       ),
                       ToggleButtonAdvenced(
                         icon: ic.FluentIcons.settings_20_regular,
