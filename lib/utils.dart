@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:langchain/langchain.dart';
@@ -196,4 +198,35 @@ extension ListExtension<T> on List<T> {
     }
     return null;
   }
+}
+
+
+Future<void> displayCopiedToClipboard() {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: const Text('Copied'),
+      severity: InfoBarSeverity.info,
+      style: InfoBarThemeData(icon: (_) => FluentIcons.clipboard_24_filled),
+    ),
+  );
+}
+
+Future<void> displaySuccessInfoBar({String? title}) {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: Text(title ?? 'Success'),
+      severity: InfoBarSeverity.success,
+    ),
+  );
+}
+Future<void> displayErrorInfoBar({String? title}) {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: Text(title ?? 'Error'),
+      severity: InfoBarSeverity.error,
+    ),
+  );
 }

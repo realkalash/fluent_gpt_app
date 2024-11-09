@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
@@ -27,7 +28,7 @@ class _GlobalSystemPromptSampleDialogState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      systemPrompt = await getFormattedSystemPrompt(basicPrompt: '');
+      systemPrompt = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
       await countWordsAndTokens(systemPrompt);
       if (mounted) setState(() {});
     });

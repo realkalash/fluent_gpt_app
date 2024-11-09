@@ -13,7 +13,6 @@ import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
-import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
@@ -1106,7 +1105,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           });
                           final editedChatRoom = selectedChatRoom;
                           editedChatRoom.systemMessage =
-                              await getFormattedSystemPrompt(basicPrompt: '');
+                              await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
                           chatRooms[selectedChatRoomId] = editedChatRoom;
                           chatProvider.notifyRoomsStream();
                         },
@@ -1170,35 +1169,6 @@ class _ScrollToBottomButton extends StatelessWidget {
   }
 }
 
-Future<void> displayCopiedToClipboard() {
-  return displayInfoBar(
-    appContext!,
-    builder: (context, close) => InfoBar(
-      title: const Text('Copied'),
-      severity: InfoBarSeverity.info,
-      style: InfoBarThemeData(icon: (_) => ic.FluentIcons.clipboard_24_filled),
-    ),
-  );
-}
-
-Future<void> displaySuccessInfoBar({String? title}) {
-  return displayInfoBar(
-    appContext!,
-    builder: (context, close) => InfoBar(
-      title: Text(title ?? 'Success'),
-      severity: InfoBarSeverity.success,
-    ),
-  );
-}
-Future<void> displayErrorInfoBar({String? title}) {
-  return displayInfoBar(
-    appContext!,
-    builder: (context, close) => InfoBar(
-      title: Text(title ?? 'Error'),
-      severity: InfoBarSeverity.error,
-    ),
-  );
-}
 
 void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
   showDialog(

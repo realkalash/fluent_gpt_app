@@ -22,7 +22,6 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -615,9 +614,8 @@ class ChatProvider with ChangeNotifier {
     bool isThirdMessage = messages.value.length == 2;
     if (isFirstMessage) {
       // regenerate system message to update time/weather etc
-      final systemMessage = await getFormattedSystemPrompt(
+      selectedChatRoom.systemMessage = await getFormattedSystemPrompt(
           basicPrompt: selectedChatRoom.systemMessage ?? '');
-      selectedChatRoom.systemMessage = systemMessage;
 
       /// Name chat room
       if (AppCache.useAiToNameChat.value == false) {
@@ -1017,7 +1015,7 @@ class ChatProvider with ChangeNotifier {
       list.insert(
         0,
         SystemChatMessage(
-          content: selectedChatRoom.systemMessage ?? defaultSystemMessage,
+          content: selectedChatRoom.systemMessage ?? defaultGlobalSystemMessage,
         ),
       );
       if (values.length > count) {
@@ -1306,7 +1304,7 @@ class ChatProvider with ChangeNotifier {
     final id = generateChatID();
     String systemMessage = '';
 
-    systemMessage = await getFormattedSystemPrompt(basicPrompt: '');
+    systemMessage = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
 
     chatRooms[id] = ChatRoom(
       id: id,
@@ -1365,7 +1363,7 @@ class ChatProvider with ChangeNotifier {
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       final newChatRoom = _generateDefaultChatroom(
-        systemMessage: await getFormattedSystemPrompt(basicPrompt: ''),
+        systemMessage: await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage),
       );
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
