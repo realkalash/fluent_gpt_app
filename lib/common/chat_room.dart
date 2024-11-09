@@ -22,6 +22,8 @@ class ChatRoom {
   int iconCodePoint;
   int indexSort;
   int dateCreatedMilliseconds;
+  int? totalSentTokens;
+  int? totalReceivedTokens;
 
   /// <chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2, <key, value>>
   ConversationBufferMemory messages;
@@ -45,6 +47,8 @@ class ChatRoom {
 
     /// 62087 is the code point for the `chat_24_filled` from [FluentIcons]
     this.iconCodePoint = 62087,
+    this.totalSentTokens = 0,
+    this.totalReceivedTokens = 0,
   });
 
   /// Method to encrypt the apiToken
@@ -101,6 +105,8 @@ class ChatRoom {
       systemMessage: map['commandPrefix'],
       indexSort: map['indexSort'] ?? 999999,
       messages: messages,
+      totalSentTokens: map['totalSentTokens'] ?? 0,
+      totalReceivedTokens: map['totalReceivedTokens'] ?? 0,
       dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ??
           DateTime.now().millisecondsSinceEpoch,
     );
@@ -123,6 +129,8 @@ class ChatRoom {
       'topP': topP,
       'maxLength': maxTokenLength,
       'repeatPenalty': repeatPenalty,
+      'totalSentTokens': totalSentTokens ?? 0,
+      'totalReceivedTokens': totalReceivedTokens,
 
       /// List<int> Encrypted data
       // 'token': encryptedTokenBox.cipherText,
@@ -194,6 +202,8 @@ class ChatRoom {
     int? iconCodePoint,
     int? indexSort,
     int? dateCreatedMilliseconds,
+    int? totalSentTokens,
+    int? totalReceivedTokens,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -212,6 +222,8 @@ class ChatRoom {
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       dateCreatedMilliseconds:
           dateCreatedMilliseconds ?? this.dateCreatedMilliseconds,
+      totalSentTokens: totalSentTokens ?? this.totalSentTokens,
+      totalReceivedTokens: totalReceivedTokens ?? this.totalReceivedTokens,
     );
   }
 

@@ -287,25 +287,42 @@ class PageHeaderText extends StatelessWidget {
           const ConversationStyleRow(),
           Row(
             children: [
-              HyperlinkButton(
-                style: ButtonStyle(
-                  padding: WidgetStateProperty.all(EdgeInsets.zero),
-                ),
-                onPressed: () => showCostCalculatorDialog(context),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Tokens: ${(chatProvider.totalTokensForCurrentChat)}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: chatProvider.refreshTokensForCurrentChat,
-                      child: const Icon(FluentIcons.refresh, size: 12),
-                    ),
-                  ],
+              Tooltip(
+                message:
+                    'When you send a message, the app will use the system message along with your prompt. The answer also generates tokens. The sum of all these will be this value. This value may differ from your own calculations because some additional information can be sent with each of your prompts',
+                child: HyperlinkButton(
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(EdgeInsets.zero),
+                  ),
+                  onPressed: () => showCostCalculatorDialog(context),
+                  child: Row(
+                    children: [
+                      StreamBuilder<int>(
+                          stream: chatProvider.totalTokensForCurrentChat,
+                          builder: (context, snapshot) {
+                            return Text(
+                              'Tokens total: ${(chatProvider.totalTokens)} ',
+                              style: const TextStyle(fontSize: 12),
+                            );
+                          }),
+                      StreamBuilder<int>(
+                          stream: chatProvider.totalSentForCurrentChat,
+                          builder: (context, snapshot) {
+                            return Text(
+                              'sent: ${(chatProvider.totalSentTokens)} ',
+                              style: const TextStyle(fontSize: 12),
+                            );
+                          }),
+                      StreamBuilder<int>(
+                          stream: chatProvider.totalReceivedForCurrentChat,
+                          builder: (context, snapshot) {
+                            return Text(
+                              'received: ${(chatProvider.totalReceivedTokens)}',
+                              style: const TextStyle(fontSize: 12),
+                            );
+                          }),
+                    ],
+                  ),
                 ),
               ),
               const Spacer(),
@@ -353,7 +370,7 @@ class PageHeaderText extends StatelessWidget {
 
   void showCostCalculatorDialog(BuildContext context) {
     final provider = context.read<ChatProvider>();
-    final tokens = provider.totalTokensForCurrentChat;
+    final tokens = provider.totalTokensForCurrentChat.value;
     showDialog(
       context: context,
       builder: (context) => CostDialog(tokens: tokens),
@@ -1105,7 +1122,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           });
                           final editedChatRoom = selectedChatRoom;
                           editedChatRoom.systemMessage =
-                              await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
+                              await getFormattedSystemPrompt(
+                                  basicPrompt: defaultGlobalSystemMessage);
                           chatRooms[selectedChatRoomId] = editedChatRoom;
                           chatProvider.notifyRoomsStream();
                         },
@@ -1168,7 +1186,6 @@ class _ScrollToBottomButton extends StatelessWidget {
     );
   }
 }
-
 
 void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
   showDialog(
