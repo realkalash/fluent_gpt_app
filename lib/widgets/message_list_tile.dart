@@ -15,6 +15,7 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
@@ -168,6 +169,35 @@ class _MessageCardState extends State<MessageCard> {
                 is ChatMessageContentText)
               SelectableText(
                 widget.message.contentAsString,
+                contextMenuBuilder: (ctx, state) =>
+                    ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                  ctx,
+                  state,
+                  onMorePressed: () {
+                    flyoutController.showFlyout(
+                      builder: (context) => _showOptionsFlyout(context),
+                    );
+                  },
+                  onDeletePressed: () async {
+                    final provider = context.read<ChatProvider>();
+                    final accepted =
+                        await ConfirmationDialog.show(context: context);
+                    if (accepted) {
+                      provider.deleteMessage(widget.id);
+                    }
+                  },
+                  onQuoteSelectedText: (text) {
+                    final provider = context.read<ChatProvider>();
+                    provider.messageController.text =
+                        provider.messageController.text += '"$text" ';
+                    promptTextFocusNode.requestFocus();
+                  },
+                  onImproveSelectedText: (text) {
+                    final provider = context.read<ChatProvider>();
+                    provider.sendMessage('Improve writing: "$text"',
+                        hidePrompt: true);
+                  },
+                ),
                 style: TextStyle(
                     fontSize: widget.textSize.toDouble(),
                     fontWeight: FontWeight.normal),
@@ -362,10 +392,18 @@ class _MessageCardState extends State<MessageCard> {
                     ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
                   ctx,
                   textState,
-                  () {
+                  onMorePressed: () {
                     flyoutController.showFlyout(
                       builder: (context) => _showOptionsFlyout(context),
                     );
+                  },
+                  onDeletePressed: () async {
+                    final provider = context.read<ChatProvider>();
+                    final accepted =
+                        await ConfirmationDialog.show(context: context);
+                    if (accepted) {
+                      provider.deleteMessage(widget.id);
+                    }
                   },
                 ),
               )
@@ -377,11 +415,26 @@ class _MessageCardState extends State<MessageCard> {
                       ContextMenuBuilders.textChatMessageContextMenuBuilder(
                     ctx,
                     textState,
-                    () {
+                    onMorePressed: () {
                       flyoutController.showFlyout(
                         builder: (context) => _showOptionsFlyout(context),
                       );
                     },
+                    onDeletePressed: () async {
+                      final provider = context.read<ChatProvider>();
+                      final accepted =
+                          await ConfirmationDialog.show(context: context);
+                      if (accepted) {
+                        provider.deleteMessage(widget.id);
+                      }
+                    },
+                    onQuoteSelectedText: (text) {
+                      final provider = context.read<ChatProvider>();
+                      provider.messageController.text =
+                          provider.messageController.text += '"$text" ';
+                      promptTextFocusNode.requestFocus();
+                    },
+                    onImproveSelectedText: (text) {},
                   ),
                   style: TextStyle(
                     fontSize: widget.textSize.toDouble(),
@@ -424,16 +477,17 @@ class _MessageCardState extends State<MessageCard> {
               child: Wrap(
                 spacing: 4,
                 children: [
-                  SqueareIconButton(
-                    tooltip: _isMarkdownView ? 'Show text' : 'Show markdown',
-                    icon: const Icon(FluentIcons.paint_brush_12_regular),
-                    onTap: () {
-                      AppCache.isMarkdownViewEnabled.value = !_isMarkdownView;
-                      setState(() {
-                        _isMarkdownView = !_isMarkdownView;
-                      });
-                    },
-                  ),
+                  if (widget.message is AIChatMessage)
+                    SqueareIconButton(
+                      tooltip: _isMarkdownView ? 'Show text' : 'Show markdown',
+                      icon: const Icon(FluentIcons.paint_brush_12_regular),
+                      onTap: () {
+                        AppCache.isMarkdownViewEnabled.value = !_isMarkdownView;
+                        setState(() {
+                          _isMarkdownView = !_isMarkdownView;
+                        });
+                      },
+                    ),
                   SqueareIconButton(
                     tooltip: 'Edit message',
                     icon: const Icon(FluentIcons.edit_12_regular),

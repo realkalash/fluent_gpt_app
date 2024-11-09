@@ -275,7 +275,7 @@ class PageHeaderText extends StatelessWidget {
                     if (selectedModel.apiKey.isEmpty)
                       Tooltip(
                         message: 'API token is empty!',
-                        child: Icon(ic.FluentIcons.warning_24_filled,
+                        child: Icon(ic.FluentIcons.lock_open_20_regular,
                             color: Colors.red, size: 24),
                       ),
                   ],
