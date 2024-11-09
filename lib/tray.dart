@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -113,12 +115,15 @@ onTrayButtonTap(String item) {
   windowManager.show();
 }
 
+/// You can use [TrayCommand] enum to send commands to the app.
+/// 
+/// Example: `onTrayButtonTapCommand('Hello World', TrayCommand.paste.name);`
 Future<void> onTrayButtonTapCommand(String promptText,
     [String? command]) async {
   /// generate a command with prompt uri
   const urlScheme = 'fluentgpt';
   final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
-    'command': command ?? 'custom',
+    'command': command ?? TrayCommand.custom.name,
     'text': promptText,
   });
 
@@ -127,6 +132,25 @@ Future<void> onTrayButtonTapCommand(String promptText,
   if (!visible) {
     await windowManager.show();
   }
+}
+
+enum TrayCommand {
+  paste,
+  custom,
+  push_to_talk_message,
+  show_dialog,
+  grammar,
+  explain,
+  to_rus,
+  to_eng,
+  improve_writing,
+  summarize_markdown_short,
+  answer_with_tags,
+  create_new_chat,
+  reset_chat,
+  escape_cancel_select,
+  paste_attachment_silent,
+  paste_attachment_ai_lens,
 }
 
 showWindow() {

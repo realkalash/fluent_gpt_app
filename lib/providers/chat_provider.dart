@@ -327,10 +327,10 @@ class ChatProvider with ChangeNotifier {
         if (text.trim().isNotEmpty == true) {
           sendMessage(text, hidePrompt: true);
         }
-      } else if (command == 'custom') {
+      } else if (command == TrayCommand.custom.name) {
         messageController.clear();
         sendMessage(text, hidePrompt: true);
-      } else if (command == 'push_to_talk_message') {
+      } else if (command == TrayCommand.push_to_talk_message.name) {
         messageController.clear();
         sendMessage(text, hidePrompt: true, onFinishResponse: () async {
           final aiAnswer = messages.value.entries.last.value;
@@ -345,7 +345,7 @@ class ChatProvider with ChangeNotifier {
             });
           }
         });
-      } else if (command == 'show_dialog') {
+      } else if (command == TrayCommand.show_dialog.name) {
         showDialog(
             context: context!,
             builder: (ctx) => ContentDialog(
@@ -357,32 +357,32 @@ class ChatProvider with ChangeNotifier {
                     )
                   ],
                 ));
-      } else if (command == 'grammar') {
+      } else if (command == TrayCommand.grammar.name) {
         sendMessage('Check spelling and grammar: "$text"', hidePrompt: true);
-      } else if (command == 'explain') {
+      } else if (command == TrayCommand.explain.name) {
         sendMessage('Explain: "$text"', hidePrompt: true);
-      } else if (command == 'to_rus') {
+      } else if (command == TrayCommand.to_rus.name) {
         sendMessage('Translate to Rus: "$text"', hidePrompt: true);
-      } else if (command == 'to_eng') {
+      } else if (command == TrayCommand.to_eng.name) {
         sendMessage('Translate to English: "$text"', hidePrompt: true);
-      } else if (command == 'impove_writing') {
+      } else if (command == TrayCommand.improve_writing.name) {
         sendMessage('Improve writing: "$text"', hidePrompt: true);
-      } else if (command == 'summarize_markdown_short') {
+      } else if (command == TrayCommand.summarize_markdown_short.name) {
         sendMessage('Summarize using markdown. Use short summary: "$text"',
             hidePrompt: false);
-      } else if (command == 'answer_with_tags') {
+      } else if (command == TrayCommand.answer_with_tags.name) {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
-      } else if (command == 'create_new_chat') {
+      } else if (command == TrayCommand.create_new_chat.name) {
         createNewChatRoom();
-      } else if (command == 'reset_chat') {
+      } else if (command == TrayCommand.reset_chat.name) {
         clearChatMessages();
-      } else if (command == 'escape_cancel_select') {
-      } else if (command == 'paste_attachment_silent') {
+      } else if (command == TrayCommand.escape_cancel_select.name) {
+      } else if (command == TrayCommand.paste_attachment_silent.name) {
         final base64String = text;
         addHumanMessageToList(HumanChatMessage(
             content: ChatMessageContent.image(
                 data: base64String, mimeType: 'image/jpeg')));
-      } else if (command == 'paste_attachment_ai_lens') {
+      } else if (command == TrayCommand.paste_attachment_ai_lens.name) {
         final base64String = text;
         addAttachemntAiLens(base64String);
       } else {
