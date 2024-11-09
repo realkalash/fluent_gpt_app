@@ -653,12 +653,12 @@ class _GlobalSettingsState extends State<GlobalSettings> {
               if (prompt != null) {
                 AppCache.globalSystemPrompt.value = prompt.prompt;
                 systemPromptController.text = prompt.prompt;
-                defaultSystemMessage = prompt.prompt;
+                defaultGlobalSystemMessage = prompt.prompt;
               }
             }),
             onChanged: (value) {
               AppCache.globalSystemPrompt.value = value;
-              defaultSystemMessage = value;
+              defaultGlobalSystemMessage = value;
             },
           ),
           const CaptionText(

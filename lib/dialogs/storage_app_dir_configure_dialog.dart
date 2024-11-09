@@ -6,14 +6,13 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
 import 'package:fluent_gpt/dialogs/prompt_restart_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:window_manager/window_manager.dart';
 
 class StorageAppDirConfigureDialog extends StatefulWidget {
   const StorageAppDirConfigureDialog({super.key});
