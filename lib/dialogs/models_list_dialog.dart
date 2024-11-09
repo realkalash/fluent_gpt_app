@@ -56,6 +56,7 @@ class _ModelsListDialog extends State<ModelsListDialog> {
                 leading: SizedBox.square(dimension: 24, child: model.modelIcon),
                 title: Text('${model.customName} | ${model.modelName}'),
                 onPressed: () async {
+                  final isThisModelWasSelected = model == selectedModel;
                   final changedModel = await showDialog<ChatModelAi>(
                     context: context,
                     builder: (context) => AddAiModelDialog(initialModel: model),
@@ -63,6 +64,10 @@ class _ModelsListDialog extends State<ModelsListDialog> {
                   if (changedModel != null) {
                     chatProvider.removeCustomModel(model);
                     chatProvider.addNewCustomModel(changedModel);
+                    if (isThisModelWasSelected) {
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      chatProvider.selectNewModel(changedModel);
+                    }
                   }
                 },
                 subtitle: Text(model.uri ?? 'no path'),

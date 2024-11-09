@@ -4,6 +4,7 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
@@ -12,7 +13,7 @@ class DeletedChatsDialog extends StatefulWidget {
   const DeletedChatsDialog({super.key});
 
   @override
-  State<DeletedChatsDialog> createState() => _CostDialogState();
+  State<DeletedChatsDialog> createState() => _DeletedChatsDialogState();
 
   static Future<Object?> show(BuildContext context) {
     return showDialog(
@@ -22,7 +23,7 @@ class DeletedChatsDialog extends StatefulWidget {
   }
 }
 
-class _CostDialogState extends State<DeletedChatsDialog> {
+class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
   double bytesArchivedChats = 0.0;
   Map<File, ChatRoom> chatRooms = {};
   @override
@@ -88,7 +89,6 @@ class _CostDialogState extends State<DeletedChatsDialog> {
                 final fileSize = file.lengthSync().toDouble();
                 return ListTile(
                   title: Text(room.chatRoomName),
-                  subtitle: Text('Size: ${getBytesChatsString(fileSize)}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -114,10 +114,28 @@ class _CostDialogState extends State<DeletedChatsDialog> {
                       FilledRedButton(
                         onPressed: () async {
                           await file.delete();
+                          // delete copilot file with suffix '-messages.json'
+                          final copilotFile = File(
+                            file.path.replaceAll('.json', '-messages.json'),
+                          );
+                          if (copilotFile.existsSync()) {
+                            await copilotFile.delete();
+                          }
+                          final path =
+                              await FileUtils.getArchivedChatRoomPath();
+                          final size =
+                              await FileUtils.calculateSizeRecursive(path);
+
                           if (mounted) {
                             setState(() {
                               chatRooms.remove(file);
-                              bytesArchivedChats -= fileSize;
+                              bytesArchivedChats = size;
+                            });
+                          }
+                          if (mounted) {
+                            setState(() {
+                              chatRooms.remove(file);
+                              bytesArchivedChats = size;
                             });
                           }
                         },
@@ -132,6 +150,30 @@ class _CostDialogState extends State<DeletedChatsDialog> {
         ],
       ),
       actions: [
+        FilledRedButton(
+          onPressed: () async {
+            final acceted =
+                await ConfirmationDialog.show(context: context, isDelete: true);
+            if (acceted) {
+              final path = await FileUtils.getArchivedChatRoomPath();
+              final files = FileUtils.getFilesRecursiveWithChatMessages(path);
+              for (final file in files) {
+                try {
+                  await file.delete();
+                } catch (e) {
+                  logError('Error deleting file: $e');
+                }
+              }
+              if (mounted) {
+                setState(() {
+                  chatRooms.clear();
+                  bytesArchivedChats = 0.0;
+                });
+              }
+            }
+          },
+          child: const Text('Delete all'),
+        ),
         Button(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),

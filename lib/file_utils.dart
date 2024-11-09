@@ -183,7 +183,8 @@ class FileUtils {
     return File('$path/$id-messages.json');
   }
 
-  /// It will not give messages files .git and .DS_Store
+  /// It will not give messages files `.git` and `.DS_Store` and `-messages.json`
+  /// if you want to get messages files use [getFilesRecursiveWithChatMessages]
   static List<File> getFilesRecursive(String dirPath) {
     final files = <File>[];
     final dir = Directory(dirPath);
@@ -194,6 +195,23 @@ class FileUtils {
         if (entity.path.contains('.DS_Store') == true) continue;
         if (entity.path.contains('.git') == true) continue;
         if (entity.path.contains('-messages.json') == true) continue;
+        files.add(entity);
+      }
+    }
+
+    return files;
+  } 
+  
+  /// It will not give messages files .git and .DS_Store
+  static List<File> getFilesRecursiveWithChatMessages(String dirPath) {
+    final files = <File>[];
+    final dir = Directory(dirPath);
+    if (!dir.existsSync()) return files;
+    final list = dir.listSync(recursive: true);
+    for (final entity in list) {
+      if (entity is File) {
+        if (entity.path.contains('.DS_Store') == true) continue;
+        if (entity.path.contains('.git') == true) continue;
         files.add(entity);
       }
     }
@@ -219,7 +237,8 @@ class FileUtils {
   static Future<String> getArchivedChatRoomPath() async {
     final dir =
         documentDirectoryPath ?? await getApplicationDocumentsDirectory();
-    return '$dir/fluent_gpt/archived/chat_rooms';
+    final separ = Platform.pathSeparator;
+    return '$dir${separ}fluent_gpt${separ}archived${separ}chat_rooms';
   }
 
   static Future moveFile(String fromPath, String toPath) async {

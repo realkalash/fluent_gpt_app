@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -21,6 +20,7 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
@@ -297,7 +297,7 @@ class _InputFieldState extends State<InputField> {
                     ),
                   const SizedBox(width: 4),
                   if (_isShiftPressed)
-                    const Icon(ic.FluentIcons.arrow_down_12_filled),
+                    const Icon(ic.FluentIcons.arrow_up_12_filled),
                   const SizedBox(width: 4),
                   if (chatProvider.isAnswering)
                     SizedBox.square(
@@ -543,9 +543,34 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
           ...models.map(
             (e) => MenuFlyoutItem(
               selected: e.modelName == selectedModel.modelName,
-              trailing: e.modelName == selectedModel.modelName
-                  ? const Icon(ic.FluentIcons.checkmark_16_filled)
-                  : null,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (e.modelName == selectedModel.modelName)
+                    Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: const Icon(ic.FluentIcons.checkmark_16_filled),
+                    ),
+                  SqueareIconButton(
+                    onTap: () async {
+                      Navigator.of(ctx).pop();
+
+                      final changedModel = await showDialog<ChatModelAi>(
+                        context: context,
+                        builder: (context) => AddAiModelDialog(initialModel: e),
+                      );
+                      if (changedModel != null) {
+                        provider.removeCustomModel(e);
+                        await provider.addNewCustomModel(changedModel);
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        provider.selectNewModel(changedModel);
+                      }
+                    },
+                    icon: Icon(ic.FluentIcons.edit_16_regular),
+                    tooltip: 'Edit',
+                  ),
+                ],
+              ),
               leading: SizedBox.square(dimension: 24, child: e.modelIcon),
               text: Text(e.customName),
               onPressed: () => provider.selectNewModel(e),
