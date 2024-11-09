@@ -1,4 +1,3 @@
-import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
