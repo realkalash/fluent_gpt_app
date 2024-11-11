@@ -1,7 +1,9 @@
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
+import 'package:langchain/langchain.dart';
 
 class GlobalSystemPromptSampleDialog extends StatefulWidget {
   const GlobalSystemPromptSampleDialog({super.key});
@@ -21,14 +23,17 @@ class _GlobalSystemPromptSampleDialogState
     final words = prompt.split(' ');
     wordsCount = words.length;
     final tokenizer = Tokenizer();
-    tokensCount = await tokenizer.count(prompt, modelName: 'gpt-4');
+    tokensCount = await openAI?.countTokens(PromptValue.string(prompt)) ??
+        await localModel?.countTokens(PromptValue.string(prompt)) ??
+        await tokenizer.count(prompt, modelName: 'gpt-4');
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      systemPrompt = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
+      systemPrompt = await getFormattedSystemPrompt(
+          basicPrompt: defaultGlobalSystemMessage);
       await countWordsAndTokens(systemPrompt);
       if (mounted) setState(() {});
     });
@@ -43,7 +48,8 @@ class _GlobalSystemPromptSampleDialogState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('This is a full system prompt that will be sent to every new chat room as first system message'),
+            const Text(
+                'This is a full system prompt that will be sent to every new chat room as first system message'),
             Card(
               child: Padding(
                   padding: const EdgeInsets.all(10),
