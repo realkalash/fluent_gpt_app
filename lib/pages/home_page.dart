@@ -643,10 +643,10 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                                 children: [
                                   Text(
                                     item.title,
-                                    maxLines: 1,
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
