@@ -35,6 +35,8 @@ class AppCache {
   static const micrpohoneDeviceId = StringPref("micrpohoneDeviceId");
   static const micrpohoneDeviceName = StringPref("micrpohoneDeviceName");
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
+  static const fetchChatsPeriodically = BoolPref("fetchChatsPeriodically", false);
+  static const fetchChatsPeriodMin = IntPref("fetchChatsPeriodMin", 10);
 
   /// Contains Strings that we can't migrate beacuse they are used by StringPref, IntPref etc.
   /// the format is:

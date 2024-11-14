@@ -10,6 +10,7 @@ import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
@@ -242,11 +243,46 @@ class ChatProvider with ChangeNotifier {
     init();
     listenTray();
   }
-  init() async {
+
+  Future<void> init() async {
     await initChatModels();
     await initChatsFromDisk();
     initCustomActions();
     initSettingsFromCache();
+    initTimers();
+    initListeners();
+  }
+
+  void initListeners() {
+    if (AppCache.fetchChatsPeriodically.value == true) {
+      /// If chats are located in the cloud, we need to fetch them twice
+      AppWindowListener.windowVisibilityStream
+          .distinct()
+          .listen((isOpen) async {
+        if (isOpen) {
+          /// This waiting is needed to prevent errors wtih cloud storate
+          await Future.delayed(const Duration(milliseconds: 1500));
+          log('Window opened. Fetching chats from disk');
+          initChatsFromDisk();
+        }
+      });
+    }
+  }
+
+  Timer? fetchChatsTimer;
+  void initTimers() {
+    fetchChatsTimer?.cancel();
+    if (AppCache.fetchChatsPeriodically.value == true) {
+      fetchChatsTimer = Timer.periodic(
+          Duration(minutes: AppCache.fetchChatsPeriodMin.value ?? 10), (timer) {
+        log('Fetching chats from disk. ${timer.tick}');
+        if (AppCache.fetchChatsPeriodically.value == false) {
+          timer.cancel();
+          return;
+        }
+        initChatsFromDisk();
+      });
+    }
   }
 
   Future initSettingsFromCache() async {
