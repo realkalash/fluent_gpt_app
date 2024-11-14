@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/weather_data.dart';
 import 'package:fluent_gpt/log.dart';
@@ -8,10 +10,13 @@ import 'package:http/http.dart' as http;
 WeatherDay? weatherTodayMax;
 WeatherDay? weatherTodayMin;
 WeatherDay? weatherTomorrowMax;
+/// Timer to fetch weather data every 4 hours
+Timer? timer;
 
 class WeatherProvider extends ChangeNotifier {
   WeatherProvider(this.context) {
     init();
+    initTimers();
   }
 
   void init() {
@@ -23,16 +28,25 @@ class WeatherProvider extends ChangeNotifier {
       notifyListeners();
     }
     final lastTimeWeatherFetched = AppCache.lastTimeWeatherFetched.value;
-    // if fetched more than 1 day ago, fetch again
+    // if fetched more than 4 hours ago, fetch again
     if (lastTimeWeatherFetched != null) {
       final lastTime =
           DateTime.fromMillisecondsSinceEpoch(lastTimeWeatherFetched);
       final now = DateTime.now();
-      final difference = now.difference(lastTime).inDays;
-      if (difference > 0 && AppCache.userCityName.value != null) {
+      final difference = now.difference(lastTime).inHours;
+      if (difference > 3 && AppCache.userCityName.value != null) {
         fetchWeather(AppCache.userCityName.value!);
       }
     }
+  }
+
+  void initTimers() {
+    timer?.cancel();
+    timer = Timer.periodic(Duration(hours: 4), (timer) {
+      if (AppCache.userCityName.value != null) {
+        fetchWeather(AppCache.userCityName.value!);
+      }
+    });
   }
 
   final BuildContext? context;
