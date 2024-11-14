@@ -50,6 +50,7 @@ class _StorageAppDirConfigureDialogState
             } else {
               await AppCache.appDocumentsDirectory.set('');
             }
+            chatProvider.initTimers();
             // ignore: use_build_context_synchronously
             Navigator.of(context).pop();
             await Future.delayed(const Duration(milliseconds: 500));
@@ -96,6 +97,40 @@ class _StorageAppDirConfigureDialogState
           ),
           CaptionText(
               'The app will create a folder "fluent_gpt" in the selected directory'),
+          LabelText('Fetch data periodically'),
+          Row(
+            children: [
+              Expanded(
+                child: Checkbox(
+                  content: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Text('Fetch chats every: '),
+                      SizedBox(
+                        width: 50,
+                        child: NumberBox(
+                          value: AppCache.fetchChatsPeriodMin.value,
+                          mode: SpinButtonPlacementMode.none,
+                          clearButton: false,
+                          min: 1,
+                          placeholder: '${AppCache.fetchChatsPeriodMin.value ?? 10}',
+                          onChanged: (value) {
+                            AppCache.fetchChatsPeriodMin.value = value ?? 10;
+                          },
+                        ),
+                      ),
+                      const Text(' minutes')
+                    ],
+                  ),
+                  checked: AppCache.fetchChatsPeriodically.value,
+                  onChanged: (value) {
+                    AppCache.fetchChatsPeriodically.value = value;
+                    setState(() {});
+                  },
+                ),
+              ),
+            ],
+          ),
           biggerSpacer,
           LabelText('Export/Import settings'),
           CaptionText(

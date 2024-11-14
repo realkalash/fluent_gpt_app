@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -17,7 +19,9 @@ class PromptRestartAppDialog extends StatelessWidget {
       title: Text('Please, restart the app to apply changes'),
       actions: [
         FilledButton(
-          onPressed: () => windowManager.close(),
+          onPressed: () => Platform.isMacOS
+              ? windowManager.destroy()
+              : windowManager.close(),
           child: Text('Restart'),
         ),
         Button(
