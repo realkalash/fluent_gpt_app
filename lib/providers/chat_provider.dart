@@ -674,8 +674,11 @@ class ChatProvider with ChangeNotifier {
     bool isThirdMessage = messages.value.length == 2;
     if (isFirstMessage) {
       // regenerate system message to update time/weather etc
+      // This is a first message, so it will regenerate the system message from the global prompt
+      // for chat that been cleared. This is expected bug!
       selectedChatRoom.systemMessage = await getFormattedSystemPrompt(
-          basicPrompt: selectedChatRoom.systemMessage ?? '');
+        basicPrompt: defaultGlobalSystemMessage,
+      );
 
       /// Name chat room
       if (AppCache.useAiToNameChat.value == false) {
@@ -1372,6 +1375,7 @@ class ChatProvider with ChangeNotifier {
     selectedChatRoom.messages.clear();
     saveToDisk([selectedChatRoom]);
     notifyRoomsStream();
+    notifyListeners();
   }
 
   void notifyRoomsStream() {

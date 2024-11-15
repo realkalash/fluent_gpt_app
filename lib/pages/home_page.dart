@@ -362,6 +362,51 @@ class PageHeaderText extends StatelessWidget {
                   ),
                 ],
               ),
+              SizedBox(
+                width: 24,
+                height: 36,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: HoverButton(
+                        onPressed: () {
+                          chatProvider.textSize = chatProvider.textSize + 2;
+                        },
+                        builder: (p0, state) {
+                          return Container(
+                              color: state.contains(WidgetState.hovered)
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.transparent,
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(ic.FluentIcons.arrow_up_16_filled,
+                                  size: 10));
+                        },
+                      ),
+                    ),
+                    // const SizedBox(height: 2),
+                    Expanded(
+                      child: HoverButton(
+                        onPressed: () {
+                          chatProvider.textSize = chatProvider.textSize - 2;
+                        },
+                        builder: (p0, state) {
+                          return Container(
+                            color: state.contains(WidgetState.hovered)
+                                ? Colors.white.withOpacity(0.2)
+                                : Colors.transparent,
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              ic.FluentIcons.arrow_down_16_filled,
+                              size: 10,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
