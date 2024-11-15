@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -53,6 +54,9 @@ extension ChatMessageExtension on ChatMessage {
     }
     if (this is TextFileCustomMessage) {
       return (this as TextFileCustomMessage).toJson();
+    }
+    if (this is ImageCustomMessage) {
+      return (this as ImageCustomMessage).toJson();
     }
 
     if (this is CustomChatMessage) {
