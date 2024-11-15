@@ -67,10 +67,11 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    shiftPressedStream.stream.listen((isShiftPressed) {
+    shiftPressedStream.listen((isShiftPressed) {
       _isShiftPressed = isShiftPressed;
       if (mounted) setState(() {});
     });
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       ChatProvider.messageControllerGlobal.addListener(onTextChangedListener);
     });
@@ -135,6 +136,24 @@ class _InputFieldState extends State<InputField> {
     provider.scrollToMessage(elementkey);
   }
 
+  Future onDigitPressed(int number) async {
+    print('Digit pressed: $number');
+    final selectedPrompt = _quickInputCommandsList[number - 1];
+    if (selectedPrompt[0] == '/') {
+      ChatProvider.messageControllerGlobal.text = '$selectedPrompt ';
+    } else {
+      final findedCustomPrompt = promptsLibrary.firstWhereOrNull(
+        (element) => element.title == selectedPrompt,
+      );
+      if (findedCustomPrompt != null) {
+        ChatProvider.messageControllerGlobal.text =
+            findedCustomPrompt.getPromptText();
+      }
+    }
+    removeInputFieldQuickCommandsOverlay();
+    promptTextFocusNode.requestFocus();
+  }
+
   bool _isShiftPressed = false;
   bool _useShimmer = false;
 
@@ -146,23 +165,58 @@ class _InputFieldState extends State<InputField> {
 
     return CallbackShortcuts(
       bindings: {
-        if (Platform.isMacOS)
+        if (Platform.isMacOS) ...{
           const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
-              onShortcutPasteToField
-        else
+              onShortcutPasteToField,
+          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
+              onShortcutSearchPressed,
+          // digits
+          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
+              onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
+              onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
+              onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
+              onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
+              onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
+              onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
+              onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () =>
+              onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () =>
+              onDigitPressed(9),
+        } else ...{
           const SingleActivator(LogicalKeyboardKey.keyV, control: true):
               onShortcutPasteToField,
-        if (Platform.isMacOS)
-          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
-              onShortcutSearchPressed
-        else
           const SingleActivator(LogicalKeyboardKey.keyF, control: true):
               onShortcutSearchPressed,
+          // digits
+          SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
+              onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
+              onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
+              onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
+              onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
+              onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, control: true): () =>
+              onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, control: true): () =>
+              onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, control: true): () =>
+              onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, control: true): () =>
+              onDigitPressed(9),
+        },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
-        const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {
-          FocusScope.of(context).previousFocus();
-        },
+        const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {},
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -201,7 +255,7 @@ class _InputFieldState extends State<InputField> {
                       promptTextFocusNode.requestFocus();
                     }
                   },
-                  placeholder: 'Type your message here',
+                  placeholder: 'Use "/" commands or type your message here',
                 ),
               )
             ],
@@ -302,7 +356,8 @@ class _InputFieldState extends State<InputField> {
                               promptTextFocusNode.requestFocus();
                             }
                           },
-                          placeholder: 'Type your message here',
+                          placeholder:
+                              'Use "/" commands or type your message here',
                         ),
                       ),
                     ),
@@ -441,6 +496,9 @@ class _InputFieldState extends State<InputField> {
 }
 
 OverlayEntry? inputFieldQuickCommandsOverlay;
+List<String> _quickInputCommandsList = [
+  ...QuickInputCommandsOverlay.quickInputDefaultCommands,
+];
 void removeInputFieldQuickCommandsOverlay() {
   if (inputFieldQuickCommandsOverlay != null) {
     inputFieldQuickCommandsOverlay!.remove();
@@ -451,7 +509,10 @@ void removeInputFieldQuickCommandsOverlay() {
 
 class QuickInputCommandsOverlay extends StatefulWidget {
   const QuickInputCommandsOverlay({super.key});
-
+  static List<String> quickInputDefaultCommands = [
+    '/settings',
+    '/${TrayCommand.generate_dalle_image.name}',
+  ];
   @override
   State<QuickInputCommandsOverlay> createState() =>
       _QuickInputCommandsOverlayState();
@@ -477,6 +538,8 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
   void loadAllCommands() {
     final allPrompts = promptsLibrary.map((e) => e.title).toList();
     quickInputAllCommands.addAll(allPrompts);
+    _quickInputCommandsList.addAll(allPrompts);
+    setState(() {});
   }
 
   @override
@@ -490,33 +553,27 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
     if (text.isEmpty) {
       return;
     }
-    quickInputCommandsList.clear();
+    _quickInputCommandsList.clear();
     if (text.length == 1 && text[0] == '/') {
-      quickInputCommandsList.addAll(quickInputDefaultCommands);
+      _quickInputCommandsList.addAll(
+        QuickInputCommandsOverlay.quickInputDefaultCommands,
+      );
       return;
     }
     final clearTextLowerCase = text.trim().toLowerCase();
     for (final command in quickInputAllCommands) {
       final firstWord = clearTextLowerCase.split(' ').first;
       if ('/$command'.toLowerCase().contains(firstWord)) {
-        quickInputCommandsList.add(command);
+        _quickInputCommandsList.add(command);
       }
     }
-    if (quickInputCommandsList.isNotEmpty) {
+    if (_quickInputCommandsList.isNotEmpty) {
       setState(() {});
     }
   }
 
-  static List<String> quickInputDefaultCommands = [
-    '/settings',
-    '/${TrayCommand.generate_dalle_image.name}',
-  ];
   List<String> quickInputAllCommands = [
-    ...quickInputDefaultCommands,
-  ];
-
-  List<String> quickInputCommandsList = [
-    ...quickInputDefaultCommands,
+    ...QuickInputCommandsOverlay.quickInputDefaultCommands,
   ];
 
   @override
@@ -547,7 +604,7 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                       child: SizedBox(
                         child: Button(
                           onPressed: () {
-                            quickInputCommandsList.clear();
+                            _quickInputCommandsList.clear();
                             quickInputAllCommands.clear();
                             removeInputFieldQuickCommandsOverlay();
                           },
@@ -570,10 +627,10 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                 Flexible(
                   fit: FlexFit.loose,
                   child: ListView.builder(
-                    itemCount: quickInputCommandsList.length,
+                    itemCount: _quickInputCommandsList.length,
                     shrinkWrap: true,
                     itemBuilder: (context, i) {
-                      final command = quickInputCommandsList[i];
+                      final command = _quickInputCommandsList[i];
                       bool isHovered = false;
                       return StatefulBuilder(
                         builder: (
@@ -603,9 +660,13 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                                 onTap: () {
                                   final isGlobalCommand = command[0] == '/';
                                   if (!isGlobalCommand) {
+                                    final prompt = promptsLibrary.firstWhere(
+                                      (element) => element.title == command,
+                                    );
                                     ChatProvider.messageControllerGlobal.text =
-                                        command;
+                                        prompt.getPromptText();
                                     removeInputFieldQuickCommandsOverlay();
+                                    promptTextFocusNode.requestFocus();
                                     return;
                                   }
                                   if (command == '/settings') {
@@ -621,14 +682,13 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                                     promptTextFocusNode.requestFocus();
                                     removeInputFieldQuickCommandsOverlay();
                                   }
-                                  removeInputFieldQuickCommandsOverlay();
                                 },
-                                // trailing: i < 10
-                                //     ? Button(
-                                //         child: Text('[ctrl+${i + 1}]'),
-                                //         onPressed: () {},
-                                //       )
-                                //     : null,
+                                trailing: i < 10
+                                    ? Button(
+                                        child: Text('[ctrl+${i + 1}]'),
+                                        onPressed: () {},
+                                      )
+                                    : null,
                               ),
                             ),
                           );

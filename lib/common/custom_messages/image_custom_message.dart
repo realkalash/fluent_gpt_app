@@ -39,7 +39,10 @@ class ImageCustomMessage extends CustomChatMessage {
   HumanChatMessage toHumanChatMessage() {
     return HumanChatMessage(
       content: ChatMessageContentImage(
-          data: content, detail: ChatMessageContentImageDetail.high),
+        data: content,
+        detail: ChatMessageContentImageDetail.high,
+        mimeType: 'image/png',
+      ),
     );
   }
 }
