@@ -159,11 +159,11 @@ Future<String> getFormattedSystemPrompt(
   }
   if (isIncludeAdditionalEnabled) {
     prompt +=
-        '\n\nNext will be a contextual information about the user. Dont use it until it is necessary!\n"""';
+        '\n\nNext will be a contextual information about the user. Dont use it until it is necessary!\n';
   }
 
   if (AppCache.includeSysInfoToSysPrompt.value!) {
-    prompt += '\nSystem info for current: $systemInfo';
+    prompt += '\nSystem info: $systemInfo';
   }
   if (AppCache.includeUserNameToSysPrompt.value!) {
     prompt += '\nUser name: $userName';
@@ -185,7 +185,7 @@ Future<String> getFormattedSystemPrompt(
         '\n\nKnowladge base you remembered from previous dialogs: """$userInfo"""';
   }
   if (isIncludeAdditionalEnabled) {
-    prompt += '\n"""';
+    prompt += '\n';
   }
   if (appendText != null) {
     prompt += '\n\n$appendText';
