@@ -151,6 +151,7 @@ enum TrayCommand {
   escape_cancel_select,
   paste_attachment_silent,
   paste_attachment_ai_lens,
+  generate_dalle_image,
 }
 
 showWindow() {

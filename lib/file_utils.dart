@@ -84,6 +84,7 @@ extension XFileBaseExtension on XFile {
 
 class FileUtils {
   static String? documentDirectoryPath;
+  static String? imageDirectoryPath;
   static String? temporaryDirectoryPath;
 
   /// ${documentDirectoryPath}${Platform.pathSeparator}external_tools
@@ -93,6 +94,8 @@ class FileUtils {
     documentDirectoryPath = AppCache.appDocumentsDirectory.value!.isNotEmpty
         ? AppCache.appDocumentsDirectory.value
         : (await getApplicationDocumentsDirectory()).path;
+    imageDirectoryPath =
+        '$documentDirectoryPath${Platform.pathSeparator}fluent_gpt/generated_images';
 
     temporaryDirectoryPath = (await getTemporaryDirectory()).path;
     externalToolsPath =

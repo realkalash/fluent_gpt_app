@@ -34,6 +34,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
@@ -961,6 +962,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         );
                       }),
                 ),
+              GeneratingImagesCard(),
               SizedBox(
                 width: double.infinity,
                 child: Padding(
@@ -1153,6 +1155,34 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             child: _ScrollToBottomButton(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class GeneratingImagesCard extends StatelessWidget {
+  const GeneratingImagesCard({super.key});
+  static final botMessageStyle = TextStyle(color: Colors.green, fontSize: 14);
+
+  @override
+  Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    if (chatProvider.isGeneratingImage == false) return const SizedBox.shrink();
+    return Card(
+      margin: const EdgeInsets.all(4),
+      borderRadius: BorderRadius.circular(8.0),
+      borderColor: Colors.transparent,
+      child: MessageListTile(
+        title: Text('AI', style: botMessageStyle),
+        subtitle: Shimmer(
+          color: context.theme.accentColor,
+          duration: const Duration(milliseconds: 1000),
+          child: Container(
+            width: 200,
+            height: 200,
+            color: context.theme.cardColor,
+          ),
+        ),
       ),
     );
   }

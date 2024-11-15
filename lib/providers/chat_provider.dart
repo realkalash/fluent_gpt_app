@@ -5,6 +5,7 @@ import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
@@ -14,6 +15,7 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
@@ -141,6 +143,7 @@ class ChatProvider with ChangeNotifier {
 
   final dialogApiKeyController = TextEditingController();
   bool isAnswering = false;
+  bool isGeneratingImage = false;
   CancelToken? cancelToken;
 
   /// It's not a good practice to use [context] directly in the provider...
@@ -420,6 +423,27 @@ class ChatProvider with ChangeNotifier {
       } else if (command == TrayCommand.paste_attachment_ai_lens.name) {
         final base64String = text;
         addAttachemntAiLens(base64String);
+      } else if (command == TrayCommand.generate_dalle_image.name) {
+        final imagePrompt = text;
+        if (imagePrompt.trim().isEmpty) {
+          return;
+        }
+        addHumanMessageToList(
+          HumanChatMessage(content: ChatMessageContent.text(text)),
+        );
+        isGeneratingImage = true;
+        notifyListeners();
+        final imageChatMessage = await DalleApiGenerator.generateImage(
+          prompt: imagePrompt,
+          model: kDebugMode ? 'dall-e-2' : 'dall-e-3',
+          apiKey: openAI!.apiKey,
+        );
+        addCustomMessageToList(imageChatMessage);
+        isGeneratingImage = false;
+        notifyListeners();
+        // wait because the screen will update their size first
+        await Future.delayed(const Duration(milliseconds: 1500));
+        scrollToEnd();
       } else {
         throw Exception('Unknown command: $command');
       }
@@ -660,6 +684,13 @@ class ChatProvider with ChangeNotifier {
             : messageContent;
         renameCurrentChatRoom(first50CharsIfPossible);
       }
+    }
+    if (messageContent.contains(TrayCommand.generate_dalle_image.name)) {
+      onTrayButtonTapCommand(
+        messageContent,
+        TrayCommand.generate_dalle_image.name,
+      );
+      return;
     }
     if (isThirdMessage) {
       String lastMessages = getLastFewMessagesForContextAsString();
@@ -1054,6 +1085,8 @@ class ChatProvider with ChangeNotifier {
         // map custom messages to human messages because openAi doesn't support them
         if (message is TextFileCustomMessage) {
           // insert at start to maintain order
+          list.insert(0, message.toHumanChatMessage());
+        } else if (message is ImageCustomMessage) {
           list.insert(0, message.toHumanChatMessage());
         } else {
           // insert at start to maintain order

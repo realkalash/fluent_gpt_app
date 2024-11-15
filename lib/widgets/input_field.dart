@@ -5,6 +5,7 @@ import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
@@ -20,6 +21,7 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -69,6 +71,15 @@ class _InputFieldState extends State<InputField> {
       _isShiftPressed = isShiftPressed;
       if (mounted) setState(() {});
     });
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      ChatProvider.messageControllerGlobal.addListener(onTextChangedListener);
+    });
+  }
+
+  @override
+  void dispose() {
+    ChatProvider.messageControllerGlobal.removeListener(onTextChangedListener);
+    super.dispose();
   }
 
   void onShortcutPasteText(String text) {
@@ -404,6 +415,234 @@ class _InputFieldState extends State<InputField> {
         ],
       );
     });
+  }
+
+  void onTextChangedListener() {
+    final text = ChatProvider.messageControllerGlobal.text;
+    if (text.isEmpty) {
+      removeInputFieldQuickCommandsOverlay();
+      return;
+    }
+
+    if (text[0] == '/' && inputFieldQuickCommandsOverlay == null) {
+      // show overlay
+      inputFieldQuickCommandsOverlay = OverlayEntry(
+        builder: (context) => QuickInputCommandsOverlay(),
+        opaque: false,
+      );
+      Overlay.of(context).insert(inputFieldQuickCommandsOverlay!);
+      return;
+    }
+    if (inputFieldQuickCommandsOverlay != null && text[0] != '/') {
+      removeInputFieldQuickCommandsOverlay();
+      return;
+    }
+  }
+}
+
+OverlayEntry? inputFieldQuickCommandsOverlay;
+void removeInputFieldQuickCommandsOverlay() {
+  if (inputFieldQuickCommandsOverlay != null) {
+    inputFieldQuickCommandsOverlay!.remove();
+    inputFieldQuickCommandsOverlay!.dispose();
+    inputFieldQuickCommandsOverlay = null;
+  }
+}
+
+class QuickInputCommandsOverlay extends StatefulWidget {
+  const QuickInputCommandsOverlay({super.key});
+
+  @override
+  State<QuickInputCommandsOverlay> createState() =>
+      _QuickInputCommandsOverlayState();
+}
+
+class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ChatProvider.messageControllerGlobal.addListener(onTextChangedListener);
+      escPressedStream.listen(onEscPressedListener);
+      loadAllCommands();
+    });
+  }
+
+  void onEscPressedListener(bool isPressed) {
+    if (isPressed) {
+      removeInputFieldQuickCommandsOverlay();
+    }
+  }
+
+  void loadAllCommands() {
+    final allPrompts = promptsLibrary.map((e) => e.title).toList();
+    quickInputAllCommands.addAll(allPrompts);
+  }
+
+  @override
+  void dispose() {
+    ChatProvider.messageControllerGlobal.removeListener(onTextChangedListener);
+    super.dispose();
+  }
+
+  void onTextChangedListener() {
+    final text = ChatProvider.messageControllerGlobal.text;
+    if (text.isEmpty) {
+      return;
+    }
+    quickInputCommandsList.clear();
+    if (text.length == 1 && text[0] == '/') {
+      quickInputCommandsList.addAll(quickInputDefaultCommands);
+      return;
+    }
+    final clearTextLowerCase = text.trim().toLowerCase();
+    for (final command in quickInputAllCommands) {
+      final firstWord = clearTextLowerCase.split(' ').first;
+      if ('/$command'.toLowerCase().contains(firstWord)) {
+        quickInputCommandsList.add(command);
+      }
+    }
+    if (quickInputCommandsList.isNotEmpty) {
+      setState(() {});
+    }
+  }
+
+  static List<String> quickInputDefaultCommands = [
+    '/settings',
+    '/${TrayCommand.generate_dalle_image.name}',
+  ];
+  List<String> quickInputAllCommands = [
+    ...quickInputDefaultCommands,
+  ];
+
+  List<String> quickInputCommandsList = [
+    ...quickInputDefaultCommands,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 64,
+      left: 60,
+      right: 60,
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 300),
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+        child: Acrylic(
+          blurAmount: 10,
+          tint: Colors.black,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Tooltip(
+                      message: 'Close',
+                      child: SizedBox(
+                        child: Button(
+                          onPressed: () {
+                            quickInputCommandsList.clear();
+                            quickInputAllCommands.clear();
+                            removeInputFieldQuickCommandsOverlay();
+                          },
+                          style: const ButtonStyle(
+                            padding: WidgetStatePropertyAll(EdgeInsets.all(4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(ic.FluentIcons.arrow_down_16_filled,
+                                  size: 16),
+                              Text('[esc]'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: ListView.builder(
+                    itemCount: quickInputCommandsList.length,
+                    shrinkWrap: true,
+                    itemBuilder: (context, i) {
+                      final command = quickInputCommandsList[i];
+                      bool isHovered = false;
+                      return StatefulBuilder(
+                        builder: (
+                          BuildContext context,
+                          void Function(void Function()) setState,
+                        ) {
+                          return MouseRegion(
+                            onHover: (event) {
+                              setState(() {
+                                isHovered = true;
+                              });
+                            },
+                            onExit: (event) {
+                              setState(() {
+                                isHovered = false;
+                              });
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: BasicListTile(
+                                title: Text(command),
+                                color: isHovered
+                                    ? context.theme.accentColor.withOpacity(0.2)
+                                    : Colors.black.withOpacity(0.1),
+                                padding: EdgeInsets.symmetric(
+                                    vertical: 4, horizontal: 16),
+                                onTap: () {
+                                  final isGlobalCommand = command[0] == '/';
+                                  if (!isGlobalCommand) {
+                                    ChatProvider.messageControllerGlobal.text =
+                                        command;
+                                    removeInputFieldQuickCommandsOverlay();
+                                    return;
+                                  }
+                                  if (command == '/settings') {
+                                    Navigator.of(context).push(
+                                      FluentPageRoute(
+                                        builder: (context) =>
+                                            const SettingsPage(),
+                                      ),
+                                    );
+                                  } else {
+                                    ChatProvider.messageControllerGlobal.text =
+                                        '$command ';
+                                    promptTextFocusNode.requestFocus();
+                                    removeInputFieldQuickCommandsOverlay();
+                                  }
+                                  removeInputFieldQuickCommandsOverlay();
+                                },
+                                // trailing: i < 10
+                                //     ? Button(
+                                //         child: Text('[ctrl+${i + 1}]'),
+                                //         onPressed: () {},
+                                //       )
+                                //     : null,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

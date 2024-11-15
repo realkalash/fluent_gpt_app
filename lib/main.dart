@@ -83,6 +83,8 @@ Future<void> initWindow() async {
 String appVersion = '-';
 PackageInfo? packageInfo;
 BehaviorSubject<bool> shiftPressedStream = BehaviorSubject<bool>.seeded(false);
+BehaviorSubject<bool> escPressedStream = BehaviorSubject<bool>.seeded(false);
+BehaviorSubject<bool> ctrlPressedStream = BehaviorSubject<bool>.seeded(false);
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void setupMethodChannel() {
@@ -319,10 +321,21 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
             if (event is KeyDownEvent &&
                 event.logicalKey == LogicalKeyboardKey.shiftLeft) {
               shiftPressedStream.add(true);
-            }
-            if (event is KeyUpEvent &&
+            } else if (event is KeyUpEvent &&
                 event.logicalKey == LogicalKeyboardKey.shiftLeft) {
               shiftPressedStream.add(false);
+            } else if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              escPressedStream.add(true);
+            } else if (event is KeyUpEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              escPressedStream.add(false);
+            } else if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.controlLeft) {
+              ctrlPressedStream.add(true);
+            } else if (event is KeyUpEvent &&
+                event.logicalKey == LogicalKeyboardKey.controlLeft) {
+              ctrlPressedStream.add(false);
             }
           },
           child: StreamBuilder<OverlayStatus>(

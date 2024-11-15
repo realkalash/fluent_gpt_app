@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
-import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
+import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -22,7 +23,6 @@ import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:open_filex/open_filex.dart';
@@ -34,8 +34,8 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import 'markdown_builders/markdown_utils.dart';
 
-class _MessageListTile extends StatelessWidget {
-  const _MessageListTile({
+class MessageListTile extends StatelessWidget {
+  const MessageListTile({
     super.key,
     this.leading,
     this.onPressed,
@@ -124,7 +124,6 @@ class _MessageCardState extends State<MessageCard> {
   bool _isFocused = false;
   bool _isLoadingReadAloud = false;
   final flyoutController = FlyoutController();
-  static Tokenizer tokenizer = Tokenizer();
 
   @override
   void initState() {
@@ -143,7 +142,7 @@ class _MessageCardState extends State<MessageCard> {
     Widget tileWidget;
 
     if (widget.message is HumanChatMessage) {
-      tileWidget = _MessageListTile(
+      tileWidget = MessageListTile(
         title: Row(
           children: [
             Text('$formatDateTime ',
@@ -157,14 +156,18 @@ class _MessageCardState extends State<MessageCard> {
           children: [
             if ((widget.message as HumanChatMessage).content
                 is ChatMessageContentImage)
-              Image.memory(
-                decodeImage(
-                  ((widget.message as HumanChatMessage).content
-                          as ChatMessageContentImage)
-                      .data,
+              Padding(
+                padding: const EdgeInsets.only(
+                    left: 8.0, right: 8, top: 8, bottom: 12),
+                child: Image.memory(
+                  decodeImage(
+                    ((widget.message as HumanChatMessage).content
+                            as ChatMessageContentImage)
+                        .data,
+                  ),
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
                 ),
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
               ),
             if ((widget.message as HumanChatMessage).content
                 is ChatMessageContentText)
@@ -208,26 +211,11 @@ class _MessageCardState extends State<MessageCard> {
                 onTap: () {},
                 child: Align(
                   alignment: Alignment.center,
-                  child: Container(
-                    width: 400,
-                    height: 400,
-                    margin: const EdgeInsets.all(8.0),
-                    clipBehavior: Clip.antiAlias,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.4),
-                            blurRadius: 10,
-                            spreadRadius: 5,
-                          )
-                        ]),
-                    child: Image.memory(
-                      decodeImage(
-                          (widget.message as ChatMessageContentImage).data),
-                      fit: BoxFit.fitHeight,
-                      gaplessPlayback: true,
-                    ),
+                  child: Image.memory(
+                    decodeImage(
+                        (widget.message as ChatMessageContentImage).data),
+                    fit: BoxFit.fitHeight,
+                    gaplessPlayback: true,
                   ),
                 ),
               ),
@@ -252,8 +240,22 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
       );
+    } else if (widget.message is ImageCustomMessage) {
+      final imageMessage = widget.message as ImageCustomMessage;
+      tileWidget = MessageListTile(
+        title: Text(imageMessage.generatedBy, style: botMessageStyle),
+        subtitle: Padding(
+          padding:
+              const EdgeInsets.only(left: 8.0, right: 8, top: 8, bottom: 12),
+          child: Image.memory(
+            decodeImage(imageMessage.content),
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+          ),
+        ),
+      );
     } else if (widget.message is WebResultCustomMessage) {
-      tileWidget = _MessageListTile(
+      tileWidget = MessageListTile(
         title: Wrap(
           children: [
             for (final result
@@ -303,7 +305,7 @@ class _MessageCardState extends State<MessageCard> {
       );
     } else if (widget.message is TextFileCustomMessage) {
       final message = widget.message as TextFileCustomMessage;
-      tileWidget = _MessageListTile(
+      tileWidget = MessageListTile(
         title: Text('You:', style: myMessageStyle),
         subtitle: Column(
           mainAxisSize: MainAxisSize.min,
@@ -376,7 +378,7 @@ class _MessageCardState extends State<MessageCard> {
         ),
       );
     } else {
-      tileWidget = _MessageListTile(
+      tileWidget = MessageListTile(
         tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
         title: Row(
           children: [
@@ -851,8 +853,9 @@ class _MessageCardState extends State<MessageCard> {
               });
             },
           ),
-        if (message is HumanChatMessage &&
-            message.content is ChatMessageContentImage) ...[
+        if ((message is HumanChatMessage &&
+                message.content is ChatMessageContentImage) ||
+            message is ImageCustomMessage) ...[
           const MenuFlyoutSeparator(),
           MenuFlyoutItem(
             text: const Text('Save image to file'),
@@ -865,6 +868,7 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () => _copyImageToClipboard(context),
           ),
         ],
+      
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: const Text('New conversation branch from here'),
@@ -909,16 +913,8 @@ class _MessageCardState extends State<MessageCard> {
 
     if (location != null) {
       await file.saveTo(location.path);
-      displayInfoBar(
-        // ignore: use_build_context_synchronously
-        context,
-        builder: (context, close) => const InfoBar(
-          title: Text('Image saved to file'),
-          severity: InfoBarSeverity.success,
-        ),
-      );
       // ignore: use_build_context_synchronously
-      Navigator.of(context).maybePop();
+      // Navigator.of(context).maybePop();
     }
   }
 
