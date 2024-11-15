@@ -888,55 +888,75 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
     final models = allModels.value;
     final selectedModel = selectedChatRoom.model;
     flyoutController.showFlyout(builder: (ctx) {
-      return MenuFlyout(
-        items: [
-          ...models.map(
-            (e) => MenuFlyoutItem(
-              selected: e.modelName == selectedModel.modelName,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (e.modelName == selectedModel.modelName)
-                    Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: const Icon(ic.FluentIcons.checkmark_16_filled),
-                    ),
-                  SqueareIconButton(
-                    onTap: () async {
-                      Navigator.of(ctx).pop();
+      return StatefulBuilder(
+        builder: (_, setState) => MenuFlyout(
+          items: [
+            ...List.generate(models.length, (i) {
+              final e = models[i];
+              return MenuFlyoutItem(
+                selected: e.modelName == selectedModel.modelName,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (e.modelName == selectedModel.modelName)
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: const Icon(ic.FluentIcons.checkmark_16_filled),
+                      ),
+                    SqueareIconButton(
+                      onTap: () async {
+                        Navigator.of(ctx).pop();
 
-                      final changedModel = await showDialog<ChatModelAi>(
-                        context: context,
-                        builder: (context) => AddAiModelDialog(initialModel: e),
-                      );
-                      if (changedModel != null) {
-                        provider.removeCustomModel(e);
-                        await provider.addNewCustomModel(changedModel);
-                        await Future.delayed(const Duration(milliseconds: 100));
-                        provider.selectNewModel(changedModel);
-                      }
-                    },
-                    icon: Icon(ic.FluentIcons.edit_16_regular),
-                    tooltip: 'Edit',
-                  ),
-                ],
-              ),
-              leading: SizedBox.square(dimension: 24, child: e.modelIcon),
-              text: Text(e.customName),
-              onPressed: () => provider.selectNewModel(e),
+                        final changedModel = await showDialog<ChatModelAi>(
+                          context: context,
+                          builder: (context) =>
+                              AddAiModelDialog(initialModel: e),
+                        );
+                        if (changedModel != null) {
+                          provider.removeCustomModel(e);
+                          await provider.addNewCustomModel(changedModel);
+                          await Future.delayed(
+                              const Duration(milliseconds: 100));
+                          provider.selectNewModel(changedModel);
+                        }
+                      },
+                      icon: Icon(ic.FluentIcons.edit_16_regular),
+                      tooltip: 'Edit',
+                    ),
+                    const SizedBox(width: 4),
+                    if (i != 0)
+                      SqueareIconButton(
+                        onTap: () async {
+                          // move this item 1 element up
+                          final index = models.indexOf(e);
+                          final previous = models[index - 1];
+                          models[index - 1] = e;
+                          models[index] = previous;
+                          allModels.value = models;
+                          setState(() {});
+                        },
+                        icon: Icon(ic.FluentIcons.arrow_up_12_regular),
+                        tooltip: 'Move up',
+                      ),
+                  ],
+                ),
+                leading: SizedBox.square(dimension: 24, child: e.modelIcon),
+                text: Text(e.customName),
+                onPressed: () => provider.selectNewModel(e),
+              );
+            }),
+            const MenuFlyoutSeparator(),
+            MenuFlyoutItem(
+              leading: const Icon(ic.FluentIcons.edit_16_regular),
+              text: const Text('Edit'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                showDialog(
+                    context: context, builder: (ctx) => ModelsListDialog());
+              },
             ),
-          ),
-          const MenuFlyoutSeparator(),
-          MenuFlyoutItem(
-            leading: const Icon(ic.FluentIcons.add_24_filled),
-            text: const Text('Add'),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              showDialog(
-                  context: context, builder: (ctx) => ModelsListDialog());
-            },
-          ),
-        ],
+          ],
+        ),
       );
     });
   }
