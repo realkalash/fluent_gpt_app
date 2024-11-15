@@ -138,16 +138,34 @@ class _InputFieldState extends State<InputField> {
 
   Future onDigitPressed(int number) async {
     print('Digit pressed: $number');
+    if (_quickInputCommandsList.isEmpty) return;
     final selectedPrompt = _quickInputCommandsList[number - 1];
     if (selectedPrompt[0] == '/') {
       ChatProvider.messageControllerGlobal.text = '$selectedPrompt ';
     } else {
-      final findedCustomPrompt = promptsLibrary.firstWhereOrNull(
+      var findedCustomPrompt = promptsLibrary.firstWhereOrNull(
+        (element) => element.title == selectedPrompt,
+      );
+      findedCustomPrompt ??= customPrompts.value.firstWhereOrNull(
         (element) => element.title == selectedPrompt,
       );
       if (findedCustomPrompt != null) {
-        ChatProvider.messageControllerGlobal.text =
-            findedCustomPrompt.getPromptText();
+        final isContainsPlaceHolder =
+            placeholdersRegex.hasMatch(findedCustomPrompt.getPromptText());
+        if (isContainsPlaceHolder) {
+          final newText = await showDialog<String>(
+            context: context,
+            builder: (context) => ReplaceAllPlaceHoldersDialog(
+              originalText: findedCustomPrompt!.getPromptText(),
+            ),
+          );
+          if (newText != null) {
+            ChatProvider.messageControllerGlobal.text = newText;
+          }
+        } else {
+          ChatProvider.messageControllerGlobal.text =
+              '${findedCustomPrompt.getPromptText()} ';
+        }
       }
     }
     removeInputFieldQuickCommandsOverlay();
@@ -255,7 +273,7 @@ class _InputFieldState extends State<InputField> {
                       promptTextFocusNode.requestFocus();
                     }
                   },
-                  placeholder: 'Use "/" commands or type your message here',
+                  placeholder: 'Use "/" for commands or type your message here',
                 ),
               )
             ],
@@ -357,7 +375,7 @@ class _InputFieldState extends State<InputField> {
                             }
                           },
                           placeholder:
-                              'Use "/" commands or type your message here',
+                              'Use "/" for commands or type your message here',
                         ),
                       ),
                     ),
@@ -479,46 +497,46 @@ class _InputFieldState extends State<InputField> {
       return;
     }
 
-    if (text[0] == '/' && inputFieldQuickCommandsOverlay == null) {
+    if (text[0] == '/' && aliasesCommandsOverlay == null) {
       // show overlay
-      inputFieldQuickCommandsOverlay = OverlayEntry(
-        builder: (context) => QuickInputCommandsOverlay(),
+      aliasesCommandsOverlay = OverlayEntry(
+        builder: (context) => AliasesOverlay(),
         opaque: false,
       );
-      Overlay.of(context).insert(inputFieldQuickCommandsOverlay!);
+      Overlay.of(context).insert(aliasesCommandsOverlay!);
       return;
     }
-    if (inputFieldQuickCommandsOverlay != null && text[0] != '/') {
+    if (aliasesCommandsOverlay != null && text[0] != '/') {
       removeInputFieldQuickCommandsOverlay();
       return;
     }
   }
 }
 
-OverlayEntry? inputFieldQuickCommandsOverlay;
+OverlayEntry? aliasesCommandsOverlay;
 List<String> _quickInputCommandsList = [
-  ...QuickInputCommandsOverlay.quickInputDefaultCommands,
+  ...AliasesOverlay.quickInputDefaultCommands,
 ];
 void removeInputFieldQuickCommandsOverlay() {
-  if (inputFieldQuickCommandsOverlay != null) {
-    inputFieldQuickCommandsOverlay!.remove();
-    inputFieldQuickCommandsOverlay!.dispose();
-    inputFieldQuickCommandsOverlay = null;
+  if (aliasesCommandsOverlay != null) {
+    _quickInputCommandsList.clear();
+    aliasesCommandsOverlay!.remove();
+    aliasesCommandsOverlay!.dispose();
+    aliasesCommandsOverlay = null;
   }
 }
 
-class QuickInputCommandsOverlay extends StatefulWidget {
-  const QuickInputCommandsOverlay({super.key});
+class AliasesOverlay extends StatefulWidget {
+  const AliasesOverlay({super.key});
   static List<String> quickInputDefaultCommands = [
     '/settings',
     '/${TrayCommand.generate_dalle_image.name}',
   ];
   @override
-  State<QuickInputCommandsOverlay> createState() =>
-      _QuickInputCommandsOverlayState();
+  State<AliasesOverlay> createState() => _AliasesOverlayState();
 }
 
-class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
+class _AliasesOverlayState extends State<AliasesOverlay> {
   @override
   void initState() {
     super.initState();
@@ -537,8 +555,12 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
 
   void loadAllCommands() {
     final allPrompts = promptsLibrary.map((e) => e.title).toList();
+    final allCustomPrompts = customPrompts.value.map((e) => e.title).toList();
+    quickInputAllCommands.clear();
+    quickInputAllCommands.addAll(AliasesOverlay.quickInputDefaultCommands);
+    quickInputAllCommands.addAll(allCustomPrompts);
     quickInputAllCommands.addAll(allPrompts);
-    _quickInputCommandsList.addAll(allPrompts);
+    _quickInputCommandsList.addAll(quickInputAllCommands);
     setState(() {});
   }
 
@@ -555,16 +577,19 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
     }
     _quickInputCommandsList.clear();
     if (text.length == 1 && text[0] == '/') {
-      _quickInputCommandsList.addAll(
-        QuickInputCommandsOverlay.quickInputDefaultCommands,
-      );
+      _quickInputCommandsList.clear();
+      loadAllCommands();
       return;
     }
-    final clearTextLowerCase = text.trim().toLowerCase();
+    final clearTextLowerCase = text.trim().toLowerCase().replaceAll('/', '');
     for (final command in quickInputAllCommands) {
-      final firstWord = clearTextLowerCase.split(' ').first;
-      if ('/$command'.toLowerCase().contains(firstWord)) {
-        _quickInputCommandsList.add(command);
+      final clearTextWords = clearTextLowerCase.split(' ');
+      for (final word in clearTextWords) {
+        if (word.isEmpty) continue;
+        if (command.toLowerCase().contains(word)) {
+          _quickInputCommandsList.add(command);
+          break;
+        }
       }
     }
     if (_quickInputCommandsList.isNotEmpty) {
@@ -573,7 +598,7 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
   }
 
   List<String> quickInputAllCommands = [
-    ...QuickInputCommandsOverlay.quickInputDefaultCommands,
+    ...AliasesOverlay.quickInputDefaultCommands,
   ];
 
   @override
@@ -657,14 +682,37 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                                     : Colors.black.withOpacity(0.1),
                                 padding: EdgeInsets.symmetric(
                                     vertical: 4, horizontal: 16),
-                                onTap: () {
+                                onTap: () async {
                                   final isGlobalCommand = command[0] == '/';
                                   if (!isGlobalCommand) {
-                                    final prompt = promptsLibrary.firstWhere(
+                                    var prompt =
+                                        promptsLibrary.firstWhereOrNull(
                                       (element) => element.title == command,
                                     );
-                                    ChatProvider.messageControllerGlobal.text =
-                                        prompt.getPromptText();
+                                    prompt ??=
+                                        customPrompts.value.firstWhereOrNull(
+                                      (element) => element.title == command,
+                                    );
+                                    if (prompt == null) return;
+                                    final isContainsPlaceHolder =
+                                        placeholdersRegex
+                                            .hasMatch(prompt.getPromptText());
+                                    if (isContainsPlaceHolder) {
+                                      final newText = await showDialog<String>(
+                                        context: context,
+                                        builder: (context) =>
+                                            ReplaceAllPlaceHoldersDialog(
+                                          originalText: prompt!.getPromptText(),
+                                        ),
+                                      );
+                                      if (newText != null) {
+                                        ChatProvider.messageControllerGlobal
+                                            .text = newText;
+                                      }
+                                    } else {
+                                      ChatProvider.messageControllerGlobal
+                                          .text = '${prompt.getPromptText()} ';
+                                    }
                                     removeInputFieldQuickCommandsOverlay();
                                     promptTextFocusNode.requestFocus();
                                     return;
@@ -683,10 +731,13 @@ class _QuickInputCommandsOverlayState extends State<QuickInputCommandsOverlay> {
                                     removeInputFieldQuickCommandsOverlay();
                                   }
                                 },
-                                trailing: i < 10
+                                trailing: i < 9
                                     ? Button(
-                                        child: Text('[ctrl+${i + 1}]'),
-                                        onPressed: () {},
+                                        onPressed: null,
+                                        focusable: false,
+                                        child: Platform.isMacOS
+                                            ? Text('⌘${i + 1}')
+                                            : Text('[ctrl+${i + 1}]'),
                                       )
                                     : null,
                               ),

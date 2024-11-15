@@ -20,8 +20,8 @@ class ElevenlabsSpeech {
     return _elevenLabs!;
   }
 
-  static String? selectedVoiceName;
-  static String? selectedVoiceId;
+  static String selectedVoiceName = 'Aria';
+  static String selectedVoiceId = '9BWtsMINqrJLrRacOk9x';
   static String selectedModel = 'eleven_turbo_v2';
   static final modelsMap = {
     'eleven_monolingual_v1':
@@ -51,8 +51,8 @@ class ElevenlabsSpeech {
       ),
     );
 
-    selectedVoiceId = AppCache.elevenlabsVoiceModelId.value;
-    selectedVoiceName = AppCache.elevenlabsVoiceModelName.value;
+    selectedVoiceId = AppCache.elevenlabsVoiceModelId.value!;
+    selectedVoiceName = AppCache.elevenlabsVoiceModelName.value!;
     selectedModel = AppCache.elevenlabsModel.value ?? selectedModel;
     if (selectedModel.isEmpty){
       selectedModel = 'eleven_turbo_v2';
@@ -60,9 +60,6 @@ class ElevenlabsSpeech {
   }
 
   static bool isValid() {
-    if (selectedVoiceId == null) {
-      return false;
-    }
     return AppCache.elevenLabsApiKey.value!.isNotEmpty;
   }
 
@@ -81,8 +78,9 @@ class ElevenlabsSpeech {
       await init();
     }
     final requestObj = TextToSpeechRequest(
-      voiceId: selectedVoiceId!,
+      voiceId: selectedVoiceId,
       text: text,
+      // can be "eleven_monolingual_v1"
       modelId: selectedModel,
       voiceSettings: VoiceSettings(
         similarityBoost: 0.75,
@@ -91,7 +89,7 @@ class ElevenlabsSpeech {
     );
     final json = requestObj.toJson();
     log('Request elevenlabs: $json');
-    final result = await _elevenLabs!.synthesizeBytes(requestObj, voiceId: selectedVoiceId!);
+    final result = await _elevenLabs!.synthesizeBytes(requestObj, voiceId: selectedVoiceId);
     final audio = result;
     player = AudioPlayer();
     await player!.setSourceBytes(audio, mimeType: 'audio/wav');
@@ -222,7 +220,7 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
             Text('Voice ID*'),
             DropDownButton(
               title:
-                  Text(ElevenlabsSpeech.selectedVoiceName ?? 'Select a voice'),
+                  Text(ElevenlabsSpeech.selectedVoiceName),
               items: [
                 for (final voice in voices)
                   MenuFlyoutItem(

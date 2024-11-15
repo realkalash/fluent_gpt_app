@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
-import 'package:fluent_gpt/file_utils.dart';
 import 'package:http/http.dart' as http;
 
 class DalleApiGenerator {

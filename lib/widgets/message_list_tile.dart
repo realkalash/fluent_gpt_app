@@ -9,7 +9,6 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -140,6 +139,11 @@ class _MessageCardState extends State<MessageCard> {
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     final botMessageStyle = TextStyle(color: Colors.green, fontSize: 14);
     Widget tileWidget;
+    final isHumanMessage = widget.message is HumanChatMessage;
+    final isContentText = (isHumanMessage &&
+            (widget.message as HumanChatMessage).content
+                is ChatMessageContentText) ||
+        (widget.message is AIChatMessage);
 
     if (widget.message is HumanChatMessage) {
       tileWidget = MessageListTile(
@@ -169,8 +173,7 @@ class _MessageCardState extends State<MessageCard> {
                   gaplessPlayback: true,
                 ),
               ),
-            if ((widget.message as HumanChatMessage).content
-                is ChatMessageContentText)
+            if (isContentText)
               SelectableText(
                 widget.message.contentAsString,
                 contextMenuBuilder: (ctx, state) =>
@@ -219,8 +222,7 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 ),
               ),
-            if ((widget.message as HumanChatMessage).content
-                is ChatMessageContentText)
+            if (isContentText)
               FutureBuilder(
                 future: (openAI ?? localModel)!.countTokens(PromptValue.string(
                     ((widget.message as HumanChatMessage).content
@@ -553,6 +555,9 @@ class _MessageCardState extends State<MessageCard> {
                               _isLoadingReadAloud = false;
                             });
                           } catch (e) {
+                            setState(() {
+                              _isLoadingReadAloud = false;
+                            });
                             if (e is DeadlineExceededException) {
                               // ignore: use_build_context_synchronously
                               displayInfoBar(context, builder: (ctx, close) {
@@ -570,6 +575,7 @@ class _MessageCardState extends State<MessageCard> {
                                   title: Text('$e'),
                                 );
                               });
+
                               rethrow;
                             }
                           }
@@ -868,7 +874,7 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () => _copyImageToClipboard(context),
           ),
         ],
-      
+
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: const Text('New conversation branch from here'),

@@ -25,10 +25,10 @@ class AppCache {
   static const deepgramVoiceModel =
       StringPref("deepgramVoiceModel", 'aura-asteria-en');
   static const elevenlabsVoiceModelName =
-      StringPref("elevenlabsVoiceModel", '');
+      StringPref("elevenlabsVoiceModel", 'Aria');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
   static const elevenlabsVoiceModelId =
-      StringPref("elevenlabsVoiceModelId", '');
+      StringPref("elevenlabsVoiceModelId", '9BWtsMINqrJLrRacOk9x');
   static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
   static const autoScrollSpeed = DoublePref("autoScrollSpeed", 1.0);
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
