@@ -7,9 +7,11 @@ class ConfirmationDialog extends StatelessWidget {
     super.key,
     required this.onAcceptPressed,
     this.isDelete = false,
+    this.message,
   });
   final void Function()? onAcceptPressed;
   final bool isDelete;
+  final String? message;
 
   /// Shows a confirmation dialog.
   /// You can use [onAcceptPressed] to handle the action when the user
@@ -18,13 +20,16 @@ class ConfirmationDialog extends StatelessWidget {
     required BuildContext context,
     void Function()? onAcceptPressed,
     bool isDelete = false,
+    String? message,
   }) async {
     final result = await showDialog<bool?>(
       context: context,
+      barrierDismissible: true,
       builder: (context) {
         return ConfirmationDialog(
           onAcceptPressed: onAcceptPressed,
           isDelete: isDelete,
+          message: message,
         );
       },
     );
@@ -35,7 +40,9 @@ class ConfirmationDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: const Text('Are you sure?'),
-      content: const Text('This action cannot be undone.'),
+      content: message != null
+          ? Text(message!)
+          : const Text('This action cannot be undone.'),
       actions: [
         Button(
           onPressed: () {

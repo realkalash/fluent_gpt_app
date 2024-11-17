@@ -1,1 +1,1 @@
-enum TextToSpeechServiceEnum { deepgram, elevenlabs }
+enum TextToSpeechServiceEnum { deepgram, elevenlabs, azure }

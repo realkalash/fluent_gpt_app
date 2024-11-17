@@ -14,9 +14,11 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
+import 'package:fluent_gpt/features/azure_speech.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -1067,6 +1069,51 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 ),
               ),
               Text(
+                'Azure API key (speech) \$',
+                style: FluentTheme.of(context).typography.subtitle,
+              ),
+              TextFormBox(
+                initialValue: AppCache.azureSpeechApiKey.value,
+                placeholder: AppCache.azureSpeechApiKey.value,
+                obscureText: true,
+                suffix: DropDownButton(
+                    leading: Text('Voice: ${AppCache.azureVoiceModel.value}'),
+                    items: [
+                      for (var model in AzureSpeech.listModels)
+                        MenuFlyoutItem(
+                          selected: AppCache.azureVoiceModel.value == model,
+                          trailing: SqueareIconButton(
+                            onTap: () {
+                              final previousModel =
+                                  AppCache.azureVoiceModel.value;
+                              if (AzureSpeech.isValid()) {
+                                AppCache.azureVoiceModel.value = model;
+                                AzureSpeech.readAloud(
+                                  'This is a sample text to read aloud',
+                                  onCompleteReadingAloud: () {
+                                    AppCache.azureVoiceModel.value =
+                                        previousModel;
+                                  },
+                                );
+                              }
+                            },
+                            icon: const Icon(FluentIcons.play_circle_24_filled),
+                            tooltip: 'Read sample',
+                          ),
+                          onPressed: () {
+                            AppCache.azureVoiceModel.value = model;
+                            DeepgramSpeech.init();
+                            setState(() {});
+                          },
+                          text: Text(model),
+                        ),
+                    ]),
+                onChanged: (value) {
+                  AppCache.azureSpeechApiKey.value = value.trim();
+                  AzureSpeech.init();
+                },
+              ),
+              Text(
                 'ElevenLabs API key (speech) \$\$\$',
                 style: FluentTheme.of(context).typography.subtitle,
               ),
@@ -1763,10 +1810,29 @@ class __CacheSectionState extends State<_CacheSection> {
                       },
                     )),
             Button(
-                child: const Text('Delete total costs cache'),
-                onPressed: () {
-                  AppCache.costTotal.value = 0.0;
-                  AppCache.tokensUsedTotal.value = 0;
+                child: const Text('Delete temp cache'),
+                onPressed: () async {
+                  final sizeBytes = await FileUtils.calculateSizeRecursive(
+                      FileUtils.appTemporaryDirectoryPath!);
+                  final sizeMb = sizeBytes == 0 ? 0 : sizeBytes / 1024 / 1024;
+                  ConfirmationDialog.show(
+                    // ignore: use_build_context_synchronously
+                    context: context,
+                    isDelete: true,
+                    message:
+                        'Delete temp cache? Size: ${sizeMb.toStringAsFixed(2)} MB',
+                    onAcceptPressed: () async {
+                      ShellDriver.deleteAllTempFiles();
+                      AppCache.costTotal.value = 0.0;
+                      AppCache.tokensUsedTotal.value = 0;
+                      final dir =
+                          Directory(FileUtils.appTemporaryDirectoryPath!);
+                      if (dir.existsSync()) {
+                        await dir.delete(recursive: true);
+                        log('${dir.path} deleted');
+                      }
+                    },
+                  );
                 }),
             FilledRedButton(
                 child: const Text('Clear all data'),
