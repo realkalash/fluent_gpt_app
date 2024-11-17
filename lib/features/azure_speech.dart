@@ -48,22 +48,22 @@ class AzureSpeech {
         ('${AppCache.azureVoiceModel.value}$text').hashCode.toString();
     final audioPath = (FileUtils.temporaryAudioDirectoryPath ?? '') + fileName;
     final file = File(audioPath);
-    // try {
-    //   if (file.existsSync()) {
-    //     player = AudioPlayer();
-    //     final fileBytes = await file.readAsBytes();
-    //     await player!.setSourceBytes(fileBytes, mimeType: 'audio/mpeg');
-    //     player!.onPlayerComplete.listen((onData) {
-    //       player!.dispose();
-    //       player = null;
-    //       onCompleteReadingAloud?.call();
-    //     });
-    //     await player!.resume();
-    //     return;
-    //   }
-    // } catch (e) {
-    //   logError(e.toString());
-    // }
+    try {
+      if (file.existsSync()) {
+        player = AudioPlayer();
+        final fileBytes = await file.readAsBytes();
+        await player!.setSourceBytes(fileBytes, mimeType: 'audio/mpeg');
+        player!.onPlayerComplete.listen((onData) {
+          player!.dispose();
+          player = null;
+          onCompleteReadingAloud?.call();
+        });
+        await player!.resume();
+        return;
+      }
+    } catch (e) {
+      logError(e.toString());
+    }
 
     final region = AppCache.azureSpeechRegion.value!;
     final key = AppCache.azureSpeechApiKey.value!;
@@ -75,8 +75,8 @@ class AzureSpeech {
     final dataRawWithRateAndPitch = '''
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="$lang">
     <voice name="$model">
-      <mstts:express-as style="friendly" styledegree="2">
-        <prosody rate="0.00%" pitch="+20%">
+      <mstts:express-as style="friendly" styledegree="1">
+        <prosody rate="0.00%" pitch="+25%">
             $text
         </prosody>
       </mstts:express-as>
