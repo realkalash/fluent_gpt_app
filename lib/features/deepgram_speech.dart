@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
 
 class DeepgramSpeech {
   static Deepgram? _deepgram;
@@ -55,6 +58,26 @@ class DeepgramSpeech {
   }) async {
     if (!isValid()) {
       return;
+    }
+    final fileName =
+        (AppCache.deepgramVoiceModel.value ?? '') + text.hashCode.toString();
+    final audioPath = (FileUtils.temporaryAudioDirectoryPath ?? '') + fileName;
+    final file = File(audioPath);
+    try {
+      if (file.existsSync()) {
+        player = AudioPlayer();
+        final fileBytes = await file.readAsBytes();
+        await player!.setSourceBytes(fileBytes, mimeType: 'audio/mpeg');
+        player!.onPlayerComplete.listen((onData) {
+          player!.dispose();
+          player = null;
+          onCompleteReadingAloud?.call();
+        });
+        await player!.resume();
+        return;
+      }
+    } catch (e) {
+      logError(e.toString());
     }
     final result = await deepgram.speakFromText(text, queryParams: {
       'model': AppCache.deepgramVoiceModel.value!,

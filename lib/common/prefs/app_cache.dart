@@ -12,7 +12,7 @@ class AppCache {
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const hideTitleBar = BoolPref("hideTitleBar", false);
   static const isMarkdownViewEnabled = BoolPref("isMarkdownView", true);
-  static const overlayVisibleElements = IntPref("overlayVisibleElements",-1);
+  static const overlayVisibleElements = IntPref("overlayVisibleElements", -1);
   static const messageTextSize = IntPref("messageTextSize", 14);
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
@@ -24,6 +24,7 @@ class AppCache {
       StringPref("textToSpeechService", 'deepgram');
   static const deepgramVoiceModel =
       StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const azureVoiceModel = StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
   static const elevenlabsVoiceModelName =
       StringPref("elevenlabsVoiceModel", 'Aria');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
@@ -35,7 +36,8 @@ class AppCache {
   static const micrpohoneDeviceId = StringPref("micrpohoneDeviceId");
   static const micrpohoneDeviceName = StringPref("micrpohoneDeviceName");
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
-  static const fetchChatsPeriodically = BoolPref("fetchChatsPeriodically", false);
+  static const fetchChatsPeriodically =
+      BoolPref("fetchChatsPeriodically", false);
   static const fetchChatsPeriodMin = IntPref("fetchChatsPeriodMin", 10);
 
   /// Contains Strings that we can't migrate beacuse they are used by StringPref, IntPref etc.
@@ -103,6 +105,8 @@ class AppCache {
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
   static const imgurClientId = StringPref("imgurClientId", '');
   static const deepgramApiKey = StringPref("deepgramApiKey", '');
+  static const azureSpeechApiKey = StringPref("azureSpeechApiKey", '');
+  static const azureSpeechRegion = StringPref("azureSpeechRegion", 'eastus2');
   static const elevenLabsApiKey = StringPref("elevenLabsApiKey", '');
 
   /* Tools enabled/disabled */
@@ -131,6 +135,8 @@ class AppCache {
   static const useYandexImageSearch = BoolPref("useYandexImageSearch", false);
 
   static const List<Pref> settingsToExportList = [
+    azureSpeechApiKey,
+    azureSpeechRegion,
     useGoogleApi,
     useImgurApi,
     useSouceNao,

@@ -86,20 +86,35 @@ class FileUtils {
   static String? documentDirectoryPath;
   static String? imageDirectoryPath;
   static String? temporaryDirectoryPath;
+  static String? temporaryAudioDirectoryPath;
+
+  static String? get appTemporaryDirectoryPath => temporaryDirectoryPath == null
+      ? null
+      : '$temporaryDirectoryPath${Platform.pathSeparator}fluent_gpt';
 
   /// ${documentDirectoryPath}${Platform.pathSeparator}external_tools
   static String? externalToolsPath;
+  static String? separatior;
 
   static Future<void> init() async {
+    separatior = Platform.pathSeparator;
     documentDirectoryPath = AppCache.appDocumentsDirectory.value!.isNotEmpty
         ? AppCache.appDocumentsDirectory.value
         : (await getApplicationDocumentsDirectory()).path;
     imageDirectoryPath =
-        '$documentDirectoryPath${Platform.pathSeparator}fluent_gpt/generated_images';
+        '$documentDirectoryPath${separatior}fluent_gpt${separatior}generated_images';
 
     temporaryDirectoryPath = (await getTemporaryDirectory()).path;
+    temporaryAudioDirectoryPath =
+        '$temporaryDirectoryPath${separatior}fluent_gpt${separatior}audio';
     externalToolsPath =
-        '$documentDirectoryPath${Platform.pathSeparator}fluent_gpt/external_tools';
+        '$documentDirectoryPath${separatior}fluent_gpt${separatior}external_tools';
+    log('externalToolsPath: $externalToolsPath');
+    log('documentDirectoryPath: $documentDirectoryPath');
+    log('imageDirectoryPath: $imageDirectoryPath');
+    log('temporaryDirectoryPath: $temporaryDirectoryPath');
+    log('temporaryAudioDirectoryPath: $temporaryAudioDirectoryPath');
+    log('externalToolsPath: $externalToolsPath');
   }
 
   static Future _createTestFileInDir(Future<Directory?> dirFuture) async {
@@ -136,6 +151,23 @@ class FileUtils {
         await file.create(recursive: true);
       }
       await file.writeAsString(data);
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Saves the provided [data] to a file at the given [path].
+  ///
+  /// If the file does not exist, it will be created recursively.
+  /// Returns `null` if the file is successfully saved, otherwise returns an error message.
+  static Future<String?> saveFileBytes(String path, Uint8List data) async {
+    try {
+      final file = File(path);
+      if (!file.existsSync()) {
+        await file.create(recursive: true);
+      }
+      await file.writeAsBytes(data);
       return null;
     } catch (e) {
       return e.toString();

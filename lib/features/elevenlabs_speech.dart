@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:elevenlabs_flutter/elevenlabs_config.dart';
 import 'package:elevenlabs_flutter/elevenlabs_types.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
@@ -54,7 +56,7 @@ class ElevenlabsSpeech {
     selectedVoiceId = AppCache.elevenlabsVoiceModelId.value!;
     selectedVoiceName = AppCache.elevenlabsVoiceModelName.value!;
     selectedModel = AppCache.elevenlabsModel.value ?? selectedModel;
-    if (selectedModel.isEmpty){
+    if (selectedModel.isEmpty) {
       selectedModel = 'eleven_turbo_v2';
     }
   }
@@ -74,6 +76,26 @@ class ElevenlabsSpeech {
     if (!isValid()) {
       return;
     }
+    final fileName =
+        (AppCache.elevenlabsVoiceModel.value ?? '') + text.hashCode.toString();
+    final audioPath = (FileUtils.temporaryAudioDirectoryPath ?? '') + fileName;
+    final file = File(audioPath);
+    try {
+      if (file.existsSync()) {
+        player = AudioPlayer();
+        final fileBytes = await file.readAsBytes();
+        await player!.setSourceBytes(fileBytes, mimeType: 'audio/mpeg');
+        player!.onPlayerComplete.listen((onData) {
+          player!.dispose();
+          player = null;
+          onCompleteReadingAloud?.call();
+        });
+        await player!.resume();
+        return;
+      }
+    } catch (e) {
+      logError(e.toString());
+    }
     if (_elevenLabs == null) {
       await init();
     }
@@ -89,7 +111,8 @@ class ElevenlabsSpeech {
     );
     final json = requestObj.toJson();
     log('Request elevenlabs: $json');
-    final result = await _elevenLabs!.synthesizeBytes(requestObj, voiceId: selectedVoiceId);
+    final result = await _elevenLabs!
+        .synthesizeBytes(requestObj, voiceId: selectedVoiceId);
     final audio = result;
     player = AudioPlayer();
     await player!.setSourceBytes(audio, mimeType: 'audio/wav');
@@ -219,8 +242,7 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
           if (voices.isNotEmpty) ...[
             Text('Voice ID*'),
             DropDownButton(
-              title:
-                  Text(ElevenlabsSpeech.selectedVoiceName),
+              title: Text(ElevenlabsSpeech.selectedVoiceName),
               items: [
                 for (final voice in voices)
                   MenuFlyoutItem(
