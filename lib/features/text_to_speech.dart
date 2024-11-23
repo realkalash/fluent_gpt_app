@@ -42,6 +42,10 @@ class TextToSpeechService {
     String text, {
     Function()? onCompleteReadingAloud,
   }) async {
+    if (isReadingAloud){
+      await stopReadingAloud();
+      await Future.delayed(Duration(milliseconds: 100));
+    }
     if (AppCache.textToSpeechService.value ==
         TextToSpeechServiceEnum.deepgram.name) {
       await DeepgramSpeech.readAloud(text, onCompleteReadingAloud: () {

@@ -1,25 +1,20 @@
 import 'dart:io';
 
-import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
-import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
-import 'package:fluent_gpt/dialogs/storage_usage.dart';
 import 'package:fluent_gpt/features/additional_features.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
+import 'package:fluent_gpt/main_page_with_navbar.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
-import 'package:fluent_gpt/widgets/main_app_header_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -32,7 +27,6 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
-import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:windows_single_instance/windows_single_instance.dart';
 import 'navigation_provider.dart';
@@ -83,6 +77,7 @@ Future<void> initWindow() async {
 String appVersion = '-';
 PackageInfo? packageInfo;
 BehaviorSubject<bool> shiftPressedStream = BehaviorSubject<bool>.seeded(false);
+BehaviorSubject<bool> altPressedStream = BehaviorSubject<bool>.seeded(false);
 BehaviorSubject<bool> escPressedStream = BehaviorSubject<bool>.seeded(false);
 BehaviorSubject<bool> ctrlPressedStream = BehaviorSubject<bool>.seeded(false);
 final navigatorKey = GlobalKey<NavigatorState>();
@@ -336,6 +331,12 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
             } else if (event is KeyUpEvent &&
                 event.logicalKey == LogicalKeyboardKey.controlLeft) {
               ctrlPressedStream.add(false);
+            } else if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.altLeft) {
+              altPressedStream.add(true);
+            } else if (event is KeyUpEvent &&
+                event.logicalKey == LogicalKeyboardKey.altLeft) {
+              altPressedStream.add(false);
             }
           },
           child: StreamBuilder<OverlayStatus>(
@@ -386,230 +387,3 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
   }
 }
 
-class MainPageWithNavigation extends StatelessWidget {
-  const MainPageWithNavigation({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final navigationProvider = context.read<NavigationProvider>();
-    return StreamBuilder(
-        stream: selectedChatRoomIdStream,
-        builder: (context, _) {
-          return NavigationView(
-            key: navigationProvider.viewKey,
-            appBar: const NavigationAppBar(
-              automaticallyImplyLeading: false,
-              actions: MainAppHeaderButtons(),
-            ),
-            paneBodyBuilder: (item, child) {
-              final name =
-                  item?.key is ValueKey ? (item!.key as ValueKey).value : null;
-              return FocusTraversalGroup(
-                key: ValueKey('body$name'),
-                child: child ?? const ChatRoomPage(),
-              );
-            },
-            pane: NavigationPane(
-              autoSuggestBox: AutoSuggestBox(
-                placeholder: 'Search by name',
-                itemBuilder: (context, item) {
-                  return ListTile(
-                    leading: Icon(
-                      IconData(
-                        chatRoomsStream.value[item.value]!.iconCodePoint,
-                        fontPackage: 'fluentui_system_icons',
-                        fontFamily: 'FluentSystemIcons-Filled',
-                      ),
-                    ),
-                    title: Text(item.label, maxLines: 1),
-                    onPressed: () {
-                      final provider = context.read<ChatProvider>();
-                      final id = item.value;
-                      provider.selectChatRoom(chatRoomsStream.value[id]!);
-                    },
-                  );
-                },
-                items: chatRoomsStream.value.values
-                    .map((item) => AutoSuggestBoxItem(
-                          label: item.chatRoomName,
-                          value: item.id,
-                        ))
-                    .toList(),
-                leadingIcon: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(FluentIcons.search_24_regular)),
-              ),
-              items: [
-                PaneItemHeader(
-                    header: Row(
-                  children: [
-                    const Expanded(child: Text('Chat rooms')),
-                    Tooltip(
-                      message: 'Create new chat',
-                      child: IconButton(
-                          icon: const Icon(FluentIcons.compose_24_regular,
-                              size: 20),
-                          onPressed: () {
-                            final provider = context.read<ChatProvider>();
-                            provider.createNewChatRoom();
-                          }),
-                    ),
-                    Tooltip(
-                      message: 'Deleted chats',
-                      child: IconButton(
-                        icon: const Icon(FluentIcons.bin_recycle_24_regular,
-                            size: 20),
-                        onPressed: () => DeletedChatsDialog.show(context),
-                      ),
-                    ),
-                    Tooltip(
-                      message: 'Storage usage',
-                      child: IconButton(
-                        icon: const Icon(FluentIcons.storage_24_regular,
-                            size: 20),
-                        onPressed: () => StorageUsage.show(context),
-                      ),
-                    ),
-                    Tooltip(
-                      message: 'Refresh from disk',
-                      child: IconButton(
-                        icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
-                            size: 20),
-                        onPressed: () async {
-                          await Provider.of<ChatProvider>(context,
-                                  listen: false)
-                              .initChatsFromDisk();
-                          selectedChatRoomIdStream.add(selectedChatRoomId);
-                        },
-                      ),
-                    ),
-                  ],
-                )),
-                ...chatRoomsStream.value.values.map((room) => PaneItem(
-                      key: ValueKey(room.id),
-                      tileColor: WidgetStatePropertyAll(
-                        room.id == selectedChatRoomId
-                            ? FluentTheme.of(context).accentColor
-                            : Colors.transparent,
-                      ),
-                      icon: Icon(
-                        IconData(
-                          room.iconCodePoint,
-                          fontPackage: 'fluentui_system_icons',
-                          fontFamily: 'FluentSystemIcons-Filled',
-                        ),
-                        size: 20,
-                      ),
-                      title: Text(room.chatRoomName),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Tooltip(
-                            message: 'Edit chat',
-                            child: IconButton(
-                                icon: const Icon(
-                                  FluentIcons.chat_settings_24_regular,
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  EditChatRoomDialog.show(
-                                    context: context,
-                                    room: room,
-                                    onOkPressed: _updateUI,
-                                  );
-                                }),
-                          ),
-                          Tooltip(
-                            message: 'Delete chat',
-                            child: IconButton(
-                                icon: Icon(FluentIcons.delete_24_filled,
-                                    color: Colors.red, size: 18),
-                                onPressed: () {
-                                  final provider = context.read<ChatProvider>();
-                                  // check shift key is pressed
-                                  if (shiftPressedStream.value) {
-                                    provider.deleteChatRoomHard(room.id);
-                                  } else {
-                                    provider.archiveChatRoom(room);
-                                  }
-                                  _updateUI();
-                                }),
-                          ),
-                        ],
-                      ),
-                      body: const ChatRoomPage(),
-                      onTap: () {
-                        final provider = context.read<ChatProvider>();
-                        provider.selectChatRoom(room);
-                      },
-                    )),
-              ],
-              autoSuggestBoxReplacement:
-                  const Icon(FluentIcons.search_24_regular),
-              footerItems: navigationProvider.footerItems,
-            ),
-            onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
-          );
-        });
-  }
-
-  void _updateUI() {
-    selectedChatRoomIdStream.add(selectedChatRoomId);
-  }
-}
-
-class WindowButtons extends StatelessWidget {
-  const WindowButtons({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final FluentThemeData theme = FluentTheme.of(context);
-
-    return SizedBox(
-      width: 138,
-      height: 50,
-      child: WindowCaption(
-        brightness: theme.brightness,
-        backgroundColor: Colors.transparent,
-      ),
-    );
-  }
-}
-
-class LinkPaneItemAction extends PaneItem {
-  LinkPaneItemAction({
-    required super.icon,
-    required this.link,
-    required super.body,
-    super.title,
-  });
-
-  final String link;
-
-  @override
-  Widget build(
-    BuildContext context,
-    bool selected,
-    VoidCallback? onPressed, {
-    PaneDisplayMode? displayMode,
-    bool showTextOnTop = true,
-    bool? autofocus,
-    int? itemIndex,
-  }) {
-    return Link(
-      uri: Uri.parse(link),
-      builder: (context, followLink) => Semantics(
-        link: true,
-        child: super.build(
-          context,
-          selected,
-          followLink,
-          displayMode: displayMode,
-          showTextOnTop: showTextOnTop,
-          itemIndex: itemIndex,
-          autofocus: autofocus,
-        ),
-      ),
-    );
-  }
-}

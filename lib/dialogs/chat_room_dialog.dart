@@ -93,24 +93,24 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                   },
                 ),
               ),
-              Button(
-                onPressed: () async {
-                  final icon = await IconChooserDialog.show(context);
-                  if (icon != null) {
-                    setState(() {
-                      ico = icon.codePoint;
-                    });
-                  }
-                },
-                child: Icon(
-                  IconData(
-                    ico,
-                    fontPackage: 'fluentui_system_icons',
-                    fontFamily: 'FluentSystemIcons-Filled',
-                  ),
-                  size: 24,
-                ),
-              ),
+              // Button(
+              //   onPressed: () async {
+              //     final icon = await IconChooserDialog.show(context);
+              //     if (icon != null) {
+              //       setState(() {
+              //         ico = icon.codePoint;
+              //       });
+              //     }
+              //   },
+              //   child: Icon(
+              //     IconData(
+              //       ico,
+              //       fontPackage: 'fluentui_system_icons',
+              //       fontFamily: 'FluentSystemIcons-Filled',
+              //     ),
+              //     size: 24,
+              //   ),
+              // ),
             ],
           ),
           const Text('System message'),
@@ -129,7 +129,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
               onChanged: (value) {
                 index = value ?? 1;
               }),
-          const Text('Max length'),
+          const Text('Max token length'),
           TextBox(
             controller: TextEditingController(
                 text: widget.room.maxTokenLength.toString()),

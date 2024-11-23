@@ -173,7 +173,6 @@ class AddChatButton extends StatelessWidget {
           checked: false,
           onChanged: (v) {
             chatProvider.createNewChatRoom();
-            // navProvider.refreshNavItems(chatProvider);
           },
           child: const Icon(
             icons.FluentIcons.compose_24_regular,

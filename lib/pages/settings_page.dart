@@ -186,14 +186,9 @@ class MessageAppearanceSettings extends StatelessWidget {
   }
 }
 
-class CustomActionsSection extends StatefulWidget {
+class CustomActionsSection extends StatelessWidget {
   const CustomActionsSection({super.key});
 
-  @override
-  State<CustomActionsSection> createState() => _CustomActionsSectionState();
-}
-
-class _CustomActionsSectionState extends State<CustomActionsSection> {
   @override
   Widget build(BuildContext context) {
     return Expander(

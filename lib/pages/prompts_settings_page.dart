@@ -298,6 +298,27 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   promptCtr.text = '''$textCntr\${clipboardAccess} ''';
                 },
               ),
+              Button(
+                child: const Text('Info about user'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${userInfo} ''';
+                },
+              ),
+              Button(
+                child: const Text('Timestamp'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${timestamp} ''';
+                },
+              ),
+              Button(
+                child: const Text('System info'),
+                onPressed: () {
+                  final textCntr = promptCtr.text;
+                  promptCtr.text = '''$textCntr\${systemInfo} ''';
+                },
+              ),
             ],
           ),
           spacer,

@@ -4,7 +4,6 @@ import 'package:cryptography/cryptography.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
-import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:langchain/langchain.dart';
@@ -21,7 +20,10 @@ class ChatRoom {
   int maxTokenLength;
   double repeatPenalty;
   int iconCodePoint;
+
+  /// if pinned, it will be `999999`
   int indexSort;
+  bool get isPinned => indexSort != 999999;
   int dateCreatedMilliseconds;
   int? totalSentTokens;
   int? totalReceivedTokens;
@@ -40,7 +42,7 @@ class ChatRoom {
     required this.promptBatchSize,
     required this.repeatPenaltyTokens,
     required this.topP,
-    required this.maxTokenLength,
+    this.maxTokenLength = 2048,
     required this.repeatPenalty,
     this.systemMessage,
     required this.dateCreatedMilliseconds,
@@ -82,7 +84,7 @@ class ChatRoom {
     return other is ChatRoom && other.id == id;
   }
 
-  static Future<ChatRoom> fromMap(Map<String, dynamic> map) async {
+  static ChatRoom fromMap(Map<String, dynamic> map) {
     final messages = ConversationBufferMemory(
       chatHistory: ChatMessageHistory(),
     );
@@ -151,7 +153,8 @@ class ChatRoom {
       }
       if (json['base64'] is String) {
         return HumanChatMessage(
-          content: ChatMessageContentImage(data: json['base64']),
+          content: ChatMessageContentImage(
+              data: json['base64'], mimeType: 'image/png'),
         );
       }
     }
@@ -231,7 +234,7 @@ class ChatRoom {
     );
   }
 
-  static Future<ChatRoom> fromJson(String stringJson) {
+  static ChatRoom fromJson(String stringJson) {
     final map = json.decode(stringJson) as Map<String, dynamic>;
     return ChatRoom.fromMap(map);
   }
