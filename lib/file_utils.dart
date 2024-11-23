@@ -200,7 +200,8 @@ class FileUtils {
   static Future<String> getChatRoomPath() async {
     final dir = documentDirectoryPath ??
         (await getApplicationDocumentsDirectory()).path;
-    return '$dir/fluent_gpt/chat_rooms';
+        final sep = Platform.pathSeparator;
+    return '$dir${sep}fluent_gpt${sep}chat_rooms';
   }
 
   /// Returns the file at the given [id] in the chat rooms directory.
@@ -220,7 +221,7 @@ class FileUtils {
   /// ```
   static Future<File> getChatRoomMessagesFileById(String id) async {
     final path = await getChatRoomPath();
-    return File('$path/$id-messages.json');
+    return File('$path${Platform.pathSeparator}$id-messages.json');
   }
 
   /// It will not give messages files `.git` and `.DS_Store` and `-messages.json`

@@ -1,12 +1,8 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 
 import 'package:fluent_gpt/main.dart';
-import 'package:fluent_gpt/pages/about_page.dart';
-import 'package:fluent_gpt/pages/log_page.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
-import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'pages/welcome/welcome_llm_screen.dart';
@@ -23,43 +19,6 @@ class NavigationProvider with ChangeNotifier {
   BuildContext? get context => navigatorKey.currentContext;
 
   NavigationProvider();
-
-  /// onTap will be overridden for each item
-  late final List<PaneItem> footerItems = [
-    PaneItem(
-      key: const ValueKey('/settings'),
-      icon: const Icon(FluentIcons.settings_24_regular),
-      title: const Text('Settings'),
-      body: const SettingsPage(),
-      onTap: () => Navigator.of(context!).push(
-        FluentPageRoute(builder: (context) => const SettingsPage()),
-      ),
-    ),
-    PaneItem(
-      key: const ValueKey('/about'),
-      icon: const Icon(FluentIcons.info_24_regular),
-      title: const Text('About'),
-      body: const AboutPage(),
-      onTap: () => Navigator.of(context!).push(
-        FluentPageRoute(builder: (context) => const AboutPage()),
-      ),
-    ),
-    PaneItem(
-      key: const ValueKey('/log'),
-      icon: const Icon(FluentIcons.bug_24_regular),
-      title: const Text('Log'),
-      body: const LogPage(),
-      onTap: () => Navigator.of(context!).push(
-        FluentPageRoute(builder: (context) => const LogPage()),
-      ),
-    ),
-    LinkPaneItemAction(
-      icon: const Icon(FluentIcons.link_24_regular),
-      title: const Text('Source code'),
-      link: 'https://github.com/realkalash/fluent_gpt_app',
-      body: const SizedBox.shrink(),
-    ),
-  ];
 
   void welcomeScreenEnd() {
     AppCache.isWelcomeShown.value = true;

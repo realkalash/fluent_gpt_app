@@ -46,4 +46,6 @@ enum OnMessageActionEnum {
   none,
   copyText,
   copyTextInsideQuotes,
+  openUrl,
+  runShellCommand,
 }

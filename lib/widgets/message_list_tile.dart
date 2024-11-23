@@ -120,8 +120,8 @@ class MessageCard extends StatefulWidget {
 
 class _MessageCardState extends State<MessageCard> {
   bool _isMarkdownView = true;
-  bool _isFocused = false;
   bool _isLoadingReadAloud = false;
+  bool _isExpanded = false;
   final flyoutController = FlyoutController();
 
   @override
@@ -379,6 +379,46 @@ class _MessageCardState extends State<MessageCard> {
           ],
         ),
       );
+    } else if (widget.message is SystemChatMessage) {
+      return FlyoutTarget(
+        controller: flyoutController,
+        child: GestureDetector(
+          onSecondaryTap: () {
+            flyoutController.showFlyout(
+                builder: (context) => _showOptionsFlyout(context));
+          },
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20.0),
+              color: context.theme.cardColor,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text('System', style: botMessageStyle)),
+                    _isExpanded
+                        ? const Icon(FluentIcons.chevron_up_16_filled, size: 12)
+                        : const Icon(FluentIcons.chevron_down_16_filled,
+                            size: 12)
+                  ],
+                ),
+                if (_isExpanded)
+                  SelectableText(widget.message.contentAsString,
+                      style: TextStyle(fontSize: widget.textSize.toDouble())),
+              ],
+            ),
+          ),
+        ),
+      );
     } else {
       tileWidget = MessageListTile(
         tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
@@ -452,11 +492,6 @@ class _MessageCardState extends State<MessageCard> {
     }
 
     return Focus(
-      onFocusChange: (isFocused) {
-        setState(() {
-          _isFocused = isFocused;
-        });
-      },
       child: Stack(
         children: [
           GestureDetector(
@@ -465,11 +500,13 @@ class _MessageCardState extends State<MessageCard> {
                 builder: (context) => _showOptionsFlyout(context),
               );
             },
-            child: Card(
+            child: Container(
               margin: const EdgeInsets.all(4),
               padding: const EdgeInsets.only(bottom: 16),
-              borderRadius: BorderRadius.circular(8.0),
-              borderColor: _isFocused ? Colors.blue : Colors.transparent,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                color: context.theme.cardColor,
+              ),
               child: tileWidget,
             ),
           ),
@@ -584,7 +621,6 @@ class _MessageCardState extends State<MessageCard> {
                         setState(() {});
                       },
                     ),
-
                   SqueareIconButton(
                     tooltip: 'Copy to clipboard',
                     icon: const Icon(FluentIcons.copy_16_regular),
@@ -604,7 +640,6 @@ class _MessageCardState extends State<MessageCard> {
                       displayCopiedToClipboard();
                     },
                   ),
-                  // additional options
                   FlyoutTarget(
                     controller: flyoutController,
                     child: SqueareIconButton(
@@ -843,7 +878,6 @@ class _MessageCardState extends State<MessageCard> {
                   isLong: true,
                   action: Button(
                     onPressed: () async {
-                      final provider = context.read<ChatProvider>();
                       close();
                       await Future.delayed(const Duration(milliseconds: 400));
                       showDialog(

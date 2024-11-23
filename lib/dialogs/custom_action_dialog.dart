@@ -70,6 +70,17 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
                         regExpController.text = copyToCliboardRegex.pattern;
                       },
                     ),
+                    MenuFlyoutItem(
+                      text: Text('If text contains "Open URL" quotes'),
+                      onPressed: () {
+                        regExpController.text = openUrlRegex.pattern;
+                      },
+                    ), MenuFlyoutItem(
+                      text: Text('If text contains "Run CLI" quotes'),
+                      onPressed: () {
+                        regExpController.text = runShellRegex.pattern;
+                      },
+                    ),
                   ],
                 ),
               )
@@ -99,12 +110,6 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
         ],
       ),
       actions: [
-        Button(
-          child: const Text('Cancel'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
         FilledButton(
           child: widget.action != null ? Text('Save') : const Text('Add'),
           onPressed: () {
@@ -121,6 +126,12 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
             onMessageActions.add(actions);
             final json = actions.map((e) => e.toJson()).toList();
             AppCache.customActions.set(jsonEncode(json));
+            Navigator.of(context).pop();
+          },
+        ),
+        Button(
+          child: const Text('Cancel'),
+          onPressed: () {
             Navigator.of(context).pop();
           },
         ),
