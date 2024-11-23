@@ -6,7 +6,6 @@ import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
-import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
@@ -26,6 +25,7 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -41,10 +41,11 @@ import 'package:langchain_openai/langchain_openai.dart';
 import 'package:record/record.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:collection/collection.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 ChatOpenAI? openAI;
 ChatOpenAI? localModel;
-// ChatOllama? llamaAi;
 
 /// First is ID, second is ChatRoom
 BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
@@ -53,7 +54,18 @@ BehaviorSubject<List<OnMessageAction>> onMessageActions =
     BehaviorSubject.seeded([]);
 
 /// first is ID, second is ChatRoom
-Map<String, ChatRoom> get chatRooms => chatRoomsStream.value;
+Map<String, ChatRoom> get chatRooms => chatRoomsStream.valueOrNull ?? {};
+
+/// key is date, value is list of chat rooms
+Map<String, List<ChatRoom>> get chatRoomsGrouped {
+  final grouped = groupBy(chatRooms.values, (ChatRoom chatRoom) {
+    if (chatRoom.isPinned) return 'Pinned';
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(chatRoom.dateCreatedMilliseconds);
+    return '${date.day}/${date.month}/${date.year}';
+  });
+  return grouped;
+}
 
 BehaviorSubject<String> selectedChatRoomIdStream =
     BehaviorSubject.seeded('Default');
@@ -76,7 +88,7 @@ get promptBatchSize => chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
 get repeatPenaltyTokens =>
     chatRooms[selectedChatRoomId]?.repeatPenaltyTokens ?? 64;
 get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
-get maxLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 512;
+get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
 get repeatPenalty => chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
 
 /// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
@@ -224,7 +236,7 @@ class ChatProvider with ChangeNotifier {
           promptBatchSize: promptBatchSize,
           repeatPenaltyTokens: repeatPenaltyTokens,
           topP: topP,
-          maxTokenLength: maxLenght,
+          maxTokenLength: maxTokenLenght,
           repeatPenalty: repeatPenalty,
           systemMessage: '',
           dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
@@ -672,6 +684,7 @@ class ChatProvider with ChangeNotifier {
   }) async {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
+    final isToolsEnabled = AppCache.gptToolCopyToClipboardEnabled.value == true;
     if (isFirstMessage) {
       // regenerate system message to update time/weather etc
       // This is a first message, so it will regenerate the system message from the global prompt
@@ -890,15 +903,17 @@ class ChatProvider with ChangeNotifier {
             model: selectedChatRoom.model.modelName,
             user: AppCache.userName.value,
             maxTokens: selectedChatRoom.maxTokenLength,
-            toolChoice: const ChatToolChoiceAuto(),
-            tools: [
-              if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                ToolSpec(
-                  name: 'copy_to_clipboard_tool',
-                  description: 'Tool to copy text to users clipboard',
-                  inputJsonSchema: copyToClipboardFunctionParameters,
-                ),
-            ],
+            toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
+            tools: isToolsEnabled
+                ? [
+                    if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                      ToolSpec(
+                        name: 'copy_to_clipboard_tool',
+                        description: 'Tool to copy text to users clipboard',
+                        inputJsonSchema: copyToClipboardFunctionParameters,
+                      ),
+                  ]
+                : null,
           ),
         );
       } else {
@@ -915,15 +930,17 @@ class ChatProvider with ChangeNotifier {
             model: selectedChatRoom.model.modelName,
             user: AppCache.userName.value,
             maxTokens: selectedChatRoom.maxTokenLength,
-            toolChoice: const ChatToolChoiceAuto(),
-            tools: [
-              if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                ToolSpec(
-                  name: 'copy_to_clipboard_tool',
-                  description: 'Tool to copy text to users clipboard',
-                  inputJsonSchema: copyToClipboardFunctionParameters,
-                ),
-            ],
+            toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
+            tools: isToolsEnabled
+                ? [
+                    if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                      ToolSpec(
+                        name: 'copy_to_clipboard_tool',
+                        description: 'Tool to copy text to users clipboard',
+                        inputJsonSchema: copyToClipboardFunctionParameters,
+                      ),
+                  ]
+                : null,
           ),
         );
       }
@@ -944,15 +961,14 @@ class ChatProvider with ChangeNotifier {
           }
           final message = chunk.output;
           // log tokens
-          if (message.toolCalls.isEmpty)
-            addBotMessageToList(
-              message,
-              chunk.id,
-            );
+          if (message.toolCalls.isEmpty && message.content.isNotEmpty)
+            addBotMessageToList(message, chunk.id);
           else {
-            functionCallString += message.toolCalls.first.argumentsRaw;
-            if (message.toolCalls.first.name.isNotEmpty == true) {
-              functionName = message.toolCalls.first.name;
+            if (message.toolCalls.isNotEmpty) {
+              functionCallString += message.toolCalls.first.argumentsRaw;
+              if (message.toolCalls.first.name.isNotEmpty == true) {
+                functionName = message.toolCalls.first.name;
+              }
             }
           }
           if (chunk.usage.totalTokens != null) {
@@ -1023,15 +1039,33 @@ class ChatProvider with ChangeNotifier {
     }
     final AIChatMessage aiResponse = response;
     for (var action in onMessageActions.value) {
-      if (action.regExp.hasMatch(aiResponse.content)) {
+      final hasMatch = action.regExp.hasMatch(aiResponse.content);
+      if (hasMatch) {
+        final match = action.regExp.firstMatch(aiResponse.content);
         if (action.actionEnum == OnMessageActionEnum.copyTextInsideQuotes) {
-          final match = action.regExp.firstMatch(aiResponse.content);
-          if (match != null) {
-            final text = match.group(1);
-            await Clipboard.setData(ClipboardData(text: text ?? ''));
-          }
+          final text = match?.group(1);
+          await Clipboard.setData(ClipboardData(text: text ?? ''));
+          displayCopiedToClipboard();
         } else if (action.actionEnum == OnMessageActionEnum.copyText) {
           await Clipboard.setData(ClipboardData(text: aiResponse.content));
+          displayCopiedToClipboard();
+        } else if (action.actionEnum == OnMessageActionEnum.openUrl) {
+          await launchUrlString(match!.group(1)!);
+        } else if (action.actionEnum == OnMessageActionEnum.runShellCommand) {
+          final result = await ShellDriver.runShellCommand(match!.group(1)!);
+          if (result.trim().isEmpty) {
+            addMessageSystem(
+                'Shell command output: EMPTY result or returned an error');
+          } else {
+            addMessageSystem('Shell command result: $result');
+          }
+          // wait for the message to be added
+          await Future.delayed(const Duration(milliseconds: 50));
+          sendMessage('Answer based on the result (answer short)',
+              onMessageSent: () {
+            final lastMessage = messages.value.entries.last;
+            deleteMessage(lastMessage.key);
+          });
         }
       }
     }
@@ -1408,10 +1442,11 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> createNewChatRoom() async {
+    if (messages.value.isEmpty) return;
     if (AppCache.learnAboutUserAfterCreateNewChat.value!) {
       generateUserKnowladgeBasedOnConversation();
     }
-    final chatRoomName = 'Chat ${chatRooms.length + 1}';
+    final chatRoomName = '${chatRooms.length + 1} Chat';
     final id = generateChatID();
     String systemMessage = '';
 
@@ -1428,7 +1463,7 @@ class ChatProvider with ChangeNotifier {
       promptBatchSize: promptBatchSize,
       repeatPenaltyTokens: repeatPenaltyTokens,
       topP: topP,
-      maxTokenLength: maxLenght,
+      maxTokenLength: maxTokenLenght,
       repeatPenalty: repeatPenalty,
       systemMessage: systemMessage,
       dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
@@ -1493,8 +1528,8 @@ class ChatProvider with ChangeNotifier {
         // in this case id is the path
         FileUtils.deleteFile(chatRoomId);
       } else {
-        FileUtils.moveFile(
-            '$dir/$chatRoomId.json', '$archivedChatRoomsPath/$chatRoomId.json');
+        FileUtils.moveFile('$dir${FileUtils.separatior}$chatRoomId.json',
+            '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId.json');
       }
     });
 
@@ -1504,8 +1539,8 @@ class ChatProvider with ChangeNotifier {
       if (chatRoomToDelete?.model.modelName == 'error') {
         FileUtils.deleteFile(chatRoomId);
       } else {
-        FileUtils.moveFile(
-            file.path, '$archivedChatRoomsPath/${file.path.split('/').last}');
+        FileUtils.moveFile(file.path,
+            '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId-messages.json');
       }
     });
     if (chatRoomId == selectedChatRoomId) {
@@ -1955,6 +1990,18 @@ class ChatProvider with ChangeNotifier {
       },
     );
   }
+
+  void pinChatRoom(ChatRoom chatRoom) {
+    chatRoom.indexSort = chatRoom.indexSort - 1;
+    notifyRoomsStream();
+    // dont save chat right now because it will override messages in the file with empty list
+  }
+
+  void unpinChatRoom(ChatRoom chatRoom) {
+    chatRoom.indexSort = 999999;
+    notifyRoomsStream();
+    // dont save chat right now because it will override messages in the file with empty list
+  }
 }
 
 ChatRoom _generateDefaultChatroom({String? systemMessage}) {
@@ -1968,7 +2015,7 @@ ChatRoom _generateDefaultChatroom({String? systemMessage}) {
     promptBatchSize: promptBatchSize,
     repeatPenaltyTokens: repeatPenaltyTokens,
     topP: topP,
-    maxTokenLength: maxLenght,
+    maxTokenLength: maxTokenLenght,
     repeatPenalty: repeatPenalty,
     systemMessage: '',
     dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,

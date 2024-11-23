@@ -47,6 +47,17 @@ class InputField extends StatefulWidget {
 
 class _InputFieldState extends State<InputField> {
   void onSubmit(String text, ChatProvider chatProvider) {
+    if (_isShiftPressed) {
+      chatProvider.messageController.text =
+          '${chatProvider.messageController.text}\n';
+      promptTextFocusNode.requestFocus();
+      return;
+    }
+    if (altPressedStream.value) {
+      chatProvider.addMessageSystem(text);
+      clearFieldAndFocus();
+      return;
+    }
     if (text.trim().isEmpty && chatProvider.fileInput == null) {
       return;
     }
@@ -137,7 +148,6 @@ class _InputFieldState extends State<InputField> {
   }
 
   Future onDigitPressed(int number) async {
-    print('Digit pressed: $number');
     if (_quickInputCommandsList.isEmpty) return;
     final selectedPrompt = _quickInputCommandsList[number - 1];
     if (selectedPrompt[0] == '/') {
@@ -240,7 +250,22 @@ class _InputFieldState extends State<InputField> {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
+            StreamBuilder(
+              stream: altPressedStream,
+              builder: (_, snap) {
+                final isAltPressed = snap.data == true;
+                if (isAltPressed) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: Text('Send as system message',
+                        style: context.theme.typography.caption),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             if (widget.isMini) ...[
               Row(
                 children: [
@@ -263,16 +288,7 @@ class _InputFieldState extends State<InputField> {
                   maxLines: 30,
                   suffix: const _MicrophoneButton(),
                   textInputAction: TextInputAction.done,
-                  onSubmitted: (value) {
-                    if (_isShiftPressed == false) {
-                      onSubmit(value, chatProvider);
-                    }
-                    if (_isShiftPressed) {
-                      chatProvider.messageController.text =
-                          '${chatProvider.messageController.text}\n';
-                      promptTextFocusNode.requestFocus();
-                    }
-                  },
+                  onSubmitted: (value) => onSubmit(value, chatProvider),
                   placeholder: 'Use "/" for commands or type your message here',
                 ),
               )
@@ -292,7 +308,6 @@ class _InputFieldState extends State<InputField> {
                         color: context.theme.accentColor,
                         child: TextBox(
                           autofocus: true,
-                          autocorrect: true,
                           focusNode: promptTextFocusNode,
                           prefixMode: OverlayVisibilityMode.always,
                           controller: chatProvider.messageController,
@@ -364,16 +379,7 @@ class _InputFieldState extends State<InputField> {
                             ],
                           ),
                           textInputAction: TextInputAction.done,
-                          onSubmitted: (value) {
-                            if (_isShiftPressed == false) {
-                              onSubmit(value, chatProvider);
-                            }
-                            if (_isShiftPressed) {
-                              chatProvider.messageController.text =
-                                  '${chatProvider.messageController.text}\n';
-                              promptTextFocusNode.requestFocus();
-                            }
-                          },
+                          onSubmitted: (value) => onSubmit(value, chatProvider),
                           placeholder:
                               'Use "/" for commands or type your message here',
                         ),
@@ -402,9 +408,7 @@ class _InputFieldState extends State<InputField> {
                               backgroundColor: WidgetStatePropertyAll(
                             context.theme.scaffoldBackgroundColor,
                           )),
-                          onPressed: () {
-                            chatProvider.stopAnswering();
-                          },
+                          onPressed: () => chatProvider.stopAnswering(),
                           icon: Icon(
                             ic.FluentIcons.stop_24_filled,
                             size: 24,
@@ -452,14 +456,15 @@ class _InputFieldState extends State<InputField> {
         items: [
           if (text.isNotEmpty)
             MenuFlyoutItem(
-                text: const Text('Send as assistant (silently)'),
+                text: const Text('Send silently as assistant'),
+                trailing: Text('(alt+enter)'),
                 onPressed: () {
                   provider.addMessageSystem(controller.text);
                   clearFieldAndFocus();
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
-                text: const Text('Send as user (silently)'),
+                text: const Text('Send silently as user'),
                 onPressed: () async {
                   provider.addHumanMessageToList(HumanChatMessage(
                       content: ChatMessageContent.text(controller.text)));
@@ -467,7 +472,7 @@ class _InputFieldState extends State<InputField> {
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
-                text: const Text('Send as AI answer (silently)'),
+                text: const Text('Send silently as AI answer'),
                 onPressed: () {
                   provider.addBotMessageToList(
                       AIChatMessage(content: controller.text),

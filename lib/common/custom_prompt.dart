@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
@@ -60,15 +61,31 @@ class CustomPrompt {
   /// Returns the prompt text with the selected text
   /// If selectedText is null, it will be replaced with '<nothing selected>'
   /// The prompt also use the language from the lang BehaviorSubject
-  String getPromptText([String? selectedText]) => prompt
-      .replaceAll('\${lang}', defaultGPTLanguage.value)
-      .replaceAll(
-        '\${clipboardAccess}',
-        AppCache.gptToolCopyToClipboardEnabled.value == true
-            ? 'ENABLED'
-            : 'RESTRICTED',
-      )
-      .replaceAll('\${input}', selectedText ?? '<nothing selected>');
+  String getPromptText([String? selectedText]) {
+    final replacements = <String, String Function()>{
+      '\${lang}': () => defaultGPTLanguage.value,
+      '\${userInfo}': () => AppCache.userInfo.valueSync(),
+      '\${timestamp}': () =>
+          DateTime.now().toIso8601String().split('.')[0].replaceAll('T', ' '),
+      '\${systemInfo}': () => getSystemInfoString(),
+      '\${clipboardAccess}': () =>
+          AppCache.gptToolCopyToClipboardEnabled.value == true
+              ? 'ENABLED'
+              : 'RESTRICTED',
+      '\${input}': () => selectedText ?? '<nothing selected>',
+    };
+
+    var result = prompt;
+    /// Replace all the placeholders
+    /// This should be faster then basing replaceAll on the whole string
+    for (final entry in replacements.entries) {
+      if (result.contains(entry.key)) {
+        result = result.replaceAll(entry.key, entry.value());
+      }
+    }
+
+    return result;
+  }
 
   @override
   bool operator ==(Object other) {

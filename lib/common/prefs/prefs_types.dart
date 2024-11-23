@@ -81,6 +81,22 @@ class FileStringPref {
     return file.readAsStringSync();
   }
 
+  String valueSync() {
+    final path = FileUtils.documentDirectoryPath;
+    final filePath = '$path/$fileName';
+    //if not exist, create file and return empty string
+    final file = File(filePath);
+    if (!file.existsSync()) {
+      try {
+        file.create(recursive: true);
+      } catch (e) {
+        log('Error creating file: $e');
+      }
+      return '';
+    }
+    return file.readAsStringSync();
+  }
+
   Future<void> set(String value) async {
     final path = await appDirectoryPath();
     final filePath = '$path/$fileName';

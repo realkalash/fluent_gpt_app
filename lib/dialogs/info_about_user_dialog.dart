@@ -1,7 +1,9 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
+import 'package:langchain/langchain.dart';
 
 class InfoAboutUserDialog extends StatefulWidget {
   const InfoAboutUserDialog({super.key});
@@ -22,8 +24,10 @@ class _InfoAboutUserDialogState extends State<InfoAboutUserDialog> {
       textController.text = await AppCache.userInfo.value();
       if (mounted) {
         words = textController.text.split(' ').length;
-        Tokenizer tokenizer = Tokenizer();
-        tokens = await tokenizer.count(textController.text, modelName: 'gpt-4');
+        // Tokenizer tokenizer = Tokenizer();
+        // tokens = await tokenizer.count(textController.text, modelName: 'gpt-4');
+        final value = PromptValue.string(textController.text);
+        tokens = await openAI?.countTokens(value) ?? await localModel?.countTokens(value) ?? 0;
         setState(() {});
       }
     });
