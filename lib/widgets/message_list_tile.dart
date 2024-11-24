@@ -421,74 +421,98 @@ class _MessageCardState extends State<MessageCard> {
       );
     } else {
       tileWidget = MessageListTile(
-        tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
-        title: Row(
-          children: [
-            Text('$formatDateTime ',
-                style: FluentTheme.of(context).typography.caption!),
-            Text('Ai:', style: botMessageStyle),
-          ],
-        ),
-        subtitle: _isMarkdownView
-            ? buildMarkdown(
-                context,
-                widget.message.contentAsString,
-                textSize: widget.textSize.toDouble(),
-                contextMenuBuilder: (ctx, textState) =>
-                    ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
-                  ctx,
-                  textState,
-                  onMorePressed: () {
-                    flyoutController.showFlyout(
-                      builder: (context) => _showOptionsFlyout(context),
+          tileColor: widget.isError ? Colors.red.withOpacity(0.2) : null,
+          title: Row(
+            children: [
+              Text('$formatDateTime ',
+                  style: FluentTheme.of(context).typography.caption!),
+              Text('Ai:', style: botMessageStyle),
+            ],
+          ),
+          subtitle: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _isMarkdownView
+                  ? buildMarkdown(
+                      context,
+                      widget.message.contentAsString,
+                      textSize: widget.textSize.toDouble(),
+                      contextMenuBuilder: (ctx, textState) =>
+                          ContextMenuBuilders
+                              .markdownChatMessageContextMenuBuilder(
+                        ctx,
+                        textState,
+                        onMorePressed: () {
+                          flyoutController.showFlyout(
+                            builder: (context) => _showOptionsFlyout(context),
+                          );
+                        },
+                        onDeletePressed: () async {
+                          final provider = context.read<ChatProvider>();
+                          final accepted =
+                              await ConfirmationDialog.show(context: context);
+                          if (accepted) {
+                            provider.deleteMessage(widget.id);
+                          }
+                        },
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: SelectableText(
+                        widget.message.contentAsString,
+                        contextMenuBuilder: (ctx, textState) =>
+                            ContextMenuBuilders
+                                .textChatMessageContextMenuBuilder(
+                          ctx,
+                          textState,
+                          onMorePressed: () {
+                            flyoutController.showFlyout(
+                              builder: (context) => _showOptionsFlyout(context),
+                            );
+                          },
+                          onDeletePressed: () async {
+                            final provider = context.read<ChatProvider>();
+                            final accepted =
+                                await ConfirmationDialog.show(context: context);
+                            if (accepted) {
+                              provider.deleteMessage(widget.id);
+                            }
+                          },
+                          onQuoteSelectedText: (text) {
+                            final provider = context.read<ChatProvider>();
+                            provider.messageController.text =
+                                provider.messageController.text += '"$text" ';
+                            promptTextFocusNode.requestFocus();
+                          },
+                          onImproveSelectedText: (text) {},
+                        ),
+                        style: TextStyle(
+                          fontSize: widget.textSize.toDouble(),
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ),
+              FutureBuilder(
+                future: (openAI ?? localModel)!.countTokens(
+                  PromptValue.string(
+                    ((widget.message as AIChatMessage).content),
+                  ),
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.data is int) {
+                    return Text(
+                      'Tokens: ${snapshot.data}',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.normal),
                     );
-                  },
-                  onDeletePressed: () async {
-                    final provider = context.read<ChatProvider>();
-                    final accepted =
-                        await ConfirmationDialog.show(context: context);
-                    if (accepted) {
-                      provider.deleteMessage(widget.id);
-                    }
-                  },
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SelectableText(
-                  widget.message.contentAsString,
-                  contextMenuBuilder: (ctx, textState) =>
-                      ContextMenuBuilders.textChatMessageContextMenuBuilder(
-                    ctx,
-                    textState,
-                    onMorePressed: () {
-                      flyoutController.showFlyout(
-                        builder: (context) => _showOptionsFlyout(context),
-                      );
-                    },
-                    onDeletePressed: () async {
-                      final provider = context.read<ChatProvider>();
-                      final accepted =
-                          await ConfirmationDialog.show(context: context);
-                      if (accepted) {
-                        provider.deleteMessage(widget.id);
-                      }
-                    },
-                    onQuoteSelectedText: (text) {
-                      final provider = context.read<ChatProvider>();
-                      provider.messageController.text =
-                          provider.messageController.text += '"$text" ';
-                      promptTextFocusNode.requestFocus();
-                    },
-                    onImproveSelectedText: (text) {},
-                  ),
-                  style: TextStyle(
-                    fontSize: widget.textSize.toDouble(),
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
+                  }
+                  return const SizedBox();
+                },
               ),
-      );
+            ],
+          ));
     }
 
     return Focus(

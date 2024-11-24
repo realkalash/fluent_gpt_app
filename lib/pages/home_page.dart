@@ -30,6 +30,7 @@ import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:langchain/langchain.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -980,13 +981,20 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                   child: StreamBuilder(
                       stream: messages,
                       builder: (context, snapshot) {
+                        final reverseList = messagesReversedList;
                         return ListView.builder(
                           controller: chatProvider.listItemsScrollController,
                           itemCount: messages.value.entries.length,
+                          addAutomaticKeepAlives: false,
+                          addRepaintBoundaries: true,
+                          reverse: true,
                           itemBuilder: (context, index) {
-                            final element =
-                                messages.value.entries.elementAt(index);
-                            final message = element.value;
+                            // final element =
+                            //     messages.value.entries.elementAt(index);
+                            final ChatMessage message =
+                                reverseList.elementAt(index);
+                            final String key =
+                                keysReversedList.elementAt(index);
 
                             return AutoScrollTag(
                               controller:
@@ -994,7 +1002,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               key: ValueKey('message_$index'),
                               index: index,
                               child: MessageCard(
-                                id: element.key,
+                                id: key,
                                 message: message,
                                 dateTime: null,
                                 selectionMode: false,
@@ -1016,8 +1024,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
-                      // Because our screenshot tool is using fullscreen mode
-                      // macos will hide everything, so we need to disable it
                       ToggleButtonAdvenced(
                         checked: false,
                         icon: ic.FluentIcons.eye_tracking_24_filled,
@@ -1031,7 +1037,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         },
                         tooltip: 'Capture screenshot',
                       ),
-
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
@@ -1084,33 +1089,22 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                               const SizedBox(width: 8),
                               const Expanded(
-                                  child: Text('Max messages to include')),
+                                  child: Text('Max tokens to include')),
                               Expanded(
                                 child: Consumer<ChatProvider>(
                                   builder: (context, watch, child) {
                                     return NumberBox(
-                                      value:
-                                          watch.maxMessagesToIncludeInHistory,
+                                      value: selectedChatRoom.maxTokenLength,
                                       min: 1,
+                                      smallChange: 64,
                                       clearButton: false,
                                       mode: SpinButtonPlacementMode.inline,
                                       onChanged: (v) {
-                                        chatProvider
-                                            .setMaxMessagesToIncludeInHistory(
-                                                v);
+                                        chatProvider.setMaxTokensForChat(v);
                                       },
                                     );
                                   },
-                                  child: NumberBox(
-                                    value: chatProvider
-                                        .maxMessagesToIncludeInHistory,
-                                    min: 1,
-                                    mode: SpinButtonPlacementMode.inline,
-                                    onChanged: (v) {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(v);
-                                    },
-                                  ),
+                                
                                 ),
                               ),
                             ],
@@ -1121,8 +1115,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 child: Button(
                                   child: Text('Min'),
                                   onPressed: () {
-                                    chatProvider
-                                        .setMaxMessagesToIncludeInHistory(3);
+                                    chatProvider.setMaxTokensForChat(500);
                                   },
                                 ),
                               ),
@@ -1130,16 +1123,14 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 child: Button(
                                     child: Text('Medium'),
                                     onPressed: () {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(10);
+                                      chatProvider.setMaxTokensForChat(2048);
                                     }),
                               ),
                               Expanded(
                                 child: Button(
                                     child: Text('Max'),
                                     onPressed: () {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(30);
+                                      chatProvider.setMaxTokensForChat(4096);
                                     }),
                               ),
                             ],

@@ -80,6 +80,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                       Navigator.of(context).pop(element.key);
                     },
                     child: Card(
+                      margin: const EdgeInsets.all(4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.min,

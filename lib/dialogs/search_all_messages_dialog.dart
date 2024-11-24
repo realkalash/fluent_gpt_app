@@ -8,7 +8,6 @@ import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class SearchAllMessagesDialog extends StatefulWidget {

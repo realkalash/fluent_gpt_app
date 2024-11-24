@@ -17,6 +17,7 @@ class ChatRoom {
   int promptBatchSize;
   int repeatPenaltyTokens;
   double topP;
+  /// Max token length to include for the prompt/chat
   int maxTokenLength;
   double repeatPenalty;
   int iconCodePoint;
