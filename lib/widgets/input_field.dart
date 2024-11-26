@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -28,6 +29,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
 import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+// ignore: unused_import
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
@@ -132,8 +134,7 @@ class _InputFieldState extends State<InputField> {
 
   Future<void> onShortcutCopyToThirdParty() async {
     final lastMessage = messages.value.values.last;
-    // final previousClipboard = await Pasteboard.text;
-    Pasteboard.writeText(lastMessage.contentAsString);
+    Pasteboard.writeText(lastMessage.content);
     displayCopiedToClipboard();
   }
 
@@ -466,17 +467,30 @@ class _InputFieldState extends State<InputField> {
             MenuFlyoutItem(
                 text: const Text('Send silently as user'),
                 onPressed: () async {
-                  provider.addHumanMessageToList(HumanChatMessage(
-                      content: ChatMessageContent.text(controller.text)));
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                  provider.addHumanMessageToList(
+                    FluentChatMessage.humanText(
+                        id: timestamp.toString(),
+                        content: controller.text,
+                        creator: AppCache.userName.value ?? 'User',
+                        timestamp: timestamp,
+                        tokens: await provider.countTokensString(text)),
+                  );
                   clearFieldAndFocus();
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
                 text: const Text('Send silently as AI answer'),
-                onPressed: () {
+                onPressed: () async {
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
                   provider.addBotMessageToList(
-                      AIChatMessage(content: controller.text),
-                      DateTime.now().toIso8601String());
+                    FluentChatMessage.ai(
+                      id: timestamp.toString(),
+                      content: controller.text,
+                      timestamp: timestamp,
+                      tokens: await provider.countTokensString(text),
+                    ),
+                  );
                   clearFieldAndFocus();
                 }),
           MenuFlyoutSeparator(),

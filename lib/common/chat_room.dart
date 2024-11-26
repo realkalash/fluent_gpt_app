@@ -17,6 +17,7 @@ class ChatRoom {
   int promptBatchSize;
   int repeatPenaltyTokens;
   double topP;
+
   /// Max token length to include for the prompt/chat
   int maxTokenLength;
   double repeatPenalty;
@@ -28,15 +29,11 @@ class ChatRoom {
   int dateCreatedMilliseconds;
   int? totalSentTokens;
   int? totalReceivedTokens;
-
-  /// <chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2, <key, value>>
-  ConversationBufferMemory messages;
   String? systemMessage;
 
   ChatRoom({
     required this.id,
     required this.chatRoomName,
-    required this.messages,
     required this.model,
     required this.temp,
     required this.topk,
@@ -86,9 +83,6 @@ class ChatRoom {
   }
 
   static ChatRoom fromMap(Map<String, dynamic> map) {
-    final messages = ConversationBufferMemory(
-      chatHistory: ChatMessageHistory(),
-    );
     return ChatRoom(
       model: map['model'] is String
           ? ChatModelAi(
@@ -108,7 +102,6 @@ class ChatRoom {
       repeatPenalty: map['repeatPenalty'],
       systemMessage: map['commandPrefix'],
       indexSort: map['indexSort'] ?? 999999,
-      messages: messages,
       totalSentTokens: map['totalSentTokens'] ?? 0,
       totalReceivedTokens: map['totalReceivedTokens'] ?? 0,
       dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ??
@@ -193,7 +186,6 @@ class ChatRoom {
   ChatRoom copyWith({
     String? id,
     String? chatRoomName,
-    ConversationBufferMemory? messages,
     ChatModelAi? model,
     double? temp,
     int? topk,
@@ -216,7 +208,6 @@ class ChatRoom {
     return ChatRoom(
       id: id ?? this.id,
       chatRoomName: chatRoomName ?? this.chatRoomName,
-      messages: messages ?? this.messages,
       model: model ?? this.model,
       temp: temp ?? this.temp,
       topk: topk ?? this.topk,

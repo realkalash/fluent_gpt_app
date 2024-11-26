@@ -423,9 +423,7 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                           messages.value.entries.elementAt(index).value;
 
                       return MessageCard(
-                        id: messages.value.entries.elementAt(index).key,
                         message: message,
-                        dateTime: null,
                         selectionMode: false,
                         isError: false,
                         textSize: AppCache.compactMessageTextSize.value!,

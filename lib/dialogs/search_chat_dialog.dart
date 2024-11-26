@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:langchain/langchain.dart';
@@ -11,7 +12,7 @@ class SearchChatDialog extends StatefulWidget {
 }
 
 class _SearchChatDialogState extends State<SearchChatDialog> {
-  final Map<String, ChatMessage> _messages = {};
+  final Map<String, FluentChatMessage> _messages = {};
   final textController = TextEditingController();
   @override
   void initState() {
@@ -24,14 +25,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
     _messages.clear();
     for (final entry in originalMessages.entries) {
       final message = entry.value;
-      if (message is HumanChatMessage &&
-          message.content is ChatMessageContentText) {
-        final text = (message.content as ChatMessageContentText).text;
-        if (text.toLowerCase().contains(textController.text.toLowerCase())) {
-          _messages[entry.key] = message;
-        }
-      }
-      if (message is AIChatMessage) {
+      if (message.isTextMessage) {
         if (message.content
             .toLowerCase()
             .contains(textController.text.toLowerCase())) {
@@ -72,7 +66,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                     message.content is ChatMessageContentImage) {
                   return const SizedBox.shrink();
                 }
-                final words = message.contentAsString.split(' ');
+                final words = message.content.split(' ');
                 return MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
@@ -94,8 +88,10 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                                   TextSpan(
                                     text: '$word ',
                                     style: TextStyle(
-                                      backgroundColor: word.toLowerCase().contains(
-                                              textController.text.toLowerCase())
+                                      backgroundColor: word
+                                              .toLowerCase()
+                                              .contains(textController.text
+                                                  .toLowerCase())
                                           ? Colors.yellow.withOpacity(0.5)
                                           : null,
                                       // color: word.toLowerCase().contains(

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
@@ -30,7 +31,6 @@ import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:langchain/langchain.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -989,12 +989,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           addRepaintBoundaries: true,
                           reverse: true,
                           itemBuilder: (context, index) {
-                            // final element =
-                            //     messages.value.entries.elementAt(index);
-                            final ChatMessage message =
+                            final FluentChatMessage message =
                                 reverseList.elementAt(index);
-                            final String key =
-                                keysReversedList.elementAt(index);
 
                             return AutoScrollTag(
                               controller:
@@ -1002,9 +998,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               key: ValueKey('message_$index'),
                               index: index,
                               child: MessageCard(
-                                id: key,
                                 message: message,
-                                dateTime: null,
                                 selectionMode: false,
                                 isError: false,
                                 textSize: chatProvider.textSize,
@@ -1104,7 +1098,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                       },
                                     );
                                   },
-                                
                                 ),
                               ),
                             ],
