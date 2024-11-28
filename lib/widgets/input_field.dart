@@ -56,7 +56,9 @@ class _InputFieldState extends State<InputField> {
       return;
     }
     if (altPressedStream.value) {
-      chatProvider.addMessageSystem(text);
+      chatProvider.addMessageSystem(text).then((_){
+        chatProvider.updateUI();
+      });
       clearFieldAndFocus();
       return;
     }

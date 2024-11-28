@@ -313,7 +313,6 @@ class _MessageCardState extends State<MessageCard> {
                 for (final result in (widget.message.webResults!))
                   SizedBox(
                     width: 200,
-                    // height: 120,
                     child: Button(
                       onPressed: () => launchUrlString(result.url),
                       child: Column(

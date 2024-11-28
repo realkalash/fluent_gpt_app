@@ -1777,11 +1777,16 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  void addMessageSystem(String message) {
+  Future<void> addMessageSystem(String message) async {
     final value = messages.value;
     final timeStamp = DateTime.now().millisecondsSinceEpoch;
-    value['$timeStamp'] =
-        FluentChatMessage.ai(id: '$timeStamp', content: message);
+    final tokens = await countTokensString(message);
+    value['$timeStamp'] = FluentChatMessage.system(
+      id: '$timeStamp',
+      content: message,
+      timestamp: timeStamp,
+      tokens: tokens,
+    );
     messages.add(value);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
