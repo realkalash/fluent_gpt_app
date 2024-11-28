@@ -132,6 +132,32 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
+  Future<void> toggleEnableHistory() async {
+    final provider = context.read<ChatProvider>();
+    provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
+    if (provider.includeConversationGlobal) {
+      displayInfoBar(
+        context,
+        builder: (ctx, close) {
+          return const InfoBar(
+            title: Text('History enabled'),
+          );
+        },
+        duration: const Duration(milliseconds: 1400),
+      );
+    } else {
+      displayInfoBar(
+        context,
+        builder: (ctx, close) {
+          return const InfoBar(
+            title: Text('History disabled'),
+          );
+        },
+        duration: const Duration(milliseconds: 1400),
+      );
+    }
+  }
+
   Future<void> onShortcutCopyToThirdParty() async {
     final lastMessage = messages.value.values.last;
     Pasteboard.writeText(lastMessage.content);
@@ -218,6 +244,8 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, meta: true): () =>
               onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, meta: true):
+              toggleEnableHistory,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyV, control: true):
               onShortcutPasteToField,
@@ -242,6 +270,8 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, control: true): () =>
               onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, control: true):
+              toggleEnableHistory,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,

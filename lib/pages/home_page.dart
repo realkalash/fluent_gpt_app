@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:entry/entry.dart';
@@ -433,7 +434,8 @@ class IncludeConversationSwitcher extends StatelessWidget {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
     return FlyoutListTile(
       text: const Icon(FluentIcons.full_history),
-      tooltip: 'Include conversation',
+      tooltip:
+          'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
       trailing: Checkbox(
         checked: chatProvider.includeConversationGlobal,
         onChanged: (value) {
@@ -1067,7 +1069,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         checked: chatProvider.includeConversationGlobal,
                         icon: ic.FluentIcons.history_20_filled,
                         onChanged: chatProvider.setIncludeWholeConversation,
-                        tooltip: 'Include conversation',
+                        tooltip:
+                            'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
                         maxWidthContextMenu: 300,
                         maxHeightContextMenu: 100,
                         contextItems: [

@@ -109,11 +109,6 @@ String modifyMessageStyle(String prompt) {
   if (conversationLenghtStyleStream.value !=
       ConversationLengthStyleEnum.normal) {
     prompt += ' ${conversationLenghtStyleStream.value.prompt}';
-    if (conversationLenghtStyleStream.value.prompt != null) {
-      selectedChatRoom.maxTokenLength =
-          conversationLenghtStyleStream.value.maxTokenLenght ??
-              selectedChatRoom.maxTokenLength;
-    }
   }
 
   if (conversationStyleStream.value != ConversationStyleEnum.normal) {

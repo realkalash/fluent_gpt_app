@@ -1,22 +1,15 @@
 class ConversationLengthStyleEnum {
   String name;
   String? prompt;
-  int? maxTokenLenght;
 
-  ConversationLengthStyleEnum(
-    this.name,
-    this.prompt, {
-    this.maxTokenLenght,
-  });
+  ConversationLengthStyleEnum(this.name, this.prompt);
 
-  static ConversationLengthStyleEnum short = ConversationLengthStyleEnum(
-      'Short', '(Keep answer short)',
-      maxTokenLenght: 500);
+  static ConversationLengthStyleEnum short =
+      ConversationLengthStyleEnum('Short', '(Keep answer short)');
   static ConversationLengthStyleEnum normal =
-      ConversationLengthStyleEnum('Normal', null, maxTokenLenght: 1024);
-  static ConversationLengthStyleEnum detailed = ConversationLengthStyleEnum(
-      'Detailed', '(Be precise and detailed)',
-      maxTokenLenght: 4096);
+      ConversationLengthStyleEnum('Normal', null);
+  static ConversationLengthStyleEnum detailed =
+      ConversationLengthStyleEnum('Detailed', '(Be precise and detailed)');
 
   static List<ConversationLengthStyleEnum> values = [
     short,
@@ -43,7 +36,6 @@ class ConversationLengthStyleEnum {
     return ConversationLengthStyleEnum(
       name ?? this.name,
       prompt ?? this.prompt,
-      maxTokenLenght: maxTokenLenght ?? this.maxTokenLenght,
     );
   }
 }
