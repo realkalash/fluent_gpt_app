@@ -112,7 +112,6 @@ void main(List<String> args) async {
     logError('[Platform] $error', stack);
     return true;
   };
-  initializeNotifications();
   await protocolHandler.register('fluentgpt');
   setupMethodChannel();
   if (Platform.isMacOS || Platform.isWindows) {
@@ -145,6 +144,7 @@ void main(List<String> args) async {
   AdditionalFeatures.initAdditionalFeatures(
       isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
   packageInfo = await PackageInfo.fromPlatform();
+  initializeNotifications(packageInfo?.packageName);
   launchAtStartup.setup(
     appName: packageInfo!.appName,
     appPath: Platform.resolvedExecutable,

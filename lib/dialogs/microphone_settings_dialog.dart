@@ -13,7 +13,9 @@ class MicrophoneSettingsDialog extends StatefulWidget {
 }
 
 class _MicrophoneSettingsDialogState extends State<MicrophoneSettingsDialog> {
-  List<InputDevice> devices = [];
+  List<InputDevice> devices = [
+    InputDevice(id: 'null', label: 'Default microphone'),
+  ];
   @override
   initState() {
     super.initState();

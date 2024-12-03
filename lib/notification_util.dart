@@ -1,8 +1,15 @@
+import 'dart:developer';
+import 'dart:io';
+
+import 'package:fluent_gpt/features/notification_service.dart';
+import 'package:fluent_gpt/tray.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
   // handle action
+  log('Notification tapped: ${notificationResponse.payload}');
+  showWindow();
 }
 
 @pragma('vm:entry-point')
@@ -13,7 +20,11 @@ Future<void> onDidReceiveLocalNotification(
 
 final FlutterLocalNotificationsPlugin notificationsPlugin =
     FlutterLocalNotificationsPlugin();
-Future initializeNotifications() async {
+Future initializeNotifications(String? appId) async {
+  if (Platform.isWindows) {
+    await NotificationService.init(appId);
+    return;
+  }
   const DarwinInitializationSettings initializationSettingsDarwin =
       DarwinInitializationSettings(
     onDidReceiveLocalNotification: onDidReceiveLocalNotification,

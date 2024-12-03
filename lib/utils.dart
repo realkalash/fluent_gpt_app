@@ -14,7 +14,11 @@ import 'package:langchain/langchain.dart';
 import 'package:nanoid2/nanoid2.dart';
 import 'package:system_info2/system_info2.dart';
 
+/// Generates a random 16 character ID for chats
 String generateChatID() => nanoid(length: 16);
+
+/// Generates a random 16 character ID
+String generate16ID() => nanoid(length: 16);
 
 extension ThemeExtension on BuildContext {
   FluentThemeData get theme => FluentTheme.of(this);
@@ -203,7 +207,6 @@ extension ListExtension<T> on List<T> {
   }
 }
 
-
 Future<void> displayCopiedToClipboard() {
   return displayInfoBar(
     appContext!,
@@ -224,6 +227,7 @@ Future<void> displaySuccessInfoBar({String? title}) {
     ),
   );
 }
+
 Future<void> displayErrorInfoBar({String? title}) {
   return displayInfoBar(
     appContext!,

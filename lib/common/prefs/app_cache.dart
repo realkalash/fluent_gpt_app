@@ -24,7 +24,8 @@ class AppCache {
       StringPref("textToSpeechService", 'deepgram');
   static const deepgramVoiceModel =
       StringPref("deepgramVoiceModel", 'aura-asteria-en');
-  static const azureVoiceModel = StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
+  static const azureVoiceModel =
+      StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
   static const elevenlabsVoiceModelName =
       StringPref("elevenlabsVoiceModel", 'Aria');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
@@ -114,6 +115,9 @@ class AppCache {
       BoolPref("copyToClipboardEnabled", true);
   static const useAiToNameChat =
       BoolPref("useSecondRequestForNamingChats", false);
+  static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
+  static const enableAutonomousModeTimerMinutes =
+      IntPref("enableAutonomousModeTimerMinutes", 100);
   static const includeUserNameToSysPrompt =
       BoolPref("includeUserNameToSysPrompt", false);
   static const includeUserCityNamePrompt =

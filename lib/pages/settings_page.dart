@@ -15,10 +15,12 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
+import 'package:fluent_gpt/features/autonomous_feature.dart';
 import 'package:fluent_gpt/features/azure_speech.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
+import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -1182,34 +1184,78 @@ class _OtherSettings extends StatelessWidget {
               appTheme.updateUI();
             },
           ),
-        Tooltip(
-          message: 'Can cause additional charges!',
-          child: Checkbox(
-            content: const Text('Use ai to name chat'),
-            checked: AppCache.useAiToNameChat.value,
-            onChanged: (value) {
-              AppCache.useAiToNameChat.value = value;
-              appTheme.updateUI();
-            },
-          ),
-        ),
-        spacer,
-        Text('Autoscroll speed (use it if the chat is jumping too hard)'),
-        Consumer<ChatProvider>(
-          builder: (context, provider, child) {
-            return NumberBox(
-              value: provider.autoScrollSpeed,
-              onChanged: (value) {
-                provider.setAutoScrollSpeed(value ?? 1);
-              },
-              min: 0.01,
-              max: 10,
-              smallChange: 0.1,
-              largeChange: 1,
-              mode: SpinButtonPlacementMode.inline,
-            );
+        CheckBoxTooltip(
+          content: const Text('Use ai to name chat'),
+          tooltip: 'Can cause additional charges!',
+          checked: AppCache.useAiToNameChat.value,
+          onChanged: (value) {
+            AppCache.useAiToNameChat.value = value;
+            appTheme.updateUI();
           },
         ),
+        CheckBoxTooltip(
+          content: const Text('Enable watch mode'),
+          tooltip:
+              'Use timer and allow AI to write you. Can cause additional charges!',
+          checked: AppCache.enableAutonomousMode.value,
+          onChanged: (value) async {
+            if (value!) {
+              await AutonomousFeature.showConfigureDialog();
+            } else {
+              AutonomousFeature.stop();
+              AppCache.enableAutonomousMode.value = false;
+            }
+            appTheme.updateUI();
+          },
+        ),
+        spacer,
+        // Text('Autoscroll speed (use it if the chat is jumping too hard)'),
+        // Consumer<ChatProvider>(
+        //   builder: (context, provider, child) {
+        //     return NumberBox(
+        //       value: provider.autoScrollSpeed,
+        //       onChanged: (value) {
+        //         provider.setAutoScrollSpeed(value ?? 1);
+        //       },
+        //       min: 0.01,
+        //       max: 10,
+        //       smallChange: 0.1,
+        //       largeChange: 1,
+        //       mode: SpinButtonPlacementMode.inline,
+        //     );
+        //   },
+        // ),
+      ],
+    );
+  }
+}
+
+class CheckBoxTooltip extends StatelessWidget {
+  const CheckBoxTooltip({
+    super.key,
+    required this.content,
+    this.tooltip,
+    required this.checked,
+    required this.onChanged,
+  });
+  final Widget content;
+  final String? tooltip;
+  final bool? checked;
+  final void Function(bool?) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Checkbox(content: content, checked: checked, onChanged: onChanged),
+        if (tooltip != null) ...[
+          const SizedBox(width: 10.0),
+          Tooltip(
+            message: tooltip!,
+            child: Icon(FluentIcons.info_16_filled),
+          ),
+        ],
       ],
     );
   }

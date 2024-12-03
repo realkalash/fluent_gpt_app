@@ -1305,9 +1305,10 @@ class ChatProvider with ChangeNotifier {
   /// Will not use chat history.
   /// Use [showPromptInChat] to show [messageContent] as a request in the chat
   /// Use [showImageInChat] to show [imageBase64] in the chat
+  /// Use [systemMessage] to put a system message in the request
   Future sendSingleMessage(
     String messageContent, {
-    int? maxTokens,
+    String? systemMessage,
     String? imageBase64,
     bool showPromptInChat = false,
     bool showImageInChat = false,
@@ -1315,6 +1316,9 @@ class ChatProvider with ChangeNotifier {
   }) async {
     final messagesToSend = <ChatMessage>[];
     if (imageBase64 == null) {
+      if (systemMessage != null) {
+        messagesToSend.add(SystemChatMessage(content: systemMessage));
+      }
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
     } else {
@@ -1350,10 +1354,7 @@ class ChatProvider with ChangeNotifier {
         ),
       );
     }
-    final options = ChatOpenAIOptions(
-      model: selectedChatRoom.model.modelName,
-      maxTokens: maxTokens,
-    );
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
     String responseId = DateTime.now().millisecondsSinceEpoch.toString();
     try {
       if (sendAsStream) {
@@ -1407,9 +1408,21 @@ class ChatProvider with ChangeNotifier {
 
   /// Will not use chat history.
   /// Will not populate messages
-  Future<String> retrieveResponseFromPrompt(String message,
-      {int maxTokensResponse = 100}) async {
+  /// Will increase token counter
+  Future<String> retrieveResponseFromPrompt(
+    String message, {
+    String? systemMessage,
+    List<FluentChatMessage> additionalPreMessages = const [],
+  }) async {
     final messagesToSend = <ChatMessage>[];
+
+    if (systemMessage != null) {
+      messagesToSend.add(SystemChatMessage(content: systemMessage));
+    }
+    if (additionalPreMessages.isNotEmpty) {
+      messagesToSend
+          .addAll(additionalPreMessages.map((e) => e.toLangChainChatMessage()));
+    }
 
     messagesToSend
         .add(HumanChatMessage(content: ChatMessageContent.text(message)));
@@ -1420,12 +1433,26 @@ class ChatProvider with ChangeNotifier {
     AIChatMessage response;
     final options = ChatOpenAIOptions(
       model: selectedChatRoom.model.modelName,
-      maxTokens: maxTokensResponse,
     );
+    var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
+    var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
     if (selectedModel.ownedBy == 'openai') {
+      sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
       response = await openAI!.call(messagesToSend, options: options);
+      respTokens +=
+          await openAI!.countTokens(PromptValue.string(response.content));
     } else {
+      sentTokens +=
+          await localModel!.countTokens(PromptValue.chat(messagesToSend));
       response = await localModel!.call(messagesToSend, options: options);
+      respTokens +=
+          await localModel!.countTokens(PromptValue.string(response.content));
+    }
+    if (sentTokens != selectedChatRoom.totalSentTokens) {
+      selectedChatRoom.totalSentTokens = sentTokens;
+    }
+    if (respTokens != selectedChatRoom.totalReceivedTokens) {
+      selectedChatRoom.totalReceivedTokens = respTokens;
     }
     if (kDebugMode) {
       log('response: $response');
