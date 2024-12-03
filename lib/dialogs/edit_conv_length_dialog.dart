@@ -71,19 +71,6 @@ class _ConversationStyleDialogState extends State<ConversationStyleDialog> {
               });
             },
           ),
-          spacer,
-          const Text(
-              'Max token length (if empty, will not change chat token lenght)'),
-          NumberBox(
-            value: newItem!.maxTokenLenght,
-            min: 10,
-            mode: SpinButtonPlacementMode.inline,
-            onChanged: (value) {
-              setState(() {
-                newItem = newItem!.copyWith(maxTokenLenght: value);
-              });
-            },
-          ),
         ],
       ),
     );

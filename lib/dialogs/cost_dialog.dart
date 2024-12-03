@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/cost_calculator.dart';
-import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class CostDialog extends StatefulWidget {
@@ -35,25 +34,25 @@ class _CostDialogState extends State<CostDialog> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Total'),
-                Text('Tokens used: ${AppCache.tokensUsedTotal.value ?? 0}'),
-                Text('Cost: \$${AppCache.costTotal.value?.toStringAsFixed(3)}'),
-                const SizedBox(height: 8),
-                Button(
-                    child: const Text('Delete total costs cache'),
-                    onPressed: () {
-                      AppCache.costTotal.value = 0.0;
-                      AppCache.tokensUsedTotal.value = 0;
-                      setState(() {});
-                    }),
-              ],
-            ),
-          ),
+          // const SizedBox(height: 10),
+          // Card(
+          //   child: Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       const Text('Total'),
+          //       Text('Tokens used: ${AppCache.tokensUsedTotal.value ?? 0}'),
+          //       Text('Cost: \$${AppCache.costTotal.value?.toStringAsFixed(3)}'),
+          //       const SizedBox(height: 8),
+          //       Button(
+          //           child: const Text('Delete total costs cache'),
+          //           onPressed: () {
+          //             AppCache.costTotal.value = 0.0;
+          //             AppCache.tokensUsedTotal.value = 0;
+          //             setState(() {});
+          //           }),
+          //     ],
+          //   ),
+          // ),
           const SizedBox(height: 10),
           Expander(
               header: const Text('Costs sheet'),

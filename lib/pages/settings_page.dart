@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/cities_list.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/enums.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -40,7 +41,6 @@ import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:langchain/langchain.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1230,13 +1230,14 @@ class MessageSamplePreviewCard extends StatelessWidget {
           children: [
             const Text('Message sample preview'),
             MessageCard(
-              message: const AIChatMessage(
+              message: FluentChatMessage.ai(
+                id: '1234',
                 content:
-                    '''Hello, how are you doing today?\nI'm doing great, thank you for asking. I'm here to help you with anything you need.''',
+                    'Hello, how are you doing today?\nI\'m doing great, thank you for asking. I\'m here to help you with anything you need.',
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+                tokens: 1234,
               ),
               selectionMode: false,
-              dateTime: DateTime.now(),
-              id: '1234',
               isError: false,
               textSize: isCompact
                   ? AppCache.compactMessageTextSize.value!

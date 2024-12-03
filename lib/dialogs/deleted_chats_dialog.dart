@@ -46,7 +46,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
         }
         try {
           final String json = await file.readAsString();
-          final room = await ChatRoom.fromJson(json);
+          final room = ChatRoom.fromJson(json);
           chatRooms[file] = room;
           if (mounted) {
             setState(() {});

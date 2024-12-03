@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -28,6 +29,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
 import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+// ignore: unused_import
 import 'package:langchain/langchain.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
@@ -54,7 +56,9 @@ class _InputFieldState extends State<InputField> {
       return;
     }
     if (altPressedStream.value) {
-      chatProvider.addMessageSystem(text);
+      chatProvider.addMessageSystem(text).then((_){
+        chatProvider.updateUI();
+      });
       clearFieldAndFocus();
       return;
     }
@@ -130,10 +134,35 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
+  Future<void> toggleEnableHistory() async {
+    final provider = context.read<ChatProvider>();
+    provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
+    if (provider.includeConversationGlobal) {
+      displayInfoBar(
+        context,
+        builder: (ctx, close) {
+          return const InfoBar(
+            title: Text('History enabled'),
+          );
+        },
+        duration: const Duration(milliseconds: 1400),
+      );
+    } else {
+      displayInfoBar(
+        context,
+        builder: (ctx, close) {
+          return const InfoBar(
+            title: Text('History disabled'),
+          );
+        },
+        duration: const Duration(milliseconds: 1400),
+      );
+    }
+  }
+
   Future<void> onShortcutCopyToThirdParty() async {
     final lastMessage = messages.value.values.last;
-    // final previousClipboard = await Pasteboard.text;
-    Pasteboard.writeText(lastMessage.contentAsString);
+    Pasteboard.writeText(lastMessage.content);
     displayCopiedToClipboard();
   }
 
@@ -217,6 +246,8 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, meta: true): () =>
               onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, meta: true):
+              toggleEnableHistory,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyV, control: true):
               onShortcutPasteToField,
@@ -241,6 +272,8 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, control: true): () =>
               onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, control: true):
+              toggleEnableHistory,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
@@ -466,17 +499,30 @@ class _InputFieldState extends State<InputField> {
             MenuFlyoutItem(
                 text: const Text('Send silently as user'),
                 onPressed: () async {
-                  provider.addHumanMessageToList(HumanChatMessage(
-                      content: ChatMessageContent.text(controller.text)));
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                  provider.addHumanMessageToList(
+                    FluentChatMessage.humanText(
+                        id: timestamp.toString(),
+                        content: controller.text,
+                        creator: AppCache.userName.value ?? 'User',
+                        timestamp: timestamp,
+                        tokens: await provider.countTokensString(text)),
+                  );
                   clearFieldAndFocus();
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
                 text: const Text('Send silently as AI answer'),
-                onPressed: () {
+                onPressed: () async {
+                  final timestamp = DateTime.now().millisecondsSinceEpoch;
                   provider.addBotMessageToList(
-                      AIChatMessage(content: controller.text),
-                      DateTime.now().toIso8601String());
+                    FluentChatMessage.ai(
+                      id: timestamp.toString(),
+                      content: controller.text,
+                      timestamp: timestamp,
+                      tokens: await provider.countTokensString(text),
+                    ),
+                  );
                   clearFieldAndFocus();
                 }),
           MenuFlyoutSeparator(),

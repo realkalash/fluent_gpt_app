@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
@@ -432,7 +434,8 @@ class IncludeConversationSwitcher extends StatelessWidget {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
     return FlyoutListTile(
       text: const Icon(FluentIcons.full_history),
-      tooltip: 'Include conversation',
+      tooltip:
+          'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
       trailing: Checkbox(
         checked: chatProvider.includeConversationGlobal,
         onChanged: (value) {
@@ -980,13 +983,16 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                   child: StreamBuilder(
                       stream: messages,
                       builder: (context, snapshot) {
+                        final reverseList = messagesReversedList;
                         return ListView.builder(
                           controller: chatProvider.listItemsScrollController,
                           itemCount: messages.value.entries.length,
+                          addAutomaticKeepAlives: false,
+                          addRepaintBoundaries: true,
+                          reverse: true,
                           itemBuilder: (context, index) {
-                            final element =
-                                messages.value.entries.elementAt(index);
-                            final message = element.value;
+                            final FluentChatMessage message =
+                                reverseList.elementAt(index);
 
                             return AutoScrollTag(
                               controller:
@@ -994,9 +1000,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               key: ValueKey('message_$index'),
                               index: index,
                               child: MessageCard(
-                                id: element.key,
                                 message: message,
-                                dateTime: null,
                                 selectionMode: false,
                                 isError: false,
                                 textSize: chatProvider.textSize,
@@ -1016,8 +1020,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     alignment: WrapAlignment.start,
                     spacing: 4,
                     children: [
-                      // Because our screenshot tool is using fullscreen mode
-                      // macos will hide everything, so we need to disable it
                       ToggleButtonAdvenced(
                         checked: false,
                         icon: ic.FluentIcons.eye_tracking_24_filled,
@@ -1031,7 +1033,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         },
                         tooltip: 'Capture screenshot',
                       ),
-
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
                         icon: ic.FluentIcons.globe_search_20_filled,
@@ -1068,7 +1069,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         checked: chatProvider.includeConversationGlobal,
                         icon: ic.FluentIcons.history_20_filled,
                         onChanged: chatProvider.setIncludeWholeConversation,
-                        tooltip: 'Include conversation',
+                        tooltip:
+                            'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
                         maxWidthContextMenu: 300,
                         maxHeightContextMenu: 100,
                         contextItems: [
@@ -1084,33 +1086,21 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                               const SizedBox(width: 8),
                               const Expanded(
-                                  child: Text('Max messages to include')),
+                                  child: Text('Max tokens to include')),
                               Expanded(
                                 child: Consumer<ChatProvider>(
                                   builder: (context, watch, child) {
                                     return NumberBox(
-                                      value:
-                                          watch.maxMessagesToIncludeInHistory,
+                                      value: selectedChatRoom.maxTokenLength,
                                       min: 1,
+                                      smallChange: 64,
                                       clearButton: false,
                                       mode: SpinButtonPlacementMode.inline,
                                       onChanged: (v) {
-                                        chatProvider
-                                            .setMaxMessagesToIncludeInHistory(
-                                                v);
+                                        chatProvider.setMaxTokensForChat(v);
                                       },
                                     );
                                   },
-                                  child: NumberBox(
-                                    value: chatProvider
-                                        .maxMessagesToIncludeInHistory,
-                                    min: 1,
-                                    mode: SpinButtonPlacementMode.inline,
-                                    onChanged: (v) {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(v);
-                                    },
-                                  ),
                                 ),
                               ),
                             ],
@@ -1121,8 +1111,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 child: Button(
                                   child: Text('Min'),
                                   onPressed: () {
-                                    chatProvider
-                                        .setMaxMessagesToIncludeInHistory(3);
+                                    chatProvider.setMaxTokensForChat(500);
                                   },
                                 ),
                               ),
@@ -1130,16 +1119,14 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 child: Button(
                                     child: Text('Medium'),
                                     onPressed: () {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(10);
+                                      chatProvider.setMaxTokensForChat(2048);
                                     }),
                               ),
                               Expanded(
                                 child: Button(
                                     child: Text('Max'),
                                     onPressed: () {
-                                      chatProvider
-                                          .setMaxMessagesToIncludeInHistory(30);
+                                      chatProvider.setMaxTokensForChat(4096);
                                     }),
                               ),
                             ],

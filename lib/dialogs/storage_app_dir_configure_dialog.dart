@@ -2,15 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
 import 'package:fluent_gpt/dialogs/prompt_restart_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:langchain/langchain.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -113,7 +119,8 @@ class _StorageAppDirConfigureDialogState
                           mode: SpinButtonPlacementMode.none,
                           clearButton: false,
                           min: 1,
-                          placeholder: '${AppCache.fetchChatsPeriodMin.value ?? 10}',
+                          placeholder:
+                              '${AppCache.fetchChatsPeriodMin.value ?? 10}',
                           onChanged: (value) {
                             AppCache.fetchChatsPeriodMin.value = value ?? 10;
                           },
@@ -148,7 +155,12 @@ class _StorageAppDirConfigureDialogState
                 child: const Text('Import'),
               ),
             ],
-          )
+          ),
+          spacer,
+          Button(
+            onPressed: () => importDeprecatedChats(context),
+            child: const Text('Import old chats in deprecated format'),
+          ),
         ],
       ),
     );
@@ -229,5 +241,91 @@ class _StorageAppDirConfigureDialogState
     }
     // ignore: use_build_context_synchronously
     PromptRestartAppDialog.show(context);
+  }
+
+  Future importDeprecatedChats(BuildContext context) async {
+    final confirmed = await ConfirmationDialog.show(
+        context: context,
+        message:
+            'Current chats will be deleted and replaced with the imported ones. Are you sure?');
+    if (confirmed) {
+      final path = await FileUtils.getChatRoomPath();
+      final chatRoomsFiles = FileUtils.getFilesRecursive(path);
+
+      /// Key is ChatRoom id
+      final chats = <String, List<ChatMessage>?>{};
+      for (final file in chatRoomsFiles) {
+        try {
+          await file.readAsString().then((text) {
+            final chatRoom = ChatRoom.fromJson(text);
+            chats[chatRoom.id] = null;
+          });
+        } catch (e) {
+          logError(e.toString());
+        }
+      }
+      final allChatMessagesFiles = await FileUtils.getAllChatMessagesFiles();
+      for (final file in allChatMessagesFiles) {
+        try {
+          final text = await file.readAsString();
+          // ...\fluent_gpt\chat_rooms\xxuuRQT5p7YWbm1u-messages.json
+          final fileName = file.path.split(Platform.pathSeparator).last;
+          final id = fileName.split('-messages.json').first;
+          final messagesRaw = jsonDecode(text) as List<dynamic>;
+          final messages = <ChatMessage>[];
+          // id is the key
+          for (var messageJson in messagesRaw) {
+            if (messageJson['creator'] != null){
+              continue;
+            }
+            try {
+              final content = messageJson['message'] as Map<String, dynamic>;
+              final message = ChatRoom.chatMessageFromJson(content);
+              messages.add(message);
+            } catch (e) {
+              logError('Error while loading message from disk: $e');
+            }
+          }
+          chats[id] = messages;
+        } catch (e) {
+          logError(e.toString());
+        }
+      }
+      // create a backup of all chats in a new backup folder
+      final backupPath = '${await FileUtils.getChatRoomPath()}-backup';
+      final backupDir = Directory(backupPath);
+      if (!backupDir.existsSync()) {
+        backupDir.createSync();
+      }
+      for (final file in allChatMessagesFiles) {
+        final fileName = file.path.split(Platform.pathSeparator).last;
+        await file.copy('$backupPath${Platform.pathSeparator}$fileName');
+      }
+
+      // now we need to rewrite all chats from allChatMessagesFiles with a new chats lists
+      for (final file in allChatMessagesFiles) {
+        try {
+          final fileName = file.path.split(Platform.pathSeparator).last;
+          final id = fileName.split('-messages.json').first;
+          final messages = chats[id];
+          if (messages != null) {
+            final newMessages = <FluentChatMessage>[];
+            for (var message in messages) {
+              await Future.delayed(const Duration(milliseconds: 2));
+              newMessages.add(FluentChatMessage.fromLangChainChatMessage(message));
+            }
+            final newMessagesJson = newMessages.map((e) => e.toJson()).toList();
+            final newMessagesJsonString = jsonEncode(newMessagesJson);
+            await file.writeAsString(newMessagesJsonString);
+          }
+        } catch (e) {
+          logError(e.toString());
+        }
+      }
+
+      Navigator.maybeOf(navigatorKey.currentContext!);
+      await Future.delayed(const Duration(milliseconds: 500));
+      PromptRestartAppDialog.show(navigatorKey.currentContext!);
+    }
   }
 }

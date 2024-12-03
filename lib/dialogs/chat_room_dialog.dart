@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/chat_room.dart';
-import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';

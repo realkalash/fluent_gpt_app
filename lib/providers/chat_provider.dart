@@ -5,8 +5,7 @@ import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
-import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
-import 'package:fluent_gpt/common/custom_messages_src.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
@@ -92,7 +91,11 @@ get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
 get repeatPenalty => chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
 
 /// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
-BehaviorSubject<Map<String, ChatMessage>> messages = BehaviorSubject.seeded({});
+BehaviorSubject<Map<String, FluentChatMessage>> messages =
+    BehaviorSubject.seeded({});
+
+/// This list is only for the UI part. It's reversed to show the messages from the bottom and we have separate list for keys to optimize memory usage
+List<FluentChatMessage> messagesReversedList = [];
 
 /// conversation lenght style. Will be appended to the prompt
 BehaviorSubject<ConversationLengthStyleEnum> conversationLenghtStyleStream =
@@ -106,11 +109,6 @@ String modifyMessageStyle(String prompt) {
   if (conversationLenghtStyleStream.value !=
       ConversationLengthStyleEnum.normal) {
     prompt += ' ${conversationLenghtStyleStream.value.prompt}';
-    if (conversationLenghtStyleStream.value.prompt != null) {
-      selectedChatRoom.maxTokenLength =
-          conversationLenghtStyleStream.value.maxTokenLenght ??
-              selectedChatRoom.maxTokenLength;
-    }
   }
 
   if (conversationStyleStream.value != ConversationStyleEnum.normal) {
@@ -163,9 +161,9 @@ class ChatProvider with ChangeNotifier {
 
   int _messageTextSize = 14;
 
-  int maxMessagesToIncludeInHistory = 30;
-  void setMaxMessagesToIncludeInHistory(int? v) {
-    maxMessagesToIncludeInHistory = v ?? 30;
+  void setMaxTokensForChat(int? v) {
+    if (v == null) return;
+    selectedChatRoom.maxTokenLength = v;
     notifyListeners();
   }
 
@@ -198,15 +196,10 @@ class ChatProvider with ChangeNotifier {
       final messagesRaw = <Map<String, dynamic>>[];
       for (var message in messages.value.entries) {
         /// add key and message.toJson
-        messagesRaw.add({
-          'id': message.key,
-          'message': message.value.toJson(),
-        });
+        messagesRaw.add(message.value.toJson());
       }
       FileUtils.saveChatMessages(chatRoom.id, jsonEncode(messagesRaw));
     }
-    if (_chatRooms.length == 1)
-      AppCache.selectedChatRoomId.set(selectedChatRoomId);
   }
 
   Future<void> initChatsFromDisk() async {
@@ -217,12 +210,12 @@ class ChatProvider with ChangeNotifier {
         if (file.path.contains('.DS_Store')) continue;
         final fileContent = await file.readAsString();
         final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
-        final chatRoom = await ChatRoom.fromMap(chatRoomRaw);
+        final chatRoom = ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
         if (chatRoom.id == selectedChatRoomId) {
           initModelsApi();
           await _loadMessagesFromDisk(chatRoom.id);
-          if (messages.value.isNotEmpty) scrollToEnd();
+          // if (messages.value.isNotEmpty) scrollToEnd();
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -230,7 +223,6 @@ class ChatProvider with ChangeNotifier {
           id: file.path,
           chatRoomName: 'Error ${file.path}',
           model: const ChatModelAi(modelName: 'error', apiKey: ''),
-          messages: ConversationBufferMemory(),
           temp: temp,
           topk: topk,
           promptBatchSize: promptBatchSize,
@@ -260,12 +252,20 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> init() async {
+    initMessagesListener();
     await initChatModels();
     await initChatsFromDisk();
     initCustomActions();
     initSettingsFromCache();
     initTimers();
     initListeners();
+  }
+
+  void initMessagesListener() {
+    messages.listen((messagesList) {
+      messagesReversedList.clear();
+      messagesReversedList.addAll(messagesList.values.toList().reversed);
+    });
   }
 
   void initListeners() {
@@ -278,7 +278,7 @@ class ChatProvider with ChangeNotifier {
           /// This waiting is needed to prevent errors wtih cloud storate
           await Future.delayed(const Duration(milliseconds: 1500));
           log('Window opened. Fetching chats from disk');
-          initChatsFromDisk();
+          // initChatsFromDisk();
         }
       });
     }
@@ -373,6 +373,7 @@ class ChatProvider with ChangeNotifier {
 
       /// wait for the app to appear
       await Future.delayed(const Duration(milliseconds: 150));
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       if (command == 'paste') {
         if (text.trim().isNotEmpty == true) {
           sendMessage(text, hidePrompt: true);
@@ -388,7 +389,7 @@ class ChatProvider with ChangeNotifier {
           if (TextToSpeechService.isValid()) {
             isAnswering = true;
             notifyListeners();
-            await TextToSpeechService.readAloud(aiAnswer.contentAsString,
+            await TextToSpeechService.readAloud(aiAnswer.content,
                 onCompleteReadingAloud: () {
               isAnswering = false;
               notifyListeners();
@@ -429,9 +430,14 @@ class ChatProvider with ChangeNotifier {
       } else if (command == TrayCommand.escape_cancel_select.name) {
       } else if (command == TrayCommand.paste_attachment_silent.name) {
         final base64String = text;
-        addHumanMessageToList(HumanChatMessage(
-            content: ChatMessageContent.image(
-                data: base64String, mimeType: 'image/jpeg')));
+        addHumanMessageToList(
+          FluentChatMessage.image(
+            id: '$timestamp',
+            content: base64String,
+            creator: 'human',
+            timestamp: timestamp,
+          ),
+        );
       } else if (command == TrayCommand.paste_attachment_ai_lens.name) {
         final base64String = text;
         addAttachemntAiLens(base64String);
@@ -441,7 +447,12 @@ class ChatProvider with ChangeNotifier {
           return;
         }
         addHumanMessageToList(
-          HumanChatMessage(content: ChatMessageContent.text(text)),
+          FluentChatMessage.humanText(
+              id: '$timestamp',
+              content: text,
+              creator: 'human',
+              timestamp: timestamp,
+              tokens: await countTokensString(text)),
         );
         isGeneratingImage = true;
         notifyListeners();
@@ -450,7 +461,16 @@ class ChatProvider with ChangeNotifier {
           model: kDebugMode ? 'dall-e-2' : 'dall-e-3',
           apiKey: openAI!.apiKey,
         );
-        addCustomMessageToList(imageChatMessage);
+        final newTimestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage.imageAi(
+            id: '$newTimestamp',
+            content: imageChatMessage.content,
+            creator: imageChatMessage.generatedBy,
+            timestamp: newTimestamp,
+            imagePrompt: imageChatMessage.revisedPrompt,
+          ),
+        );
         isGeneratingImage = false;
         notifyListeners();
         // wait because the screen will update their size first
@@ -486,13 +506,15 @@ class ChatProvider with ChangeNotifier {
 
   void addWebResultsToMessages(List<SearchResult> webpage) {
     final values = messages.value;
-    List results = [];
-    for (var result in webpage) {
-      results.add(result.toJson());
-    }
-    values[DateTime.now().toIso8601String()] = WebResultCustomMessage(
-      content: jsonEncode(results),
-      searchResults: webpage,
+    final dateTime = DateTime.now();
+    final id = dateTime.toIso8601String();
+    values[id] = FluentChatMessage(
+      id: id,
+      content: '',
+      creator: 'search',
+      timestamp: dateTime.millisecondsSinceEpoch,
+      type: FluentChatMessageType.webResult,
+      webResults: webpage,
     );
     messages.add(values);
     saveToDisk([selectedChatRoom]);
@@ -613,62 +635,24 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<String> convertMessagesToString(List<ChatMessage> messages,
+  Future<String> convertMessagesToString(List<FluentChatMessage> messages,
       {bool includeSystemMessages = false}) async {
     final result = messages.map((e) {
-      if (e is AIChatMessage) {
+      if (e.type == FluentChatMessageType.textAi) {
         return 'AI: ${e.content}';
       }
-      if (e is HumanChatMessage) {
-        return 'Human: ${(e.content as ChatMessageContentText).text}';
+      if (e.type == FluentChatMessageType.textHuman) {
+        return 'Human: ${e.content}';
       }
-      if (e is WebResultCustomMessage) {
-        final results = e.searchResults;
-        return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
+      if (e.type == FluentChatMessageType.webResult) {
+        final results = e.webResults;
+        return 'Web search results: ${results!.map((e) => '${e.title}->${e.description}').join(';')}';
       }
-      if (includeSystemMessages && e is SystemChatMessage) {
+      if (includeSystemMessages && e.type == FluentChatMessageType.system) {
         return 'System: ${e.content}';
       }
       return '';
     }).join('\n');
-    return result;
-  }
-
-  Future<List<ChatMessage>> getLastMessagesLimitToTokens(int tokens) async {
-    final tokenizer = Tokenizer();
-    int currentTokens = 0;
-    final result = <ChatMessage>[];
-    for (var message in messages.value.values) {
-      if (message is AIChatMessage) {
-        final tokensCount =
-            await tokenizer.count(message.content, modelName: 'gpt-4');
-        if (currentTokens + tokensCount > tokens) {
-          break;
-        }
-        currentTokens += tokensCount;
-        result.add(message);
-      }
-      if (message is HumanChatMessage &&
-          message.content is ChatMessageContentText) {
-        final tokensCount = await tokenizer.count(
-            (message.content as ChatMessageContentText).text,
-            modelName: 'gpt-4');
-        if (currentTokens + tokensCount > tokens) {
-          break;
-        }
-        currentTokens += tokensCount;
-        result.add(message);
-      }
-      if (message is SystemChatMessage) {
-        final tokensCount =
-            await tokenizer.count(message.content, modelName: 'gpt-4');
-        if (currentTokens + tokensCount > tokens) {
-          break;
-        }
-        currentTokens += tokensCount;
-        result.add(message);
-      }
-    }
     return result;
   }
 
@@ -709,15 +693,22 @@ class ChatProvider with ChangeNotifier {
       return;
     }
     if (isThirdMessage) {
-      String lastMessages = getLastFewMessagesForContextAsString();
+      String lastMessages = await getLastFewMessagesForContextAsString();
       lastMessages += ' Human: $messageContent';
       retrieveResponseFromPrompt(
         '$nameTopicPrompt "$lastMessages"',
       ).then(renameCurrentChatRoom);
     }
     if (isWebSearchEnabled) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addHumanMessageToList(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+        FluentChatMessage.humanText(
+          id: '$timestamp',
+          content: messageContent,
+          creator: 'human',
+          timestamp: timestamp,
+          tokens: await countTokensString(messageContent),
+        ),
       );
       final lastMessages = getLastFewMessagesForContextAsString();
       String searchPrompt = await retrieveResponseFromPrompt(
@@ -746,9 +737,13 @@ class ChatProvider with ChangeNotifier {
           await _answerBasedOnWebResults(threeRessults, messageContent);
         }
       } catch (e) {
-        addBotErrorMessageToList(
-          SystemChatMessage(content: 'Error while searching: $e'),
-        );
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addBotErrorMessageToList(FluentChatMessage.ai(
+          id: '$timestamp',
+          content: 'Error while searching: $e',
+          creator: 'system',
+          timestamp: timestamp,
+        ));
       }
 
       isAnswering = false;
@@ -760,8 +755,14 @@ class ChatProvider with ChangeNotifier {
     if (messageContent.isNotEmpty) {
       /// add additional styles to the message
       messageContent = modifyMessageStyle(messageContent);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addHumanMessageToList(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+        FluentChatMessage.humanText(
+          id: '$timestamp',
+          content: messageContent,
+          creator: 'human',
+          timestamp: timestamp,
+        ),
       );
     }
 
@@ -774,15 +775,17 @@ class ChatProvider with ChangeNotifier {
     final isExcelFileAttached = fileInput != null &&
         (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
     if (isImageAttached) {
+      /// beacuse timestamp is very sensetive
+      await Future.delayed(const Duration(milliseconds: 10));
       final bytes = await fileInput!.readAsBytes();
       final base64 = base64Encode(bytes);
-
-      addHumanMessageToList(
-        HumanChatMessage(
-          content: ChatMessageContent.image(
-            data: base64,
-            mimeType: fileInput!.mimeType ?? 'image/jpeg',
-          ),
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addCustomMessageToList(
+        FluentChatMessage.image(
+          id: '$timestamp',
+          content: base64,
+          creator: 'human',
+          timestamp: timestamp,
         ),
       );
     }
@@ -790,11 +793,16 @@ class ChatProvider with ChangeNotifier {
       final fileName = fileInput!.name;
       final bytes = await fileInput!.readAsBytes();
       final contentString = utf8.decode(bytes);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addCustomMessageToList(
-        TextFileCustomMessage(
-          fileName: fileName,
+        FluentChatMessage(
+          id: '$timestamp',
           content: contentString,
-          path: fileInput!.path,
+          creator: 'human',
+          timestamp: timestamp,
+          type: FluentChatMessageType.file,
+          fileName: fileName,
+          path: fileInput?.path,
         ),
       );
     }
@@ -802,11 +810,16 @@ class ChatProvider with ChangeNotifier {
       final fileName = fileInput!.name;
       final bytes = await fileInput!.readAsBytes();
       final contentString = docxToText(bytes);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addCustomMessageToList(
-        TextFileCustomMessage(
-          fileName: fileName,
+        FluentChatMessage(
+          id: '$timestamp',
           content: contentString,
-          path: fileInput!.path,
+          creator: 'human',
+          timestamp: timestamp,
+          type: FluentChatMessageType.file,
+          fileName: fileName,
+          path: fileInput?.path,
         ),
       );
     }
@@ -815,11 +828,16 @@ class ChatProvider with ChangeNotifier {
       final bytes = await fileInput!.readAsBytes();
       final excelToJson = ExcelToJson();
       final contentString = await excelToJson.convert(bytes);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addCustomMessageToList(
-        TextFileCustomMessage(
+        FluentChatMessage(
+          id: '$timestamp',
+          content: contentString ?? '<No data available>',
+          creator: 'human',
+          timestamp: timestamp,
+          type: FluentChatMessageType.file,
           fileName: fileName,
-          content: contentString ?? 'No data available',
-          path: fileInput!.path,
+          path: fileInput?.path,
         ),
       );
     }
@@ -827,16 +845,26 @@ class ChatProvider with ChangeNotifier {
       // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
       await Future.delayed(const Duration(milliseconds: 50));
     }
-    if (messageContent.isNotEmpty)
-      await selectedChatRoom.messages.chatHistory
-          .addHumanChatMessage(messageContent);
-    isAnswering = true;
+    if (messageContent.isNotEmpty) isAnswering = true;
     notifyListeners();
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
-      messagesToSend.addAll(
-        await getLastFewMessages(count: maxMessagesToIncludeInHistory),
+      await Future.delayed(const Duration(milliseconds: 50));
+      final lastMessages = await getLastMessagesLimitToTokens(
+        selectedChatRoom.maxTokenLength,
+        allowImages: true,
       );
+      final lastMessagesLangChain =
+          lastMessages.map((e) => e.toLangChainChatMessage());
+      messagesToSend.addAll(lastMessagesLangChain);
+
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+        messagesToSend.insert(
+            0, SystemChatMessage(content: selectedChatRoom.systemMessage!));
+      }
+      if (messages.value.length > 1)
+        messagesToSend.insert(
+            0, ChatMessage.system('Previous chat hidden due to overflow'));
     }
     if (!includeConversationGlobal) {
       if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
@@ -862,6 +890,7 @@ class ChatProvider with ChangeNotifier {
       }
     }
     onMessageSent?.call();
+    String responseId = '';
     try {
       initModelsApi();
       if (!sendStream) {
@@ -891,7 +920,15 @@ class ChatProvider with ChangeNotifier {
             _onToolsResponseEnd(messageContent, decoded, response.content);
           }
         }
-        addBotMessageToList(response);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addBotMessageToList(
+          FluentChatMessage.ai(
+            id: '$timestamp',
+            content: response.content,
+            timestamp: timestamp,
+            tokens: await countTokensString(response.content),
+          ),
+        );
         saveToDisk([selectedChatRoom]);
         isAnswering = false;
         return;
@@ -952,6 +989,7 @@ class ChatProvider with ChangeNotifier {
       listenerResponseStream = responseStream!.listen(
         (final chunk) {
           chunkNumber++;
+
           if (chunkNumber == 1) {
             if (fileInput?.isInternalScreenshot == true) {
               FileUtils.deleteFile(fileInput!.path);
@@ -961,9 +999,17 @@ class ChatProvider with ChangeNotifier {
           }
           final message = chunk.output;
           // log tokens
-          if (message.toolCalls.isEmpty && message.content.isNotEmpty)
-            addBotMessageToList(message, chunk.id);
-          else {
+          if (message.toolCalls.isEmpty && message.content.isNotEmpty) {
+            responseId = chunk.id;
+            final time = DateTime.now().millisecondsSinceEpoch;
+            addBotMessageToList(
+              FluentChatMessage.ai(
+                id: responseId,
+                content: message.content,
+                timestamp: time,
+              ),
+            );
+          } else {
             if (message.toolCalls.isNotEmpty) {
               functionCallString += message.toolCalls.first.argumentsRaw;
               if (message.toolCalls.first.name.isNotEmpty == true) {
@@ -977,14 +1023,13 @@ class ChatProvider with ChangeNotifier {
             totalSentTokens += chunk.usage.promptTokens ?? 0;
             totalReceivedTokens += chunk.usage.responseTokens ?? 0;
           }
-          // print(
-          //     'function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
+          // print('function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
             /// TODO: add more logic here
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
             notifyListeners();
-            onResponseEnd(messageContent, chunk.id);
+            onResponseEnd(messageContent, responseId);
             if (functionCallString.isNotEmpty) {
               final lastChar =
                   functionCallString[functionCallString.length - 1];
@@ -1013,7 +1058,11 @@ class ChatProvider with ChangeNotifier {
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
           addBotErrorMessageToList(
-            SystemChatMessage(content: 'Error while answering: $e'),
+            FluentChatMessage.ai(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              content: '$e',
+              creator: 'error',
+            ),
           );
           isAnswering = false;
           notifyListeners();
@@ -1022,7 +1071,12 @@ class ChatProvider with ChangeNotifier {
     } catch (e, stack) {
       logError('Error while answering: $e', stack);
       addBotErrorMessageToList(
-        SystemChatMessage(content: 'Error while answering: $e'),
+        // SystemChatMessage(content: 'Error while answering: $e'),
+        FluentChatMessage.ai(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          content: '$e',
+          creator: 'error',
+        ),
       );
       isAnswering = false;
       notifyListeners();
@@ -1031,23 +1085,30 @@ class ChatProvider with ChangeNotifier {
 
   void onResponseEnd(String userContent, String id) async {
     /* TODO: add more */
-    final ChatMessage? response = messages.value[id];
+    final FluentChatMessage? response = messages.value[id];
     if (response == null) return;
-    if (response is! AIChatMessage) {
-      logError('aiResponse is not AIChatMessage');
+    if (response.type != FluentChatMessageType.textAi) {
+      logError('aiResponse is not from AI');
       return;
     }
-    final AIChatMessage aiResponse = response;
+
+    /// calculate tokens and swap message
+    final tokens = await countTokensString(response.content);
+    final newResponse = response.copyWith(tokens: tokens);
+    final values = messages.value;
+    values[id] = newResponse;
+    messages.add(values);
+
     for (var action in onMessageActions.value) {
-      final hasMatch = action.regExp.hasMatch(aiResponse.content);
+      final hasMatch = action.regExp.hasMatch(response.content);
       if (hasMatch) {
-        final match = action.regExp.firstMatch(aiResponse.content);
+        final match = action.regExp.firstMatch(response.content);
         if (action.actionEnum == OnMessageActionEnum.copyTextInsideQuotes) {
           final text = match?.group(1);
           await Clipboard.setData(ClipboardData(text: text ?? ''));
           displayCopiedToClipboard();
         } else if (action.actionEnum == OnMessageActionEnum.copyText) {
-          await Clipboard.setData(ClipboardData(text: aiResponse.content));
+          await Clipboard.setData(ClipboardData(text: response.content));
           displayCopiedToClipboard();
         } else if (action.actionEnum == OnMessageActionEnum.openUrl) {
           await launchUrlString(match!.group(1)!);
@@ -1097,34 +1158,23 @@ class ChatProvider with ChangeNotifier {
     return tokens;
   }
 
-  // not valid, because we send messages differently
-  // Future refreshTokensForCurrentChat() async {
-  //   final tokens = await getTokensFromMessages(messages.value.values.toList());
-  //   totalTokensForCurrentChat = tokens;
-  //   notifyListeners();
-  // }
-
-  List<ChatMessage> getLastFewMessagesForContext() {
+  /// Do not use it often because we don't know how many tokens it will consume
+  Future<List<FluentChatMessage>> getLastFewMessages({int count = 15}) async {
     final values = messages.value;
-    final lastMessages = values.values.toList().reversed.take(15).toList();
-    return lastMessages;
-  }
-
-  Future<List<ChatMessage>> getLastFewMessages({int count = 15}) async {
-    final values = messages.value;
-    final list = <ChatMessage>[];
+    final list = <FluentChatMessage>[];
     // Start from end to get last messages
     final messagesIterator = values.values.toList().reversed;
     int countAdded = 0;
     for (var message in messagesIterator) {
       if (countAdded >= count) break;
-      if (message is! WebResultCustomMessage) {
+      if (message.type != FluentChatMessageType.webResult) {
         // map custom messages to human messages because openAi doesn't support them
-        if (message is TextFileCustomMessage) {
+        if (message.type == FluentChatMessageType.file) {
           // insert at start to maintain order
-          list.insert(0, message.toHumanChatMessage());
-        } else if (message is ImageCustomMessage) {
-          list.insert(0, message.toHumanChatMessage());
+          list.insert(0, message);
+        } else if (message.type == FluentChatMessageType.image ||
+            message.type == FluentChatMessageType.imageAi) {
+          list.insert(0, message);
         } else {
           // insert at start to maintain order
           list.insert(0, message);
@@ -1136,17 +1186,27 @@ class ChatProvider with ChangeNotifier {
     if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
       // if we exceed the limit, put the system message at the start
       // and add system message "Previous messages were trimmed"
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
       list.insert(
         0,
-        SystemChatMessage(
+        FluentChatMessage(
+          id: '$timestamp',
           content: selectedChatRoom.systemMessage ?? defaultGlobalSystemMessage,
+          creator: 'system',
+          timestamp: timestamp,
+          type: FluentChatMessageType.system,
         ),
       );
       if (values.length > count) {
         list.insert(
           1,
-          SystemChatMessage(
+          FluentChatMessage(
+            id: '_$timestamp',
             content: '(Previous messages were trimmed)',
+            creator: 'system',
+            timestamp: timestamp,
+            type: FluentChatMessageType.system,
           ),
         );
       }
@@ -1155,21 +1215,91 @@ class ChatProvider with ChangeNotifier {
     return list;
   }
 
-  String getLastFewMessagesForContextAsString() {
-    final lastMessages = getLastFewMessagesForContext();
-    return lastMessages.map((e) {
-      if (e is HumanChatMessage && e.content is ChatMessageContentText) {
-        return 'Human: ${(e.content as ChatMessageContentText).text}';
+  /// Retrieves the last messages from the chat limited by the specified token count.
+  ///
+  /// This method iterates through the messages and accumulates their token counts
+  /// until the specified token limit is reached. It supports different types of
+  /// messages including `AIChatMessage`, `HumanChatMessage`, `SystemChatMessage`, and
+  /// `TextFileCustomMessage`. If the `allowOverflow` parameter is set to true and no
+  /// messages have been added to the result, the last message will be added regardless
+  /// of the token limit.
+  Future<List<FluentChatMessage>> getLastMessagesLimitToTokens(
+    int tokens, {
+    bool allowOverflow = true,
+    bool allowImages = false,
+  }) async {
+    int currentTokens = 0;
+    final result = <FluentChatMessage>[];
+
+    /// We need to count from the bottom to the top. We cant use messagesReversedList because it takes time to populate it
+    for (var message in messages.value.values.toList().reversed) {
+      if (message.type == FluentChatMessageType.textAi ||
+          message.type == FluentChatMessageType.textHuman ||
+          message.type == FluentChatMessageType.system ||
+          message.type == FluentChatMessageType.file) {
+        final tokensCount = message.tokens;
+        // await modelCounter.countTokens(PromptValue.string(message.content));
+        print(
+            'Tokens: $tokensCount; message: ${message.content.split('\n').first}');
+        if ((currentTokens + tokensCount) > tokens) {
+          print(
+              '[BREAK beacuse of limit] Tokens: $tokensCount; message: ${message.content.split('\n').first} ');
+          break;
+        }
+        print('Continue\n');
+        currentTokens += tokensCount;
+        result.add(message);
+      } else if (allowImages &&
+          (message.type == FluentChatMessageType.image ||
+              message.type == FluentChatMessageType.imageAi)) {
+        result.add(message);
       }
-      if (e is AIChatMessage) {
+    }
+    // if allowOverflow is true and we didn't add any element, add only the last one
+    final messagesOriginal = messages.value.values;
+    final lastElement = messagesOriginal.last;
+    if (result.length == 1 && allowOverflow) {
+      if (lastElement.type == FluentChatMessageType.textHuman) {
+        final indexLast = messagesOriginal.length - 1;
+        final beforeLast = indexLast == 0
+            ? null
+            : messagesOriginal.elementAtOrNull(indexLast - 1);
+
+        /// The last message can be human message, so we need to add it and the previous one
+        if (beforeLast != null) result.add(beforeLast);
+      }
+    } else if (result.isEmpty && allowOverflow) {
+      result.add(lastElement);
+    }
+
+    /// because we counted from the bottom to top we need to invert it to original order
+    return result.reversed.toList();
+  }
+
+  Future<String> getLastFewMessagesForContextAsString(
+      {int maxTokensLenght = 1024}) async {
+    final lastMessages = await getLastMessagesLimitToTokens(maxTokensLenght);
+    return lastMessages.map((e) {
+      if (e.type == FluentChatMessageType.textHuman) {
+        return 'Human: ${e.content}';
+      }
+      if (e.type == FluentChatMessageType.textAi) {
         return 'Ai: ${e.content}';
       }
-      if (e is WebResultCustomMessage) {
-        final results = e.searchResults;
-        return 'Web search results: ${results.map((e) => '${e.title}->${e.description}').join(';')}';
+      if (e.type == FluentChatMessageType.webResult) {
+        final results = e.webResults;
+        return 'Web search results: ${results?.map((e) => '${e.title}->${e.description}').join(';')}';
       }
       return '';
     }).join('\n');
+  }
+
+  Future<int> countTokensString(String text) async {
+    if (selectedModel.ownedBy == 'openai') {
+      return openAI!.countTokens(PromptValue.string(text));
+    } else {
+      return localModel!.countTokens(PromptValue.string(text));
+    }
   }
 
   /// Will not use chat history.
@@ -1197,14 +1327,26 @@ class ChatProvider with ChangeNotifier {
       );
     }
     if (showPromptInChat) {
+      String messageId = DateTime.now().millisecondsSinceEpoch.toString();
+      final tokens = await countTokensString(messageContent);
       addHumanMessageToList(
-        HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+        FluentChatMessage.humanText(
+          id: messageId,
+          content: messageContent,
+          creator: AppCache.userName.value ?? 'Human',
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          tokens: tokens,
+        ),
       );
     }
     if (showImageInChat && imageBase64 != null) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       addHumanMessageToList(
-        HumanChatMessage(
-          content: ChatMessageContent.image(data: imageBase64),
+        FluentChatMessage.image(
+          id: '$timestamp',
+          content: imageBase64,
+          creator: AppCache.userName.value ?? 'Human',
+          timestamp: timestamp,
         ),
       );
     }
@@ -1212,6 +1354,7 @@ class ChatProvider with ChangeNotifier {
       model: selectedChatRoom.model.modelName,
       maxTokens: maxTokens,
     );
+    String responseId = DateTime.now().millisecondsSinceEpoch.toString();
     try {
       if (sendAsStream) {
         Stream<ChatResult> stream;
@@ -1228,7 +1371,9 @@ class ChatProvider with ChangeNotifier {
             totalTokens += chunk.usage.totalTokens ?? 0;
             totalSentTokens += chunk.usage.promptTokens ?? 0;
             totalReceivedTokens += chunk.usage.responseTokens ?? 0;
-            addBotMessageToList(message, chunk.id);
+            responseId = chunk.id;
+            addBotMessageToList(
+                FluentChatMessage.ai(id: responseId, content: message.content));
             if (chunk.finishReason == FinishReason.stop) {
               saveToDisk([selectedChatRoom]);
             } else if (chunk.finishReason == FinishReason.length) {
@@ -1243,14 +1388,17 @@ class ChatProvider with ChangeNotifier {
         } else {
           response = await localModel!.call(messagesToSend, options: options);
         }
-        addBotMessageToList(response);
+        addBotMessageToList(
+            FluentChatMessage.ai(id: responseId, content: response.content));
         saveToDisk([selectedChatRoom]);
         notifyListeners();
       }
     } catch (e) {
       logError('Error while sending single message: $e');
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
       addBotErrorMessageToList(
-        SystemChatMessage(content: 'Error while sending single message: $e'),
+        FluentChatMessage.system(
+            content: 'Error while sending single message: $e', id: id),
       );
       fileInput = null;
       notifyListeners();
@@ -1305,26 +1453,32 @@ class ChatProvider with ChangeNotifier {
 
   int get totalReceivedTokens => totalReceivedForCurrentChat.value;
 
-  void addBotMessageToList(AIChatMessage message, [String? id]) {
+  void addBotMessageToList(FluentChatMessage message) {
     final values = messages.value;
-    final lastMessage = values[id ?? DateTime.now().toIso8601String()];
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final lastMessage = values[message.id];
     String newString = '';
     if (lastMessage != null) {
-      newString = lastMessage.concat(message).contentAsString;
+      newString = lastMessage.concat(message.content).content;
     } else {
-      newString = message.contentAsString;
+      newString = message.content;
     }
-    values[id ?? DateTime.now().toIso8601String()] =
-        AIChatMessage(content: newString);
+    values[message.id] = FluentChatMessage(
+      id: message.id,
+      content: newString,
+      creator: message.creator,
+      timestamp: timestamp,
+      type: message.type,
+    );
+    // if (kDebugMode) print(newString);
+
     messages.add(values);
     autoScrollToEnd(withDelay: false);
   }
 
-  Future<void> addBotErrorMessageToList(SystemChatMessage message,
-      [String? id]) async {
+  Future<void> addBotErrorMessageToList(FluentChatMessage message) async {
     final values = messages.value;
-    final newId = id ?? DateTime.now().toIso8601String();
-    values[newId] = message;
+    values[message.id] = message;
     messages.add(values);
     await scrollToEnd();
     final content = message.content;
@@ -1335,29 +1489,37 @@ class ChatProvider with ChangeNotifier {
       await MultimodalNotSupportedDialog.show(context!);
       // remove last 2 messages from list
       final values = messages.value;
-      final indexError = values.keys.toList().indexOf(newId);
+      final indexError = values.keys.toList().indexOf(message.id);
       final newIdPrev = values.keys.toList()[indexError - 1];
-      values.remove(newId);
+      values.remove(message.id);
       values.remove(newIdPrev);
       messages.add(values);
       saveToDisk([selectedChatRoom]);
     }
   }
 
-  /// Used to add message silently to the list
-  void addHumanMessageToList(HumanChatMessage message, [String? id]) {
-    if (message.contentAsString.isEmpty) return;
+  Future addHumanMessageToList(FluentChatMessage message) async {
+    if (message.content.isEmpty) return;
+
     final values = messages.value;
-    values[id ?? DateTime.now().toIso8601String()] = message;
+    values[message.id] = message;
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
     notifyListeners();
+
+    if (message.type == FluentChatMessageType.textHuman) {
+      final tokens = await countTokensString(message.content);
+      final updatedMessage = message.copyWith(tokens: tokens);
+      values[message.id] = updatedMessage;
+      messages.add(values);
+      notifyListeners();
+    }
   }
 
-  void addCustomMessageToList(CustomChatMessage message, [String? id]) {
+  void addCustomMessageToList(FluentChatMessage message) {
     final values = messages.value;
-    values[id ?? DateTime.now().toIso8601String()] = message;
+    values[message.id] = message;
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
@@ -1376,8 +1538,11 @@ class ChatProvider with ChangeNotifier {
       final textToCopy = toolArgs['clipboard'];
       await Clipboard.setData(ClipboardData(text: textToCopy));
       displayCopiedToClipboard();
+      final newId = DateTime.now().millisecondsSinceEpoch.toString();
       addBotMessageToList(
-          AIChatMessage(content: "```Clipboard\n$textToCopy\n```\n$text"));
+        FluentChatMessage.ai(
+            id: newId, content: "```Clipboard\n$textToCopy\n```\n$text"),
+      );
     }
     // if (toolName == 'search_files') {
     //   final fileName = '${toolArgs['filename']}';
@@ -1406,7 +1571,6 @@ class ChatProvider with ChangeNotifier {
 
   void clearChatMessages() {
     messages.add({});
-    selectedChatRoom.messages.clear();
     saveToDisk([selectedChatRoom]);
     notifyRoomsStream();
     notifyListeners();
@@ -1457,7 +1621,6 @@ class ChatProvider with ChangeNotifier {
       id: id,
       chatRoomName: chatRoomName,
       model: selectedModel,
-      messages: ConversationBufferMemory(),
       temp: temp,
       topk: topk,
       promptBatchSize: promptBatchSize,
@@ -1506,6 +1669,7 @@ class ChatProvider with ChangeNotifier {
     totalSentTokens = room.totalSentTokens ?? 0;
     totalReceivedTokens = room.totalReceivedTokens ?? 0;
     await _loadMessagesFromDisk(room.id);
+    AppCache.selectedChatRoomId.value = room.id;
     scrollToEnd();
   }
 
@@ -1586,7 +1750,6 @@ class ChatProvider with ChangeNotifier {
   // }
 
   void deleteMessage(String id) {
-    // messages.remove(id);
     final value = messages.value;
     value.remove(id);
     messages.add(value);
@@ -1614,10 +1777,16 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  void addMessageSystem(String message) {
+  Future<void> addMessageSystem(String message) async {
     final value = messages.value;
-    value[DateTime.now().toIso8601String()] =
-        SystemChatMessage(content: message);
+    final timeStamp = DateTime.now().millisecondsSinceEpoch;
+    final tokens = await countTokensString(message);
+    value['$timeStamp'] = FluentChatMessage.system(
+      id: '$timeStamp',
+      content: message,
+      timestamp: timeStamp,
+      tokens: tokens,
+    );
     messages.add(value);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
@@ -1640,11 +1809,19 @@ class ChatProvider with ChangeNotifier {
     try {
       if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
       if (messages.value.isEmpty) return;
+
+      /// animate down
+      // listItemsScrollController.animateTo(
+      //   listItemsScrollController.position.maxScrollExtent +
+      //       (200 * autoScrollSpeed),
+      //   duration: const Duration(milliseconds: 10),
+      //   curve: Curves.linear,
+      // );
+      /// Animate up
       listItemsScrollController.animateTo(
-        listItemsScrollController.position.maxScrollExtent +
-            (200 * autoScrollSpeed),
-        duration: const Duration(milliseconds: 1),
-        curve: Curves.easeOut,
+        0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.linear,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -1659,8 +1836,8 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<void> regenerateMessage(ChatMessage message) async {
-    await sendMessage(message.contentAsString, hidePrompt: true);
+  Future<void> regenerateMessage(FluentChatMessage message) async {
+    await sendMessage(message.content, hidePrompt: true);
   }
 
   void updateUI() {
@@ -1675,7 +1852,7 @@ class ChatProvider with ChangeNotifier {
     final message = messages.value[id];
     sendSingleMessage(
       'Please shorten the following text while keeping all the essential information and key points intact. Remove any unnecessary details or repetition:'
-      '\n"${message?.contentAsString}"',
+      '\n"${message?.content}"',
     );
   }
 
@@ -1683,7 +1860,7 @@ class ChatProvider with ChangeNotifier {
     final message = messages.value[id];
     sendSingleMessage(
       'Please expand the following text by providing more details and explanations. Make the text more specific and elaborate on the key points, while keeping it clear and understandable'
-      '\n"${message?.contentAsString}"',
+      '\n"${message?.content}"',
     );
   }
 
@@ -1693,19 +1870,24 @@ class ChatProvider with ChangeNotifier {
     final chatRoomRaw =
         jsonDecode(await fileContent.readAsString()) as List<dynamic>;
     // id is the key
-    final roomMessages = <String, ChatMessage>{};
+    final roomMessages = <String, FluentChatMessage>{};
     for (var messageJson in chatRoomRaw) {
       try {
-        final key = messageJson['id'] as String;
-        final content = messageJson['message'] as Map<String, dynamic>;
-        roomMessages[key] = ChatRoom.chatMessageFromJson(content);
+        final id = messageJson['id'] as String;
+        final timestamp = messageJson['timestamp'] as int?;
+        // if is not containing 'timestamp' break the loop and ask to upgrade
+        if (timestamp == null) {
+          onTrayButtonTapCommand(
+              'You use deprecated chat format. Please go to the settings page->Application storage location->Import old chats in deprecated format',
+              TrayCommand.show_dialog.name);
+          break;
+        }
+        roomMessages[id] = FluentChatMessage.fromJson(messageJson);
       } catch (e) {
         logError('Error while loading message from disk: $e');
       }
     }
-    selectedChatRoom.messages = ConversationBufferMemory(
-      chatHistory: ChatMessageHistory(messages: roomMessages.values.toList()),
-    );
+
     messages.add(roomMessages);
     notifyListeners();
   }
@@ -1763,28 +1945,18 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> scrollToMessage(String messageKey) async {
-    final index =
-        indexOf(messages.value.values.toList(), messages.value[messageKey]);
+    final index = indexOf(messagesReversedList, messages.value[messageKey]);
     await listItemsScrollController.scrollToIndex(index);
   }
 
   /// custom get index
-  int indexOf(List<ChatMessage> list, ChatMessage? element, [int start = 0]) {
+  int indexOf(List<FluentChatMessage> list, FluentChatMessage? element,
+      [int start = 0]) {
     if (start < 0) start = 0;
     for (int i = start; i < list.length; i++) {
       final first = list[i];
-      if (first is HumanChatMessage && element is HumanChatMessage) {
-        if (first.content is ChatMessageContentText &&
-            element.content is ChatMessageContentText) {
-          if ((first.content as ChatMessageContentText).text ==
-              (element.content as ChatMessageContentText).text) {
-            return i;
-          }
-        }
-      } else if (first is AIChatMessage && element is AIChatMessage) {
-        if (first.content == element.content) {
-          return i;
-        }
+      if (first.content == element?.content) {
+        return i;
       }
     }
     return -1;
@@ -1816,26 +1988,6 @@ class ChatProvider with ChangeNotifier {
         return false;
       }
       recorder = AudioRecorder();
-      // if (Platform.isWindows) {
-      //   final path = FileUtils.temporaryDirectoryPath != null
-      //       ? '${FileUtils.temporaryDirectoryPath}\\tempaudio.wav'
-      //       : 'tempaudio.wav';
-      //   await recorder!.start(
-      //     RecordConfig(
-      //       encoder: AudioEncoder.pcm16bits,
-      //       sampleRate: 16000,
-      //       numChannels: 1,
-      //       device: AppCache.micrpohoneDeviceId.value != null
-      //           ? InputDevice(
-      //               id: AppCache.micrpohoneDeviceId.value!,
-      //               label:
-      //                   AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
-      //           : null,
-      //     ),
-      //     path: path,
-      //   );
-      //   return true;
-      // }
       micStream = await recorder!.startStream(
         RecordConfig(
           encoder: AudioEncoder.pcm16bits,
@@ -1869,37 +2021,10 @@ class ChatProvider with ChangeNotifier {
       return false;
     }
     return true;
-
-    // you can pause and resume the transcription (stop sending audio data to the server)
-    //     transcriber.pause();
-    //
-    //     transcriber.resume();
-
-    // then close the stream when you're done, you can call start() again if you want to restart a transcription
-    // transcriber!.close();
   }
 
   Future<void> stopListeningForInput() async {
     try {
-      // if (Platform.isWindows) {
-      //   final filePath = await recorder!.stop();
-      //   if (filePath != null) {
-      //     final file = File(filePath);
-      //     final fileSize = await file.length();
-      //     if (kDebugMode) {
-      //       print('Audio File size: $fileSize. path "$filePath"');
-      //     }
-      //     final result = await DeepgramSpeech.deepgram
-      //         .transcribeFromPath(filePath, queryParams: {
-      //       'language': AppCache.speechLanguage.value!,
-      //       'encoding': 'linear16',
-      //       'sample_rate': 16000,
-      //     });
-      //     if (result.transcript != null)
-      //       messageController.text = result.transcript!;
-      //   }
-      //   return;
-      // }
       transcriber!.pause(keepAlive: false);
       await transcriber!.close();
       transcriber = null;
@@ -1916,24 +2041,24 @@ class ChatProvider with ChangeNotifier {
     micStream = null;
   }
 
-  void editMessage(String id, String text) {
+  Future editMessage(String id, String text) async {
     final message = messages.value[id];
-    if (message is HumanChatMessage &&
-        message.content is ChatMessageContentText) {
-      final newMessage = HumanChatMessage(
-        content: ChatMessageContent.text(text),
-      );
-      messages.value[id] = newMessage;
-    } else if (message is AIChatMessage) {
-      final newMessage = AIChatMessage(content: text);
-      messages.value[id] = newMessage;
+    if (message?.type == FluentChatMessageType.textHuman ||
+        message?.type == FluentChatMessageType.textAi) {
+      final newLenghtTokens =
+          await (openAI ?? localModel)!.countTokens(PromptValue.string(text));
+      final newMessage =
+          message!.copyWith(content: text, tokens: newLenghtTokens);
+      final messagesList = messages.value;
+      messagesList[id] = newMessage.copyWith(content: text);
+      messages.add(messagesList);
     }
     saveToDisk([selectedChatRoom]);
     notifyListeners();
   }
 
   Future<void> createNewBranchFromLastMessage(String id) async {
-    final listNewMessages = <String, ChatMessage>{};
+    final listNewMessages = <String, FluentChatMessage>{};
     for (var message in messages.value.entries) {
       // All messages are sorted. So if we face the message with the same id, we add it and stop
       if (message.key == id) {
@@ -1948,10 +2073,6 @@ class ChatProvider with ChangeNotifier {
     final newChatRoom = selectedChatRoom.copyWith(
       id: newChatId,
       chatRoomName: chatRoomName,
-      messages: ConversationBufferMemory(
-        chatHistory:
-            ChatMessageHistory(messages: listNewMessages.values.toList()),
-      ),
       dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
     );
     final chatRooms = chatRoomsStream.value;
@@ -1967,8 +2088,8 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future continueMessage(String id) async {
-    final ChatMessage? lastMessageToMerge = messages.value[id];
-    final lastMessages = await getLastFewMessages(count: 3);
+    final FluentChatMessage? lastMessageToMerge = messages.value[id];
+    final lastMessages = await getLastMessagesLimitToTokens(512);
     sendMessage(
       '$continuePrompt $lastMessages',
       hidePrompt: true,
@@ -1981,7 +2102,8 @@ class ChatProvider with ChangeNotifier {
       onFinishResponse: () {
         final aiAnswer = messages.value.entries.last;
 
-        final concatMessage = lastMessageToMerge!.concat(aiAnswer.value);
+        final concatMessage =
+            lastMessageToMerge!.concat(aiAnswer.value.content);
         final listMessages = messages.value;
         listMessages.remove(aiAnswer.key);
         listMessages[id] = concatMessage;
@@ -2009,7 +2131,6 @@ ChatRoom _generateDefaultChatroom({String? systemMessage}) {
     id: generateChatID(),
     chatRoomName: 'Default',
     model: selectedModel,
-    messages: ConversationBufferMemory(),
     temp: temp,
     topk: topk,
     promptBatchSize: promptBatchSize,
