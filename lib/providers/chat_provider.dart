@@ -1892,8 +1892,9 @@ class ChatProvider with ChangeNotifier {
 
       // '_positions.isNotEmpty': ScrollController not attached to any scroll views.
       if (listItemsScrollController.hasClients) {
+        // 0 because list is reversed
         listItemsScrollController.animateTo(
-          listItemsScrollController.position.maxScrollExtent + 200,
+          0,
           duration: const Duration(milliseconds: 400),
           curve: Curves.easeOut,
         );
