@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/easy_image_viewer_advanced.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
@@ -18,8 +19,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
+import 'package:fluent_gpt/widgets/hover_tooltip.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
@@ -182,16 +185,43 @@ class _MessageCardState extends State<MessageCard> {
         children: [
           if (widget.message.type == FluentChatMessageType.textAi &&
               selectedChatRoom.characterAvatarPath != null)
-            Container(
-              width: 32,
-              height: 32,
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: FileImage(
-                    File(selectedChatRoom.characterAvatarPath!),
+            HoverTooltip(
+              tooltipHeight: 128,
+              tooltipWidth: 128,
+              tooltipContent: Acrylic(
+                blurAmount: 10,
+                child: Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      isAntiAlias: true,
+                      image: FileImage(
+                        File(selectedChatRoom.characterAvatarPath!),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  final base64Image = base64Encode(
+                      File(selectedChatRoom.characterAvatarPath!).readAsBytesSync());
+                  _showImageDialog(context, FluentChatMessage.imageAi(id: '', content: base64Image));
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.0),
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: FileImage(
+                        File(selectedChatRoom.characterAvatarPath!),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -588,32 +618,52 @@ class _MessageCardState extends State<MessageCard> {
 
   void _showEditMessageDialog(BuildContext context, FluentChatMessage message) {
     final contentController = TextEditingController(text: message.content);
+    final characterName = TextEditingController(text: message.creator);
+    int tokens = message.tokens;
+    final Debouncer debouncer = Debouncer(milliseconds: 500);
+    final provider = context.read<ChatProvider>();
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
         title: const Text('Edit message'),
         constraints:
             const BoxConstraints(maxWidth: 800, maxHeight: 800, minHeight: 200),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+        content: ListView(
+          shrinkWrap: true,
           children: [
-            const IncludeConversationSwitcher(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: TextBox(
-                controller: contentController,
-                minLines: 5,
-                maxLines: 50,
-              ),
+            const Text('Character name'),
+            TextBox(controller: characterName, maxLines: 1),
+            spacer,
+            const Text('Content'),
+            TextBox(
+              controller: contentController,
+              minLines: 5,
+              maxLines: 50,
+              onChanged: (value) {
+                debouncer.run(
+                  () async {
+                    final count = await provider.countTokensString(value);
+                    setState(() {
+                      tokens = count;
+                    });
+                  },
+                );
+              },
             ),
+            Text('Tokens: $tokens'),
           ],
         ),
         actions: [
           Button(
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.editMessage(widget.message.id, contentController.text);
+              provider.editMessage(
+                widget.message.id,
+                message.copyWith(
+                  creator: characterName.text,
+                  content: contentController.text,
+                ),
+              );
               Navigator.of(ctx).pop();
             },
             child: const Text('Apply'),

@@ -92,14 +92,18 @@ class AnnoyFeature {
     await chatProvider.simulateAiTyping();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     var aiMessage = FluentChatMessage.ai(
-        id: '$timestamp', content: aiMessageString, timestamp: timestamp);
+      id: '$timestamp',
+      content: aiMessageString,
+      timestamp: timestamp,
+      creator: selectedChatRoom.characterName,
+    );
     final tokens = await chatProvider
         .getTokensFromMessages([aiMessage.toLangChainChatMessage()]);
     aiMessage = aiMessage.copyWith(tokens: tokens);
 
     chatProvider.addBotMessageToList(aiMessage);
     NotificationService.showNotification(
-      'New message from ${selectedChatRoom.characterName}',
+      'New message from ${aiMessage.creator}',
       aiMessage.content,
       thumbnailFilePath: selectedChatRoom.characterAvatarPath,
     );

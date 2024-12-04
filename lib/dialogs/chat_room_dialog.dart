@@ -46,7 +46,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
     roomName = widget.room.chatRoomName;
 
     systemMessageContr.text = widget.room.systemMessage ?? '';
-    maxLength = widget.room.maxTokenLength;
+    maxTokens = widget.room.maxTokenLength;
     token = widget.room.model.apiKey;
     index = widget.room.indexSort;
     characterName = widget.room.characterName;
@@ -70,7 +70,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
   int tokensInMessage = 0;
   String characterName = 'ai';
   String? characterAvatarPath;
-  int maxLength = 2048;
+  int maxTokens = 2048;
   var token = '';
   var index = 1;
 
@@ -87,17 +87,18 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
         FilledButton(
           onPressed: () {
             provider.editChatRoom(
-                widget.room.id,
-                widget.room.copyWith(
-                  chatRoomName: roomName,
-                  systemMessage: systemMessageContr.text,
-                  maxLength: maxLength,
-                  token: token,
-                  indexSort: index,
-                  iconCodePoint: ico,
-                  characterName: characterName,
-                  avatarPath: characterAvatarPath,
-                ));
+              widget.room.id,
+              widget.room.copyWith(
+                chatRoomName: roomName,
+                systemMessage: systemMessageContr.text,
+                maxLength: maxTokens,
+                token: token,
+                indexSort: index,
+                iconCodePoint: ico,
+                characterName: characterName,
+                avatarPath: characterAvatarPath,
+              ),
+            );
             Navigator.of(context).pop();
             widget.onOkPressed();
           },
@@ -251,7 +252,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             maxLines: 30,
             minLines: 3,
             onChanged: (value) {
-              debouncer.call(() {
+              debouncer.run(() {
                 countTokens();
               });
             },
@@ -269,7 +270,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             controller: TextEditingController(
                 text: widget.room.maxTokenLength.toString()),
             onChanged: (value) {
-              maxLength = int.parse(value);
+              maxTokens = int.parse(value);
             },
           ),
           const Text('Token'),

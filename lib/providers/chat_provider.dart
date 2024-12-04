@@ -1801,15 +1801,33 @@ class ChatProvider with ChangeNotifier {
 
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
+    final oldChatRoom = chatRooms[oldChatRoomId];
+    final isCharNameChanged = oldChatRoom!.characterName != chatRoom.characterName;
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
+      if (isCharNameChanged) {
+        // ignore: no_leading_underscores_for_local_identifiers
+        final Map<String, FluentChatMessage> _messages = {};
+        // we need to go through all messages and change the creator name
+        for (var message in messages.value.values) {
+          if (message.type == FluentChatMessageType.textAi) {
+            _messages[message.id] =
+                message.copyWith(creator: chatRoom.characterName);
+          } else {
+            _messages[message.id] = message;
+          }
+        }
+        messages.add(_messages);
+      }
     }
     chatRooms.remove(oldChatRoomId);
     chatRooms[chatRoom.id] = chatRoom;
     if (switchToForeground) {
       selectedChatRoomId = chatRoom.id;
     }
+
     notifyRoomsStream();
+    notifyListeners();
     saveToDisk([selectedChatRoom]);
   }
 
@@ -2117,16 +2135,17 @@ class ChatProvider with ChangeNotifier {
     micStream = null;
   }
 
-  Future editMessage(String id, String text) async {
-    final message = messages.value[id];
-    if (message?.type == FluentChatMessageType.textHuman ||
-        message?.type == FluentChatMessageType.textAi) {
-      final newLenghtTokens =
-          await (openAI ?? localModel)!.countTokens(PromptValue.string(text));
-      final newMessage =
-          message!.copyWith(content: text, tokens: newLenghtTokens);
+  Future editMessage(String id, FluentChatMessage message) async {
+    if (message.type == FluentChatMessageType.textHuman ||
+        message.type == FluentChatMessageType.textAi) {
+      final newLenghtTokens = await countTokensString(message.content);
+
       final messagesList = messages.value;
-      messagesList[id] = newMessage.copyWith(content: text);
+      messagesList[id] = message.copyWith(tokens: newLenghtTokens);
+      messages.add(messagesList);
+    } else {
+      final messagesList = messages.value;
+      messagesList[id] = message;
       messages.add(messagesList);
     }
     saveToDisk([selectedChatRoom]);

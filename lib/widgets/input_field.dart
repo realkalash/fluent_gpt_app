@@ -347,7 +347,7 @@ class _InputFieldState extends State<InputField> {
                           minLines: 2,
                           maxLines: 30,
                           onChanged: (value) {
-                            debouncer.call(() {
+                            debouncer.run(() {
                               setState(() {});
                             });
                           },
