@@ -75,7 +75,8 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
                       onPressed: () {
                         regExpController.text = openUrlRegex.pattern;
                       },
-                    ), MenuFlyoutItem(
+                    ),
+                    MenuFlyoutItem(
                       text: Text('If text contains "Run CLI" quotes'),
                       onPressed: () {
                         regExpController.text = runShellRegex.pattern;
@@ -106,6 +107,21 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
                   },
                 ),
             ],
+          ),
+          biggerSpacer,
+          SelectableText(
+            'Keep in mind that in order to actions be used by LLM you need to manually tell the bot to use them in system message like this:'
+            '\n\n'
+            """Your tools:
+1 Copy content to user's clipboard
+```clipboard
+text
+```
+2 open url
+```open-url
+link
+```""",
+            style: TextStyle(color: Colors.yellow),
           )
         ],
       ),

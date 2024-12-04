@@ -1,46 +1,67 @@
 import 'dart:async';
-import 'dart:developer';
+import 'dart:math' hide log;
 
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
+import 'package:fluent_gpt/features/text_to_speech.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 
-class AutonomousFeature {
+class AnnoyFeature {
   static Timer? timer;
+  static Duration? chosenRandDuration;
+  static Duration? lastChosenRandDuration;
+
   static DateTime? lastTimeAiAnswered;
 
+  /// Will autostart autonomous mode if enabled in cache settings
   static void init() {
     if (AppCache.enableAutonomousMode.value == true) {
       start(
-          Duration(minutes: AppCache.enableAutonomousModeTimerMinutes.value!));
+        Duration(minutes: AppCache.annoyModeTimerMinMinutes.value!),
+        Duration(minutes: AppCache.annoyModeTimerMaxMinutes.value!),
+      );
     }
   }
 
   static showConfigureDialog() async {
     final context = appContext!;
     await showDialog(
-        context: context, builder: (context) => AutonomousConfigDialog());
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AnnoyConfigDialog(),
+    );
   }
 
-  static void start(Duration duration) {
-    log('Autonomous feature started with duration: ${duration.inMinutes} minutes');
-    timer = Timer.periodic(duration, (timer) {
+  static void start(Duration durationMin, Duration durationMax) {
+    final range = durationMax.inMilliseconds - durationMin.inMilliseconds;
+    // if the time is the same we should use only one value
+    final randomDurationInMs = range == 0
+        ? durationMin.inMilliseconds
+        : Random().nextInt(range) + durationMin.inMilliseconds;
+    chosenRandDuration = Duration(milliseconds: randomDurationInMs);
+    log('Ai decided to write you in: ${chosenRandDuration!.inMinutes} minutes');
+    stop();
+    timer = Timer(chosenRandDuration!, () {
       log('Autonomous feature running');
-      if (AppCache.enableAutonomousMode.value == false) {
-        timer.cancel();
+      if (AppCache.enableAutonomousMode.value == true) {
+        // restart timer
+        triggerActions();
+        start(durationMin, durationMax);
       }
-      triggerActions();
     });
   }
 
   static void stop() {
-    log('Autonomous feature stopped');
-    timer?.cancel();
+    if (timer != null && timer!.isActive) {
+      log('Autonomous feature stopped');
+      timer?.cancel();
+    }
   }
 
   static Future<void> triggerActions() async {
@@ -50,10 +71,12 @@ class AutonomousFeature {
         DateTime.now().difference(lastTimeAiAnswered ?? DateTime.now());
     String systemSuffix = '';
     if (messagesReversedList.isNotEmpty) {
+      final lastMessages = chatProvider.convertMessagesToString([
+        messagesReversedList.first,
+        if (messagesReversedList.length > 1) messagesReversedList[1],
+      ]);
       final lastChatMessage = messagesReversedList.first;
-      systemSuffix = lastChatMessage.type == FluentChatMessageType.textHuman
-          ? '\nlast message from User: ${lastChatMessage.content}'
-          : '\nlast message from You: ${lastChatMessage.content}';
+      systemSuffix = '\nlast messages in your conversation were: $lastMessages';
       lastTimeAiAnswered =
           DateTime.fromMillisecondsSinceEpoch(lastChatMessage.timestamp);
     }
@@ -66,6 +89,7 @@ class AutonomousFeature {
       additionalSuffix,
       systemMessage: baseSystemMessage,
     );
+    await chatProvider.simulateAiTyping();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     var aiMessage = FluentChatMessage.ai(
         id: '$timestamp', content: aiMessageString, timestamp: timestamp);
@@ -74,12 +98,25 @@ class AutonomousFeature {
     aiMessage = aiMessage.copyWith(tokens: tokens);
 
     chatProvider.addBotMessageToList(aiMessage);
-    NotificationService.showNotification('New message', aiMessage.content);
+    NotificationService.showNotification(
+      'New message from ${selectedChatRoom.characterName}',
+      aiMessage.content,
+      thumbnailFilePath: selectedChatRoom.characterAvatarPath,
+    );
+    await Future.delayed(Duration(milliseconds: 300));
+    if (AppCache.autoPlayMessagesFromAi.value!) {
+      if (TextToSpeechService.isValid()) {
+        await TextToSpeechService.readAloud(
+          aiMessage.content,
+          onCompleteReadingAloud: () {},
+        );
+      }
+    }
   }
 }
 
-class AutonomousConfigDialog extends StatelessWidget {
-  const AutonomousConfigDialog({super.key});
+class AnnoyConfigDialog extends StatelessWidget {
+  const AnnoyConfigDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -89,8 +126,10 @@ class AutonomousConfigDialog extends StatelessWidget {
         FilledButton(
           onPressed: () {
             AppCache.enableAutonomousMode.value = true;
-            AutonomousFeature.start(Duration(
-                minutes: AppCache.enableAutonomousModeTimerMinutes.value!));
+            AnnoyFeature.start(
+              Duration(minutes: AppCache.annoyModeTimerMinMinutes.value!),
+              Duration(minutes: AppCache.annoyModeTimerMaxMinutes.value!),
+            );
             Navigator.of(context).pop();
           },
           child: Text('Start'),
@@ -107,21 +146,57 @@ class AutonomousConfigDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Ai can use your last open chat to generate new messages each X minutes'),
+          Text(
+              'Ai can use your last open chat to generate new messages in random range between X and Y minutes.'),
           spacer,
-          Text('Timer in minutes: '),
-          SizedBox(
-            width: 100,
-            child: NumberBox(
-              min: 1,
-              max: 60 * 24,
-              mode: SpinButtonPlacementMode.none,
-              onChanged: (value) {
-                AppCache.enableAutonomousModeTimerMinutes.value = value;
-              },
-              value: AppCache.enableAutonomousModeTimerMinutes.value,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Timer in minutes min: '),
+                    SizedBox(
+                      width: 100,
+                      child: NumberBox(
+                        min: 1,
+                        max: 60 * 24,
+                        mode: SpinButtonPlacementMode.none,
+                        onChanged: (value) {
+                          AppCache.annoyModeTimerMinMinutes.value = value;
+                        },
+                        value: AppCache.annoyModeTimerMinMinutes.value,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Timer in minutes max '),
+                    SizedBox(
+                      width: 100,
+                      child: NumberBox(
+                        min: 1,
+                        max: 60 * 24,
+                        mode: SpinButtonPlacementMode.none,
+                        onChanged: (value) {
+                          AppCache.annoyModeTimerMaxMinutes.value = value;
+                        },
+                        value: AppCache.annoyModeTimerMaxMinutes.value,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
           ),
+          spacer,
+          if (AnnoyFeature.chosenRandDuration != null) ...[
+            Text(
+              'Ai decided to write you after: ${AnnoyFeature.chosenRandDuration!.inMinutes} minutes',
+            )
+          ]
         ],
       ),
     );

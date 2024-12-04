@@ -70,13 +70,17 @@ class AzureSpeech {
     final model = AppCache.azureVoiceModel.value!;
     final url = 'https://$region.tts.speech.microsoft.com/cognitiveservices/v1';
     final lang = AppCache.speechLanguage.value ?? 'en-US';
+    final int speedIntIncreasePerc = AppCache.speedIntIncreasePerc.value ?? 0;
+    final String speed = speedIntIncreasePerc == 0
+        ? '0.00'
+        : (speedIntIncreasePerc / 100).toStringAsFixed(2);
 
     /// https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice
     final dataRawWithRateAndPitch = '''
 <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="$lang">
     <voice name="$model">
       <mstts:express-as style="friendly" styledegree="1">
-        <prosody rate="0.00%" pitch="+25%">
+        <prosody rate="$speed%" pitch="+25%">
             $text
         </prosody>
       </mstts:express-as>

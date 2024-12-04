@@ -141,6 +141,9 @@ Current date: $formattedDate
 ''';
 }
 
+String contextualInfoDelimeter =
+    '\n\nContextual information about the user. Dont use it until it is necessary!';
+
 Future<String> getFormattedSystemPrompt(
     {required String basicPrompt, String? appendText}) async {
   /// we append them line by line
@@ -154,15 +157,15 @@ Future<String> getFormattedSystemPrompt(
       AppCache.includeWeatherPrompt.value! ||
       AppCache.includeUserCityNamePrompt.value! ||
       AppCache.includeKnowledgeAboutUserToSysPrompt.value!;
+
+  if (isIncludeAdditionalEnabled) {
+    prompt += contextualInfoDelimeter;
+  }
   if (AppCache.includeTimeToSystemPrompt.value!) {
     final dateTime = DateTime.now();
     final formatter = DateFormat('yyyy-MM-dd HH:mm a E');
     final formattedDate = formatter.format(dateTime);
     prompt += '\n\nCurrent date and time: $formattedDate';
-  }
-  if (isIncludeAdditionalEnabled) {
-    prompt +=
-        '\n\nNext will be a contextual information about the user. Dont use it until it is necessary!\n';
   }
 
   if (AppCache.includeSysInfoToSysPrompt.value!) {
@@ -185,7 +188,7 @@ Future<String> getFormattedSystemPrompt(
 
   if (AppCache.includeKnowledgeAboutUserToSysPrompt.value!) {
     prompt +=
-        '\n\nKnowladge base you remembered from previous dialogs: """$userInfo"""';
+        '\n\nThings you remembered from previous dialogs: """$userInfo"""';
   }
   if (isIncludeAdditionalEnabled) {
     prompt += '\n';

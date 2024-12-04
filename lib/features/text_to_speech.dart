@@ -41,10 +41,23 @@ class TextToSpeechService {
   static Future readAloud(
     String text, {
     Function()? onCompleteReadingAloud,
+
+    /// Remove dictations and markdown like **bold**, *dictation*, and [link](https://example.com) markdown syntax.
+    /// Also changes *giggles* to "hehe".
+    /// Also changes *winks* to "wink".
+    bool stripText = true,
   }) async {
-    if (isReadingAloud){
+    if (isReadingAloud) {
       await stopReadingAloud();
       await Future.delayed(Duration(milliseconds: 100));
+    }
+    if (stripText) {
+      text = text
+          .replaceAll(RegExp(r'\*giggles\*'), ', he-he,')
+          .replaceAll(RegExp(r'\*winks\*'), ', wink,')
+          .replaceAll(RegExp(r'\*(.*?)\*'), '')
+          .replaceAll(RegExp(r'\[(.*?)\]\((.*?)\)'), '.Link.')
+          .replaceAll('  ', ' ');
     }
     if (AppCache.textToSpeechService.value ==
         TextToSpeechServiceEnum.deepgram.name) {

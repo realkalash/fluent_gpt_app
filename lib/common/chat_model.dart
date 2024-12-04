@@ -11,6 +11,7 @@ class ChatModelAi {
 
   /// Can be path or Url
   final String? uri;
+  final bool imageSupported;
 
   const ChatModelAi({
     this.apiKey = '',
@@ -18,6 +19,7 @@ class ChatModelAi {
     this.ownedBy,
     this.uri,
     this.customName = '',
+    this.imageSupported = false,
   });
 
   Widget get modelIcon {
@@ -37,6 +39,7 @@ class ChatModelAi {
       ownedBy: json['ownedBy'],
       uri: json['uri'],
       customName: json['customName'] ?? 'Custom',
+      imageSupported: json['imageSupported'] ?? false,
     );
   }
 
@@ -57,6 +60,7 @@ class ChatModelAi {
       ownedBy: json['owned_by'],
       uri: url,
       customName: json['customName'],
+      imageSupported: json['imageSupported'] ?? false,
     );
   }
 
@@ -67,6 +71,7 @@ class ChatModelAi {
       'ownedBy': ownedBy,
       'uri': uri,
       'customName': customName,
+      'imageSupported': imageSupported,
     };
   }
 
@@ -81,6 +86,7 @@ class ChatModelAi {
     String? ownedBy,
     String? uri,
     String? customName,
+    bool? imageSupported,
   }) {
     return ChatModelAi(
       apiKey: apiKey ?? this.apiKey,
@@ -88,6 +94,7 @@ class ChatModelAi {
       ownedBy: ownedBy ?? this.ownedBy,
       uri: uri ?? this.uri,
       customName: customName ?? this.customName,
+      imageSupported: imageSupported ?? this.imageSupported,
     );
   }
 }

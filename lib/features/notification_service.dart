@@ -33,8 +33,9 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
     _winNotifyPlugin = WindowsNotification(applicationId: appId);
     await _winNotifyPlugin.initNotificationCallBack(
       (details) {
-        log("Win Notification callback: ${details.message}");
-        if (details.eventType == EventType.onDismissedUserCanceled) {
+        log("Win Notification callback: ${details.eventType}");
+        // not working on the plugin level
+        if (details.eventType != EventType.onActivate) {
           return;
         }
         notificationTapBackground(
@@ -50,16 +51,21 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
     log("Notification service activated with app id: $appId");
   }
 
-  static void showNotification(String title, String body,
-      {Map<String, dynamic> payload = const {}}) {
+  static void showNotification(
+    String title,
+    String body, {
+    Map<String, dynamic> payload = const {},
+    String? thumbnailFilePath,
+    String? imageFilePath,
+  }) {
     String id = generate16ID();
 
     NotificationMessage message = NotificationMessage.fromPluginTemplate(
       id,
       title,
       body,
-      largeImage: null,
-      image: null,
+      largeImage: imageFilePath,
+      image: thumbnailFilePath,
       payload: payload,
     );
 

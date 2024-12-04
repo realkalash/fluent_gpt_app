@@ -9,6 +9,8 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+
+import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -23,7 +25,7 @@ class ElevenlabsSpeech {
   }
 
   static String selectedVoiceName = 'Aria';
-  static String selectedVoiceId = '9BWtsMINqrJLrRacOk9x';
+
   static String selectedModel = 'eleven_turbo_v2';
   static final modelsMap = {
     'eleven_monolingual_v1':
@@ -53,7 +55,6 @@ class ElevenlabsSpeech {
       ),
     );
 
-    selectedVoiceId = AppCache.elevenlabsVoiceModelId.value!;
     selectedVoiceName = AppCache.elevenlabsVoiceModelName.value!;
     selectedModel = AppCache.elevenlabsModel.value ?? selectedModel;
     if (selectedModel.isEmpty) {
@@ -66,7 +67,18 @@ class ElevenlabsSpeech {
   }
 
   static Future showConfigureDialog(BuildContext context) async {
-    showDialog(context: context, builder: (ctx) => ElevenLabsConfigDialog());
+    showDialog(
+      context: context,
+      builder: (ctx) => ContentDialog(
+        content: ElevenLabsConfigContainer(),
+        actions: [
+          Button(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   static Future readAloud(
@@ -100,7 +112,7 @@ class ElevenlabsSpeech {
       await init();
     }
     final requestObj = TextToSpeechRequest(
-      voiceId: selectedVoiceId,
+      voiceId: AppCache.elevenlabsVoiceModelId.value!,
       text: text,
       // can be "eleven_monolingual_v1"
       modelId: selectedModel,
@@ -110,9 +122,15 @@ class ElevenlabsSpeech {
       ),
     );
     final json = requestObj.toJson();
+    /* 
+    not working:
+    Request elevenlabs: {voice_id: eleven_turbo_v2_5, model_id: eleven_turbo_v2, text: Hey Alex, are you still up for some late-night chatting, or did you get lost in another anime episode? 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
+    working
+    Request elevenlabs: {voice_id: eVItLK1UvXctxuaRV2Oq, model_id: eleven_turbo_v2, text: Hey Alex, are you still up for some late-night chatting, or did you get lost in another anime episode? 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
+     */
     log('Request elevenlabs: $json');
-    final result = await _elevenLabs!
-        .synthesizeBytes(requestObj, voiceId: selectedVoiceId);
+    final result = await _elevenLabs!.synthesizeBytes(requestObj,
+        voiceId: AppCache.elevenlabsVoiceModelId.value!);
     final audio = result;
     player = AudioPlayer();
     await player!.setSourceBytes(audio, mimeType: 'audio/wav');
@@ -142,14 +160,15 @@ class ElevenlabsSpeech {
   }
 }
 
-class ElevenLabsConfigDialog extends StatefulWidget {
-  const ElevenLabsConfigDialog({super.key});
+class ElevenLabsConfigContainer extends StatefulWidget {
+  const ElevenLabsConfigContainer({super.key});
 
   @override
-  State<ElevenLabsConfigDialog> createState() => _ElevenLabsConfigDialogState();
+  State<ElevenLabsConfigContainer> createState() =>
+      _ElevenLabsConfigContainerState();
 }
 
-class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
+class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
   bool isLoadingVoices = false;
   List<Map<String, dynamic>> voices = [];
   @override
@@ -199,94 +218,118 @@ class _ElevenLabsConfigDialogState extends State<ElevenLabsConfigDialog> {
       );
   }
 
+  bool obscure = true;
+
   @override
   Widget build(BuildContext context) {
-    return ContentDialog(
-      title: Text('ElevenLabs Configuration'),
-      actions: [
-        Button(
-          onPressed: () {
-            Navigator.of(context).pop();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('ElevenLabs API Key*'),
+        TextFormBox(
+          obscureText: obscure,
+          onChanged: (value) {
+            AppCache.elevenLabsApiKey.value = value;
           },
-          child: Text('Ok'),
+          initialValue: AppCache.elevenLabsApiKey.value,
+          onFieldSubmitted: (value) async {
+            AppCache.elevenLabsApiKey.value = value;
+            await ElevenlabsSpeech.init();
+            loadVoices();
+          },
+          suffix: IconButton(
+              icon: Icon(FluentIcons.eye_20_regular),
+              onPressed: () {
+                setState(() {
+                  obscure = !obscure;
+                });
+              }),
+          validator: (value) {
+            if ((value ?? '').isEmpty) {
+              return 'Please enter a valid API key';
+            }
+            return null;
+          },
         ),
-      ],
-      content: ListView(
-        shrinkWrap: true,
-        children: [
-          Text('ElevenLabs API Key*'),
-          TextFormBox(
-            onChanged: (value) {
-              AppCache.elevenLabsApiKey.value = value;
-            },
-            initialValue: AppCache.elevenLabsApiKey.value,
-            onFieldSubmitted: (value) async {
-              AppCache.elevenLabsApiKey.value = value;
-              await ElevenlabsSpeech.init();
-              loadVoices();
-            },
-            suffix: Button(
-                child: Text('Load voices'),
-                onPressed: () async {
-                  await ElevenlabsSpeech.init();
-                  loadVoices();
-                }),
-            validator: (value) {
-              if ((value ?? '').isEmpty) {
-                return 'Please enter a valid API key';
-              }
-              return null;
-            },
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
+            url: 'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
           ),
-          if (isLoadingVoices) ProgressBar(),
-          if (voices.isNotEmpty) ...[
-            Text('Voice ID*'),
-            DropDownButton(
-              title: Text(ElevenlabsSpeech.selectedVoiceName),
-              items: [
-                for (final voice in voices)
-                  MenuFlyoutItem(
-                    text: Text(voice['name']),
-                    onPressed: () {
-                      AppCache.elevenlabsVoiceModelId.value = voice['voice_id'];
-                      AppCache.elevenlabsVoiceModelName.value = voice['name'];
-                      ElevenlabsSpeech.selectedVoiceId = voice['voice_id'];
-                      ElevenlabsSpeech.selectedVoiceName = voice['name'];
-                      setState(() {});
-                    },
-                  ),
-              ],
+        ),
+        if (isLoadingVoices) ProgressBar(),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.end,
+          children: [
+            Button(
+              child: Text('Load voices'),
+              onPressed: () async {
+                await ElevenlabsSpeech.init();
+                loadVoices();
+              },
             ),
-            Text('Model (Can make voice smarter)'),
-            DropDownButton(
-              title: Text(ElevenlabsSpeech.selectedModel),
-              items: [
-                for (final voice in ElevenlabsSpeech.modelsMap.entries)
-                  MenuFlyoutItem(
-                    text: Tooltip(message: voice.value, child: Text(voice.key)),
-                    trailing: Tooltip(
-                      message: voice.value,
-                      child: Icon(FluentIcons.question_circle_24_regular),
-                    ),
-                    onPressed: () {
-                      ElevenlabsSpeech.selectedModel = voice.key;
-                      AppCache.elevenlabsVoiceModelId.value = voice.key;
-                      setState(() {});
-                    },
+            if (voices.isNotEmpty) ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Voice ID*'),
+                  DropDownButton(
+                    title: Text(ElevenlabsSpeech.selectedVoiceName),
+                    items: [
+                      for (final voice in voices)
+                        MenuFlyoutItem(
+                          text: Text(voice['name']),
+                          onPressed: () {
+                            AppCache.elevenlabsVoiceModelId.value =
+                                voice['voice_id'];
+                            AppCache.elevenlabsVoiceModelName.value =
+                                voice['name'];
+                            ElevenlabsSpeech.selectedVoiceName = voice['name'];
+                            setState(() {});
+                          },
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Model (Can make voice smarter)'),
+                  DropDownButton(
+                    title: Text(ElevenlabsSpeech.selectedModel),
+                    items: [
+                      for (final voice in ElevenlabsSpeech.modelsMap.entries)
+                        MenuFlyoutItem(
+                          text: Tooltip(
+                              message: voice.value, child: Text(voice.key)),
+                          trailing: Tooltip(
+                            message: voice.value,
+                            child: Icon(FluentIcons.question_circle_24_regular),
+                          ),
+                          onPressed: () {
+                            ElevenlabsSpeech.selectedModel = voice.key;
+                            AppCache.elevenlabsVoiceModelId.value = voice.key;
+                            setState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              )
+            ]
           ],
-          spacer,
-          Divider(),
-          Button(
-            child: Text('Usage'),
-            onPressed: () {
-              loadUsage(context);
-            },
-          )
-        ],
-      ),
+        ),
+        spacer,
+        Divider(),
+        Button(
+          child: Text('Usage'),
+          onPressed: () {
+            loadUsage(context);
+          },
+        )
+      ],
     );
   }
 }

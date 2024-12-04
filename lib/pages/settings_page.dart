@@ -209,6 +209,20 @@ class CustomActionsSection extends StatelessWidget {
                   return Card(
                     padding: EdgeInsets.zero,
                     child: BasicListTile(
+                      leading: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Checkbox(
+                            checked: action.isEnabled,
+                            onChanged: (v) {
+                              final edited = action.copyWith(isEnabled: v);
+                              final actions = onMessageActions.value;
+                              actions[index] = edited;
+                              onMessageActions.add(actions);
+                              final json =
+                                  actions.map((e) => e.toJson()).toList();
+                              AppCache.customActions.set(jsonEncode(json));
+                            }),
+                      ),
                       title: Text(action.actionName),
                       padding: const EdgeInsets.all(8.0),
                       onTap: () => showDialog(
@@ -221,6 +235,7 @@ class CustomActionsSection extends StatelessWidget {
                           showDialog(
                             context: context,
                             builder: (ctx) => ConfirmationDialog(
+                              isDelete: true,
                               onAcceptPressed: () {
                                 final actions = onMessageActions.value;
                                 actions.removeAt(index);
@@ -1020,113 +1035,159 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 title: Text(
                     'Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
               ),
-              Text(
-                'Deepgram API key (speech) \$\$',
-                style: FluentTheme.of(context).typography.subtitle,
-              ),
-              TextFormBox(
-                initialValue: AppCache.deepgramApiKey.value,
-                placeholder: AppCache.deepgramApiKey.value,
-                obscureText: true,
-                suffix: DropDownButton(
-                    leading:
-                        Text('Voice: ${AppCache.deepgramVoiceModel.value}'),
-                    items: [
-                      for (var model in DeepgramSpeech.listModels)
-                        MenuFlyoutItem(
-                          selected: AppCache.deepgramVoiceModel.value == model,
-                          trailing: SqueareIconButton(
-                            onTap: () {
-                              if (DeepgramSpeech.isValid()) {
-                                DeepgramSpeech.readAloud(
-                                    'This is a sample text to read aloud');
-                              }
-                            },
-                            icon: const Icon(FluentIcons.play_circle_24_filled),
-                            tooltip: 'Read sample',
-                          ),
-                          onPressed: () {
-                            AppCache.deepgramVoiceModel.value = model;
-                            DeepgramSpeech.init();
-                            setState(() {});
-                          },
-                          text: Text(model),
-                        ),
-                    ]),
-                onChanged: (value) {
-                  AppCache.deepgramApiKey.value = value.trim();
-                  DeepgramSpeech.init();
-                },
-              ),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: LinkTextButton(
-                  'https://console.deepgram.com',
-                  url: 'https://console.deepgram.com',
-                ),
-              ),
-              Text(
-                'Azure API key (speech) \$',
-                style: FluentTheme.of(context).typography.subtitle,
-              ),
-              TextFormBox(
-                initialValue: AppCache.azureSpeechApiKey.value,
-                placeholder: AppCache.azureSpeechApiKey.value,
-                obscureText: true,
-                suffix: DropDownButton(
-                    leading: Text('Voice: ${AppCache.azureVoiceModel.value}'),
-                    items: [
-                      for (var model in AzureSpeech.listModels)
-                        MenuFlyoutItem(
-                          selected: AppCache.azureVoiceModel.value == model,
-                          trailing: SqueareIconButton(
-                            onTap: () {
-                              final previousModel =
-                                  AppCache.azureVoiceModel.value;
-                              if (AzureSpeech.isValid()) {
-                                AppCache.azureVoiceModel.value = model;
-                                AzureSpeech.readAloud(
-                                  'This is a sample text to read aloud',
-                                  onCompleteReadingAloud: () {
-                                    AppCache.azureVoiceModel.value =
-                                        previousModel;
-                                  },
-                                );
-                              }
-                            },
-                            icon: const Icon(FluentIcons.play_circle_24_filled),
-                            tooltip: 'Read sample',
-                          ),
-                          onPressed: () {
-                            AppCache.azureVoiceModel.value = model;
-                            DeepgramSpeech.init();
-                            setState(() {});
-                          },
-                          text: Text(model),
-                        ),
-                    ]),
-                onChanged: (value) {
-                  AppCache.azureSpeechApiKey.value = value.trim();
-                  AzureSpeech.init();
-                },
-              ),
-              Text(
-                'ElevenLabs API key (speech) \$\$\$',
-                style: FluentTheme.of(context).typography.subtitle,
-              ),
-              Button(
-                child: const Text('Configure ElevenLabs'),
-                onPressed: () => ElevenlabsSpeech.showConfigureDialog(context),
-              ),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: LinkTextButton(
-                  'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
-                  url:
-                      'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
-                ),
-              ),
+              if (AppCache.textToSpeechService.value ==
+                  TextToSpeechServiceEnum.deepgram.name)
+                _DeepgramSettings()
+              else if (AppCache.textToSpeechService.value ==
+                  TextToSpeechServiceEnum.azure.name)
+                _AzureSettings()
+              else if (AppCache.textToSpeechService.value ==
+                  TextToSpeechServiceEnum.elevenlabs.name)
+                _ElevenLabsSettings(),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ElevenLabsSettings extends StatelessWidget {
+  const _ElevenLabsSettings({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ElevenLabs API key (speech) \$\$\$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        ElevenLabsConfigContainer(),
+        // Button(
+        //   child: const Text('Configure ElevenLabs'),
+        //   onPressed: () => ElevenlabsSpeech.showConfigureDialog(context),
+        // ),
+      ],
+    );
+  }
+}
+
+class _AzureSettings extends StatefulWidget {
+  const _AzureSettings({super.key});
+
+  @override
+  State<_AzureSettings> createState() => _AzureSettingsState();
+}
+
+class _AzureSettingsState extends State<_AzureSettings> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Azure API key (speech) \$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.azureSpeechApiKey.value,
+          placeholder: AppCache.azureSpeechApiKey.value,
+          obscureText: true,
+          suffix: DropDownButton(
+              leading: Text('Voice: ${AppCache.azureVoiceModel.value}'),
+              items: [
+                for (var model in AzureSpeech.listModels)
+                  MenuFlyoutItem(
+                    selected: AppCache.azureVoiceModel.value == model,
+                    trailing: SqueareIconButton(
+                      onTap: () {
+                        final previousModel = AppCache.azureVoiceModel.value;
+                        if (AzureSpeech.isValid()) {
+                          AppCache.azureVoiceModel.value = model;
+                          AzureSpeech.readAloud(
+                            'This is a sample text to read aloud',
+                            onCompleteReadingAloud: () {
+                              AppCache.azureVoiceModel.value = previousModel;
+                            },
+                          );
+                        }
+                      },
+                      icon: const Icon(FluentIcons.play_circle_24_filled),
+                      tooltip: 'Read sample',
+                    ),
+                    onPressed: () {
+                      AppCache.azureVoiceModel.value = model;
+                      DeepgramSpeech.init();
+                      setState(() {});
+                    },
+                    text: Text(model),
+                  ),
+              ]),
+          onChanged: (value) {
+            AppCache.azureSpeechApiKey.value = value.trim();
+            AzureSpeech.init();
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _DeepgramSettings extends StatefulWidget {
+  const _DeepgramSettings({super.key});
+
+  @override
+  State<_DeepgramSettings> createState() => _DeepgramSettingsState();
+}
+
+class _DeepgramSettingsState extends State<_DeepgramSettings> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Deepgram API key (speech) \$\$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.deepgramApiKey.value,
+          placeholder: AppCache.deepgramApiKey.value,
+          obscureText: true,
+          suffix: DropDownButton(
+              leading: Text('Voice: ${AppCache.deepgramVoiceModel.value}'),
+              items: [
+                for (var model in DeepgramSpeech.listModels)
+                  MenuFlyoutItem(
+                    selected: AppCache.deepgramVoiceModel.value == model,
+                    trailing: SqueareIconButton(
+                      onTap: () {
+                        if (DeepgramSpeech.isValid()) {
+                          DeepgramSpeech.readAloud(
+                              'This is a sample text to read aloud');
+                        }
+                      },
+                      icon: const Icon(FluentIcons.play_circle_24_filled),
+                      tooltip: 'Read sample',
+                    ),
+                    onPressed: () {
+                      AppCache.deepgramVoiceModel.value = model;
+                      DeepgramSpeech.init();
+                      setState(() {});
+                    },
+                    text: Text(model),
+                  ),
+              ]),
+          onChanged: (value) {
+            AppCache.deepgramApiKey.value = value.trim();
+            DeepgramSpeech.init();
+          },
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://console.deepgram.com',
+            url: 'https://console.deepgram.com',
           ),
         ),
       ],
@@ -1194,15 +1255,15 @@ class _OtherSettings extends StatelessWidget {
           },
         ),
         CheckBoxTooltip(
-          content: const Text('Enable watch mode'),
+          content: const Text('Enable annoy mode'),
           tooltip:
               'Use timer and allow AI to write you. Can cause additional charges!',
           checked: AppCache.enableAutonomousMode.value,
           onChanged: (value) async {
             if (value!) {
-              await AutonomousFeature.showConfigureDialog();
+              await AnnoyFeature.showConfigureDialog();
             } else {
-              AutonomousFeature.stop();
+              AnnoyFeature.stop();
               AppCache.enableAutonomousMode.value = false;
             }
             appTheme.updateUI();
@@ -1835,6 +1896,11 @@ class __CacheSectionState extends State<_CacheSection> {
           spacing: 8.0,
           runSpacing: 8,
           children: [
+            Button(
+                child: Text('PN'),
+                onPressed: () {
+                  NotificationService.showNotification('title', 'body');
+                }),
             Button(
                 child: Text('Application storage location'),
                 onPressed: () {

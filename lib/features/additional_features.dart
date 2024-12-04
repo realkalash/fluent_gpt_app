@@ -10,6 +10,6 @@ class AdditionalFeatures {
     ImgurIntegration.init();
     TextToSpeechService.init();
     ScreenshotTool.init(isStorageAccessGranted: isStorageAccessGranted);
-    AutonomousFeature.init();
+    AnnoyFeature.init();
   }
 }

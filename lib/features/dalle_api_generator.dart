@@ -26,6 +26,9 @@ class DalleApiGenerator {
     String quality = "hd",
     String style = "natural",
   }) async {
+    if (prompt.isEmpty) {
+      throw Exception("Prompt cannot be empty");
+    }
     // response_format ('url' or 'b64_json'): The format in which the generated images are returned. Must be one of "url" or "b64_json". Defaults to "url".
     // lets use b64_json
     final requestBody = {
@@ -54,7 +57,7 @@ class DalleApiGenerator {
       "b64_json": "iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAA
      */
     if (response.statusCode != 200) {
-      throw Exception("Failed to generate image");
+      throw Exception("Failed to generate image. ${response.body} ${response.statusCode} ${response.reasonPhrase}");
     }
     final responseBody = jsonDecode(response.body);
     final ImageCustomMessage imageCustomMessage = ImageCustomMessage(

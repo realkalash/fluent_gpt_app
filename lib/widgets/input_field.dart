@@ -56,7 +56,7 @@ class _InputFieldState extends State<InputField> {
       return;
     }
     if (altPressedStream.value) {
-      chatProvider.addMessageSystem(text).then((_){
+      chatProvider.addMessageSystem(text).then((_) {
         chatProvider.updateUI();
       });
       clearFieldAndFocus();
@@ -512,7 +512,8 @@ class _InputFieldState extends State<InputField> {
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
-                text: const Text('Send silently as AI answer'),
+                text: Text(
+                    'Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
                 onPressed: () async {
                   final timestamp = DateTime.now().millisecondsSinceEpoch;
                   provider.addBotMessageToList(
@@ -524,6 +525,7 @@ class _InputFieldState extends State<InputField> {
                     ),
                   );
                   clearFieldAndFocus();
+                  provider.onResponseEnd(controller.text, '$timestamp');
                 }),
           MenuFlyoutSeparator(),
           if (text.isNotEmpty)
@@ -566,7 +568,7 @@ class _InputFieldState extends State<InputField> {
 
 OverlayEntry? aliasesCommandsOverlay;
 List<String> _quickInputCommandsList = [
-  ...AliasesOverlay.quickInputDefaultCommands,
+  // ...AliasesOverlay.quickInputDefaultCommands,
 ];
 void removeInputFieldQuickCommandsOverlay() {
   if (aliasesCommandsOverlay != null) {
@@ -1205,6 +1207,14 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                         );
                         txtController.clear();
                       }),
+                  ToggleButtonAdvenced(
+                    icon: ic.FluentIcons.settings_20_regular,
+                    onChanged: (_) => showDialog(
+                      context: context,
+                      builder: (ctx) => const CustomPromptsSettingsDialog(),
+                    ),
+                    tooltip: 'Customize custom promtps',
+                  ),
                 ],
               ),
             ),
