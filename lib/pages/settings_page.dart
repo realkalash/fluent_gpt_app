@@ -1254,21 +1254,23 @@ class _OtherSettings extends StatelessWidget {
             appTheme.updateUI();
           },
         ),
-        CheckBoxTooltip(
-          content: const Text('Enable annoy mode'),
-          tooltip:
-              'Use timer and allow AI to write you. Can cause additional charges!',
-          checked: AppCache.enableAutonomousMode.value,
-          onChanged: (value) async {
-            if (value!) {
-              await AnnoyFeature.showConfigureDialog();
-            } else {
-              AnnoyFeature.stop();
-              AppCache.enableAutonomousMode.value = false;
-            }
-            appTheme.updateUI();
-          },
-        ),
+        // TODO: add for linux and macos
+        if (Platform.isWindows)
+          CheckBoxTooltip(
+            content: const Text('Enable annoy mode'),
+            tooltip:
+                'Use timer and allow AI to write you. Can cause additional charges!',
+            checked: AppCache.enableAutonomousMode.value,
+            onChanged: (value) async {
+              if (value!) {
+                await AnnoyFeature.showConfigureDialog();
+              } else {
+                AnnoyFeature.stop();
+                AppCache.enableAutonomousMode.value = false;
+              }
+              appTheme.updateUI();
+            },
+          ),
         spacer,
         // Text('Autoscroll speed (use it if the chat is jumping too hard)'),
         // Consumer<ChatProvider>(
