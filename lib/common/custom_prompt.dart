@@ -29,6 +29,9 @@ class CustomPrompt {
   /// If true will be shown in the overlay
   final bool showInOverlay;
 
+  /// If true will be shown in the context menu on right click
+  final bool showInContextMenu;
+
   final List<String> tags;
 
   /// If not empty, this prompt will be shown as a dropdown
@@ -51,6 +54,7 @@ class CustomPrompt {
     this.index = 0,
     this.showInChatField = false,
     this.showInOverlay = false,
+    this.showInContextMenu = false,
     this.children = const [],
     this.iconCodePoint = 62086,
     this.hotkey,
@@ -76,6 +80,7 @@ class CustomPrompt {
     };
 
     var result = prompt;
+
     /// Replace all the placeholders
     /// This should be faster then basing replaceAll on the whole string
     for (final entry in replacements.entries) {
@@ -111,6 +116,7 @@ class CustomPrompt {
       'prompt': prompt,
       'showInChatField': showInChatField,
       'showInOverlay': showInOverlay,
+      'showInContextMenu': showInContextMenu,
       'children': children.map((e) => e.toJson()).toList(),
       'icon': iconCodePoint,
       'hotkey': hotkey?.toJson(),
@@ -131,6 +137,7 @@ class CustomPrompt {
       showInChatField: json['showInChatField'],
       index: json['index'] ?? 0,
       showInOverlay: json['showInOverlay'],
+      showInContextMenu: json['showInContextMenu'] ?? false,
       children: (json['children'] is List)
           ? (json['children'] as List)
               .map((e) => CustomPrompt.fromJson(e))
@@ -161,6 +168,7 @@ class CustomPrompt {
     int? iconCodePoint,
     bool? showInChatField,
     bool? showInOverlay,
+    bool? showInContextMenu,
     List<CustomPrompt>? children,
     HotKey? hotkey,
     bool? focusTheWindowOnRun,
@@ -174,6 +182,7 @@ class CustomPrompt {
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       showInChatField: showInChatField ?? this.showInChatField,
       showInOverlay: showInOverlay ?? this.showInOverlay,
+      showInContextMenu: showInContextMenu ?? this.showInContextMenu,
       children: children ?? this.children,
       hotkey: hotkey ?? this.hotkey,
       focusTheWindowOnRun: focusTheWindowOnRun ?? this.focusTheWindowOnRun,

@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/g_drive_integration.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
@@ -9,5 +10,6 @@ class AdditionalFeatures {
     ImgurIntegration.init();
     TextToSpeechService.init();
     ScreenshotTool.init(isStorageAccessGranted: isStorageAccessGranted);
+    AnnoyFeature.init();
   }
 }

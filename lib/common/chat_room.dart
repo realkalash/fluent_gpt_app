@@ -30,6 +30,8 @@ class ChatRoom {
   int? totalSentTokens;
   int? totalReceivedTokens;
   String? systemMessage;
+  String characterName;
+  String? characterAvatarPath;
 
   ChatRoom({
     required this.id,
@@ -50,6 +52,8 @@ class ChatRoom {
     this.iconCodePoint = 62087,
     this.totalSentTokens = 0,
     this.totalReceivedTokens = 0,
+    this.characterName = 'ai',
+    this.characterAvatarPath,
   });
 
   /// Method to encrypt the apiToken
@@ -106,6 +110,8 @@ class ChatRoom {
       totalReceivedTokens: map['totalReceivedTokens'] ?? 0,
       dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ??
           DateTime.now().millisecondsSinceEpoch,
+      characterName: map['characterName'] ?? 'ai',
+      characterAvatarPath: map['avatarPath'],
     );
   }
 
@@ -135,6 +141,8 @@ class ChatRoom {
       // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
       'dateCreatedMilliseconds': dateCreatedMilliseconds,
+      'characterName': characterName,
+      'avatarPath': characterAvatarPath,
     };
   }
 
@@ -197,6 +205,8 @@ class ChatRoom {
     String? token,
     String? orgID,
     String? systemMessage,
+    String? characterName,
+    String? avatarPath,
     double? costUSD,
     int? tokens,
     int? iconCodePoint,
@@ -223,6 +233,8 @@ class ChatRoom {
           dateCreatedMilliseconds ?? this.dateCreatedMilliseconds,
       totalSentTokens: totalSentTokens ?? this.totalSentTokens,
       totalReceivedTokens: totalReceivedTokens ?? this.totalReceivedTokens,
+      characterName: characterName ?? this.characterName,
+      characterAvatarPath: avatarPath ?? characterAvatarPath,
     );
   }
 

@@ -13,6 +13,7 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
@@ -23,11 +24,13 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/command_request_answer_overlay.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -139,6 +142,7 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
 
 final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
 
+
 class ChatProvider with ChangeNotifier {
   final listItemsScrollController = AutoScrollController();
   static final TextEditingController messageControllerGlobal =
@@ -160,6 +164,49 @@ class ChatProvider with ChangeNotifier {
   BuildContext? context;
 
   int _messageTextSize = 14;
+
+  /// Used to show the container with the answer only to one single message
+  OverlayEntry? _overlayEntry;
+
+  void closeQuickOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Future<void> sendToQuickOverlay(String title, String prompt) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final tokens = await countTokensString(prompt);
+    final messageToSend = FluentChatMessage.humanText(
+      id: '$timestamp',
+      content: prompt,
+      timestamp: timestamp,
+      creator: AppCache.userName.value!,
+      tokens: tokens,
+    );
+    _overlayEntry?.remove();
+    // var posX = mouseLocalPosition.dx;
+    var posY = mouseLocalPosition.dy;
+    final screen = MediaQuery.of(context!).size; // '1920x1080'
+    // final screenX = double.parse(screen.first);
+    // ensure we don't go out of the screen
+    // if (posX + 400 > screenX) {
+    //   posX = screenX - 400;
+    // }
+    if (posY + 200 > screen.height) {
+      posY = screen.height - 200;
+    }
+    final overlay = OverlayEntry(
+      builder: (context) => CommandRequestAnswerOverlay(
+        message: messageToSend,
+        initPosTop: posY,
+        // ignore it for now, because it will be near message anyway
+        initPosLeft: 64,
+        screenSize: MediaQuery.of(context).size,
+      ),
+    );
+    _overlayEntry = overlay;
+    Overlay.of(context!).insert(overlay);
+  }
 
   void setMaxTokensForChat(int? v) {
     if (v == null) return;
@@ -306,12 +353,14 @@ class ChatProvider with ChangeNotifier {
 
   Future initCustomActions() async {
     final actionsJson = await AppCache.customActions.value();
-    if (actionsJson.isNotEmpty == true) {
+    if (actionsJson.isNotEmpty == true && actionsJson != '[]') {
       final actions = jsonDecode(actionsJson) as List;
       final listActions = actions
           .map((e) => OnMessageAction.fromJson(e as Map<String, dynamic>))
           .toList();
       onMessageActions.add(listActions);
+    } else {
+      onMessageActions.add(defaultCustomActionsList);
     }
   }
 
@@ -384,6 +433,8 @@ class ChatProvider with ChangeNotifier {
       } else if (command == TrayCommand.push_to_talk_message.name) {
         messageController.clear();
         sendMessage(text, hidePrompt: true, onFinishResponse: () async {
+          /// if we already have enabled this, it will be played automatically in [onResponseEnd] function
+          if (AppCache.autoPlayMessagesFromAi.value == true) return;
           final aiAnswer = messages.value.entries.last.value;
           // use text-to-speech to read the answer
           if (TextToSpeechService.isValid()) {
@@ -434,7 +485,7 @@ class ChatProvider with ChangeNotifier {
           FluentChatMessage.image(
             id: '$timestamp',
             content: base64String,
-            creator: 'human',
+            creator: AppCache.userName.value!,
             timestamp: timestamp,
           ),
         );
@@ -450,16 +501,22 @@ class ChatProvider with ChangeNotifier {
           FluentChatMessage.humanText(
               id: '$timestamp',
               content: text,
-              creator: 'human',
+              creator: AppCache.userName.value!,
               timestamp: timestamp,
               tokens: await countTokensString(text)),
         );
         isGeneratingImage = true;
         notifyListeners();
+        final openAiModel = allModels.value
+            .firstWhereOrNull((element) => element.ownedBy == 'openai');
+        if (openAiModel == null) {
+          throw Exception(
+              'OpenAI model not found. Please add at least one OpenAI model to use this feature');
+        }
         final imageChatMessage = await DalleApiGenerator.generateImage(
           prompt: imagePrompt,
-          model: kDebugMode ? 'dall-e-2' : 'dall-e-3',
-          apiKey: openAI!.apiKey,
+          model: 'dall-e-3',
+          apiKey: openAiModel.apiKey,
         );
         final newTimestamp = DateTime.now().millisecondsSinceEpoch;
         addCustomMessageToList(
@@ -637,12 +694,14 @@ class ChatProvider with ChangeNotifier {
 
   Future<String> convertMessagesToString(List<FluentChatMessage> messages,
       {bool includeSystemMessages = false}) async {
+    final aiName = selectedChatRoom.characterName;
+    final userName = AppCache.userName.value ?? 'User';
     final result = messages.map((e) {
       if (e.type == FluentChatMessageType.textAi) {
-        return 'AI: ${e.content}';
+        return '$aiName: ${e.content}';
       }
       if (e.type == FluentChatMessageType.textHuman) {
-        return 'Human: ${e.content}';
+        return '$userName: ${e.content}';
       }
       if (e.type == FluentChatMessageType.webResult) {
         final results = e.webResults;
@@ -674,7 +733,11 @@ class ChatProvider with ChangeNotifier {
       // This is a first message, so it will regenerate the system message from the global prompt
       // for chat that been cleared. This is expected bug!
       selectedChatRoom.systemMessage = await getFormattedSystemPrompt(
-        basicPrompt: defaultGlobalSystemMessage,
+        basicPrompt: (selectedChatRoom.systemMessage ?? '').isEmpty
+            ? defaultGlobalSystemMessage
+            : selectedChatRoom.systemMessage!
+                .split(contextualInfoDelimeter)
+                .first,
       );
 
       /// Name chat room
@@ -705,7 +768,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.humanText(
           id: '$timestamp',
           content: messageContent,
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
           tokens: await countTokensString(messageContent),
         ),
@@ -760,7 +823,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.humanText(
           id: '$timestamp',
           content: messageContent,
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
         ),
       );
@@ -784,7 +847,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.image(
           id: '$timestamp',
           content: base64,
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
         ),
       );
@@ -798,7 +861,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage(
           id: '$timestamp',
           content: contentString,
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
           type: FluentChatMessageType.file,
           fileName: fileName,
@@ -815,7 +878,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage(
           id: '$timestamp',
           content: contentString,
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
           type: FluentChatMessageType.file,
           fileName: fileName,
@@ -833,7 +896,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage(
           id: '$timestamp',
           content: contentString ?? '<No data available>',
-          creator: 'human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
           type: FluentChatMessageType.file,
           fileName: fileName,
@@ -927,6 +990,7 @@ class ChatProvider with ChangeNotifier {
             content: response.content,
             timestamp: timestamp,
             tokens: await countTokensString(response.content),
+            creator: selectedChatRoom.characterName,
           ),
         );
         saveToDisk([selectedChatRoom]);
@@ -1007,6 +1071,7 @@ class ChatProvider with ChangeNotifier {
                 id: responseId,
                 content: message.content,
                 timestamp: time,
+                creator: selectedChatRoom.characterName,
               ),
             );
           } else {
@@ -1071,7 +1136,6 @@ class ChatProvider with ChangeNotifier {
     } catch (e, stack) {
       logError('Error while answering: $e', stack);
       addBotErrorMessageToList(
-        // SystemChatMessage(content: 'Error while answering: $e'),
         FluentChatMessage.ai(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           content: '$e',
@@ -1084,13 +1148,30 @@ class ChatProvider with ChangeNotifier {
   }
 
   void onResponseEnd(String userContent, String id) async {
-    /* TODO: add more */
     final FluentChatMessage? response = messages.value[id];
     if (response == null) return;
     if (response.type != FluentChatMessageType.textAi) {
       logError('aiResponse is not from AI');
       return;
     }
+
+    if (AppCache.autoPlayMessagesFromAi.value!) {
+      if (TextToSpeechService.isValid()) {
+        isAnswering = true;
+        notifyListeners();
+        await TextToSpeechService.readAloud(
+          response.content,
+          onCompleteReadingAloud: () {
+            isAnswering = false;
+            notifyListeners();
+          },
+        );
+      }
+    }
+    AnnoyFeature.lastTimeAiAnswered = DateTime.now();
+
+    /// Will restart autonomous mode and all timers if enabled in cache settings
+    AnnoyFeature.init();
 
     /// calculate tokens and swap message
     final tokens = await countTokensString(response.content);
@@ -1100,6 +1181,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(values);
 
     for (var action in onMessageActions.value) {
+      if (action.isEnabled == false) continue;
       final hasMatch = action.regExp.hasMatch(response.content);
       if (hasMatch) {
         final match = action.regExp.firstMatch(response.content);
@@ -1110,6 +1192,13 @@ class ChatProvider with ChangeNotifier {
         } else if (action.actionEnum == OnMessageActionEnum.copyText) {
           await Clipboard.setData(ClipboardData(text: response.content));
           displayCopiedToClipboard();
+        } else if (action.actionEnum == OnMessageActionEnum.remember) {
+          final lastFewMessages = await getLastFewMessages(count: 3);
+          final lastMessagesAsString =
+              await convertMessagesToString(lastFewMessages);
+          await generateUserKnowladgeBasedOnText(lastMessagesAsString);
+        } else if (action.actionEnum == OnMessageActionEnum.generateImage) {
+          _onResponseEndGenerateImage(response.content, response, action);
         } else if (action.actionEnum == OnMessageActionEnum.openUrl) {
           await launchUrlString(match!.group(1)!);
         } else if (action.actionEnum == OnMessageActionEnum.runShellCommand) {
@@ -1174,7 +1263,7 @@ class ChatProvider with ChangeNotifier {
           list.insert(0, message);
         } else if (message.type == FluentChatMessageType.image ||
             message.type == FluentChatMessageType.imageAi) {
-          list.insert(0, message);
+          if (selectedChatRoom.model.imageSupported) list.insert(0, message);
         } else {
           // insert at start to maintain order
           list.insert(0, message);
@@ -1230,6 +1319,7 @@ class ChatProvider with ChangeNotifier {
   }) async {
     int currentTokens = 0;
     final result = <FluentChatMessage>[];
+    final chatModel = selectedChatRoom.model;
 
     /// We need to count from the bottom to the top. We cant use messagesReversedList because it takes time to populate it
     for (var message in messages.value.values.toList().reversed) {
@@ -1239,20 +1329,19 @@ class ChatProvider with ChangeNotifier {
           message.type == FluentChatMessageType.file) {
         final tokensCount = message.tokens;
         // await modelCounter.countTokens(PromptValue.string(message.content));
-        print(
-            'Tokens: $tokensCount; message: ${message.content.split('\n').first}');
         if ((currentTokens + tokensCount) > tokens) {
-          print(
-              '[BREAK beacuse of limit] Tokens: $tokensCount; message: ${message.content.split('\n').first} ');
+          if (kDebugMode) {
+            print(
+                '[BREAK beacuse of limit] Tokens: $tokensCount; message: ${message.content.split('\n').first} ');
+          }
           break;
         }
-        print('Continue\n');
         currentTokens += tokensCount;
         result.add(message);
       } else if (allowImages &&
           (message.type == FluentChatMessageType.image ||
               message.type == FluentChatMessageType.imageAi)) {
-        result.add(message);
+        if (chatModel.imageSupported) result.add(message);
       }
     }
     // if allowOverflow is true and we didn't add any element, add only the last one
@@ -1279,12 +1368,14 @@ class ChatProvider with ChangeNotifier {
   Future<String> getLastFewMessagesForContextAsString(
       {int maxTokensLenght = 1024}) async {
     final lastMessages = await getLastMessagesLimitToTokens(maxTokensLenght);
+    final userName = AppCache.userName.value ?? 'User';
+    final characterName = selectedChatRoom.characterName;
     return lastMessages.map((e) {
       if (e.type == FluentChatMessageType.textHuman) {
-        return 'Human: ${e.content}';
+        return '$userName: ${e.content}';
       }
       if (e.type == FluentChatMessageType.textAi) {
-        return 'Ai: ${e.content}';
+        return '$characterName: ${e.content}';
       }
       if (e.type == FluentChatMessageType.webResult) {
         final results = e.webResults;
@@ -1302,12 +1393,21 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
+  Future<int> countTokensForMessagesString(List<ChatMessage> messages) async {
+    if (selectedModel.ownedBy == 'openai') {
+      return openAI!.countTokens(PromptValue.chat(messages));
+    } else {
+      return localModel!.countTokens(PromptValue.chat(messages));
+    }
+  }
+
   /// Will not use chat history.
   /// Use [showPromptInChat] to show [messageContent] as a request in the chat
   /// Use [showImageInChat] to show [imageBase64] in the chat
+  /// Use [systemMessage] to put a system message in the request
   Future sendSingleMessage(
     String messageContent, {
-    int? maxTokens,
+    String? systemMessage,
     String? imageBase64,
     bool showPromptInChat = false,
     bool showImageInChat = false,
@@ -1315,6 +1415,9 @@ class ChatProvider with ChangeNotifier {
   }) async {
     final messagesToSend = <ChatMessage>[];
     if (imageBase64 == null) {
+      if (systemMessage != null) {
+        messagesToSend.add(SystemChatMessage(content: systemMessage));
+      }
       messagesToSend.add(
           HumanChatMessage(content: ChatMessageContent.text(messageContent)));
     } else {
@@ -1333,7 +1436,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.humanText(
           id: messageId,
           content: messageContent,
-          creator: AppCache.userName.value ?? 'Human',
+          creator: AppCache.userName.value!,
           timestamp: DateTime.now().millisecondsSinceEpoch,
           tokens: tokens,
         ),
@@ -1345,15 +1448,12 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.image(
           id: '$timestamp',
           content: imageBase64,
-          creator: AppCache.userName.value ?? 'Human',
+          creator: AppCache.userName.value!,
           timestamp: timestamp,
         ),
       );
     }
-    final options = ChatOpenAIOptions(
-      model: selectedChatRoom.model.modelName,
-      maxTokens: maxTokens,
-    );
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
     String responseId = DateTime.now().millisecondsSinceEpoch.toString();
     try {
       if (sendAsStream) {
@@ -1407,9 +1507,21 @@ class ChatProvider with ChangeNotifier {
 
   /// Will not use chat history.
   /// Will not populate messages
-  Future<String> retrieveResponseFromPrompt(String message,
-      {int maxTokensResponse = 100}) async {
+  /// Will increase token counter
+  Future<String> retrieveResponseFromPrompt(
+    String message, {
+    String? systemMessage,
+    List<FluentChatMessage> additionalPreMessages = const [],
+  }) async {
     final messagesToSend = <ChatMessage>[];
+
+    if (systemMessage != null) {
+      messagesToSend.add(SystemChatMessage(content: systemMessage));
+    }
+    if (additionalPreMessages.isNotEmpty) {
+      messagesToSend
+          .addAll(additionalPreMessages.map((e) => e.toLangChainChatMessage()));
+    }
 
     messagesToSend
         .add(HumanChatMessage(content: ChatMessageContent.text(message)));
@@ -1420,12 +1532,26 @@ class ChatProvider with ChangeNotifier {
     AIChatMessage response;
     final options = ChatOpenAIOptions(
       model: selectedChatRoom.model.modelName,
-      maxTokens: maxTokensResponse,
     );
+    var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
+    var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
     if (selectedModel.ownedBy == 'openai') {
+      sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
       response = await openAI!.call(messagesToSend, options: options);
+      respTokens +=
+          await openAI!.countTokens(PromptValue.string(response.content));
     } else {
+      sentTokens +=
+          await localModel!.countTokens(PromptValue.chat(messagesToSend));
       response = await localModel!.call(messagesToSend, options: options);
+      respTokens +=
+          await localModel!.countTokens(PromptValue.string(response.content));
+    }
+    if (sentTokens != selectedChatRoom.totalSentTokens) {
+      selectedChatRoom.totalSentTokens = sentTokens;
+    }
+    if (respTokens != selectedChatRoom.totalReceivedTokens) {
+      selectedChatRoom.totalReceivedTokens = respTokens;
     }
     if (kDebugMode) {
       log('response: $response');
@@ -1721,15 +1847,34 @@ class ChatProvider with ChangeNotifier {
 
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
+    final oldChatRoom = chatRooms[oldChatRoomId];
+    final isCharNameChanged =
+        oldChatRoom!.characterName != chatRoom.characterName;
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
+      if (isCharNameChanged) {
+        // ignore: no_leading_underscores_for_local_identifiers
+        final Map<String, FluentChatMessage> _messages = {};
+        // we need to go through all messages and change the creator name
+        for (var message in messages.value.values) {
+          if (message.type == FluentChatMessageType.textAi) {
+            _messages[message.id] =
+                message.copyWith(creator: chatRoom.characterName);
+          } else {
+            _messages[message.id] = message;
+          }
+        }
+        messages.add(_messages);
+      }
     }
     chatRooms.remove(oldChatRoomId);
     chatRooms[chatRoom.id] = chatRoom;
     if (switchToForeground) {
       selectedChatRoomId = chatRoom.id;
     }
+
     notifyRoomsStream();
+    notifyListeners();
     saveToDisk([selectedChatRoom]);
   }
 
@@ -1810,19 +1955,15 @@ class ChatProvider with ChangeNotifier {
       if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
       if (messages.value.isEmpty) return;
 
-      /// animate down
-      // listItemsScrollController.animateTo(
-      //   listItemsScrollController.position.maxScrollExtent +
-      //       (200 * autoScrollSpeed),
-      //   duration: const Duration(milliseconds: 10),
-      //   curve: Curves.linear,
-      // );
-      /// Animate up
-      listItemsScrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.linear,
-      );
+      // '_positions.isNotEmpty': ScrollController not attached to any scroll views.
+      if (listItemsScrollController.hasClients) {
+        // 0 because list is reversed
+        listItemsScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error while scrolling to end: $e');
@@ -2041,16 +2182,17 @@ class ChatProvider with ChangeNotifier {
     micStream = null;
   }
 
-  Future editMessage(String id, String text) async {
-    final message = messages.value[id];
-    if (message?.type == FluentChatMessageType.textHuman ||
-        message?.type == FluentChatMessageType.textAi) {
-      final newLenghtTokens =
-          await (openAI ?? localModel)!.countTokens(PromptValue.string(text));
-      final newMessage =
-          message!.copyWith(content: text, tokens: newLenghtTokens);
+  Future editMessage(String id, FluentChatMessage message) async {
+    if (message.type == FluentChatMessageType.textHuman ||
+        message.type == FluentChatMessageType.textAi) {
+      final newLenghtTokens = await countTokensString(message.content);
+
       final messagesList = messages.value;
-      messagesList[id] = newMessage.copyWith(content: text);
+      messagesList[id] = message.copyWith(tokens: newLenghtTokens);
+      messages.add(messagesList);
+    } else {
+      final messagesList = messages.value;
+      messagesList[id] = message;
       messages.add(messagesList);
     }
     saveToDisk([selectedChatRoom]);
@@ -2123,6 +2265,90 @@ class ChatProvider with ChangeNotifier {
     chatRoom.indexSort = 999999;
     notifyRoomsStream();
     // dont save chat right now because it will override messages in the file with empty list
+  }
+
+  Future<void> _onResponseEndGenerateImage(String content,
+      FluentChatMessage response, OnMessageAction action) async {
+    final promptMessage = messages.value.entries.last.value.copyWith();
+    // deleteMessage(messagesReversedList.first.id);
+    final prompt = response.content.replaceAll(action.regExp, '');
+
+    final openAiModel = allModels.value.firstWhereOrNull(
+      (element) => element.ownedBy == 'openai' && element.apiKey.isNotEmpty,
+    );
+    if (openAiModel == null) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addBotErrorMessageToList(
+        FluentChatMessage.ai(
+          id: timestamp.toString(),
+          content:
+              'OpenAI model with valid API token not found. Please add at least one openai model with API key.',
+          creator: 'error',
+          timestamp: timestamp,
+        ),
+      );
+      return;
+    }
+    isGeneratingImage = true;
+    notifyListeners();
+    try {
+      final imageChatMessage = await DalleApiGenerator.generateImage(
+        prompt: prompt,
+        apiKey: openAiModel.apiKey,
+      );
+      final newTimestamp = DateTime.now().millisecondsSinceEpoch;
+      addCustomMessageToList(
+        FluentChatMessage.imageAi(
+          id: '$newTimestamp',
+          content: imageChatMessage.content,
+          creator: imageChatMessage.generatedBy,
+          timestamp: newTimestamp,
+          imagePrompt: imageChatMessage.revisedPrompt,
+        ),
+      );
+      final questionAboutImage = await retrieveResponseFromPrompt(
+        'Ask user how they feel about your drawing',
+        systemMessage: selectedChatRoom.systemMessage,
+        additionalPreMessages: [
+          messagesReversedList[0],
+          promptMessage,
+        ],
+      );
+      final newTimestamp2 = DateTime.now().millisecondsSinceEpoch;
+      final countTokens = await countTokensString(questionAboutImage);
+      addBotMessageToList(
+        FluentChatMessage.ai(
+          id: newTimestamp2.toString(),
+          content: questionAboutImage,
+          timestamp: newTimestamp2,
+          creator: selectedChatRoom.characterName,
+          tokens: countTokens,
+        ),
+      );
+    } catch (e) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addBotErrorMessageToList(
+        FluentChatMessage.ai(
+          id: timestamp.toString(),
+          content: 'Error while generating image: $e',
+          creator: 'error',
+          timestamp: timestamp,
+        ),
+      );
+    } finally {
+      isGeneratingImage = false;
+      notifyListeners();
+    }
+  }
+
+  bool isTypingSimulate = false;
+
+  Future simulateAiTyping() async {
+    isTypingSimulate = true;
+    notifyListeners();
+    await Future.delayed(const Duration(seconds: 2));
+    isTypingSimulate = false;
+    notifyListeners();
   }
 }
 

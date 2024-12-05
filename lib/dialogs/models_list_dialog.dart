@@ -131,6 +131,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
     customName: 'ChatGpt 4o',
     ownedBy: OwnedByEnum.openai.name,
     uri: 'https://api.openai.com/v1',
+    imageSupported: false,
   );
   final _formKey = GlobalKey<FormState>();
   bool obscureKey = true;
@@ -204,6 +205,15 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               },
               onChanged: (value, reason) {
                 model = model.copyWith(modelName: value);
+              },
+            ),
+            spacer,
+            Checkbox(
+              content: const Text('Support images?'),
+              checked: model.imageSupported,
+              onChanged: (value) {
+                model = model.copyWith(imageSupported: value);
+                setState(() {});
               },
             ),
             spacer,

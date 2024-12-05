@@ -485,6 +485,11 @@ class _PromptListTile extends StatelessWidget {
     }
   }
 
+  void moveDown(CustomPrompt item) {
+    final newItem = item.copyWith(index: item.index - 1);
+    updateItem(newItem, item);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BasicListTile(
@@ -587,6 +592,25 @@ class _PromptListTile extends StatelessWidget {
                   ],
                 ),
               ),
+              SizedBox(
+                height: 48,
+                width: 64,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      checked: prompt.showInContextMenu,
+                      onChanged: (value) {
+                        final newPrompt =
+                            prompt.copyWith(showInContextMenu: value!);
+                        updateItem(newPrompt, prompt);
+                      },
+                    ),
+                    const Text('Context menu', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -634,6 +658,12 @@ class _PromptListTile extends StatelessWidget {
                 },
               ),
             ),
+          IconButton(
+            icon: const Icon(FluentIcons.arrow_down_24_filled),
+            onPressed: () {
+              moveDown(prompt);
+            },
+          ),
         ],
       ),
     );

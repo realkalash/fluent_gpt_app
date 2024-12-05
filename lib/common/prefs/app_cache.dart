@@ -24,7 +24,8 @@ class AppCache {
       StringPref("textToSpeechService", 'deepgram');
   static const deepgramVoiceModel =
       StringPref("deepgramVoiceModel", 'aura-asteria-en');
-  static const azureVoiceModel = StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
+  static const azureVoiceModel =
+      StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
   static const elevenlabsVoiceModelName =
       StringPref("elevenlabsVoiceModel", 'Aria');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
@@ -114,6 +115,11 @@ class AppCache {
       BoolPref("copyToClipboardEnabled", true);
   static const useAiToNameChat =
       BoolPref("useSecondRequestForNamingChats", false);
+  static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
+  static const annoyModeTimerMinMinutes =
+      IntPref("annoyModeTimerMinMinutes", 100);
+  static const annoyModeTimerMaxMinutes =
+      IntPref("annoyModeTimerMaxMinutes", 120);
   static const includeUserNameToSysPrompt =
       BoolPref("includeUserNameToSysPrompt", false);
   static const includeUserCityNamePrompt =
@@ -127,6 +133,9 @@ class AppCache {
       BoolPref("includeTimeToSystemPrompt", false);
   static const learnAboutUserAfterCreateNewChat =
       BoolPref("learnAboutUserAfterCreateNewChat", false);
+  static const autoPlayMessagesFromAi =
+      BoolPref("autoPlayMessagesFromAi", false);
+  static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
 
   /* Use API */
   static const useGoogleApi = BoolPref("useGoogleApi", false);

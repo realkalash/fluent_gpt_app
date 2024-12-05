@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,8 +11,9 @@ class CodeWrapperWidget extends StatefulWidget {
   final String content;
   final String language;
   final PreConfig preConfig;
+  final FocusNode? focusNode;
   final TextStyle style;
-  final Widget Function(BuildContext, SelectableRegionState)?
+  final Widget Function(BuildContext, CustomSelectableRegionState)?
       contextMenuBuilder;
 
   const CodeWrapperWidget({
@@ -21,6 +23,7 @@ class CodeWrapperWidget extends StatefulWidget {
     required this.preConfig,
     required this.style,
     this.contextMenuBuilder,
+    required this.focusNode,
   });
 
   @override
@@ -59,8 +62,10 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                 bottomLeft: Radius.circular(8),
                 bottomRight: Radius.circular(8)),
           ),
-          child: SelectionArea(
+          child: CustomSelectableRegion(
             contextMenuBuilder: widget.contextMenuBuilder,
+            focusNode: widget.focusNode ?? FocusNode(),
+            selectionControls: materialTextSelectionHandleControls,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: List.generate(splitContents.length, (index) {

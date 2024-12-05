@@ -3,12 +3,15 @@ import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
-import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -18,12 +21,13 @@ import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
+import 'package:fluent_gpt/widgets/hover_tooltip.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/services.dart';
-import 'package:langchain/langchain.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:pasteboard/pasteboard.dart';
@@ -31,6 +35,7 @@ import 'package:provider/provider.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:window_manager/window_manager.dart';
 
 class MessageListTile extends StatelessWidget {
   const MessageListTile({
@@ -141,7 +146,9 @@ class _MessageCardState extends State<MessageCard> {
         child: GestureDetector(
           onSecondaryTap: () {
             flyoutController.showFlyout(
-                builder: (context) => _showOptionsFlyout(context));
+              builder: (context) => _showOptionsFlyout(context),
+              position: mouseLocalPosition,
+            );
           },
           onTap: () {
             setState(() {
@@ -177,20 +184,79 @@ class _MessageCardState extends State<MessageCard> {
       );
 
     tileWidget = MessageListTile(
-      title: Text(widget.message.creator, style: myMessageStyle),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.message.type == FluentChatMessageType.textAi &&
+              selectedChatRoom.characterAvatarPath != null)
+            HoverTooltip(
+              tooltipHeight: 128,
+              tooltipWidth: 128,
+              tooltipContent: Acrylic(
+                blurAmount: 10,
+                child: Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      isAntiAlias: true,
+                      image: FileImage(
+                        File(selectedChatRoom.characterAvatarPath!),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  final base64Image = base64Encode(
+                      File(selectedChatRoom.characterAvatarPath!)
+                          .readAsBytesSync());
+                  _showImageDialog(context,
+                      FluentChatMessage.imageAi(id: '', content: base64Image));
+                },
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.0),
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: FileImage(
+                        File(selectedChatRoom.characterAvatarPath!),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Text(widget.message.creator, style: myMessageStyle),
+        ],
+      ),
       subtitle: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.message.type == FluentChatMessageType.image ||
               widget.message.type == FluentChatMessageType.imageAi)
-            Padding(
-              padding: const EdgeInsets.only(
-                  left: 8.0, right: 8, top: 8, bottom: 12),
-              child: Image.memory(
-                decodeImage(widget.message.content),
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _showImageDialog(context, widget.message),
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                      left: 0.0, right: 12, top: 8, bottom: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10.0),
+                    child: Image.memory(
+                      decodeImage(widget.message.content),
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    ),
+                  ),
+                ),
               ),
             ),
           if (isContentText && _isMarkdownView)
@@ -202,9 +268,16 @@ class _MessageCardState extends State<MessageCard> {
                   ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
                 context,
                 state,
+                onShowCommandsPressed: (text) {
+                  flyoutController.showFlyout(
+                    builder: (context) => _showCommandsFlyout(text),
+                    position: mouseLocalPosition,
+                  );
+                },
                 onMorePressed: () {
                   flyoutController.showFlyout(
                     builder: (context) => _showOptionsFlyout(context),
+                    position: mouseLocalPosition,
                   );
                 },
                 onDeletePressed: () async {
@@ -215,6 +288,17 @@ class _MessageCardState extends State<MessageCard> {
                     provider.deleteMessage(widget.message.id);
                   }
                 },
+                onQuoteSelectedText: (text) {
+                  final provider = context.read<ChatProvider>();
+                  provider.messageController.text =
+                      provider.messageController.text += '"$text" ';
+                  promptTextFocusNode.requestFocus();
+                },
+                onImproveSelectedText: (text) {
+                  final provider = context.read<ChatProvider>();
+                  provider.sendMessage('Improve writing: "$text"',
+                      hidePrompt: true);
+                },
               ),
             )
           else if (isContentText)
@@ -224,9 +308,16 @@ class _MessageCardState extends State<MessageCard> {
                   ContextMenuBuilders.textChatMessageContextMenuBuilder(
                 ctx,
                 state,
+                onShowCommandsPressed: (text) {
+                  flyoutController.showFlyout(
+                    builder: (context) => _showCommandsFlyout(text),
+                    position: mouseLocalPosition,
+                  );
+                },
                 onMorePressed: () {
                   flyoutController.showFlyout(
                     builder: (context) => _showOptionsFlyout(context),
+                    position: mouseLocalPosition,
                   );
                 },
                 onDeletePressed: () async {
@@ -374,6 +465,7 @@ class _MessageCardState extends State<MessageCard> {
             onSecondaryTap: () {
               flyoutController.showFlyout(
                 builder: (context) => _showOptionsFlyout(context),
+                position: mouseLocalPosition,
               );
             },
             child: Container(
@@ -558,32 +650,52 @@ class _MessageCardState extends State<MessageCard> {
 
   void _showEditMessageDialog(BuildContext context, FluentChatMessage message) {
     final contentController = TextEditingController(text: message.content);
+    final characterName = TextEditingController(text: message.creator);
+    int tokens = message.tokens;
+    final Debouncer debouncer = Debouncer(milliseconds: 500);
+    final provider = context.read<ChatProvider>();
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
         title: const Text('Edit message'),
         constraints:
             const BoxConstraints(maxWidth: 800, maxHeight: 800, minHeight: 200),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+        content: ListView(
+          shrinkWrap: true,
           children: [
-            const IncludeConversationSwitcher(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: TextBox(
-                controller: contentController,
-                minLines: 5,
-                maxLines: 50,
-              ),
+            const Text('Character name'),
+            TextBox(controller: characterName, maxLines: 1),
+            spacer,
+            const Text('Content'),
+            TextBox(
+              controller: contentController,
+              minLines: 5,
+              maxLines: 50,
+              onChanged: (value) {
+                debouncer.run(
+                  () async {
+                    final count = await provider.countTokensString(value);
+                    setState(() {
+                      tokens = count;
+                    });
+                  },
+                );
+              },
             ),
+            Text('Tokens: $tokens'),
           ],
         ),
         actions: [
           Button(
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.editMessage(widget.message.id, contentController.text);
+              provider.editMessage(
+                widget.message.id,
+                message.copyWith(
+                  creator: characterName.text,
+                  content: contentController.text,
+                ),
+              );
               Navigator.of(ctx).pop();
             },
             child: const Text('Apply'),
@@ -599,89 +711,60 @@ class _MessageCardState extends State<MessageCard> {
     );
   }
 
-  void _showImageDialog(BuildContext context, Map<String, String> message) {
-    final image = decodeImage(message['image']!);
+  Future<void> _showImageDialog(
+      BuildContext context, FluentChatMessage message) async {
+    final image = decodeImage(message.content);
     final provider = Image.memory(
       image,
       filterQuality: FilterQuality.high,
     ).image;
-    showImageViewer(context, provider);
-  }
 
-  @Deprecated('Not used')
-  void _showContextMenuImage(
-      BuildContext context, Map<String, String> message) {
     showDialog(
       context: context,
-      builder: (ctx) => ContentDialog(
-        title: const Text('Image options'),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              clipBehavior: Clip.antiAlias,
-              decoration:
-                  BoxDecoration(borderRadius: BorderRadius.circular(12.0)),
-              child: Image.memory(
-                decodeImage(message['image']!),
-                fit: BoxFit.fitHeight,
-                gaplessPlayback: true,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Button(
-              onPressed: () {
-                Navigator.of(context).maybePop();
-                Pasteboard.writeImage(
-                  decodeImage(message['image']!),
-                );
-                displayCopiedToClipboard();
-              },
-              child: const Text('Copy image data'),
-            ),
-            // save to file
-            Button(
-              onPressed: () async {
-                final fileBytesString = message['image']!;
-                final fileBytes = base64.decode(fileBytesString);
-                final file = XFile.fromData(
-                  fileBytes,
-                  name: 'image.png',
-                  mimeType: 'image/png',
-                  length: fileBytes.length,
-                );
-                final first8Bytes = fileBytes.sublist(0, 8).toString();
-                final FileSaveLocation? location = await getSaveLocation(
-                  suggestedName: '$first8Bytes.png',
-                  acceptedTypeGroups: [
-                    const XTypeGroup(
-                      label: 'images',
-                      extensions: ['png', 'jpg', 'jpeg'],
-                    ),
-                  ],
-                );
-
-                if (location != null) {
-                  // Save the file to the selected path
-                  await file.saveTo(location.path);
-                  // Optionally, show a confirmation message to the user
-                }
-              },
-              child: const Text('Save image to file'),
-            ),
-          ],
-        ),
-        actions: [
-          Button(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Dismiss'),
-          ),
-        ],
-      ),
+      barrierColor: Colors.black,
+      builder: (context) {
+        return ImageViewerDialog(
+            provider: provider, description: message.imagePrompt);
+      },
     );
+  }
+
+  List<MenuFlyoutItemBase> _buildMenuItems(
+      List<CustomPrompt> commands, String selectedText) {
+    List<MenuFlyoutItemBase> items = [];
+    for (final command in commands) {
+      if (command.showInContextMenu == false) {
+        continue;
+      }
+      if (command.children.isNotEmpty) {
+        items.add(MenuFlyoutSubItem(
+          text: Text(command.title),
+          leading: Icon(command.icon),
+          items: (BuildContext context) {
+            return _buildMenuItems(command.children, selectedText);
+          },
+        ));
+      } else {
+        items.add(MenuFlyoutItem(
+          text: Text(command.title),
+          leading: Icon(command.icon),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.sendToQuickOverlay(
+                command.title, command.getPromptText(selectedText));
+          },
+        ));
+      }
+    }
+    return items;
+  }
+
+  MenuFlyout _showCommandsFlyout(String? selectedText) {
+    if (selectedText == null || selectedText.isEmpty) {
+      selectedText = widget.message.content;
+    }
+    return MenuFlyout(
+        items: _buildMenuItems(customPrompts.value, selectedText));
   }
 
   MenuFlyout _showOptionsFlyout(BuildContext context) {
@@ -718,33 +801,38 @@ class _MessageCardState extends State<MessageCard> {
             provider.regenerateMessage(widget.message);
           },
         ),
-        // MenuFlyoutItem(
-        //   text: const Text('Calculate tokens'),
-        //   leading: const Icon(FluentIcons.translate_16_regular),
-        //   onPressed: () async {
-        //     final count = await tokenizer.count(widget.message.contentAsString,
-        //         modelName: 'gpt-4');
-        //     final openAiCounter = await openAI?.countTokens(
-        //       PromptValue.string(widget.message.contentAsString),
-        //     );
-        //     displaySuccessInfoBar(
-        //         title: 'Tokens count: $count. OpenAi counter: $openAiCounter');
-        //   },
-        // ),
-        if (message is HumanChatMessage &&
-            message.content is ChatMessageContentText)
+        MenuFlyoutSubItem(
+          text: const Text('Commands'),
+          trailing: const Icon(FluentIcons.chevron_right_16_filled),
+          items: (context) =>
+              _buildMenuItems(customPrompts.value, widget.message.content),
+        ),
+        if (message.isTextMessage)
           MenuFlyoutItem(
             text: const Text('Remember this'),
             leading: const Icon(FluentIcons.brain_circuit_20_regular),
             onPressed: () async {
               final provider = context.read<ChatProvider>();
+              final messageIndex = messagesReversedList.indexOf(message);
+              final previous = messagesReversedList.length > messageIndex + 1
+                  ? messagesReversedList[messageIndex + 1]
+                  : null;
+              final next = messagesReversedList.length > messageIndex - 1
+                  ? messagesReversedList[messageIndex - 1]
+                  : null;
+              final messagesRange = await provider.convertMessagesToString([
+                if (previous != null) previous,
+                message,
+                if (next != null) next,
+              ]);
+              messagesReversedList[messageIndex + 1];
               final information =
                   await provider.generateUserKnowladgeBasedOnText(
-                widget.message.content,
+                messagesRange,
               );
               displayInfoBar(provider.context!, builder: (ctx, close) {
                 return InfoBar(
-                  title: const Text('Updated info about user'),
+                  title: const Text('Memory updated'),
                   content: Text(information),
                   severity: InfoBarSeverity.success,
                   isLong: true,
@@ -765,9 +853,8 @@ class _MessageCardState extends State<MessageCard> {
               });
             },
           ),
-        if ((message is HumanChatMessage &&
-                message.content is ChatMessageContentImage) ||
-            message is ImageCustomMessage) ...[
+        if ((message.type == FluentChatMessageType.imageAi) ||
+            message.type == FluentChatMessageType.image) ...[
           const MenuFlyoutSeparator(),
           MenuFlyoutItem(
             text: const Text('Save image to file'),
@@ -780,7 +867,6 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () => _copyImageToClipboard(context),
           ),
         ],
-
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: const Text('New conversation branch from here'),
@@ -841,5 +927,104 @@ class _MessageCardState extends State<MessageCard> {
     await SystemClipboard.instance!.write([item]);
     // ignore: use_build_context_synchronously
     displayCopiedToClipboard();
+  }
+}
+
+class ImageViewerDialog extends StatefulWidget {
+  const ImageViewerDialog({
+    super.key,
+    required this.provider,
+    this.description,
+  });
+
+  final ImageProvider<Object> provider;
+  final String? description;
+
+  @override
+  State<ImageViewerDialog> createState() => _ImageViewerDialogState();
+}
+
+class _ImageViewerDialogState extends State<ImageViewerDialog> {
+  bool isDescriptionVisible = false;
+  bool fullScreen = false;
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        EasyImageView(imageProvider: widget.provider),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SqueareIconButton(
+                onTap: () {
+                  setState(() {
+                    fullScreen = !fullScreen;
+                  });
+                  WindowManager.instance.setFullScreen(fullScreen);
+                },
+                icon: Icon(
+                  fullScreen
+                      ? FluentIcons.full_screen_minimize_16_filled
+                      : FluentIcons.full_screen_maximize_16_filled,
+                ),
+                tooltip: 'Full screen',
+              ),
+              const SizedBox(width: 8),
+              SqueareIconButton(
+                onTap: () {
+                  if (fullScreen) {
+                    WindowManager.instance.setFullScreen(false);
+                  }
+                  Navigator.of(context).pop();
+                },
+                icon: const Text('X', style: TextStyle(fontSize: 12)),
+                tooltip: 'Close',
+              ),
+            ],
+          ),
+        ),
+        if (widget.description != null) ...[
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 400),
+              height: isDescriptionVisible ? null : 48,
+              width: isDescriptionVisible ? 200 : 48,
+              decoration: BoxDecoration(
+                color: context.theme.cardColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 24,
+            right: 24,
+            child: SqueareIconButton(
+              onTap: () {
+                setState(() {
+                  isDescriptionVisible = !isDescriptionVisible;
+                });
+              },
+              icon: Icon(
+                isDescriptionVisible
+                    ? FluentIcons.chevron_right_16_filled
+                    : FluentIcons.chevron_left_16_filled,
+              ),
+              tooltip: 'Close',
+            ),
+          ),
+        ]
+      ],
+    );
   }
 }

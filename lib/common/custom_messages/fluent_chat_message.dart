@@ -153,6 +153,7 @@ class FluentChatMessage {
       'timestamp': timestamp,
       'type': type.index,
       'tokens': tokens,
+      if (imagePrompt != null) 'imagePrompt': imagePrompt!,
       if (path != null) 'path': path!,
       if (fileName != null) 'fileName': fileName!,
       if (webResults != null)
@@ -174,6 +175,7 @@ class FluentChatMessage {
       webResults: (json['webResults'] as List?)
           ?.map((e) => SearchResult.fromJson(e as Map<String, dynamic>))
           .toList(),
+      imagePrompt: json['imagePrompt'] as String?,
     );
   }
 

@@ -38,6 +38,7 @@ import 'providers/server_provider.dart';
 SharedPreferences? prefs;
 
 const defaultMinimumWindowSize = Size(500, 600);
+Offset mouseLocalPosition = Offset(0, 0);
 Future<void> initWindow() async {
   if (AppCache.frameless.value!) {
     await windowManager.setAsFrameless();
@@ -112,7 +113,6 @@ void main(List<String> args) async {
     logError('[Platform] $error', stack);
     return true;
   };
-  initializeNotifications();
   await protocolHandler.register('fluentgpt');
   setupMethodChannel();
   if (Platform.isMacOS || Platform.isWindows) {
@@ -145,6 +145,7 @@ void main(List<String> args) async {
   AdditionalFeatures.initAdditionalFeatures(
       isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
   packageInfo = await PackageInfo.fromPlatform();
+  initializeNotifications(packageInfo?.packageName);
   launchAtStartup.setup(
     appName: packageInfo!.appName,
     appPath: Platform.resolvedExecutable,
@@ -221,45 +222,49 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
             value: _appTheme,
             builder: (ctx, child) {
               final appTheme = ctx.watch<AppTheme>();
-              return FluentApp(
-                title: '',
-                navigatorKey: navigatorKey,
-                onGenerateTitle: (context) => 'ChatGPT',
-                themeMode: appTheme.mode,
-                debugShowCheckedModeBanner: false,
-                home: const GlobalPage(),
-                color: appTheme.color,
-                supportedLocales: const [Locale('en')],
-                darkTheme: FluentThemeData(
-                  brightness: Brightness.dark,
-                  scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
-                  infoBarTheme: InfoBarThemeData(
-                      decoration: (severity) =>
-                          appTheme.buildInfoBarDecoration(severity)),
-                  accentColor: appTheme.color,
-                  iconTheme: const IconThemeData(size: 20, color: Colors.white),
-                  cardColor: _appTheme.darkCardColor,
+              return Listener(
+                onPointerDown: (event) => mouseLocalPosition = event.position,
+                child: FluentApp(
+                  title: '',
+                  navigatorKey: navigatorKey,
+                  onGenerateTitle: (context) => 'ChatGPT',
+                  themeMode: appTheme.mode,
+                  debugShowCheckedModeBanner: false,
+                  home: const GlobalPage(),
+                  color: appTheme.color,
+                  supportedLocales: const [Locale('en')],
+                  darkTheme: FluentThemeData(
+                    brightness: Brightness.dark,
+                    scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
+                    infoBarTheme: InfoBarThemeData(
+                        decoration: (severity) =>
+                            appTheme.buildInfoBarDecoration(severity)),
+                    accentColor: appTheme.color,
+                    iconTheme:
+                        const IconThemeData(size: 20, color: Colors.white),
+                    cardColor: _appTheme.darkCardColor,
+                  ),
+                  theme: FluentThemeData(
+                    accentColor: appTheme.color,
+                    scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
+                    infoBarTheme: InfoBarThemeData(
+                        decoration: (severity) =>
+                            appTheme.buildInfoBarDecoration(severity)),
+                    iconTheme: const IconThemeData(size: 20),
+                    cardColor: _appTheme.lightCardColor,
+                  ),
+                  locale: appTheme.locale,
+                  builder: (ctx, child) {
+                    return NavigationPaneTheme(
+                      data: NavigationPaneThemeData(
+                        backgroundColor: appTheme.isDark
+                            ? _appTheme.darkBackgroundColor
+                            : _appTheme.lightBackgroundColor,
+                      ),
+                      child: child!,
+                    );
+                  },
                 ),
-                theme: FluentThemeData(
-                  accentColor: appTheme.color,
-                  scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
-                  infoBarTheme: InfoBarThemeData(
-                      decoration: (severity) =>
-                          appTheme.buildInfoBarDecoration(severity)),
-                  iconTheme: const IconThemeData(size: 20),
-                  cardColor: _appTheme.lightCardColor,
-                ),
-                locale: appTheme.locale,
-                builder: (ctx, child) {
-                  return NavigationPaneTheme(
-                    data: NavigationPaneThemeData(
-                      backgroundColor: appTheme.isDark
-                          ? _appTheme.darkBackgroundColor
-                          : _appTheme.lightBackgroundColor,
-                    ),
-                    child: child!,
-                  );
-                },
               );
             },
           ),
@@ -386,4 +391,3 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     }
   }
 }
-

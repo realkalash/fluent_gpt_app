@@ -15,7 +15,6 @@ import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
-import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -1111,7 +1110,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 child: Button(
                                   child: Text('Min'),
                                   onPressed: () {
-                                    chatProvider.setMaxTokensForChat(500);
+                                    chatProvider.setMaxTokensForChat(800);
                                   },
                                 ),
                               ),
@@ -1124,9 +1123,16 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                               Expanded(
                                 child: Button(
-                                    child: Text('Max'),
+                                    child: Text('Hight'),
                                     onPressed: () {
                                       chatProvider.setMaxTokensForChat(4096);
+                                    }),
+                              ),
+                              Expanded(
+                                child: Button(
+                                    child: Text('Max'),
+                                    onPressed: () {
+                                      chatProvider.setMaxTokensForChat(8000);
                                     }),
                               ),
                             ],
@@ -1157,19 +1163,27 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           final editedChatRoom = selectedChatRoom;
                           editedChatRoom.systemMessage =
                               await getFormattedSystemPrompt(
-                                  basicPrompt: defaultGlobalSystemMessage);
+                            basicPrompt:
+                                (editedChatRoom.systemMessage ?? '').isEmpty
+                                    ? defaultGlobalSystemMessage
+                                    : editedChatRoom.systemMessage!
+                                        .split(contextualInfoDelimeter)
+                                        .first,
+                          );
                           chatRooms[selectedChatRoomId] = editedChatRoom;
                           chatProvider.notifyRoomsStream();
                         },
                         tooltip: 'Use memory about the user',
                       ),
                       ToggleButtonAdvenced(
-                        icon: ic.FluentIcons.settings_20_regular,
-                        onChanged: (_) => showDialog(
-                          context: context,
-                          builder: (ctx) => const CustomPromptsSettingsDialog(),
-                        ),
-                        tooltip: 'Customize custom promtps',
+                        checked: AppCache.autoPlayMessagesFromAi.value!,
+                        icon: ic.FluentIcons.play_circle_16_filled,
+                        onChanged: (v) {
+                          setState(() {
+                            AppCache.autoPlayMessagesFromAi.value = v;
+                          });
+                        },
+                        tooltip: 'Auto play messages from ai',
                       ),
                     ],
                   ),
