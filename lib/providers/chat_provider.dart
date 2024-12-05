@@ -24,11 +24,13 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/command_request_answer_overlay.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -140,6 +142,7 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
 
 final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
 
+
 class ChatProvider with ChangeNotifier {
   final listItemsScrollController = AutoScrollController();
   static final TextEditingController messageControllerGlobal =
@@ -161,6 +164,49 @@ class ChatProvider with ChangeNotifier {
   BuildContext? context;
 
   int _messageTextSize = 14;
+
+  /// Used to show the container with the answer only to one single message
+  OverlayEntry? _overlayEntry;
+
+  void closeQuickOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Future<void> sendToQuickOverlay(String title, String prompt) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final tokens = await countTokensString(prompt);
+    final messageToSend = FluentChatMessage.humanText(
+      id: '$timestamp',
+      content: prompt,
+      timestamp: timestamp,
+      creator: AppCache.userName.value!,
+      tokens: tokens,
+    );
+    _overlayEntry?.remove();
+    // var posX = mouseLocalPosition.dx;
+    var posY = mouseLocalPosition.dy;
+    final screen = MediaQuery.of(context!).size; // '1920x1080'
+    // final screenX = double.parse(screen.first);
+    // ensure we don't go out of the screen
+    // if (posX + 400 > screenX) {
+    //   posX = screenX - 400;
+    // }
+    if (posY + 200 > screen.height) {
+      posY = screen.height - 200;
+    }
+    final overlay = OverlayEntry(
+      builder: (context) => CommandRequestAnswerOverlay(
+        message: messageToSend,
+        initPosTop: posY,
+        // ignore it for now, because it will be near message anyway
+        initPosLeft: 64,
+        screenSize: MediaQuery.of(context).size,
+      ),
+    );
+    _overlayEntry = overlay;
+    Overlay.of(context!).insert(overlay);
+  }
 
   void setMaxTokensForChat(int? v) {
     if (v == null) return;
@@ -1802,7 +1848,8 @@ class ChatProvider with ChangeNotifier {
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
     final oldChatRoom = chatRooms[oldChatRoomId];
-    final isCharNameChanged = oldChatRoom!.characterName != chatRoom.characterName;
+    final isCharNameChanged =
+        oldChatRoom!.characterName != chatRoom.characterName;
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
       if (isCharNameChanged) {

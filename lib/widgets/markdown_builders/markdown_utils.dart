@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:flutter/material.dart';
 import 'package:markdown_widget/config/all.dart';
 import 'package:markdown_widget/widget/all.dart';
@@ -10,16 +11,20 @@ Widget buildMarkdown(
   String data, {
   String? language,
   double? textSize,
-  Widget Function(BuildContext, SelectableRegionState)? contextMenuBuilder,
+  Widget Function(BuildContext, CustomSelectableRegionState)?
+      contextMenuBuilder,
 }) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   final config =
       isDark ? MarkdownConfig.darkConfig : MarkdownConfig.defaultConfig;
+  final focusNode = FocusNode();
 
   return Material(
     color: Colors.transparent,
-    child: SelectionArea(
+    child: CustomSelectableRegion(
       contextMenuBuilder: contextMenuBuilder,
+      focusNode: focusNode,
+      selectionControls: materialTextSelectionHandleControls,
       child: MarkdownWidget(
           data: data,
           shrinkWrap: true,
@@ -36,6 +41,7 @@ Widget buildMarkdown(
                       preConfig: PreConfig.darkConfig,
                       style: TextStyle(fontSize: textSize),
                       contextMenuBuilder: contextMenuBuilder,
+                      focusNode: focusNode,
                     ),
                     language: language,
                     textStyle: TextStyle(fontSize: textSize, color: Colors.red),
@@ -57,6 +63,7 @@ Widget buildMarkdown(
                       preConfig: PreConfig.darkConfig,
                       style: TextStyle(fontSize: textSize),
                       contextMenuBuilder: contextMenuBuilder,
+                      focusNode: focusNode,
                     ),
                     language: language,
                     margin: const EdgeInsets.all(0),

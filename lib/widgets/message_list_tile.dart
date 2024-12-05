@@ -3,13 +3,15 @@ import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/dialogs/easy_image_viewer_advanced.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -144,7 +146,9 @@ class _MessageCardState extends State<MessageCard> {
         child: GestureDetector(
           onSecondaryTap: () {
             flyoutController.showFlyout(
-                builder: (context) => _showOptionsFlyout(context));
+              builder: (context) => _showOptionsFlyout(context),
+              position: mouseLocalPosition,
+            );
           },
           onTap: () {
             setState(() {
@@ -207,8 +211,10 @@ class _MessageCardState extends State<MessageCard> {
               child: GestureDetector(
                 onTap: () {
                   final base64Image = base64Encode(
-                      File(selectedChatRoom.characterAvatarPath!).readAsBytesSync());
-                  _showImageDialog(context, FluentChatMessage.imageAi(id: '', content: base64Image));
+                      File(selectedChatRoom.characterAvatarPath!)
+                          .readAsBytesSync());
+                  _showImageDialog(context,
+                      FluentChatMessage.imageAi(id: '', content: base64Image));
                 },
                 child: Container(
                   width: 32,
@@ -262,9 +268,16 @@ class _MessageCardState extends State<MessageCard> {
                   ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
                 context,
                 state,
+                onShowCommandsPressed: (text) {
+                  flyoutController.showFlyout(
+                    builder: (context) => _showCommandsFlyout(text),
+                    position: mouseLocalPosition,
+                  );
+                },
                 onMorePressed: () {
                   flyoutController.showFlyout(
                     builder: (context) => _showOptionsFlyout(context),
+                    position: mouseLocalPosition,
                   );
                 },
                 onDeletePressed: () async {
@@ -275,6 +288,17 @@ class _MessageCardState extends State<MessageCard> {
                     provider.deleteMessage(widget.message.id);
                   }
                 },
+                onQuoteSelectedText: (text) {
+                  final provider = context.read<ChatProvider>();
+                  provider.messageController.text =
+                      provider.messageController.text += '"$text" ';
+                  promptTextFocusNode.requestFocus();
+                },
+                onImproveSelectedText: (text) {
+                  final provider = context.read<ChatProvider>();
+                  provider.sendMessage('Improve writing: "$text"',
+                      hidePrompt: true);
+                },
               ),
             )
           else if (isContentText)
@@ -284,9 +308,16 @@ class _MessageCardState extends State<MessageCard> {
                   ContextMenuBuilders.textChatMessageContextMenuBuilder(
                 ctx,
                 state,
+                onShowCommandsPressed: (text) {
+                  flyoutController.showFlyout(
+                    builder: (context) => _showCommandsFlyout(text),
+                    position: mouseLocalPosition,
+                  );
+                },
                 onMorePressed: () {
                   flyoutController.showFlyout(
                     builder: (context) => _showOptionsFlyout(context),
+                    position: mouseLocalPosition,
                   );
                 },
                 onDeletePressed: () async {
@@ -434,6 +465,7 @@ class _MessageCardState extends State<MessageCard> {
             onSecondaryTap: () {
               flyoutController.showFlyout(
                 builder: (context) => _showOptionsFlyout(context),
+                position: mouseLocalPosition,
               );
             },
             child: Container(
@@ -686,13 +718,7 @@ class _MessageCardState extends State<MessageCard> {
       image,
       filterQuality: FilterQuality.high,
     ).image;
-    // showImageViewerPager(
-    //   context,
-    //   SingleImageProvider(provider),
-    //   onViewerDismissed: (_) {
-    //     windowManager.setFullScreen(false);
-    //   },
-    // );
+
     showDialog(
       context: context,
       barrierColor: Colors.black,
@@ -701,8 +727,44 @@ class _MessageCardState extends State<MessageCard> {
             provider: provider, description: message.imagePrompt);
       },
     );
-    // await Future.delayed(const Duration(milliseconds: 400));
-    // windowManager.setFullScreen(true);
+  }
+
+  List<MenuFlyoutItemBase> _buildMenuItems(
+      List<CustomPrompt> commands, String selectedText) {
+    List<MenuFlyoutItemBase> items = [];
+    for (final command in commands) {
+      if (command.showInContextMenu == false) {
+        continue;
+      }
+      if (command.children.isNotEmpty) {
+        items.add(MenuFlyoutSubItem(
+          text: Text(command.title),
+          leading: Icon(command.icon),
+          items: (BuildContext context) {
+            return _buildMenuItems(command.children, selectedText);
+          },
+        ));
+      } else {
+        items.add(MenuFlyoutItem(
+          text: Text(command.title),
+          leading: Icon(command.icon),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.sendToQuickOverlay(
+                command.title, command.getPromptText(selectedText));
+          },
+        ));
+      }
+    }
+    return items;
+  }
+
+  MenuFlyout _showCommandsFlyout(String? selectedText) {
+    if (selectedText == null || selectedText.isEmpty) {
+      selectedText = widget.message.content;
+    }
+    return MenuFlyout(
+        items: _buildMenuItems(customPrompts.value, selectedText));
   }
 
   MenuFlyout _showOptionsFlyout(BuildContext context) {
@@ -739,19 +801,12 @@ class _MessageCardState extends State<MessageCard> {
             provider.regenerateMessage(widget.message);
           },
         ),
-        // MenuFlyoutItem(
-        //   text: const Text('Calculate tokens'),
-        //   leading: const Icon(FluentIcons.translate_16_regular),
-        //   onPressed: () async {
-        //     final count = await tokenizer.count(widget.message.contentAsString,
-        //         modelName: 'gpt-4');
-        //     final openAiCounter = await openAI?.countTokens(
-        //       PromptValue.string(widget.message.contentAsString),
-        //     );
-        //     displaySuccessInfoBar(
-        //         title: 'Tokens count: $count. OpenAi counter: $openAiCounter');
-        //   },
-        // ),
+        MenuFlyoutSubItem(
+          text: const Text('Commands'),
+          trailing: const Icon(FluentIcons.chevron_right_16_filled),
+          items: (context) =>
+              _buildMenuItems(customPrompts.value, widget.message.content),
+        ),
         if (message.isTextMessage)
           MenuFlyoutItem(
             text: const Text('Remember this'),
@@ -812,7 +867,6 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () => _copyImageToClipboard(context),
           ),
         ],
-
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
           text: const Text('New conversation branch from here'),

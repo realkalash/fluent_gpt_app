@@ -346,11 +346,6 @@ class _InputFieldState extends State<InputField> {
                           controller: chatProvider.messageController,
                           minLines: 2,
                           maxLines: 30,
-                          onChanged: (value) {
-                            debouncer.run(() {
-                              setState(() {});
-                            });
-                          },
                           suffix: Row(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.end,

@@ -251,7 +251,6 @@ Future<void> initCachedHotKeys() async {
         if (_isHotKeyRegistering) return;
         _isHotKeyRegistering = true;
 
-        /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
         final isAppVisible =
             await windowManager.isVisible() && await windowManager.isVisible();
         final isInputFieldFocused = promptTextFocusNode.hasFocus;
@@ -269,23 +268,23 @@ Future<void> initCachedHotKeys() async {
             return;
           }
         }
-        if (isAppVisible && !isInputFieldFocused) {
-          /// if currently showing overlay, open the chatUI
-          if (overlayVisibility.value.isShowingSidebarOverlay) {
-            SidebarOverlayUI.isChatVisible.add(true);
-          } else if (overlayVisibility.value.isShowingOverlay) {
-            OverlayUI.isChatVisible.add(true);
-          }
+        // if (isAppVisible && !isInputFieldFocused) {
+        //   /// if currently showing overlay, open the chatUI
+        //   if (overlayVisibility.value.isShowingSidebarOverlay) {
+        //     SidebarOverlayUI.isChatVisible.add(true);
+        //   } else if (overlayVisibility.value.isShowingOverlay) {
+        //     OverlayUI.isChatVisible.add(true);
+        //   }
 
-          await windowManager.show();
-          // to focus the window we show it twice on macos
-          if (Platform.isMacOS) {
-            await windowManager.show();
-          }
-          promptTextFocusNode.requestFocus();
-          _isHotKeyRegistering = false;
-          return;
-        }
+        //   await windowManager.show();
+        //   // to focus the window we show it twice on macos
+        //   if (Platform.isMacOS) {
+        //     await windowManager.show();
+        //   }
+        //   promptTextFocusNode.requestFocus();
+        //   _isHotKeyRegistering = false;
+        //   return;
+        // }
         if (!isAppVisible) {
           windowManager.show();
           _isHotKeyRegistering = false;
