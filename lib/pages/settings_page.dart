@@ -15,7 +15,7 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
-import 'package:fluent_gpt/features/autonomous_feature.dart';
+import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/azure_speech.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';

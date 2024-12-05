@@ -12,8 +12,6 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/overlay/overlay_ui.dart';
-import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -116,7 +114,7 @@ onTrayButtonTap(String item) {
 }
 
 /// You can use [TrayCommand] enum to send commands to the app.
-/// 
+///
 /// Example: `onTrayButtonTapCommand('Hello World', TrayCommand.paste.name);`
 Future<void> onTrayButtonTapCommand(String promptText,
     [String? command]) async {

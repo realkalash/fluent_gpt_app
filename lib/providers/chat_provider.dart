@@ -13,7 +13,7 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
-import 'package:fluent_gpt/features/autonomous_feature.dart';
+import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
