@@ -235,6 +235,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                   supportedLocales: const [Locale('en')],
                   darkTheme: FluentThemeData(
                     brightness: Brightness.dark,
+                    visualDensity: appTheme.visualDensity,
                     scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
                     infoBarTheme: InfoBarThemeData(
                         decoration: (severity) =>
@@ -246,6 +247,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                   ),
                   theme: FluentThemeData(
                     accentColor: appTheme.color,
+                    visualDensity: appTheme.visualDensity,
                     scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
                     infoBarTheme: InfoBarThemeData(
                         decoration: (severity) =>

@@ -230,6 +230,15 @@ Future<void> displaySuccessInfoBar({String? title}) {
     ),
   );
 }
+Future<void> displayTextInfoBar(title) {
+  return displayInfoBar(
+    appContext!,
+    builder: (context, close) => InfoBar(
+      title: Text(title),
+      severity: InfoBarSeverity.info,
+    ),
+  );
+}
 
 Future<void> displayErrorInfoBar({String? title}) {
   return displayInfoBar(

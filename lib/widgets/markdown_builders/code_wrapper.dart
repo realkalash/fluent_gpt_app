@@ -169,7 +169,7 @@ class SqueareIconButton extends fluent.StatelessWidget {
       required this.onTap,
       required this.icon,
       required this.tooltip});
-  final void Function() onTap;
+  final void Function()? onTap;
   final Widget icon;
   final String tooltip;
 
@@ -182,7 +182,7 @@ class SqueareIconButton extends fluent.StatelessWidget {
         child: fluent.SizedBox.square(
           dimension: 30,
           child: fluent.Button(
-            onPressed: () => onTap.call(),
+            onPressed: onTap,
             style: const fluent.ButtonStyle(
               padding: WidgetStatePropertyAll(EdgeInsets.zero),
             ),

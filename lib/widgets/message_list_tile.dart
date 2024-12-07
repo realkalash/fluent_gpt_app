@@ -55,8 +55,6 @@ class MessageListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      button: true,
-      enabled: onPressed != null,
       onTap: onPressed,
       child: GestureDetector(
         onTap: onPressed,
@@ -82,8 +80,7 @@ class MessageListTile extends StatelessWidget {
                   ),
                   if (subtitle != null)
                     Padding(
-                      padding:
-                          const EdgeInsets.only(left: 16, top: 4, bottom: 8),
+                      padding: const EdgeInsets.only(left: 16, bottom: 8),
                       child: DefaultTextStyle(
                         style: FluentTheme.of(context).typography.subtitle!,
                         child: subtitle!,
@@ -469,8 +466,8 @@ class _MessageCardState extends State<MessageCard> {
               );
             },
             child: Container(
-              margin: const EdgeInsets.all(4),
-              padding: const EdgeInsets.only(bottom: 16),
+              margin: const EdgeInsets.only(top: 4),
+              padding: EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.0),
                 color: context.theme.cardColor,
@@ -801,13 +798,7 @@ class _MessageCardState extends State<MessageCard> {
             provider.regenerateMessage(widget.message);
           },
         ),
-        MenuFlyoutSubItem(
-          text: const Text('Commands'),
-          trailing: const Icon(FluentIcons.chevron_right_16_filled),
-          items: (context) =>
-              _buildMenuItems(customPrompts.value, widget.message.content),
-        ),
-        if (message.isTextMessage)
+        if (message.isTextMessage) ...[
           MenuFlyoutItem(
             text: const Text('Remember this'),
             leading: const Icon(FluentIcons.brain_circuit_20_regular),
@@ -853,6 +844,22 @@ class _MessageCardState extends State<MessageCard> {
               });
             },
           ),
+          MenuFlyoutItem(
+            text: const Text('Edit'),
+            leading: const Icon(FluentIcons.edit_16_regular),
+            onPressed: () async {
+              await Navigator.of(context).maybePop();
+              _showEditMessageDialog(
+                  navigatorKey.currentContext!, widget.message);
+            },
+          ),
+        ],
+        MenuFlyoutSubItem(
+          text: const Text('Commands'),
+          trailing: const Icon(FluentIcons.chevron_right_16_filled),
+          items: (context) =>
+              _buildMenuItems(customPrompts.value, widget.message.content),
+        ),
         if ((message.type == FluentChatMessageType.imageAi) ||
             message.type == FluentChatMessageType.image) ...[
           const MenuFlyoutSeparator(),

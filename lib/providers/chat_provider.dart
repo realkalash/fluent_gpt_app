@@ -142,7 +142,6 @@ String removeMessageTagsFromPrompt(String message, String tagsStr) {
 
 final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
 
-
 class ChatProvider with ChangeNotifier {
   final listItemsScrollController = AutoScrollController();
   static final TextEditingController messageControllerGlobal =
@@ -554,11 +553,14 @@ class ChatProvider with ChangeNotifier {
   Future<void> addAttachemntAiLens(String base64String) async {
     final attachment = Attachment.fromInternalScreenshot(base64String);
     addAttachmentToInput(attachment);
-    await showDialog(
+    final isSent = await showDialog(
       context: context!,
       barrierDismissible: true,
       builder: (ctx) => AiLensDialog(base64String: base64String),
     );
+    if (isSent != true) {
+      removeFileFromInput();
+    }
   }
 
   void addWebResultsToMessages(List<SearchResult> webpage) {

@@ -54,6 +54,8 @@ class AppTheme extends ChangeNotifier {
     setEffect(_windowEffect);
   }
 
+  VisualDensity visualDensity = VisualDensity.standard;
+
   bool preventClose = false;
   void togglePreventClose() {
     preventClose = !preventClose;
@@ -152,6 +154,8 @@ class AppTheme extends ChangeNotifier {
   Color darkBackgroundColor = const Color(0xff201f1e);
   Color lightCardColor = const Color.fromARGB(255, 255, 255, 255);
   Color darkCardColor = const Color.fromARGB(255, 25, 24, 23);
+
+  bool hideSuggestionsOnHomePage = false;
   Locale? get locale => _locale;
   set locale(Locale? locale) {
     _locale = locale;
@@ -196,6 +200,11 @@ class AppTheme extends ChangeNotifier {
   Future<void> setAsFrameless(bool? value) async {
     windowManager.setAsFrameless();
     await AppCache.frameless.set(value ?? false);
+    notifyListeners();
+  }
+
+  void setVisualDensity(VisualDensity value) {
+    visualDensity = value;
     notifyListeners();
   }
 }

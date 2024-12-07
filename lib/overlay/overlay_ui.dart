@@ -5,11 +5,13 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -63,6 +65,10 @@ class _OverlayUIState extends State<OverlayUI> {
 
   @override
   Widget build(BuildContext context) {
+     final appTheme = context.read<AppTheme>();
+    final backgroundColor = appTheme.isDark
+        ? appTheme.darkBackgroundColor
+        : appTheme.lightBackgroundColor;
     return StreamBuilder(
         stream: OverlayUI.isChatVisible,
         builder: (context, snapshot) {
@@ -72,7 +78,7 @@ class _OverlayUIState extends State<OverlayUI> {
               color: Colors.transparent,
               type: MaterialType.transparency,
               child: Container(
-                color: Colors.transparent,
+                color: backgroundColor,
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
