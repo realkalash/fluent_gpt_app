@@ -111,7 +111,9 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           Text('Appearance', style: FluentTheme.of(context).typography.title),
           const _ThemeModeSection(),
           spacer,
-          MessageAppearanceSettings(),
+          const DensityModeDropdown(),
+          spacer,
+          const MessageAppearanceSettings(),
           spacer,
           const _LocaleSection(),
           spacer,
@@ -120,6 +122,40 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
           const _OtherSettings(),
         ],
       ),
+    );
+  }
+}
+
+class DensityModeDropdown extends StatelessWidget {
+  const DensityModeDropdown({super.key});
+
+  static const values = <String, VisualDensity>{
+    'Standard': VisualDensity.standard,
+    'Comfortable': VisualDensity.comfortable,
+    'Compact': VisualDensity.compact,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AppTheme>();
+    final currentDensity = context.theme.visualDensity;
+    final name =
+        values.entries.firstWhere((e) => e.value == currentDensity).key;
+    return DropDownButton(
+      title: Text('Density mode: $name'),
+      items: [
+        for (var density in values.entries)
+          MenuFlyoutItem(
+            selected: currentDensity == density.value,
+            trailing: currentDensity == density.value
+                ? const Icon(FluentIcons.checkmark_20_filled)
+                : null,
+            onPressed: () {
+              provider.setVisualDensity(density.value);
+            },
+            text: Text(density.key),
+          ),
+      ],
     );
   }
 }
@@ -134,12 +170,14 @@ class MessageAppearanceSettings extends StatelessWidget {
         header: Text('Message Appearance'),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text('Message Text size',
                 style: FluentTheme.of(context).typography.subtitle),
             spacer,
             Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -1332,28 +1370,22 @@ class MessageSamplePreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ChatProvider>();
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(4.0),
       child: Card(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Message sample preview'),
-            MessageCard(
-              message: FluentChatMessage.ai(
-                id: '1234',
-                content:
-                    'Hello, how are you doing today?\nI\'m doing great, thank you for asking. I\'m here to help you with anything you need.',
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-                tokens: 1234,
-              ),
-              selectionMode: false,
-              isError: false,
-              textSize: isCompact
-                  ? AppCache.compactMessageTextSize.value!
-                  : provider.textSize,
-              isCompactMode: isCompact,
-            ),
-          ],
+        child: MessageCard(
+          message: FluentChatMessage.ai(
+            id: '1234',
+            content:
+                'Hello, how are you doing today?\nI\'m doing great, thank you for asking. I\'m here to help you with anything you need.',
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            tokens: 1234,
+          ),
+          selectionMode: false,
+          isError: false,
+          textSize: isCompact
+              ? AppCache.compactMessageTextSize.value!
+              : provider.textSize,
+          isCompactMode: isCompact,
         ),
       ),
     );

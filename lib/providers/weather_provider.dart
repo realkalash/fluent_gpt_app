@@ -11,7 +11,8 @@ WeatherDay? weatherTodayMax;
 WeatherDay? weatherTodayMin;
 WeatherDay? weatherTomorrowMax;
 /// Timer to fetch weather data every 4 hours
-Timer? timer;
+Timer? fetchTimer;
+Timer? updateTickTimer;
 
 class WeatherProvider extends ChangeNotifier {
   WeatherProvider(this.context) {
@@ -41,11 +42,16 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   void initTimers() {
-    timer?.cancel();
-    timer = Timer.periodic(Duration(hours: 4), (timer) {
+    fetchTimer?.cancel();
+    fetchTimer = Timer.periodic(Duration(hours: 4), (timer) {
       if (AppCache.userCityName.value != null) {
         fetchWeather(AppCache.userCityName.value!);
       }
+    });
+    updateTickTimer?.cancel();
+    updateTickTimer = Timer.periodic(Duration(minutes: 50), (timer) {
+      refreshGlobalVariables();
+      notifyListeners();
     });
   }
 

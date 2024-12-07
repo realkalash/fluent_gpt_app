@@ -80,8 +80,13 @@ class _AiLensDialogState extends State<AiLensDialog> {
                   child: TextBox(
                     autofocus: true,
                     controller: textContr,
-                    placeholder: 'Type your message here or leave empty',
-                    onSubmitted: (value) => sendMessage(),
+                    enabled: selectedChatRoom.model.imageSupported,
+                    placeholder: selectedChatRoom.model.imageSupported
+                        ? 'Type your message here or leave empty'
+                        : 'This ai model does support not images',
+                    onSubmitted: (value) {
+                      if (selectedChatRoom.model.imageSupported) sendMessage();
+                    },
                   ),
                 ),
                 FlyoutTarget(
@@ -91,7 +96,9 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       _rightClickSendMessage(context);
                     },
                     child: SqueareIconButton(
-                      onTap: sendMessage,
+                      onTap: selectedChatRoom.model.imageSupported
+                          ? sendMessage
+                          : null,
                       icon: const Icon(ic.FluentIcons.send_24_filled),
                       tooltip: 'Send message',
                     ),
@@ -174,15 +181,17 @@ class _AiLensDialogState extends State<AiLensDialog> {
                   },
                   child: Button(
                     child: const Text('Extract text'),
-                    onPressed: () {
-                      final provider = context.read<ChatProvider>();
-                      provider.sendSingleMessage(
-                        'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
-                        imageBase64: widget.base64String,
-                        showImageInChat: true,
-                      );
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: !selectedChatRoom.model.imageSupported
+                        ? null
+                        : () {
+                            final provider = context.read<ChatProvider>();
+                            provider.sendSingleMessage(
+                              'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
+                              imageBase64: widget.base64String,
+                              showImageInChat: true,
+                            );
+                            Navigator.of(context).pop();
+                          },
                   ),
                 ),
               ],
@@ -192,10 +201,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
       ),
       actions: [
         FilledRedButton(
-          onPressed: () {
-            context.read<ChatProvider>().removeFileFromInput();
-            Navigator.of(ctx).pop();
-          },
+          onPressed: () => Navigator.of(ctx).pop(),
           child: const Text('Dismiss'),
         )
       ],
@@ -206,10 +212,11 @@ class _AiLensDialogState extends State<AiLensDialog> {
     final provider = context.read<ChatProvider>();
     provider.sendMessage(textContr.text,
         hidePrompt: false, sendStream: asStream);
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(true);
   }
 
   void _rightClickSendMessage(BuildContext context) {
+    if (!selectedChatRoom.model.imageSupported) return;
     flyoutController.showFlyout(builder: (context) {
       return MenuFlyout(
         items: [

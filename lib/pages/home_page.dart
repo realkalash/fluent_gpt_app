@@ -10,6 +10,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/common/weather_data.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
@@ -17,6 +18,7 @@ import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
+import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
@@ -596,44 +598,52 @@ class HomePagePlaceholdersCards extends StatefulWidget {
 }
 
 class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
+  static const maxItems = 6;
   List<CustomPrompt> getRandom3Prompts(BuildContext context) {
     final list = <CustomPrompt>[];
-    final random = Random();
-    for (var i = 0; i < 3; i++) {
-      final index = random.nextInt(promptsLibrary.length);
-      list.add(promptsLibrary[index]);
+    for (var i = 0; i < maxItems; i++) {
+      final randomPrompt = getRandomPrompt(context);
+      list.add(randomPrompt);
     }
     return list;
+  }
+
+  CustomPrompt getRandomPrompt(BuildContext context) {
+    final random = Random();
+    final index = random.nextInt(promptsLibrary.length);
+    final prompt = promptsLibrary[index];
+    if (prompt.showInHomePage == false) return getRandomPrompt(context);
+    return prompt;
   }
 
   Color getColorBasedOnFirstLetter(String text) {
     final firstLetter = text[0].toLowerCase();
     final colors = {
-      'a': Colors.blue.dark,
-      'b': Colors.blue,
-      'c': Colors.green,
-      'd': Colors.orange,
-      'e': Colors.purple,
-      'f': Colors.teal.dark,
+      'a': Colors.red.dark,
+      'b': Colors.green,
+      'c': Colors.blue,
+      'd': Colors.yellow.dark,
+      'e': Colors.orange,
+      'f': Colors.purple,
       'g': Colors.teal.darker,
-      'h': Colors.yellow.dark,
+      'h': Colors.magenta,
       'i': Colors.yellow.darker,
-      'j': Colors.yellow.light,
-      'k': Colors.red.dark,
-      'l': Colors.red.darker,
-      'm': Colors.red.darkest,
-      'n': Colors.blue.dark,
+      'j': Colors.blue.dark,
+      'k': Colors.red.darker,
+      'l': Colors.teal.dark,
+      'm': Colors.orange.dark,
+      'n': Colors.green.dark,
       'o': Colors.blue.darker,
-      'p': Colors.blue.darkest,
-      'q': Colors.yellow.darker,
+      'p': Colors.yellow.darkest,
+      'q': Colors.magenta.dark,
       'r': Colors.grey,
-      's': Colors.magenta,
-      't': Colors.magenta.dark,
-      'u': Colors.magenta.darker,
+      's': Colors.yellow.darkest,
+      't': Colors.magenta.darker,
+      'u': Colors.blue.darkest,
       'v': Colors.magenta.darkest,
-      'w': Colors.orange.dark,
-      'x': Colors.orange.darker,
-      'y': Colors.orange.darkest,
+      'w': Colors.orange.darker,
+      'x': Colors.red.darkest,
+      'y': Colors.teal.darker,
       'z': Colors.green.dark,
     };
     return colors[firstLetter] ?? Colors.grey;
@@ -649,90 +659,164 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Object>(
-        stream: AppWindowListener.windowVisibilityStream,
-        builder: (context, snapshot) {
-          return Container(
-            width: MediaQuery.of(context).size.width,
-            height: 250,
-            alignment: Alignment.center,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              shrinkWrap: true,
-              children: List.generate(
-                prompts.length,
-                (index) {
-                  final item = prompts[index];
-                  return Entry(
-                    curve: Curves.easeInOutBack,
-                    scale: 0.1,
-                    duration: const Duration(milliseconds: 800),
-                    delay: Duration(milliseconds: (index * 300)),
-                    key: ValueKey('home_place_holder_$index'),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: AnimatedHoverCard(
-                            defHeight: 200,
-                            defWidth: 160,
-                            onTap: () {
-                              context
-                                  .read<ChatProvider>()
-                                  .messageController
-                                  .text = item.prompt;
-                              promptTextFocusNode.requestFocus();
-                            },
-                            color: getColorBasedOnFirstLetter(item.title),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                children: [
-                                  Text(
+    final provider = context.read<AppTheme>();
+    if (provider.hideSuggestionsOnHomePage) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        color: FluentTheme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: const Icon(
+                      ic.FluentIcons.arrow_counterclockwise_20_filled),
+                  onPressed: () {
+                    setState(() {
+                      prompts = getRandom3Prompts(context);
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: const Icon(FluentIcons.chrome_close, size: 10),
+                  onPressed: () {
+                    setState(() {
+                      provider.hideSuggestionsOnHomePage =
+                          !provider.hideSuggestionsOnHomePage;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          StreamBuilder<Object>(
+              stream: AppWindowListener.windowVisibilityStream,
+              builder: (context, snapshot) {
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  children: List.generate(
+                    prompts.length,
+                    (index) {
+                      final item = prompts[index];
+                      return Entry(
+                        curve: Curves.easeInOutBack,
+                        scale: 0.1,
+                        duration: const Duration(milliseconds: 800),
+                        delay: Duration(milliseconds: (index * 300)),
+                        key: ValueKey('home_place_holder_$index'),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 8.0, right: 8, top: 8, bottom: 8),
+                              child: AnimatedHoverCard(
+                                defHeight: 60,
+                                defWidth: 150,
+                                onTap: () async {
+                                  final promptText = item.getPromptText(
+                                      (await Clipboard.getData(
+                                              Clipboard.kTextPlain))
+                                          ?.text);
+                                  final isContainsPlaceHolder =
+                                      placeholdersRegex.hasMatch(promptText);
+                                  String? newText = promptText;
+                                  if (isContainsPlaceHolder) {
+                                    newText = await showDialog<String>(
+                                      // ignore: use_build_context_synchronously
+                                      context: context,
+                                      builder: (context) =>
+                                          ReplaceAllPlaceHoldersDialog(
+                                        originalText: promptText,
+                                      ),
+                                    );
+                                    if (newText == null) return;
+                                  }
+                                  ChatProvider.messageControllerGlobal.text =
+                                      newText;
+
+                                  promptTextFocusNode.requestFocus();
+                                },
+                                color: getColorBasedOnFirstLetter(item.title),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                      left: 6, right: 0, top: 4, bottom: 0),
+                                  child: Text(
                                     item.title,
                                     maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    overflow: TextOverflow.clip,
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Expanded(
-                                      child: Text(item.prompt,
-                                          overflow: TextOverflow.fade)),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
+                            Positioned(
+                              bottom: 8,
+                              right: 16,
+                              child: Button(
+                                child:
+                                    const Icon(ic.FluentIcons.send_24_filled),
+                                onPressed: () async {
+                                  final promptText = item.getPromptText(
+                                      (await Clipboard.getData(
+                                              Clipboard.kTextPlain))
+                                          ?.text);
+                                  final chatProvider =
+                                      context.read<ChatProvider>();
+                                  final isContainsPlaceHolder =
+                                      placeholdersRegex.hasMatch(promptText);
+                                  String? newText = promptText;
+                                  if (isContainsPlaceHolder) {
+                                    newText = await showDialog<String>(
+                                      // ignore: use_build_context_synchronously
+                                      context: context,
+                                      builder: (context) =>
+                                          ReplaceAllPlaceHoldersDialog(
+                                        originalText: promptText,
+                                      ),
+                                    );
+                                    if (newText == null) return;
+                                  }
+                                  chatProvider.editChatRoom(
+                                    selectedChatRoomId,
+                                    selectedChatRoom.copyWith(
+                                      systemMessage: newText,
+                                    ),
+                                    switchToForeground: true,
+                                  );
+                                  // wait for the chat room to be updated
+                                  await Future.delayed(
+                                      const Duration(milliseconds: 50));
+                                  chatProvider.sendMessage(newText);
+                                  promptTextFocusNode.requestFocus();
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                        Positioned(
-                          bottom: 32,
-                          right: 16,
-                          child: Button(
-                            child: const Icon(ic.FluentIcons.send_24_filled),
-                            onPressed: () {
-                              context
-                                  .read<ChatProvider>()
-                                  .sendMessage(item.prompt);
-                              promptTextFocusNode.requestFocus();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              // children: prompts.map(
-              //   (e) {
-              //     return ;
-              //   },
-              // ).toList(),
-            ),
-          );
-        });
+                      );
+                    },
+                  ),
+                );
+              }),
+        ],
+      ),
+    );
   }
 }
 
@@ -803,144 +887,227 @@ class WeatherCard extends StatelessWidget {
     if (AppCache.userCityName.value?.isEmpty == true) {
       return const SizedBox.shrink();
     }
+    if (AppCache.showWeatherWidget.value == false) {
+      return const SizedBox.shrink();
+    }
     final scrollController = ScrollController();
-    return ChangeNotifierProvider(
-      create: (BuildContext context) => WeatherProvider(context),
-      builder: (ctx, _) {
-        final provider = ctx.watch<WeatherProvider>();
-        final isWeatherPresent = provider.filteredWeather.isNotEmpty;
-        final weatherDays = provider.filteredWeather;
-        return SizedBox(
-          width: 200,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Card(
-              borderRadius: BorderRadius.circular(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text('Weather in',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text(' ${AppCache.userCityName.value}',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      Spacer(),
-                      GestureDetector(
-                        onTap: () => launchUrlString('https://open-meteo.com/'),
-                        child: Text(
-                          'by Open-Meteo',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w100,
-                            decoration: TextDecoration.underline,
-                            color: Colors.blue.lighter,
+    return Entry.all(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+      delay: const Duration(milliseconds: 500),
+      child: ChangeNotifierProvider(
+        create: (BuildContext context) => WeatherProvider(context),
+        builder: (ctx, _) {
+          final provider = ctx.watch<WeatherProvider>();
+          final isWeatherPresent = provider.filteredWeather.isNotEmpty;
+          final weatherDays = provider.filteredWeather;
+          return SizedBox(
+            width: 200,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
+              child: Card(
+                borderRadius: BorderRadius.circular(12),
+                margin: const EdgeInsets.all(0),
+                padding: const EdgeInsets.only(
+                    left: 16, right: 16, top: 4, bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text('Weather in',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text(' ${AppCache.userCityName.value}',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Spacer(),
+                        GestureDetector(
+                          onTap: () =>
+                              launchUrlString('https://open-meteo.com/'),
+                          child: Text(
+                            'by Open-Meteo',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w100,
+                              decoration: TextDecoration.underline,
+                              color: Colors.blue.lighter,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  if (provider.isLoading) const Center(child: ProgressBar()),
-                  SizedBox(
-                    height: isWeatherPresent ? 130 : 0,
-                    child: Scrollbar(
-                      controller: scrollController,
-                      child: ListView.builder(
-                          controller: scrollController,
-                          scrollDirection: Axis.horizontal,
-                          itemCount: weatherDays.length,
-                          itemBuilder: (ctx, i) {
-                            final weather = weatherDays[i];
-                            final weatherStatus = weather.weatherStatus;
-                            final date = weather.date ?? DateTime(1970);
-
-                            final formatter =
-                                MediaQuery.of(context).alwaysUse24HourFormat
-                                    ? DateFormat('yyyy-MM-dd\nHH:mm')
-                                    : DateFormat('yyyy-MM-dd\nh:mm a');
-                            final formattedDate = formatter.format(date);
-                            return Card(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    formattedDate,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  if (weatherStatus == WeatherCode.clearSky)
-                                    Icon(
-                                      ic.FluentIcons.weather_sunny_20_filled,
-                                      color: Colors.yellow,
-                                    ),
-                                  if (weatherStatus == WeatherCode.partlyCloudy)
-                                    Icon(
-                                      ic.FluentIcons
-                                          .weather_partly_cloudy_day_20_filled,
-                                      color: Colors.blue,
-                                    ),
-                                  if (weatherStatus == WeatherCode.cloudy)
-                                    Icon(
-                                      ic.FluentIcons.weather_cloudy_20_filled,
-                                      color: Colors.blue,
-                                    ),
-                                  if (weatherStatus == WeatherCode.foggy)
-                                    Icon(
-                                      ic.FluentIcons.weather_fog_20_filled,
-                                      color: Colors.teal,
-                                    ),
-                                  if (weatherStatus == WeatherCode.partlyCloudy)
-                                    Icon(
-                                      ic.FluentIcons
-                                          .weather_partly_cloudy_day_20_filled,
-                                      color: Colors.yellow,
-                                    ),
-                                  if (weatherStatus == WeatherCode.rain)
-                                    Icon(
-                                      ic.FluentIcons.weather_rain_20_filled,
-                                      color: Colors.blue,
-                                    ),
-                                  if (weatherStatus == WeatherCode.snow)
-                                    Icon(
-                                      ic.FluentIcons.weather_snow_20_filled,
-                                      color: Colors.blue,
-                                    ),
-                                  Text('${weather.precipitation} mm'),
-                                  Text(
-                                      '${weather.temperature}${weather.units}'),
-                                ],
-                              ),
-                            );
-                          }),
+                        IconButton(
+                          icon: const Icon(FluentIcons.chrome_close, size: 10),
+                          onPressed: () {
+                            AppCache.showWeatherWidget.value =
+                                !(AppCache.showWeatherWidget.value!);
+                          },
+                        ),
+                      ],
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      SqueareIconButton(
-                        onTap: () {
-                          provider.fetchWeather(AppCache.userCityName.value!);
-                        },
-                        icon: Icon(
-                            ic.FluentIcons.arrow_counterclockwise_12_regular),
-                        tooltip: 'Refresh',
+                    if (provider.isLoading) const Center(child: ProgressBar()),
+                    SizedBox(
+                      height: isWeatherPresent ? 130 : 0,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ListView.builder(
+                              controller: scrollController,
+                              padding: const EdgeInsets.only(left: 50),
+                              scrollDirection: Axis.horizontal,
+                              itemCount: weatherDays.length,
+                              itemBuilder: (ctx, i) {
+                                final weather = weatherDays[i];
+                                final weatherStatus = weather.weatherStatus;
+                                final date = weather.date ?? DateTime(1970);
+
+                                final formatter =
+                                    MediaQuery.of(context).alwaysUse24HourFormat
+                                        ? DateFormat('yyyy-MM-dd\nHH:mm')
+                                        : DateFormat('yyyy-MM-dd\nh:mm a');
+                                final formattedDate = formatter.format(date);
+                                return Card(
+                                  backgroundColor: i == 0
+                                      ? Colors.blue
+                                      : context.theme.cardColor,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        formattedDate,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      if (weatherStatus == WeatherCode.clearSky)
+                                        Icon(
+                                          ic.FluentIcons
+                                              .weather_sunny_20_filled,
+                                          color: Colors.yellow,
+                                        ),
+                                      if (weatherStatus ==
+                                          WeatherCode.partlyCloudy)
+                                        Icon(
+                                          ic.FluentIcons
+                                              .weather_partly_cloudy_day_20_filled,
+                                          color: Colors.blue,
+                                        ),
+                                      if (weatherStatus == WeatherCode.cloudy)
+                                        Icon(
+                                          ic.FluentIcons
+                                              .weather_cloudy_20_filled,
+                                          color: Colors.blue,
+                                        ),
+                                      if (weatherStatus == WeatherCode.foggy)
+                                        Icon(
+                                          ic.FluentIcons.weather_fog_20_filled,
+                                          color: Colors.teal,
+                                        ),
+                                      if (weatherStatus ==
+                                          WeatherCode.partlyCloudy)
+                                        Icon(
+                                          ic.FluentIcons
+                                              .weather_partly_cloudy_day_20_filled,
+                                          color: Colors.yellow,
+                                        ),
+                                      if (weatherStatus == WeatherCode.rain)
+                                        Icon(
+                                          ic.FluentIcons.weather_rain_20_filled,
+                                          color: Colors.blue,
+                                        ),
+                                      if (weatherStatus == WeatherCode.snow)
+                                        Icon(
+                                          ic.FluentIcons.weather_snow_20_filled,
+                                          color: Colors.blue,
+                                        ),
+                                      Text('${weather.precipitation} mm'),
+                                      Text(
+                                          '${weather.temperature}${weather.units}'),
+                                    ],
+                                  ),
+                                );
+                              }),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  scrollController.animateTo(
+                                    scrollController.offset + 150,
+                                    duration: const Duration(milliseconds: 100),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                                child: Container(
+                                  clipBehavior: Clip.hardEdge,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: const Icon(
+                                      ic.FluentIcons.arrow_right_20_filled),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  scrollController.animateTo(
+                                    scrollController.offset - 150,
+                                    duration: const Duration(milliseconds: 100),
+                                    curve: Curves.easeInOut,
+                                  );
+                                },
+                                child: Container(
+                                  clipBehavior: Clip.hardEdge,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(12),
+                                  child: const Icon(
+                                      ic.FluentIcons.arrow_left_20_filled),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Button(
-                        onPressed: () =>
-                            launchUrlString('https://weatherian.com/'),
-                        child: const Text('More'),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SqueareIconButton(
+                          onTap: () {
+                            provider.fetchWeather(AppCache.userCityName.value!);
+                          },
+                          icon: Icon(
+                              ic.FluentIcons.arrow_counterclockwise_12_regular),
+                          tooltip: 'Refresh',
+                        ),
+                        const SizedBox(width: 8),
+                        Button(
+                          onPressed: () =>
+                              launchUrlString('https://weatherian.com/'),
+                          child: const Text('More'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -1070,7 +1237,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         onChanged: chatProvider.setIncludeWholeConversation,
                         tooltip:
                             'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
-                        maxWidthContextMenu: 300,
+                        maxWidthContextMenu: 350,
                         maxHeightContextMenu: 100,
                         contextItems: [
                           Row(
@@ -1116,7 +1283,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                               Expanded(
                                 child: Button(
-                                    child: Text('Medium'),
+                                    child: Text('Med'),
                                     onPressed: () {
                                       chatProvider.setMaxTokensForChat(2048);
                                     }),

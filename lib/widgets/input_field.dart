@@ -26,6 +26,7 @@ import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -905,22 +906,45 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
     final provider = context.watch<ChatProvider>();
+    final models = allModels.value;
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
       child: FlyoutTarget(
         controller: flyoutController,
-        child: Container(
-          decoration: BoxDecoration(
-            color: FluentTheme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          width: 30,
-          height: 30,
-          margin: const EdgeInsets.only(left: 8),
-          padding: const EdgeInsets.all(2),
-          child: GestureDetector(
-            onTap: () => openFlyout(context),
+        child: Listener(
+          onPointerDown: (_) => openFlyout(context),
+          onPointerSignal: (event) {
+            if (event is PointerScrollEvent) {
+              if (event.scrollDelta.dy > 0) {
+                final selectedModel = selectedChatRoom.model;
+                final index = models.indexOf(selectedModel);
+                if (index < models.length - 1) {
+                  final model = models[index + 1];
+                  provider.selectNewModel(model);
+                  displayTextInfoBar('Model changed to ${model.customName}');
+                }
+              } else {
+                final models = allModels.value;
+                final selectedModel = selectedChatRoom.model;
+                final index = models.indexOf(selectedModel);
+                if (index > 0) {
+                  final model = models[index - 1];
+                  provider.selectNewModel(model);
+                  displayTextInfoBar('Model changed to ${model.customName}');
+                }
+              }
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: FluentTheme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            width: 30,
+            height: 30,
+            margin: const EdgeInsets.only(left: 8),
+            padding: const EdgeInsets.all(2),
             child: SizedBox.square(
               dimension: 20,
               child: selectedModel.modelIcon,

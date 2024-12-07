@@ -31,6 +31,7 @@ class CustomPrompt {
 
   /// If true will be shown in the context menu on right click
   final bool showInContextMenu;
+  final bool showInHomePage;
 
   final List<String> tags;
 
@@ -55,6 +56,7 @@ class CustomPrompt {
     this.showInChatField = false,
     this.showInOverlay = false,
     this.showInContextMenu = false,
+    this.showInHomePage = true,
     this.children = const [],
     this.iconCodePoint = 62086,
     this.hotkey,
@@ -117,6 +119,7 @@ class CustomPrompt {
       'showInChatField': showInChatField,
       'showInOverlay': showInOverlay,
       'showInContextMenu': showInContextMenu,
+      'showInHomePage': showInHomePage,
       'children': children.map((e) => e.toJson()).toList(),
       'icon': iconCodePoint,
       'hotkey': hotkey?.toJson(),
@@ -135,6 +138,7 @@ class CustomPrompt {
       title: json['title'],
       prompt: json['prompt'],
       showInChatField: json['showInChatField'],
+      showInHomePage: json['showInHomePage'] ?? true,
       index: json['index'] ?? 0,
       showInOverlay: json['showInOverlay'],
       showInContextMenu: json['showInContextMenu'] ?? false,
@@ -169,6 +173,7 @@ class CustomPrompt {
     bool? showInChatField,
     bool? showInOverlay,
     bool? showInContextMenu,
+    bool? showInHomePage,
     List<CustomPrompt>? children,
     HotKey? hotkey,
     bool? focusTheWindowOnRun,
@@ -183,6 +188,7 @@ class CustomPrompt {
       showInChatField: showInChatField ?? this.showInChatField,
       showInOverlay: showInOverlay ?? this.showInOverlay,
       showInContextMenu: showInContextMenu ?? this.showInContextMenu,
+      showInHomePage: showInHomePage ?? this.showInHomePage,
       children: children ?? this.children,
       hotkey: hotkey ?? this.hotkey,
       focusTheWindowOnRun: focusTheWindowOnRun ?? this.focusTheWindowOnRun,

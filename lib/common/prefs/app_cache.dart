@@ -95,6 +95,7 @@ class AppCache {
   static const maxTokensUserInfo = IntPref("maxTokensUserInfo", 1024);
   static const userName = StringPref("userName", 'User');
   static const userCityName = StringPref("userCityName", '');
+  static const showWeatherWidget = BoolPref("showWeatherWidget", true);
   static const weatherData = StringPref("weatherData");
 
   /// DateTime in milliseconds since epoch. default is 0

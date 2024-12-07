@@ -220,7 +220,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                     ),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        margin: const EdgeInsets.symmetric(vertical: 2),
+                    margin: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
                       children: [
                         if (mode == PaneDisplayMode.compact)
@@ -309,6 +309,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                   fontWeight: FontWeight.bold,
                                 )),
                             const SizedBox(height: 4),
+                            Divider(),
                             FlyoutListTile(
                               text: Text('Pin/unpin chat', style: TextStyle()),
                               icon: Icon(FluentIcons.pin_24_regular),
