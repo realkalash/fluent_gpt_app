@@ -277,14 +277,6 @@ class _MessageCardState extends State<MessageCard> {
                     position: mouseLocalPosition,
                   );
                 },
-                onDeletePressed: () async {
-                  final provider = context.read<ChatProvider>();
-                  final accepted =
-                      await ConfirmationDialog.show(context: context);
-                  if (accepted) {
-                    provider.deleteMessage(widget.message.id);
-                  }
-                },
                 onQuoteSelectedText: (text) {
                   final provider = context.read<ChatProvider>();
                   provider.messageController.text =
@@ -316,14 +308,6 @@ class _MessageCardState extends State<MessageCard> {
                     builder: (context) => _showOptionsFlyout(context),
                     position: mouseLocalPosition,
                   );
-                },
-                onDeletePressed: () async {
-                  final provider = context.read<ChatProvider>();
-                  final accepted =
-                      await ConfirmationDialog.show(context: context);
-                  if (accepted) {
-                    provider.deleteMessage(widget.message.id);
-                  }
                 },
                 onQuoteSelectedText: (text) {
                   final provider = context.read<ChatProvider>();
@@ -602,6 +586,14 @@ class _MessageCardState extends State<MessageCard> {
                       displayCopiedToClipboard();
                     },
                   ),
+                  SqueareIconButton(
+                    tooltip: 'Delete',
+                    icon: Icon(FluentIcons.delete_16_filled, color: Colors.red),
+                    onTap: () async {
+                      final provider = context.read<ChatProvider>();
+                      provider.deleteMessage(widget.message.id);
+                    },
+                  ),
                   FlyoutTarget(
                     controller: flyoutController,
                     child: SqueareIconButton(
@@ -651,38 +643,101 @@ class _MessageCardState extends State<MessageCard> {
     int tokens = message.tokens;
     final Debouncer debouncer = Debouncer(milliseconds: 500);
     final provider = context.read<ChatProvider>();
+    final textStyle = DefaultTextStyle.of(context).style;
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
         title: const Text('Edit message'),
         constraints:
             const BoxConstraints(maxWidth: 800, maxHeight: 800, minHeight: 200),
-        content: ListView(
-          shrinkWrap: true,
-          children: [
-            const Text('Character name'),
-            TextBox(controller: characterName, maxLines: 1),
-            spacer,
-            const Text('Content'),
-            TextBox(
-              controller: contentController,
-              minLines: 5,
-              maxLines: 50,
-              onChanged: (value) {
-                debouncer.run(
-                  () async {
-                    final count = await provider.countTokensString(value);
-                    setState(() {
-                      tokens = count;
-                    });
-                  },
+        content: CallbackShortcuts(
+          bindings: {
+            if (Platform.isMacOS) ...{
+              LogicalKeySet(
+                  LogicalKeyboardKey.metaLeft, LogicalKeyboardKey.enter): () {
+                final provider = context.read<ChatProvider>();
+                provider.editMessage(
+                  widget.message.id,
+                  message.copyWith(
+                    creator: characterName.text,
+                    content: contentController.text,
+                  ),
                 );
+                Navigator.of(ctx).pop();
+              }
+            } else ...{
+              LogicalKeySet(
+                  LogicalKeyboardKey.altLeft, LogicalKeyboardKey.enter): () {
+                final provider = context.read<ChatProvider>();
+                provider.editMessage(
+                  widget.message.id,
+                  message.copyWith(
+                    creator: characterName.text,
+                    content: contentController.text,
+                  ),
+                );
+                Navigator.of(ctx).pop();
               },
-            ),
-            Text('Tokens: $tokens'),
-          ],
+            }
+          },
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const Text('Character name'),
+              TextBox(controller: characterName, maxLines: 1),
+              spacer,
+              const Text('Content'),
+              TextBox(
+                autofocus: true,
+                controller: contentController,
+                minLines: 5,
+                maxLines: 50,
+                onChanged: (value) {
+                  debouncer.run(
+                    () async {
+                      final count = await provider.countTokensString(value);
+                      setState(() {
+                        tokens = count;
+                      });
+                    },
+                  );
+                },
+              ),
+              Text('Tokens: $tokens'),
+              Divider(),
+              Text('Press tab to navigate to buttons below',
+                  style: TextStyle(color: textStyle.color?.withOpacity(0.5))),
+            ],
+          ),
         ),
         actions: [
+          FilledButton(
+              onPressed: () {
+                final provider = context.read<ChatProvider>();
+                final newMessage = message.copyWith(
+                  creator: characterName.text,
+                  content: contentController.text,
+                );
+                provider.deleteMessage(widget.message.id, true);
+                provider.regenerateMessage(newMessage).then((value) {
+                  provider.sortMessages();
+                });
+                Navigator.of(ctx).pop();
+              },
+              child: RichText(
+                text: TextSpan(
+                  text: 'Apply ',
+                  style: DefaultTextStyle.of(context).style,
+                  children: <TextSpan>[
+                    // TextSpan(
+                    //   text: '(ctrl+alt+enter)',
+                    //   style: TextStyle(
+                    //     color: textStyle.color?.withOpacity(0.5),
+                    //   ),
+                    // ),
+                  ],
+                ),
+              )),
           Button(
             onPressed: () {
               final provider = context.read<ChatProvider>();
@@ -695,14 +750,37 @@ class _MessageCardState extends State<MessageCard> {
               );
               Navigator.of(ctx).pop();
             },
-            child: const Text('Apply'),
+            child: RichText(
+              text: TextSpan(
+                text: 'Apply silent ',
+                style: DefaultTextStyle.of(context).style,
+                children: <TextSpan>[
+                  TextSpan(
+                    text: '(alt+enter)',
+                    style: TextStyle(color: textStyle.color?.withOpacity(0.5)),
+                  ),
+                ],
+              ),
+            ),
           ),
           Button(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Dismiss'),
-          ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: RichText(
+                text: TextSpan(
+                  text: 'Dissmiss ',
+                  style: DefaultTextStyle.of(context).style,
+                  children: <TextSpan>[
+                    TextSpan(
+                      text: '(esc)',
+                      style: TextStyle(
+                        color: textStyle.color?.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
         ],
       ),
     );
