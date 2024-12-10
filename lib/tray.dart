@@ -319,16 +319,17 @@ Future<void> initCachedHotKeys() async {
       keyDownHandler: (hotKey) async {
         log('PTT Screenshot Key Down');
         if (Platform.isWindows) {
+          // take a screenshot
+          final screenshot = (Platform.isMacOS || Platform.isWindows)
+              ? await ScreenshotTool.takeScreenshotReturnBase64Native()
+              : await ScreenshotTool.takeScreenshotReturnBase64();
+          if (screenshot != null && screenshot.isNotEmpty) {
+            onTrayButtonTapCommand(screenshot, 'paste_attachment_silent');
+          }
           // on windows we don't have keyUpHandler, so we need to stop the PTT on key down
           if (PushToTalkTool.isRecording) {
             final text = await PushToTalkTool.stop();
             if (text != null && text.isNotEmpty) {
-              final screenshot = (Platform.isMacOS || Platform.isWindows)
-                  ? await ScreenshotTool.takeScreenshotReturnBase64Native()
-                  : await ScreenshotTool.takeScreenshotReturnBase64();
-              if (screenshot != null && screenshot.isNotEmpty) {
-                onTrayButtonTapCommand(screenshot, 'paste_attachment_silent');
-              }
               onTrayButtonTapCommand(text, 'push_to_talk_message');
             }
             return;
@@ -345,6 +346,7 @@ Future<void> initCachedHotKeys() async {
               : await ScreenshotTool.takeScreenshotReturnBase64();
           if (screenshot != null && screenshot.isNotEmpty) {
             onTrayButtonTapCommand(screenshot, 'paste_attachment_silent');
+            await Future.delayed(const Duration(milliseconds: 50));
           }
           onTrayButtonTapCommand(text, 'push_to_talk_message');
         }

@@ -65,7 +65,7 @@ class _OverlayUIState extends State<OverlayUI> {
 
   @override
   Widget build(BuildContext context) {
-     final appTheme = context.read<AppTheme>();
+    final appTheme = context.read<AppTheme>();
     final backgroundColor = appTheme.isDark
         ? appTheme.darkBackgroundColor
         : appTheme.lightBackgroundColor;
@@ -395,19 +395,6 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      chatRoomsStream.listen(
-        (event) async {
-          await Future.delayed(const Duration(milliseconds: 300));
-          if (!mounted) return;
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        },
-      );
-    });
   }
 
   @override
@@ -418,15 +405,18 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: chatRoomsStream,
+                stream: messages,
                 builder: (context, snapshot) {
+                  final reverseList = messagesReversedList;
+
                   return ListView.builder(
-                    itemCount: messages.value.length,
+                    itemCount: reverseList.length,
                     controller: _scrollController,
-                    reverse: false,
+                    addAutomaticKeepAlives: false,
+                    addRepaintBoundaries: true,
+                    reverse: true,
                     itemBuilder: (context, index) {
-                      final message =
-                          messages.value.entries.elementAt(index).value;
+                      final message = reverseList[index];
 
                       return MessageCard(
                         message: message,

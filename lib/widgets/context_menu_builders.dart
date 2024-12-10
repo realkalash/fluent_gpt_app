@@ -17,7 +17,6 @@ class ContextMenuBuilders {
     BuildContext context,
     EditableTextState editableTextState, {
     required void Function() onMorePressed,
-    required void Function() onDeletePressed,
     required void Function(String text) onShowCommandsPressed,
     required void Function(String text) onImproveSelectedText,
     required void Function(String text) onQuoteSelectedText,
@@ -109,17 +108,6 @@ class ContextMenuBuilders {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Divider(),
                   ),
-                  FlyoutListTile(
-                    text: Text('Delete', style: TextStyle(color: Colors.red)),
-                    icon: Icon(
-                      FluentIcons.delete_20_regular,
-                      color: Colors.red,
-                    ),
-                    onPressed: () {
-                      onDeletePressed();
-                      editableTextState.hideToolbar();
-                    },
-                  ),
                 ],
               ),
             ),
@@ -139,7 +127,6 @@ class ContextMenuBuilders {
     BuildContext context,
     CustomSelectableRegionState editableTextState, {
     required void Function() onMorePressed,
-    required void Function() onDeletePressed,
     required void Function(String text) onShowCommandsPressed,
     required void Function(String text) onImproveSelectedText,
     required void Function(String text) onQuoteSelectedText,
@@ -224,21 +211,6 @@ class ContextMenuBuilders {
                     trailing: Icon(FluentIcons.more_vertical_20_regular),
                     onPressed: () {
                       onMorePressed();
-                      editableTextState.hideToolbar();
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Divider(),
-                  ),
-                  FlyoutListTile(
-                    text: Text('Delete', style: TextStyle(color: Colors.red)),
-                    icon: Icon(
-                      FluentIcons.delete_20_regular,
-                      color: Colors.red,
-                    ),
-                    onPressed: () {
-                      onDeletePressed();
                       editableTextState.hideToolbar();
                     },
                   ),

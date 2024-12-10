@@ -46,6 +46,8 @@ import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:collection/collection.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import '../common/last_deleted_message.dart';
+
 ChatOpenAI? openAI;
 ChatOpenAI? localModel;
 
@@ -1896,11 +1898,45 @@ class ChatProvider with ChangeNotifier {
   //   );
   // }
 
-  void deleteMessage(String id) {
-    final value = messages.value;
-    value.remove(id);
-    messages.add(value);
-    saveToDisk([selectedChatRoom]);
+  LastDeletedMessage? lastDeletedMessage;
+
+  void deleteMessage(String id, [bool showInfo = true]) {
+    final _messages = messages.value;
+    final removedVal = _messages.remove(id);
+    if (removedVal != null) {
+      lastDeletedMessage =
+          LastDeletedMessage(messageChatRoomId: id, message: removedVal);
+      messages.add(_messages);
+      saveToDisk([selectedChatRoom]);
+      if (showInfo)
+        displayInfoBar(context!, builder: (context, close) {
+          return InfoBar(
+            title: Text('Message deleted'),
+            action: Button(
+              onPressed: () {
+                addCustomMessageToList(removedVal);
+                sortMessages();
+                lastDeletedMessage = null;
+                close();
+              },
+              child: Text('Undo'),
+            ),
+          );
+        });
+    } else {
+      if (showInfo) displayErrorInfoBar(title: 'Message not found');
+    }
+  }
+
+  /// sort messages based on their timestamp
+  void sortMessages() {
+    final messagesList = messages.value.values.toList();
+    messagesList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final newMessages = <String, FluentChatMessage>{};
+    for (var message in messagesList) {
+      newMessages[message.id] = message;
+    }
+    messages.add(newMessages);
   }
 
   void stopAnswering() {
