@@ -224,8 +224,13 @@ class _InputFieldState extends State<InputField> {
     return CallbackShortcuts(
       bindings: {
         if (Platform.isMacOS) ...{
+          const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
+              onShortcutPasteSilently(FluentChatMessageType.textHuman),
+          const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
+              onShortcutPasteSilently(FluentChatMessageType.textAi),
           const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
               onShortcutPasteToField,
+
           const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
               onShortcutSearchPressed,
           // digits
@@ -250,6 +255,10 @@ class _InputFieldState extends State<InputField> {
           SingleActivator(LogicalKeyboardKey.keyH, meta: true):
               toggleEnableHistory,
         } else ...{
+          const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
+              onShortcutPasteSilently(FluentChatMessageType.textHuman),
+          const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
+              onShortcutPasteSilently(FluentChatMessageType.textAi),
           const SingleActivator(LogicalKeyboardKey.keyV, control: true):
               onShortcutPasteToField,
           const SingleActivator(LogicalKeyboardKey.keyF, control: true):
@@ -494,6 +503,7 @@ class _InputFieldState extends State<InputField> {
           if (text.isNotEmpty)
             MenuFlyoutItem(
                 text: const Text('Send silently as user'),
+                trailing: Text('(alt+u)'),
                 onPressed: () async {
                   final timestamp = DateTime.now().millisecondsSinceEpoch;
                   provider.addHumanMessageToList(
@@ -510,6 +520,7 @@ class _InputFieldState extends State<InputField> {
             MenuFlyoutItem(
                 text: Text(
                     'Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
+                trailing: Text('(alt+i)'),
                 onPressed: () async {
                   final timestamp = DateTime.now().millisecondsSinceEpoch;
                   provider.addBotMessageToList(
@@ -559,6 +570,26 @@ class _InputFieldState extends State<InputField> {
       removeInputFieldQuickCommandsOverlay();
       return;
     }
+  }
+
+  onShortcutPasteSilently(FluentChatMessageType messageType) async {
+    final provider = context.read<ChatProvider>();
+    final message = provider.messageController.text;
+    if (message.isEmpty) return;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fMessage = FluentChatMessage(
+      id: timestamp.toString(),
+      type: messageType,
+      content: message,
+      creator: messageType == FluentChatMessageType.textHuman
+          ? AppCache.userName.value ?? 'User'
+          : selectedChatRoom.characterName,
+      timestamp: timestamp,
+      tokens: await provider.countTokensString(message),
+    );
+    provider.addHumanMessageToList(fMessage);
+    provider.messageController.clear();
+    promptTextFocusNode.requestFocus();
   }
 }
 

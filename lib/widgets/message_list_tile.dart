@@ -718,7 +718,7 @@ class _MessageCardState extends State<MessageCard> {
                   creator: characterName.text,
                   content: contentController.text,
                 );
-                provider.deleteMessage(widget.message.id, true);
+                provider.deleteMessage(widget.message.id, false);
                 provider.regenerateMessage(newMessage).then((value) {
                   provider.sortMessages();
                 });

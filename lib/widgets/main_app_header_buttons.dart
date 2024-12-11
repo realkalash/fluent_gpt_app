@@ -18,9 +18,10 @@ class MainAppHeaderButtons extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 6.0, right: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
+          const RevertMessageHeaderButton(),
           const AddChatButton(),
           const ClearChatButton(),
           const PinAppButton(),
@@ -66,6 +67,33 @@ class MainAppHeaderButtons extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class RevertMessageHeaderButton extends StatelessWidget {
+  const RevertMessageHeaderButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    if (chatProvider.lastDeletedMessage.isNotEmpty)
+      return Tooltip(
+        message: 'Revert deleted message',
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: ToggleButton(
+            checked: false,
+            onChanged: (v) => chatProvider.revertDeletedMessage(),
+            child: const Icon(
+              icons.FluentIcons.arrow_undo_24_regular,
+              size: 20,
+            ),
+          ),
+        ),
+      );
+    else {
+      return const SizedBox.shrink();
+    }
   }
 }
 

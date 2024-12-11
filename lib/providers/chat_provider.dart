@@ -1218,7 +1218,7 @@ class ChatProvider with ChangeNotifier {
           sendMessage('Answer based on the result (answer short)',
               onMessageSent: () {
             final lastMessage = messages.value.entries.last;
-            deleteMessage(lastMessage.key);
+            deleteMessage(lastMessage.key, false);
           });
         }
       }
@@ -1898,25 +1898,27 @@ class ChatProvider with ChangeNotifier {
   //   );
   // }
 
-  LastDeletedMessage? lastDeletedMessage;
+  List<LastDeletedMessage> lastDeletedMessage = [];
 
   void deleteMessage(String id, [bool showInfo = true]) {
     final _messages = messages.value;
     final removedVal = _messages.remove(id);
     if (removedVal != null) {
-      lastDeletedMessage =
-          LastDeletedMessage(messageChatRoomId: id, message: removedVal);
+      lastDeletedMessage = [
+        LastDeletedMessage(messageChatRoomId: id, message: removedVal),
+        ...lastDeletedMessage,
+      ];
+
       messages.add(_messages);
       saveToDisk([selectedChatRoom]);
+      notifyListeners();
       if (showInfo)
         displayInfoBar(context!, builder: (context, close) {
           return InfoBar(
             title: Text('Message deleted'),
             action: Button(
               onPressed: () {
-                addCustomMessageToList(removedVal);
-                sortMessages();
-                lastDeletedMessage = null;
+                revertDeletedMessage();
                 close();
               },
               child: Text('Undo'),
@@ -1925,6 +1927,18 @@ class ChatProvider with ChangeNotifier {
         });
     } else {
       if (showInfo) displayErrorInfoBar(title: 'Message not found');
+    }
+  }
+
+  void revertDeletedMessage() {
+    if (lastDeletedMessage.isNotEmpty) {
+      final lastDeleted = lastDeletedMessage.first;
+      final _messages = messages.value;
+      _messages[lastDeleted.message.id] = lastDeleted.message;
+      messages.add(_messages);
+      saveToDisk([selectedChatRoom]);
+      lastDeletedMessage = lastDeletedMessage.sublist(1);
+      notifyListeners();
     }
   }
 
