@@ -249,7 +249,7 @@ class _StorageAppDirConfigureDialogState
         message:
             'Current chats will be deleted and replaced with the imported ones. Are you sure?');
     if (confirmed) {
-      final path = await FileUtils.getChatRoomPath();
+      final path = await FileUtils.getChatRoomsPath();
       final chatRoomsFiles = FileUtils.getFilesRecursive(path);
 
       /// Key is ChatRoom id
@@ -292,7 +292,7 @@ class _StorageAppDirConfigureDialogState
         }
       }
       // create a backup of all chats in a new backup folder
-      final backupPath = '${await FileUtils.getChatRoomPath()}-backup';
+      final backupPath = '${await FileUtils.getChatRoomsPath()}-backup';
       final backupDir = Directory(backupPath);
       if (!backupDir.existsSync()) {
         backupDir.createSync();

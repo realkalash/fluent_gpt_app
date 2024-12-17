@@ -1171,6 +1171,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                 isError: false,
                                 textSize: chatProvider.textSize,
                                 isCompactMode: false,
+                                shouldBlink:
+                                    chatProvider.blinkMessageId == message.id,
                               ),
                             );
                           },
@@ -1420,6 +1422,13 @@ class _ScrollToBottomButton extends StatelessWidget {
         ),
       ),
       onChanged: (value) {
+        // if not at the bottom we should just scroll to the bottom
+        // The list is reversed so the bottom is the top
+        if (provider.listItemsScrollController.position.pixels !=
+            provider.listItemsScrollController.position.minScrollExtent) {
+          provider.scrollToEnd();
+          return;
+        }
         provider.toggleScrollToBottomOnAnswer();
         if (value) {
           provider.scrollToEnd();

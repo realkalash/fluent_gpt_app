@@ -32,6 +32,8 @@ class ChatRoom {
   String? systemMessage;
   String characterName;
   String? characterAvatarPath;
+  List<ChatRoom>? children;
+  bool get isFolder => children != null;
 
   ChatRoom({
     required this.id,
@@ -54,7 +56,57 @@ class ChatRoom {
     this.totalReceivedTokens = 0,
     this.characterName = 'ai',
     this.characterAvatarPath,
+    this.children,
   });
+
+  factory ChatRoom.folder({
+    String? id,
+    String? chatRoomName,
+    required ChatModelAi model,
+    double? temp,
+    int? topk,
+    int? promptBatchSize,
+    int? repeatPenaltyTokens,
+    double? topP,
+    int? maxLength,
+    double? repeatPenalty,
+    String? token,
+    String? orgID,
+    String? systemMessage,
+    String? characterName,
+    String? avatarPath,
+    double? costUSD,
+    int? tokens,
+    int? iconCodePoint,
+    int? indexSort,
+    int? dateCreatedMilliseconds,
+    int? totalSentTokens,
+    int? totalReceivedTokens,
+    List<ChatRoom> children = const [],
+  }) {
+    return ChatRoom(
+      id: id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      chatRoomName: chatRoomName ?? 'New Folder',
+      model: model,
+      temp: temp ?? 0.7,
+      topk: topk ?? 50,
+      promptBatchSize: promptBatchSize ?? 1,
+      repeatPenaltyTokens: repeatPenaltyTokens ?? 1,
+      topP: topP ?? 0.9,
+      maxTokenLength: maxLength ?? 2048,
+      repeatPenalty: repeatPenalty ?? 1.0,
+      systemMessage: systemMessage,
+      dateCreatedMilliseconds:
+          dateCreatedMilliseconds ?? DateTime.now().millisecondsSinceEpoch,
+      indexSort: indexSort ?? 999999,
+      iconCodePoint: iconCodePoint ?? 62087,
+      totalSentTokens: totalSentTokens ?? 0,
+      totalReceivedTokens: totalReceivedTokens ?? 0,
+      characterName: characterName ?? 'ai',
+      characterAvatarPath: avatarPath,
+      children: children,
+    );
+  }
 
   /// Method to encrypt the apiToken
   static Future<SecretBox> encryptApiToken(
@@ -112,10 +164,15 @@ class ChatRoom {
           DateTime.now().millisecondsSinceEpoch,
       characterName: map['characterName'] ?? 'ai',
       characterAvatarPath: map['avatarPath'],
+      children: map['children'] != null
+          ? (map['children'] as List)
+              .map((e) => ChatRoom.fromMap(e as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
-  Future<Map<String, dynamic>> toJson() async {
+  Map<String, dynamic> toJson() {
     // final secretKey =
     //     await FlutterCryptography.defaultInstance.aesGcm().newSecretKey();
     // final encryptedTokenBox = await encryptApiToken(apiToken, secretKey);
@@ -143,6 +200,7 @@ class ChatRoom {
       'dateCreatedMilliseconds': dateCreatedMilliseconds,
       'characterName': characterName,
       'avatarPath': characterAvatarPath,
+      'children': children?.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -214,6 +272,7 @@ class ChatRoom {
     int? dateCreatedMilliseconds,
     int? totalSentTokens,
     int? totalReceivedTokens,
+    List<ChatRoom>? children,
   }) {
     return ChatRoom(
       id: id ?? this.id,
@@ -235,6 +294,7 @@ class ChatRoom {
       totalReceivedTokens: totalReceivedTokens ?? this.totalReceivedTokens,
       characterName: characterName ?? this.characterName,
       characterAvatarPath: avatarPath ?? characterAvatarPath,
+      children: children ?? this.children,
     );
   }
 

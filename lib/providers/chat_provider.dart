@@ -81,19 +81,32 @@ ChatModelAi get selectedModel =>
     (allModels.value.isNotEmpty
         ? allModels.value.first
         : const ChatModelAi(modelName: 'Unknown', apiKey: ''));
-ChatRoom get selectedChatRoom =>
-    chatRooms[selectedChatRoomId] ??
-    (chatRooms.values.isEmpty == true
-        ? _generateDefaultChatroom()
-        : chatRooms.values.first);
+ChatRoom get selectedChatRoom {
+  final fastSearchItem = chatRooms[selectedChatRoomId];
+  if (fastSearchItem != null) return fastSearchItem;
+  if (chatRooms.values.isEmpty == true) {
+    return _generateDefaultChatroom();
+  }
+  // next we search in all chats
+  final allRooms = getChatRoomsRecursive(chatRooms.values.toList());
+  for (var chatRoom in allRooms) {
+    if (chatRoom.id == selectedChatRoomId) {
+      return chatRoom;
+    }
+  }
+  return chatRooms.values.first;
+}
+
 double get temp => chatRooms[selectedChatRoomId]?.temp ?? 0.9;
-get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
-get promptBatchSize => chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
-get repeatPenaltyTokens =>
+int get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
+int get promptBatchSize =>
+    chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
+int get repeatPenaltyTokens =>
     chatRooms[selectedChatRoomId]?.repeatPenaltyTokens ?? 64;
-get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
-get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
-get repeatPenalty => chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
+double get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
+int get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
+double get repeatPenalty =>
+    chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
 
 /// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
 BehaviorSubject<Map<String, FluentChatMessage>> messages =
@@ -238,21 +251,25 @@ class ChatProvider with ChangeNotifier {
     // ignore: no_leading_underscores_for_local_identifiers
     final _chatRooms = rooms;
     for (var chatRoom in _chatRooms) {
-      var chatRoomRaw = await chatRoom.toJson();
-      final path = await FileUtils.getChatRoomPath();
+      var chatRoomRaw = chatRoom.toJson();
+      final path = await FileUtils.getChatRoomsPath();
       FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
-      final messagesRaw = <Map<String, dynamic>>[];
-      for (var message in messages.value.entries) {
-        /// add key and message.toJson
-        messagesRaw.add(message.value.toJson());
+      // if it's current chat room, save messages
+      if (chatRoom.id == selectedChatRoomId) {
+        final messagesRaw = <Map<String, dynamic>>[];
+        for (var message in messages.value.entries) {
+          /// add key and message.toJson
+          messagesRaw.add(message.value.toJson());
+        }
+        FileUtils.saveChatMessages(chatRoom.id, jsonEncode(messagesRaw));
       }
-      FileUtils.saveChatMessages(chatRoom.id, jsonEncode(messagesRaw));
     }
   }
 
   Future<void> initChatsFromDisk() async {
-    final path = await FileUtils.getChatRoomPath();
+    final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
+    // ChatRoom? _selectedChatRoomFromCache;
     for (var file in files) {
       try {
         if (file.path.contains('.DS_Store')) continue;
@@ -260,10 +277,23 @@ class ChatProvider with ChangeNotifier {
         final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
         final chatRoom = ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
-        if (chatRoom.id == selectedChatRoomId) {
+        if (chatRoom.children != null) {
+          // TODO: this can fix init selection only for first 2 levels deep
+          // for (var subItem in chatRoom.children!) {
+          //   if (subItem.children != null) {
+          //     for (var subSubItem in subItem.children!) {
+          //       if (subSubItem.id == selectedChatRoomId) {
+          //         // _selectedChatRoomFromCache = chatRoom;
+          //       }
+          //     }
+          //   } else if (subItem.id == selectedChatRoomId) {
+          //     // _selectedChatRoomFromCache = chatRoom;
+          //   }
+          // }
+        } else {
+          // TODO: isnt this will load messages in a loop for the same chat for each chat?
           initModelsApi();
-          await _loadMessagesFromDisk(chatRoom.id);
-          // if (messages.value.isNotEmpty) scrollToEnd();
+          await _loadMessagesFromDisk(selectedChatRoomId);
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -288,7 +318,11 @@ class ChatProvider with ChangeNotifier {
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
+    // if (_selectedChatRoomFromCache != null) {}
+
+    /// notify listeners
     selectedChatRoomId = selectedChatRoomId;
+
     notifyRoomsStream();
   }
 
@@ -1707,19 +1741,36 @@ class ChatProvider with ChangeNotifier {
   }
 
   void notifyRoomsStream() {
-    final chatRooms = chatRoomsStream.value;
-    final sortedChatRooms = chatRooms.values.toList()
+    final sortedChatRooms = chatRoomsStream.value.values.toList()
       ..sort((a, b) {
         if (a.indexSort == b.indexSort) {
           return b.dateCreatedMilliseconds.compareTo(a.dateCreatedMilliseconds);
         }
         return a.indexSort.compareTo(b.indexSort);
       });
+
+    sortChatRoomChildren(sortedChatRooms);
+
     chatRoomsStream.add(
       {
         for (var e in sortedChatRooms) (e).id: e,
       },
     );
+  }
+
+  void sortChatRoomChildren(List<ChatRoom> chatRooms) {
+    for (var chatRoom in chatRooms) {
+      if (chatRoom.isFolder && chatRoom.children != null) {
+        chatRoom.children!.sort((a, b) {
+          if (a.indexSort == b.indexSort) {
+            return b.dateCreatedMilliseconds
+                .compareTo(a.dateCreatedMilliseconds);
+          }
+          return a.indexSort.compareTo(b.indexSort);
+        });
+        sortChatRoomChildren(chatRoom.children!);
+      }
+    }
   }
 
   void selectNewModel(ChatModelAi model) {
@@ -1776,7 +1827,7 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> deleteAllChatRooms() async {
     chatRooms.clear();
-    final path = await FileUtils.getChatRoomPath();
+    final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
     final messagesFiles = await FileUtils.getAllChatMessagesFiles();
     for (var file in files) {
@@ -1804,7 +1855,21 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> deleteChatRoom(String chatRoomId) async {
-    final chatRoomToDelete = chatRooms[chatRoomId];
+    final allChatRooms =
+        getChatRoomsRecursive(chatRoomsStream.value.values.toList());
+    final chatRoomToDelete = chatRooms[chatRoomId] ??
+        allChatRooms.firstWhereOrNull((element) => element.id == chatRoomId);
+    if (chatRoomToDelete?.isFolder == true) {
+      ungroupByFolder(chatRoomToDelete!);
+      return;
+    }
+    if (chatRoomToDelete == null) {
+      displayErrorInfoBar(
+        title: 'Error while deleting chat room',
+        message: 'Chat room not found',
+      );
+      return;
+    }
     chatRooms.remove(chatRoomId);
     // if last one - create a default one
     if (chatRooms.isEmpty) {
@@ -1815,26 +1880,35 @@ class ChatProvider with ChangeNotifier {
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
+    final dir = await FileUtils.getChatRoomsPath();
 
-    FileUtils.getChatRoomPath().then((dir) async {
-      final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
-      if (chatRoomToDelete?.model.modelName == 'error') {
+    final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
+    try {
+      if (chatRoomToDelete.model.modelName == 'error') {
         // in this case id is the path
         FileUtils.deleteFile(chatRoomId);
       } else {
-        FileUtils.moveFile('$dir${FileUtils.separatior}$chatRoomId.json',
+        await FileUtils.moveFile('$dir${FileUtils.separatior}$chatRoomId.json',
             '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId.json');
       }
-    });
+    } catch (e) {
+      displayErrorInfoBar(
+          title: 'Error while deleting chat room', message: '$e');
+    }
 
     /// 2. Delete messages file
     FileUtils.getChatRoomMessagesFileById(chatRoomId).then((file) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
-      if (chatRoomToDelete?.model.modelName == 'error') {
-        FileUtils.deleteFile(chatRoomId);
-      } else {
-        FileUtils.moveFile(file.path,
-            '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId-messages.json');
+      try {
+        if (chatRoomToDelete?.model.modelName == 'error') {
+          FileUtils.deleteFile(chatRoomId);
+        } else {
+          await FileUtils.moveFile(file.path,
+              '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId-messages.json');
+        }
+      } catch (e) {
+        displayErrorInfoBar(
+            title: 'Error while deleting chat room messages', message: '$e');
       }
     });
     if (chatRoomId == selectedChatRoomId) {
@@ -1879,7 +1953,7 @@ class ChatProvider with ChangeNotifier {
 
     notifyRoomsStream();
     notifyListeners();
-    saveToDisk([selectedChatRoom]);
+    saveToDisk([chatRoom]);
   }
 
   // void sendResultOfRunningShellCode(String result) {
@@ -2137,9 +2211,12 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
+  String? blinkMessageId;
   Future<void> scrollToMessage(String messageKey) async {
     final index = indexOf(messagesReversedList, messages.value[messageKey]);
+    blinkMessageId = messageKey;
     await listItemsScrollController.scrollToIndex(index);
+    notifyListeners();
   }
 
   /// custom get index
@@ -2402,6 +2479,202 @@ class ChatProvider with ChangeNotifier {
     isTypingSimulate = false;
     notifyListeners();
   }
+
+  /// Finds the last message that is visible for the ai to see
+  /// Scrolls up to the last message that is visible for the ai to see
+  Future<void> scrollToLastOverflowMessage() async {
+    final maxTokens = maxTokenLenght;
+    final messagesList = messagesReversedList;
+    int tokens = 0;
+    for (var message in messagesList) {
+      tokens += message.tokens == 0
+          ? await countTokensString(message.content)
+          : message.tokens;
+      if (tokens > maxTokens) {
+        scrollToMessage(message.id);
+        break;
+      }
+    }
+  }
+
+  void createChatRoomFolder({
+    List<ChatRoom> chatRoomsForFolder = const [],
+    String? parentFolderId,
+  }) {
+    final chatRoomName = '${chatRooms.length + 1} Folder';
+    final id = generateChatID();
+    final chRooms = chatRoomsStream.value;
+    if (chatRoomsForFolder.isEmpty) {
+      // just create empty folder
+      chRooms[id] = ChatRoom.folder(
+        model: selectedModel,
+        id: id,
+        chatRoomName: chatRoomName,
+      );
+      chatRoomsStream.add(chRooms);
+      return;
+    }
+    if (parentFolderId != null) {
+      final allChatRooms =
+          getChatRoomsFoldersRecursive(chRooms.values.toList());
+      final parentFolder = allChatRooms.firstWhereOrNull(
+        (element) => element.id == parentFolderId,
+      );
+      if (parentFolder != null) {
+        parentFolder.children ??= [];
+        parentFolder.children!.add(
+          ChatRoom.folder(
+            model: selectedModel,
+            id: id,
+            chatRoomName: chatRoomName,
+            children: chatRoomsForFolder,
+          ),
+        );
+
+        for (var chatRoom in chatRoomsForFolder) {
+          chRooms.remove(chatRoom.id);
+          parentFolder.children!
+              .removeWhere((element) => element.id == chatRoom.id);
+        }
+        chRooms[parentFolder.id] = parentFolder;
+        chatRoomsStream.add(chRooms);
+        notifyRoomsStream();
+        // delete files because we already have them in the other folder
+        for (var chatRoom in chatRoomsForFolder) {
+          FileUtils.getChatRoomFilePath(chatRoom.id).then((path) {
+            FileUtils.deleteFile(path);
+          });
+        }
+        saveToDisk(chatRoomsStream.value.values.toList());
+        return;
+      }
+    }
+    chRooms[id] = ChatRoom.folder(
+      model: selectedModel,
+      id: id,
+      chatRoomName: chatRoomName,
+      children: chatRoomsForFolder,
+    );
+    for (var chatRoom in chatRoomsForFolder) {
+      chRooms.remove(chatRoom.id);
+    }
+    chatRoomsStream.add(chRooms);
+    notifyRoomsStream();
+    // delete files because we already have them in the other folder
+    for (var chatRoom in chatRoomsForFolder) {
+      FileUtils.getChatRoomFilePath(chatRoom.id).then((path) {
+        FileUtils.deleteFile(path);
+      });
+    }
+    saveToDisk(chatRoomsStream.value.values.toList());
+  }
+
+  void moveChatRoomToFolder(ChatRoom chatRoom, ChatRoom folder,
+      {required String? parentFolder}) {
+    // remove chat room from the list
+    // add chat room to the folder
+    final chatRooms = chatRoomsStream.value;
+    if (parentFolder == null) {
+      chatRooms.removeWhere(
+        (key, value) {
+          // can be folder or chat room
+          if (value.id == chatRoom.id) {
+            return true;
+          }
+          if (value.isFolder) {
+            return value.children!.any((element) => element.id == chatRoom.id);
+          }
+          return false;
+        },
+      );
+    } else {
+      // parent folder is not null and we need to find it and remove child from there
+      final allChatRooms =
+          getChatRoomsFoldersRecursive(chatRooms.values.toList());
+      final parent = allChatRooms
+          .firstWhereOrNull((element) => element.id == parentFolder);
+      if (parent != null) {
+        parent.children!.removeWhere((element) => element.id == chatRoom.id);
+        // ungroup if no children
+        if (parent.children?.isEmpty == true) {
+          parent.children = null;
+        }
+      }
+    }
+
+    folder.children ??= [];
+    folder.children!.add(chatRoom);
+    chatRooms[folder.id] = folder;
+    chatRoomsStream.add(chatRooms);
+    // delete files because we already have them in the other folder
+    FileUtils.getChatRoomFilePath(chatRoom.id).then((path) {
+      FileUtils.deleteFile(path);
+    });
+    saveToDisk(chatRoomsStream.value.values.toList());
+  }
+
+  void moveChatRoomToParentFolder(ChatRoom chatRoom) {
+    final chatRooms =
+        getChatRoomsFoldersRecursive(chatRoomsStream.value.values.toList());
+    final chRooms = chatRoomsStream.value;
+    final parent = chatRooms.firstWhereOrNull(
+        (element) => element.children!.any((e) => e.id == chatRoom.id));
+    if (parent != null) {
+      parent.children!.removeWhere((element) => element.id == chatRoom.id);
+      chRooms[parent.id] = parent;
+      chRooms[chatRoom.id] = chatRoom;
+      chatRoomsStream.add(chRooms);
+      // delete files because we already have them in the other folder
+      FileUtils.getChatRoomFilePath(chatRoom.id).then((path) {
+        FileUtils.deleteFile(path);
+      });
+      notifyRoomsStream();
+      saveToDisk(chatRoomsStream.value.values.toList());
+    }
+  }
+
+  void ungroupByFolder(ChatRoom chatFolder) {
+    // get all children from folder
+    // remove folder
+    // paste children to the main list
+    final chatRooms = chatRoomsStream.value;
+    final folder = chatFolder;
+    final children = folder.children!;
+    chatRooms.removeWhere((key, value) => value.id == folder.id);
+    // delete file
+    FileUtils.getChatRoomFilePath(folder.id)
+        .then((path) => FileUtils.deleteFile(path));
+    for (var child in children) {
+      chatRooms[child.id] = child;
+    }
+    chatRoomsStream.add(chatRooms);
+    notifyRoomsStream();
+    saveToDisk(chatRoomsStream.value.values.toList());
+  }
+}
+
+List<ChatRoom> getChatRoomsFoldersRecursive(List<ChatRoom> chatRooms) {
+  final folders = <ChatRoom>[];
+  for (var chatRoom in chatRooms) {
+    if (chatRoom.isFolder) {
+      folders.add(chatRoom);
+      if (chatRoom.children != null) {
+        folders.addAll(getChatRoomsFoldersRecursive(chatRoom.children!));
+      }
+    }
+  }
+  return folders;
+}
+
+List<ChatRoom> getChatRoomsRecursive(List<ChatRoom> chatRooms) {
+  final folders = <ChatRoom>[];
+  for (var chatRoom in chatRooms) {
+    folders.add(chatRoom);
+    if (chatRoom.children != null) {
+      folders.addAll(getChatRoomsRecursive(chatRoom.children!));
+    }
+  }
+  return folders;
 }
 
 ChatRoom _generateDefaultChatroom({String? systemMessage}) {
