@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -104,12 +105,14 @@ class MessageCard extends StatefulWidget {
     required this.isError,
     required this.textSize,
     required this.isCompactMode,
+    this.shouldBlink = false,
   });
   final FluentChatMessage message;
 
   final bool selectionMode;
   final bool isError;
   final bool isCompactMode;
+  final bool shouldBlink;
   final int textSize;
 
   @override
@@ -121,11 +124,33 @@ class _MessageCardState extends State<MessageCard> {
   bool _isLoadingReadAloud = false;
   bool _isExpanded = false;
   final flyoutController = FlyoutController();
+  Color? backgroundColor;
 
   @override
   void initState() {
     super.initState();
     _isMarkdownView = AppCache.isMarkdownViewEnabled.value ?? true;
+    if (widget.shouldBlink) {
+      Timer.periodic(Duration(milliseconds: 600), (timer) {
+        final cardColor = context.theme.cardColor;
+        backgroundColor = backgroundColor == cardColor
+            ? Colors.yellow.dark
+            : cardColor;
+        if (mounted) setState(() {});
+
+        if (timer.tick == 5) {
+          timer.cancel();
+          backgroundColor = cardColor;
+          if (mounted) setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  dispose() {
+    flyoutController.dispose();
+    super.dispose();
   }
 
   @override
@@ -157,7 +182,7 @@ class _MessageCardState extends State<MessageCard> {
             margin: const EdgeInsets.symmetric(horizontal: 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20.0),
-              color: context.theme.cardColor,
+              color: backgroundColor ?? context.theme.cardColor,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,6 +206,7 @@ class _MessageCardState extends State<MessageCard> {
       );
 
     tileWidget = MessageListTile(
+      tileColor: Colors.red,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -454,7 +480,7 @@ class _MessageCardState extends State<MessageCard> {
               padding: EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8.0),
-                color: context.theme.cardColor,
+                color: backgroundColor ?? context.theme.cardColor,
               ),
               child: tileWidget,
             ),

@@ -23,7 +23,7 @@ class _CostDialogState extends State<StorageUsage> {
   void initState() {
     super.initState();
     // get the size of the chats
-    FileUtils.getChatRoomPath().then((chatsPath) {
+    FileUtils.getChatRoomsPath().then((chatsPath) {
       FileUtils.calculateSizeRecursive(chatsPath).then((value) {
         if (mounted) {
           setState(() {

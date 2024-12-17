@@ -94,7 +94,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                     children: [
                       Button(
                         onPressed: () async {
-                          final path = await FileUtils.getChatRoomPath();
+                          final path = await FileUtils.getChatRoomsPath();
                           await FileUtils.moveFile(
                               file.path, '$path/${file.path.split('/').last}');
                           final size =

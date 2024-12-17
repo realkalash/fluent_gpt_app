@@ -240,11 +240,12 @@ Future<void> displayTextInfoBar(title) {
   );
 }
 
-Future<void> displayErrorInfoBar({String? title}) {
+Future<void> displayErrorInfoBar({String? title, String? message}) {
   return displayInfoBar(
     appContext!,
     builder: (context, close) => InfoBar(
       title: Text(title ?? 'Error'),
+      content: message != null ? Text(message) : null,
       severity: InfoBarSeverity.error,
     ),
   );

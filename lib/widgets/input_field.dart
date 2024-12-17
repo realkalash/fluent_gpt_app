@@ -220,6 +220,8 @@ class _InputFieldState extends State<InputField> {
   @override
   Widget build(BuildContext context) {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
+    final totalTokens = selectedChatRoom.totalSentTokens ??
+        0 + (selectedChatRoom.totalReceivedTokens ?? 0);
 
     return CallbackShortcuts(
       bindings: {
@@ -476,6 +478,20 @@ class _InputFieldState extends State<InputField> {
                     ),
                   const SizedBox(width: 10),
                 ],
+              ),
+            if (!widget.isMini &&
+                totalTokens >= 0.8 * selectedChatRoom.maxTokenLength)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: (){
+                    chatProvider.scrollToLastOverflowMessage();
+                  },
+                  child: Text(
+                    '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}% overflow. Click here to go to the last overflow message',
+                    style: context.theme.typography.caption,
+                  ),
+                ),
               ),
           ],
         ),

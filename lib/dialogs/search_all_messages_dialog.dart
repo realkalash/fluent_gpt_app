@@ -43,7 +43,7 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
     isSearching = true;
     results.clear();
     setState(() {});
-    final path = await FileUtils.getChatRoomPath();
+    final path = await FileUtils.getChatRoomsPath();
     final chatRoomsFiles = FileUtils.getFilesRecursive(path);
     final chatRooms = <String,ChatRoom>{};
     for (final file in chatRoomsFiles) {

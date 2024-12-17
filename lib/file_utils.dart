@@ -197,11 +197,18 @@ class FileUtils {
     await file.writeAsString(data);
   }
 
-  static Future<String> getChatRoomPath() async {
+  static Future<String> getChatRoomsPath() async {
     final dir = documentDirectoryPath ??
         (await getApplicationDocumentsDirectory()).path;
-        final sep = Platform.pathSeparator;
+    final sep = Platform.pathSeparator;
     return '$dir${sep}fluent_gpt${sep}chat_rooms';
+  }
+
+  static Future<String> getChatRoomFilePath(String chatRoomId) async {
+    final dir = documentDirectoryPath ??
+        (await getApplicationDocumentsDirectory()).path;
+    final sep = Platform.pathSeparator;
+    return '$dir${sep}fluent_gpt${sep}chat_rooms$sep$chatRoomId.json';
   }
 
   /// Returns the file at the given [id] in the chat rooms directory.
@@ -220,7 +227,7 @@ class FileUtils {
   /// ]
   /// ```
   static Future<File> getChatRoomMessagesFileById(String id) async {
-    final path = await getChatRoomPath();
+    final path = await getChatRoomsPath();
     return File('$path${Platform.pathSeparator}$id-messages.json');
   }
 
@@ -261,7 +268,7 @@ class FileUtils {
   }
 
   static Future<List<File>> getAllChatMessagesFiles() async {
-    final path = await getChatRoomPath();
+    final path = await getChatRoomsPath();
     // get files recursive will not return messages files
     final files = <File>[];
     final dir = Directory(path);

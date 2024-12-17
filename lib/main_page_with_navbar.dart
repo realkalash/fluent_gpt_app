@@ -1,3 +1,4 @@
+import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
@@ -110,10 +111,13 @@ class MainPageWithNavigation extends StatelessWidget {
                   (i) {
                     final group = groupedChatRooms.entries.elementAt(i);
                     return PaneItemWidgetAdapter(
+                      applyPadding: false,
                       child: _PaneItemButton(
+                        key: ValueKey(group.key),
                         group: group,
                         navTheme: navTheme,
                         theme: theme,
+                        parentFolderId: null,
                         // displayMode: mode,
                       ),
                     );
@@ -170,11 +174,13 @@ class _PaneItemButton extends StatefulWidget {
     required this.group,
     required this.navTheme,
     required this.theme,
+    required this.parentFolderId,
   });
 
   final MapEntry<String, List<ChatRoom>> group;
   final NavigationPaneThemeData navTheme;
   final FluentThemeData theme;
+  final String? parentFolderId;
 
   @override
   State<_PaneItemButton> createState() => _PaneItemButtonState();
@@ -182,6 +188,7 @@ class _PaneItemButton extends StatefulWidget {
 
 class _PaneItemButtonState extends State<_PaneItemButton> {
   final FlyoutController flyoutController = FlyoutController();
+  String? openedFolderId;
 
   void _updateUI() {
     selectedChatRoomIdStream.add(selectedChatRoomId);
@@ -196,7 +203,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (mode != PaneDisplayMode.compact) Text(widget.group.key),
+        if (mode != PaneDisplayMode.compact && widget.group.key != '')
+          Text(widget.group.key),
         ...List.generate(widget.group.value.length, (i) {
           final chatRoom = widget.group.value[i];
           final selected = chatRoom.id == selectedChatRoomId;
@@ -220,78 +228,131 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                     ),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    margin: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (mode == PaneDisplayMode.compact)
-                          SizedBox(
-                            width: 18,
-                            height: 40,
-                            child: Center(
-                              child: Text(
-                                chatRoom.chatRoomName,
-                                overflow: TextOverflow.clip,
-                                maxLines: 1,
-                                textAlign: TextAlign.center,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (mode == PaneDisplayMode.compact) ...[
+                              SizedBox(
+                                width: 30,
+                                height: 40,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    if (chatRoom.isFolder)
+                                      Icon(
+                                        openedFolderId == chatRoom.id
+                                            ? FluentIcons.folder_open_24_regular
+                                            : FluentIcons.folder_24_regular,
+                                        size: 30,
+                                      ),
+                                    Center(
+                                      child: Text(
+                                        chatRoom.chatRoomName,
+                                        overflow: TextOverflow.clip,
+                                        maxLines: 1,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (mode != PaneDisplayMode.compact) ...[
+                              if (chatRoom.isFolder)
+                                SizedBox(
+                                  width: 24,
+                                  height: 40,
+                                  child: Icon(openedFolderId == chatRoom.id
+                                      ? FluentIcons.folder_open_24_filled
+                                      : FluentIcons.folder_24_filled),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  chatRoom.chatRoomName,
+                                  style: TextStyle(
+                                      overflow: TextOverflow.ellipsis),
+                                  maxLines: 2,
+                                ),
+                              ),
+                              Tooltip(
+                                message: 'Pin/unpin chat',
+                                child: IconButton(
+                                    icon: chatRoom.isPinned
+                                        ? const Icon(FluentIcons.pin_24_filled,
+                                            size: 18)
+                                        : const Icon(FluentIcons.pin_24_regular,
+                                            size: 18),
+                                    onPressed: () {
+                                      final provider =
+                                          context.read<ChatProvider>();
+                                      if (chatRoom.isPinned)
+                                        provider.unpinChatRoom(chatRoom);
+                                      else
+                                        provider.pinChatRoom(chatRoom);
+                                      _updateUI();
+                                    }),
+                              ),
+                              if (!chatRoom.isFolder)
+                                Tooltip(
+                                  message: 'Edit chat',
+                                  child: IconButton(
+                                      icon: const Icon(
+                                        FluentIcons.chat_settings_24_regular,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        EditChatRoomDialog.show(
+                                          context: context,
+                                          room: chatRoom,
+                                          onOkPressed: _updateUI,
+                                        );
+                                      }),
+                                ),
+                              Tooltip(
+                                message: 'Delete chat',
+                                child: IconButton(
+                                    icon: Icon(FluentIcons.delete_24_filled,
+                                        color: Colors.red, size: 18),
+                                    onPressed: () {
+                                      final provider =
+                                          context.read<ChatProvider>();
+                                      if (widget.parentFolderId != null) {
+                                        provider.moveChatRoomToParentFolder(
+                                            chatRoom);
+                                      } else {
+                                        provider.archiveChatRoom(chatRoom);
+                                      }
+
+                                      _updateUI();
+                                    }),
+                              ),
+                            ]
+                          ],
+                        ),
+                        if (chatRoom.isFolder && openedFolderId == chatRoom.id)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: List.generate(
+                                chatRoom.children!.length,
+                                (i) {
+                                  final item = chatRoom.children![i];
+                                  return _PaneItemButton(
+                                    group: MapEntry('', [item]),
+                                    navTheme: widget.navTheme,
+                                    theme: widget.theme,
+                                    parentFolderId: chatRoom.id,
+                                  );
+                                },
                               ),
                             ),
-                          ),
-                        if (mode != PaneDisplayMode.compact) ...[
-                          Expanded(
-                            child: Text(
-                              chatRoom.chatRoomName,
-                              style: TextStyle(overflow: TextOverflow.ellipsis),
-                              maxLines: 2,
-                            ),
-                          ),
-                          Tooltip(
-                            message: 'Pin/unpin chat',
-                            child: IconButton(
-                                icon: chatRoom.isPinned
-                                    ? const Icon(FluentIcons.pin_24_filled,
-                                        size: 18)
-                                    : const Icon(FluentIcons.pin_24_regular,
-                                        size: 18),
-                                onPressed: () {
-                                  final provider = context.read<ChatProvider>();
-                                  if (chatRoom.isPinned)
-                                    provider.unpinChatRoom(chatRoom);
-                                  else
-                                    provider.pinChatRoom(chatRoom);
-                                  _updateUI();
-                                }),
-                          ),
-                          Tooltip(
-                            message: 'Edit chat',
-                            child: IconButton(
-                                icon: const Icon(
-                                  FluentIcons.chat_settings_24_regular,
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  EditChatRoomDialog.show(
-                                    context: context,
-                                    room: chatRoom,
-                                    onOkPressed: _updateUI,
-                                  );
-                                }),
-                          ),
-                          Tooltip(
-                            message: 'Delete chat',
-                            child: IconButton(
-                                icon: Icon(FluentIcons.delete_24_filled,
-                                    color: Colors.red, size: 18),
-                                onPressed: () {
-                                  final provider = context.read<ChatProvider>();
-                                  if (shiftPressedStream.value) {
-                                    provider.deleteChatRoomHard(chatRoom.id);
-                                  } else {
-                                    provider.archiveChatRoom(chatRoom);
-                                  }
-                                  _updateUI();
-                                }),
-                          ),
-                        ]
+                          )
                       ],
                     ),
                   ),
@@ -322,6 +383,44 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 _updateUI();
                               },
                             ),
+                            Divider(),
+                            if (chatRoom.isFolder)
+                              FlyoutListTile(
+                                text: Text('Ungroup', style: TextStyle()),
+                                icon: Icon(FluentIcons.group_20_regular),
+                                onPressed: () {
+                                  final provider = context.read<ChatProvider>();
+                                  provider.ungroupByFolder(chatRoom);
+                                  _updateUI();
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            FlyoutListTile(
+                              text: Text('Create folder', style: TextStyle()),
+                              icon: Icon(FluentIcons.folder_24_filled),
+                              onPressed: () {
+                                final provider = context.read<ChatProvider>();
+                                provider.createChatRoomFolder(
+                                  chatRoomsForFolder: [chatRoom],
+                                  parentFolderId: widget.parentFolderId,
+                                );
+                                _updateUI();
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            FlyoutListTile(
+                              text: Text('Move to Folder', style: TextStyle()),
+                              icon: Icon(FluentIcons.folder_24_filled),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _showMoveToFolderMenu(
+                                  context,
+                                  chatRoom,
+                                  parentFolderId: widget.parentFolderId,
+                                );
+                              },
+                            ),
+                            Divider(),
                             FlyoutListTile(
                               text: Text('Edit chat', style: TextStyle()),
                               icon: Icon(FluentIcons.chat_settings_20_regular),
@@ -356,6 +455,51 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                   },
                   onTap: () {
                     final provider = context.read<ChatProvider>();
+                    if (chatRoom.isFolder) {
+                      if (mode != PaneDisplayMode.compact) {
+                        setState(() {
+                          openedFolderId = openedFolderId == chatRoom.id
+                              ? null
+                              : chatRoom.id;
+                        });
+                      } else {
+                        // if compact we should show overlay flyout
+                        flyoutController.showFlyout(builder: (ctx) {
+                          return FlyoutContent(
+                            constraints: BoxConstraints(maxWidth: 200),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(chatRoom.chatRoomName,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    )),
+                                const SizedBox(height: 4),
+                                Divider(),
+                                ...List.generate(
+                                  chatRoom.children!.length,
+                                  (i) {
+                                    final child = chatRoom.children![i];
+                                    return FlyoutListTile(
+                                      text: Text(child.chatRoomName,
+                                          style: TextStyle()),
+                                      icon: Icon(FluentIcons.chat_20_regular),
+                                      onPressed: () {
+                                        provider.selectChatRoom(child);
+                                        Navigator.of(context).pop();
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        });
+                      }
+                      return;
+                    }
                     provider.selectChatRoom(chatRoom);
                   },
                 ),
@@ -365,6 +509,76 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
         }),
       ],
     );
+  }
+
+  List<ChatRoom> getChatRoomsFoldersRecursive(List<ChatRoom> chatRooms) {
+    final folders = chatRooms.where((element) => element.isFolder).toList();
+    final List<ChatRoom> allFolders = [];
+    for (final folder in folders) {
+      final children = getChatRoomsFoldersRecursive(folder.children!);
+      allFolders.addAll(children);
+    }
+    allFolders.addAll(folders);
+    return allFolders;
+  }
+
+  void _showMoveToFolderMenu(BuildContext context, ChatRoom chatRoom,
+      {String? parentFolderId}) {
+    final provider = context.read<ChatProvider>();
+    // provider.createChatRoomFolder([chatRoom]);
+    // _updateUI();
+    final chatRoomFolders =
+        getChatRoomsFoldersRecursive(chatRooms.values.toList());
+    flyoutController.showFlyout(builder: (ctx) {
+      return FlyoutContent(
+        constraints: BoxConstraints(maxWidth: 200),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Move to Folder',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Divider(),
+            if (parentFolderId != null)
+              FlyoutListTile(
+                text: Text('Move out', style: TextStyle()),
+                icon: Icon(FluentIcons.folder_arrow_up_24_regular),
+                onPressed: () {
+                  provider.moveChatRoomToParentFolder(chatRoom);
+                  Navigator.of(context).pop();
+                  _updateUI();
+                },
+              ),
+            ...List.generate(
+              chatRoomFolders.length,
+              (i) {
+                final folder = chatRoomFolders[i];
+                if (folder.id == parentFolderId) return const SizedBox.shrink();
+                return FlyoutListTile(
+                  text: Text(folder.chatRoomName, style: TextStyle()),
+                  icon: Icon(FluentIcons.folder_24_filled),
+                  onPressed: () {
+                    provider.moveChatRoomToFolder(
+                      chatRoom,
+                      folder,
+                      parentFolder: widget.parentFolderId,
+                    );
+                    Navigator.of(context).pop();
+                    _updateUI();
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    });
   }
 }
 
