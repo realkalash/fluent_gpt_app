@@ -1,4 +1,3 @@
-import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
