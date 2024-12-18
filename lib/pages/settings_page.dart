@@ -226,9 +226,14 @@ class MessageAppearanceSettings extends StatelessWidget {
   }
 }
 
-class CustomActionsSection extends StatelessWidget {
+class CustomActionsSection extends StatefulWidget {
   const CustomActionsSection({super.key});
 
+  @override
+  State<CustomActionsSection> createState() => _CustomActionsSectionState();
+}
+
+class _CustomActionsSectionState extends State<CustomActionsSection> {
   @override
   Widget build(BuildContext context) {
     return Expander(
@@ -236,6 +241,48 @@ class CustomActionsSection extends StatelessWidget {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Card(
+            padding: EdgeInsets.zero,
+            child: BasicListTile(
+              padding: const EdgeInsets.all(8.0),
+              title: const Text('Show suggestions after ai response'),
+              leading: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Checkbox(
+                  checked: AppCache.enableQuestionHelpers.value == true,
+                  onChanged: (v) {
+                    setState(() {
+                      AppCache.enableQuestionHelpers.value = v;
+                    });
+                  },
+                ),
+              ),
+              trailing: Tooltip(
+                richMessage: WidgetSpan(
+                  child: SizedBox(
+                    width: 400,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                            'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'),
+                        const SizedBox(height: 10),
+                        Image.asset('assets/im_suggestions_tip.png',
+                            width: 400),
+                      ],
+                    ),
+                  ),
+                ),
+                child: Icon(FluentIcons.question_circle_20_regular),
+              ),
+              onTap: () {
+                setState(() {
+                  AppCache.enableQuestionHelpers.value =
+                      !(AppCache.enableQuestionHelpers.value ?? false);
+                });
+              },
+            ),
+          ),
           ConstrainedBox(
             constraints: BoxConstraints(maxHeight: 200.0),
             child: StreamBuilder(

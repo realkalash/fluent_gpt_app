@@ -6,6 +6,7 @@ import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
@@ -13,6 +14,7 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
@@ -163,6 +165,7 @@ class ChatProvider with ChangeNotifier {
       TextEditingController();
   TextEditingController get messageController =>
       ChatProvider.messageControllerGlobal;
+  late AgentGetMessageActions agentMessageActions;
 
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
@@ -240,6 +243,24 @@ class ChatProvider with ChangeNotifier {
     autoScrollSpeed = v;
     AppCache.autoScrollSpeed.set(v);
     notifyListeners();
+  }
+
+  ChatProvider() {
+    _messageTextSize = AppCache.messageTextSize.value ?? 14;
+    selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
+    init();
+    listenTray();
+  }
+
+  Future<void> init() async {
+    agentMessageActions = AgentGetMessageActions(this);
+    initMessagesListener();
+    await initChatModels();
+    await initChatsFromDisk();
+    initCustomActions();
+    initSettingsFromCache();
+    initTimers();
+    initListeners();
   }
 
   void toggleScrollToBottomOnAnswer() {
@@ -324,23 +345,6 @@ class ChatProvider with ChangeNotifier {
     selectedChatRoomId = selectedChatRoomId;
 
     notifyRoomsStream();
-  }
-
-  ChatProvider() {
-    _messageTextSize = AppCache.messageTextSize.value ?? 14;
-    selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
-    init();
-    listenTray();
-  }
-
-  Future<void> init() async {
-    initMessagesListener();
-    await initChatModels();
-    await initChatsFromDisk();
-    initCustomActions();
-    initSettingsFromCache();
-    initTimers();
-    initListeners();
   }
 
   void initMessagesListener() {
@@ -762,6 +766,7 @@ class ChatProvider with ChangeNotifier {
     bool sendStream = true,
     void Function()? onFinishResponse,
     void Function()? onMessageSent,
+    bool sendAsUser = true,
   }) async {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
@@ -853,7 +858,7 @@ class ChatProvider with ChangeNotifier {
     }
 
     // to prevent empty messages posted to the chat
-    if (messageContent.isNotEmpty) {
+    if (messageContent.isNotEmpty && sendAsUser) {
       /// add additional styles to the message
       messageContent = modifyMessageStyle(messageContent);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -862,6 +867,17 @@ class ChatProvider with ChangeNotifier {
           id: '$timestamp',
           content: messageContent,
           creator: AppCache.userName.value!,
+          timestamp: timestamp,
+        ),
+      );
+    }
+    if (sendAsUser == false) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addBotMessageToList(
+        FluentChatMessage.ai(
+          id: '$timestamp',
+          content: messageContent,
+          creator: selectedChatRoom.characterName,
           timestamp: timestamp,
         ),
       );
@@ -977,7 +993,11 @@ class ChatProvider with ChangeNotifier {
 
       if (messageContent.isNotEmpty)
         messagesToSend.add(
-          HumanChatMessage(content: ChatMessageContent.text(messageContent)),
+          sendAsUser
+              ? HumanChatMessage(
+                  content: ChatMessageContent.text(messageContent),
+                )
+              : AIChatMessage(content: messageContent),
         );
       if (isImageAttached) {
         messagesToSend.add(
@@ -1185,6 +1205,9 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
+  bool isGeneratingQuestionHelpers = false;
+  List<CustomPrompt> questionHelpers = [];
+
   void onResponseEnd(String userContent, String id) async {
     final FluentChatMessage? response = messages.value[id];
     if (response == null) return;
@@ -1210,6 +1233,28 @@ class ChatProvider with ChangeNotifier {
 
     /// Will restart autonomous mode and all timers if enabled in cache settings
     AnnoyFeature.init();
+
+    if (AppCache.enableQuestionHelpers.value == true) {
+      isGeneratingQuestionHelpers = true;
+      questionHelpers.clear();
+      notifyListeners();
+      agentMessageActions
+          .askForPromptsFromLLM(userContent, response.content)
+          .then(
+        (questionMessages) {
+          if (questionMessages.isNotEmpty) {
+            questionHelpers.addAll(questionMessages);
+          }
+          isGeneratingQuestionHelpers = false;
+          notifyListeners();
+        },
+        onError: (e, stack) {
+          logError('Error while generating question helpers: $e', stack);
+          isGeneratingQuestionHelpers = false;
+          notifyListeners();
+        },
+      );
+    }
 
     /// calculate tokens and swap message
     final tokens = await countTokensString(response.content);
@@ -1731,10 +1776,9 @@ class ChatProvider with ChangeNotifier {
     // }
   }
 
-  _requestForTitleChat(String userMessage) async {}
-
   void clearChatMessages() {
     messages.add({});
+    questionHelpers.clear();
     saveToDisk([selectedChatRoom]);
     notifyRoomsStream();
     notifyListeners();
@@ -1900,7 +1944,7 @@ class ChatProvider with ChangeNotifier {
     FileUtils.getChatRoomMessagesFileById(chatRoomId).then((file) async {
       final archivedChatRoomsPath = await FileUtils.getArchivedChatRoomPath();
       try {
-        if (chatRoomToDelete?.model.modelName == 'error') {
+        if (chatRoomToDelete.model.modelName == 'error') {
           FileUtils.deleteFile(chatRoomId);
         } else {
           await FileUtils.moveFile(file.path,
@@ -2104,7 +2148,11 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> regenerateMessage(FluentChatMessage message) async {
-    await sendMessage(message.content, hidePrompt: true);
+    await sendMessage(
+      message.content,
+      hidePrompt: true,
+      sendAsUser: message.type == FluentChatMessageType.textHuman,
+    );
   }
 
   void updateUI() {

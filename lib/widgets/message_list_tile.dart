@@ -20,7 +20,6 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
-import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/hover_tooltip.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -133,9 +132,8 @@ class _MessageCardState extends State<MessageCard> {
     if (widget.shouldBlink) {
       Timer.periodic(Duration(milliseconds: 600), (timer) {
         final cardColor = context.theme.cardColor;
-        backgroundColor = backgroundColor == cardColor
-            ? Colors.yellow.dark
-            : cardColor;
+        backgroundColor =
+            backgroundColor == cardColor ? Colors.yellow.dark : cardColor;
         if (mounted) setState(() {});
 
         if (timer.tick == 5) {
@@ -511,6 +509,19 @@ class _MessageCardState extends State<MessageCard> {
                       icon: const Icon(FluentIcons.edit_12_regular),
                       onTap: () {
                         _showEditMessageDialog(context, widget.message);
+                      },
+                    ),
+                    SqueareIconButton(
+                      tooltip: 'Continue',
+                      icon: const Icon(FluentIcons.arrow_counterclockwise_16_filled),
+                      onTap: () {
+                        final provider = context.read<ChatProvider>();
+                        provider.deleteMessage(widget.message.id, false);
+                        provider
+                            .regenerateMessage(widget.message)
+                            .then((value) {
+                          provider.sortMessages();
+                        });
                       },
                     ),
                     SqueareIconButton(
@@ -899,7 +910,10 @@ class _MessageCardState extends State<MessageCard> {
           leading: const Icon(FluentIcons.arrow_counterclockwise_16_filled),
           onPressed: () {
             final provider = context.read<ChatProvider>();
-            provider.regenerateMessage(widget.message);
+            provider.deleteMessage(widget.message.id, false);
+            provider.regenerateMessage(widget.message).then((value) {
+              provider.sortMessages();
+            });
           },
         ),
         if (message.isTextMessage) ...[

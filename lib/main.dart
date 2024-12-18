@@ -310,7 +310,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     appContext = context;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10.0),
+      borderRadius: BorderRadius.circular(8.0),
       child: GestureDetector(
         onPanStart: (v) => WindowManager.instance.startDragging(),
         dragStartBehavior: DragStartBehavior.start,

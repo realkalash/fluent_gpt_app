@@ -30,6 +30,7 @@ import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -772,12 +773,13 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                                 child:
                                     const Icon(ic.FluentIcons.send_24_filled),
                                 onPressed: () async {
+                                  final chatProvider =
+                                      context.read<ChatProvider>();
                                   final promptText = item.getPromptText(
                                       (await Clipboard.getData(
                                               Clipboard.kTextPlain))
                                           ?.text);
-                                  final chatProvider =
-                                      context.read<ChatProvider>();
+
                                   final isContainsPlaceHolder =
                                       placeholdersRegex.hasMatch(promptText);
                                   String? newText = promptText;
@@ -1147,39 +1149,40 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
               else
                 Expanded(
                   child: StreamBuilder(
-                      stream: messages,
-                      builder: (context, snapshot) {
-                        final reverseList = messagesReversedList;
-                        return ListView.builder(
-                          controller: chatProvider.listItemsScrollController,
-                          itemCount: messages.value.entries.length,
-                          addAutomaticKeepAlives: false,
-                          addRepaintBoundaries: true,
-                          reverse: true,
-                          itemBuilder: (context, index) {
-                            final FluentChatMessage message =
-                                reverseList.elementAt(index);
+                    stream: messages,
+                    builder: (context, snapshot) {
+                      final reverseList = messagesReversedList;
+                      return ListView.builder(
+                        controller: chatProvider.listItemsScrollController,
+                        itemCount: messages.value.entries.length,
+                        addAutomaticKeepAlives: false,
+                        addRepaintBoundaries: true,
+                        reverse: true,
+                        itemBuilder: (context, index) {
+                          final FluentChatMessage message =
+                              reverseList.elementAt(index);
 
-                            return AutoScrollTag(
-                              controller:
-                                  chatProvider.listItemsScrollController,
-                              key: ValueKey('message_$index'),
-                              index: index,
-                              child: MessageCard(
-                                message: message,
-                                selectionMode: false,
-                                isError: false,
-                                textSize: chatProvider.textSize,
-                                isCompactMode: false,
-                                shouldBlink:
-                                    chatProvider.blinkMessageId == message.id,
-                              ),
-                            );
-                          },
-                        );
-                      }),
+                          return AutoScrollTag(
+                            controller: chatProvider.listItemsScrollController,
+                            key: ValueKey('message_$index'),
+                            index: index,
+                            child: MessageCard(
+                              message: message,
+                              selectionMode: false,
+                              isError: false,
+                              textSize: chatProvider.textSize,
+                              isCompactMode: false,
+                              shouldBlink:
+                                  chatProvider.blinkMessageId == message.id,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               GeneratingImagesCard(),
+              QuickHelperButtonsFromLLMRow(),
               SizedBox(
                 width: double.infinity,
                 child: Padding(
@@ -1370,6 +1373,145 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
             child: _ScrollToBottomButton(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class QuickHelperButtonsFromLLMRow extends StatelessWidget {
+  const QuickHelperButtonsFromLLMRow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ChatProvider>();
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 2,
+          children: [
+            if (provider.isGeneratingQuestionHelpers)
+              Shimmer(
+                color: context.theme.accentColor,
+                duration: const Duration(milliseconds: 500),
+                child: SizedBox(
+                  width: MediaQuery.sizeOf(context).width,
+                  height: 32,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 197, 197, 197),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+                      Container(
+                        width: 100,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 197, 197, 197),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+                      Container(
+                        width: 100,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 197, 197, 197),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+                      Container(
+                        width: 100,
+                        height: 32,
+                        decoration: const BoxDecoration(
+                          color: Color.fromARGB(255, 197, 197, 197),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        margin: const EdgeInsets.only(right: 8),
+                      ),
+                    ],
+                  ),
+                ),
+                // child: Container(
+                //   height: 32,
+                //   width: MediaQuery.sizeOf(context).width,
+                //   color: Colors.blue,
+                // ),
+              ),
+            if (AppCache.enableQuestionHelpers.value == null)
+              Tooltip(
+                style: TooltipThemeData(
+                    waitDuration: const Duration(milliseconds: 200)),
+                richMessage: WidgetSpan(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'),
+                      spacer,
+                      Image.asset('assets/im_suggestions_tip.png'),
+                    ],
+                  ),
+                ),
+                child: SizedBox(
+                  width: MediaQuery.sizeOf(context).width,
+                  child: InfoBar(
+                    title: Row(
+                      children: [
+                        Expanded(
+                            child: Text(
+                                'Do you want to enable suggestion helpers?')),
+                        FilledButton(
+                          onPressed: () {
+                            AppCache.enableQuestionHelpers.value = true;
+                            provider.updateUI();
+                          },
+                          child: const Text('Enable'),
+                        ),
+                        Button(
+                          onPressed: () {
+                            AppCache.enableQuestionHelpers.value = false;
+                            provider.updateUI();
+                          },
+                          child: const Text('No. Don\'t show again'),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            for (final item in provider.questionHelpers)
+              Entry.all(
+                curve: Curves.decelerate,
+                xOffset: 100,
+                child: Button(
+                  style: ButtonStyle(
+                    padding: WidgetStateProperty.all(
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final clipboard =
+                        await Clipboard.getData(Clipboard.kTextPlain);
+                    provider.sendMessage(item.getPromptText(clipboard?.text));
+                  },
+                  child: Text(item.title,
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
