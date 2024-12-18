@@ -330,6 +330,9 @@ class PageHeaderText extends StatelessWidget {
                   ),
                 ),
               ),
+              GestureDetector(
+                onTap: ()=> chatProvider.recalculateTokensFromLocalMessages(),
+                child: const Icon(ic.FluentIcons.arrow_counterclockwise_20_filled)),
               const Spacer(),
               IconButton(
                 icon: const Icon(ic.FluentIcons.search_20_filled, size: 20),
