@@ -220,8 +220,7 @@ class _InputFieldState extends State<InputField> {
   @override
   Widget build(BuildContext context) {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
-    final totalTokens = selectedChatRoom.totalSentTokens ??
-        0 + (selectedChatRoom.totalReceivedTokens ?? 0);
+    final totalTokens = chatProvider.totalTokensForCurrentChat.value;
 
     return CallbackShortcuts(
       bindings: {
@@ -484,7 +483,7 @@ class _InputFieldState extends State<InputField> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
-                  onTap: (){
+                  onTap: () {
                     chatProvider.scrollToLastOverflowMessage();
                   },
                   child: Text(

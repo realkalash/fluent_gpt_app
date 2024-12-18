@@ -1307,25 +1307,16 @@ class ChatProvider with ChangeNotifier {
   Future<int> getTokensFromMessages(List<ChatMessage> messages) async {
     int tokens = 0;
     if (selectedChatRoom.model.ownedBy == 'openai') {
-      final tokenizer = Tokenizer();
-      if (selectedChatRoom.model.modelName == 'gpt-4o' ||
-          selectedChatRoom.model.modelName == 'gpt-3.5-turbo') {
-        for (var message in messages) {
-          if (message is AIChatMessage) {
-            tokens += await tokenizer.count(
-              message.content,
-              modelName: 'gpt-4-',
-            );
-          }
-        }
-      } else {
-        for (var message in messages) {
-          if (message is AIChatMessage) {
-            tokens +=
-                await tokenizer.count(message.content, modelName: 'gpt-4');
-          }
-        }
-      }
+      tokens = await openAI!.countTokens(PromptValue.chat(messages),
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.modelName,
+          ));
+    } else {
+      tokens = await openAI!.countTokens(PromptValue.chat(messages),
+          options: ChatOpenAIOptions(
+            // for all unknown models we assume it's gpt 3.5 turbo
+            model: 'gpt-3.5-turbo-16k-0613',
+          ));
     }
     return tokens;
   }
@@ -2698,6 +2689,21 @@ class ChatProvider with ChangeNotifier {
     chatRoomsStream.add(chatRooms);
     notifyRoomsStream();
     saveToDisk(chatRoomsStream.value.values.toList());
+  }
+
+  Future<void> recalculateTokensFromLocalMessages() async {
+    var _totalTokens = 0;
+    for (var message in messages.value.values) {
+      _totalTokens += message.tokens;
+    }
+    // if tokens is still zero we need to calculate for each message
+    if (_totalTokens == 0) {
+      _totalTokens = await getTokensFromMessages(
+        messagesReversedList.map((e) => e.toLangChainChatMessage()).toList(),
+      );
+    }
+    totalTokens = _totalTokens;
+    notifyListeners();
   }
 }
 
