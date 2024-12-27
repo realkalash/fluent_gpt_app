@@ -33,6 +33,7 @@ import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/command_request_answer_overlay.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:dio/dio.dart';
@@ -2693,8 +2694,15 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> recalculateTokensFromLocalMessages() async {
     var _totalTokens = 0;
+    var _sentTokens = 0;
+    var _receivedTokens = 0;
     for (var message in messages.value.values) {
       _totalTokens += message.tokens;
+      if (message.type == FluentChatMessageType.textAi) {
+        _receivedTokens += message.tokens;
+      } else {
+        _sentTokens += message.tokens;
+      }
     }
     // if tokens is still zero we need to calculate for each message
     if (_totalTokens == 0) {
@@ -2704,6 +2712,18 @@ class ChatProvider with ChangeNotifier {
     }
     totalTokens = _totalTokens;
     notifyListeners();
+    final shouldOverrideChatTokens = await ConfirmationDialog.show(
+      context: context!,
+      message: 'Do you want to save and override chat tokens with the new value?',
+    );
+    if (shouldOverrideChatTokens) {
+      selectedChatRoom.totalReceivedTokens = totalTokens;
+      selectedChatRoom.totalSentTokens = _sentTokens;
+      selectedChatRoom.totalReceivedTokens = _receivedTokens;
+      totalReceivedForCurrentChat.add(_receivedTokens);
+      totalSentForCurrentChat.add(_sentTokens);
+      saveToDisk([selectedChatRoom]);
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
@@ -100,19 +101,58 @@ class _InputFieldState extends State<InputField> {
   }
 
   void onShortcutPasteText(String text) {
+    if (text.isEmpty) return;
+
+    final clipboard = text;
     final chatProvider = context.read<ChatProvider>();
-    final currentCursorPosition =
-        chatProvider.messageController.selection.base.offset;
-    final currentText = chatProvider.messageController.text;
-    final newText = currentText.substring(0, currentCursorPosition) +
-        text +
-        currentText.substring(currentCursorPosition);
-    chatProvider.messageController.text = newText;
-    windowManager.focus();
-    promptTextFocusNode.requestFocus();
-    // place the cursor at the end of the pasted text
-    chatProvider.messageController.selection =
-        TextSelection.collapsed(offset: currentCursorPosition + text.length);
+    final textSelection = chatProvider.messageController.selection;
+    final currentText = chatProvider.messageController.text ?? '';
+
+    try {
+      String newText;
+      int newCursorPosition;
+
+      if (textSelection.isValid && !textSelection.isCollapsed) {
+        // Validate selection bounds
+        final start = textSelection.start.clamp(0, currentText.length);
+        final end = textSelection.end.clamp(0, currentText.length);
+
+        if (start > end) {
+          // Swap if reversed
+          newText = currentText.substring(0, end) +
+              clipboard +
+              currentText.substring(start);
+          newCursorPosition = end + clipboard.length;
+        } else {
+          newText = currentText.substring(0, start) +
+              clipboard +
+              currentText.substring(end);
+          newCursorPosition = start + clipboard.length;
+        }
+      } else {
+        // Handle cursor insertion safely
+        final currentCursorPosition =
+            max(0, min(textSelection.base.offset, currentText.length));
+        newText = currentText.substring(0, currentCursorPosition) +
+            clipboard +
+            currentText.substring(currentCursorPosition);
+        newCursorPosition = currentCursorPosition + clipboard.length;
+      }
+
+      chatProvider.messageController.text = newText;
+      chatProvider.messageController.selection =
+          TextSelection.collapsed(offset: newCursorPosition);
+
+      // Safe focus management
+      try {
+        windowManager.focus();
+        promptTextFocusNode.requestFocus();
+      } catch (e) {
+        debugPrint('Focus management error: $e');
+      }
+    } catch (e) {
+      debugPrint('Paste operation error: $e');
+    }
   }
 
   void onShortcutPasteImage(Uint8List? image) async {
@@ -303,8 +343,10 @@ class _InputFieldState extends State<InputField> {
                 if (isAltPressed) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 12.0),
-                    child: Text('Send as system message',
-                        style: context.theme.typography.caption),
+                    child: Text(
+                      'alt+enter: as System; alt+u: as User; alt+i: as AI',
+                      style: context.theme.typography.caption,
+                    ),
                   );
                 }
                 return const SizedBox.shrink();
@@ -483,12 +525,13 @@ class _InputFieldState extends State<InputField> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
-                  onTap: () {
-                    chatProvider.scrollToLastOverflowMessage();
-                  },
+                  onTap: chatProvider.scrollToLastOverflowMessage,
                   child: Text(
                     '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}% overflow. Click here to go to the last overflow message',
-                    style: context.theme.typography.caption,
+                    style: context.theme.typography.caption?.copyWith(
+                      color: context.theme.typography.caption?.color
+                          ?.withOpacity(0.5),
+                    ),
                   ),
                 ),
               ),
