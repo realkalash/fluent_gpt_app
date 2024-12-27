@@ -1,17 +1,30 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:fluent_gpt/common/annotation_point.dart';
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/language_list.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/features/yandex_image_finder.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/annotated_image.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
+import 'package:shimmer_animation/shimmer_animation.dart';
+
+enum AiLensSelectedFeature { translate, scan }
 
 class AiLensDialog extends StatefulWidget {
   const AiLensDialog({super.key, required this.base64String});
@@ -24,54 +37,318 @@ class AiLensDialog extends StatefulWidget {
 class _AiLensDialogState extends State<AiLensDialog> {
   final textContr = TextEditingController();
   final flyoutController = FlyoutController();
+  Uint8List? imageBytes;
+  ImageDimensions? imageDimensions;
+  @override
+  initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (selectedChatRoom.model.imageSupported) {
+        imageBytes = base64Decode(widget.base64String);
+        imageDimensions = await ImageDimensions.fromBytes(imageBytes!);
+        print('$imageDimensions');
+        if (mounted) setState(() {});
+      }
+    });
+  }
+
+  final points = <AnnotationPoint>[];
+
   @override
   void dispose() {
     super.dispose();
     textContr.dispose();
   }
 
+  Future<void> updateAnnotationPointsDebug() async {
+    isLoading = true;
+    setState(() {});
+    await Future.delayed(const Duration(seconds: 2));
+    points.clear();
+    points.addAll([
+      AnnotationPoint(x: 0, y: 0, label: "start"),
+      AnnotationPoint(x: 100, y: 100, label: ""),
+      AnnotationPoint(x: 150, y: 150, label: "Point 2"),
+      AnnotationPoint(x: 200, y: 200, label: "Point 3"),
+      AnnotationPoint(x: 250, y: 250, label: "Point 4"),
+      AnnotationPoint(x: 300, y: 300, label: "Point 5"),
+      AnnotationPoint(x: 350, y: 350, label: "Point 6"),
+      AnnotationPoint(x: 400, y: 400, label: "Point 7"),
+      AnnotationPoint(x: 450, y: 450, label: "Point 8"),
+      AnnotationPoint(x: 500, y: 500, label: "Point 9"),
+      AnnotationPoint(
+          x: 550,
+          y: 550,
+          label:
+              "Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10"),
+      AnnotationPoint(x: 700, y: 1199, label: "end"),
+    ]);
+    if (selectedChatRoom.model.imageSupported) {
+      imageBytes = base64Decode(widget.base64String);
+      imageDimensions = await ImageDimensions.fromBytes(imageBytes!);
+      print('$imageDimensions');
+      isLoading = false;
+      if (mounted) setState(() {});
+    }
+  }
+
+  AiLensSelectedFeature? selectedFeature;
+
+  Color getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature feature) {
+    return selectedFeature == feature
+        ? context.theme.accentColor
+        : context.theme.cardColor;
+  }
+
+  final flyoutTargetTranslateFrom = FlyoutController();
+  final flyoutTargetTranslateTo = FlyoutController();
+
+  String languageFrom = 'Auto';
+  String languageTo = defaultGPTLanguage.value;
+
+  Future selectTranslateFrom() async {
+    flyoutTargetTranslateFrom.showFlyout(builder: (ctx) {
+      return FlyoutContent(
+        useAcrylic: false,
+        child: SizedBox(
+          width: 200,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              HoverListTile(
+                backgroundColor: Colors.transparent,
+                onTap: () {
+                  languageFrom = 'Auto';
+                  Navigator.of(ctx).pop();
+                  setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Text('Auto'),
+                ),
+              ),
+              for (final lang in LanguageList.languages)
+                HoverListTile(
+                  backgroundColor: Colors.transparent,
+                  onTap: () {
+                    languageFrom = lang;
+                    Navigator.of(ctx).pop();
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(lang),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Future selectTranslateTo() async {
+    await flyoutTargetTranslateTo.showFlyout(builder: (ctx) {
+      return FlyoutContent(
+        useAcrylic: false,
+        child: SizedBox(
+          width: 200,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final lang in LanguageList.languages)
+                HoverListTile(
+                  backgroundColor: Colors.transparent,
+                  onTap: () {
+                    languageTo = lang;
+                    _translateImage();
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    child: Text(lang),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext ctx) {
+    final screenSize = MediaQuery.sizeOf(context);
     return ContentDialog(
       title: const Text('Ai Lens'),
-      constraints: const BoxConstraints(
-        maxWidth: 600,
-        maxHeight: 800,
+      constraints: BoxConstraints(
+        maxWidth: screenSize.width,
+        maxHeight: screenSize.height,
       ),
       content: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Image.memory(
-                        base64Decode(widget.base64String),
-                        fit: BoxFit.cover,
-                        excludeFromSemantics: true,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: context.theme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () =>
+                              _selectedFeature(AiLensSelectedFeature.translate),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: getSelectedFeatureBackgroundColorButton(
+                                  AiLensSelectedFeature.translate),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(FluentIcons.translate_24_regular,
+                                size: 24),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              _selectedFeature(AiLensSelectedFeature.scan),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: getSelectedFeatureBackgroundColorButton(
+                                  AiLensSelectedFeature.scan),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(FluentIcons.scan_camera_20_filled,
+                                size: 24),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (selectedFeature == AiLensSelectedFeature.translate)
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: context.theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // MouseRegion(
+                          //   cursor: SystemMouseCursors.click,
+                          //   child: FlyoutTarget(
+                          //     controller: flyoutTargetTranslateFrom,
+                          //     child: GestureDetector(
+                          //       onTap: selectTranslateFrom,
+                          //       child: Container(
+                          //         padding: const EdgeInsets.symmetric(
+                          //             horizontal: 4, vertical: 2),
+                          //         decoration: BoxDecoration(
+                          //           color: context.theme.accentColor,
+                          //           borderRadius: BorderRadius.circular(8),
+                          //         ),
+                          //         child: Text(languageFrom),
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ),
+                          // GestureDetector(
+                          //   onTap: () {
+                          //     final temp = languageFrom == 'Auto'
+                          //         ? defaultGPTLanguage.value
+                          //         : languageFrom;
+                          //     languageFrom = languageTo;
+                          //     languageTo = temp;
+                          //     setState(() {});
+                          //   },
+                          //   child: Container(
+                          //     padding: const EdgeInsets.symmetric(
+                          //         horizontal: 16, vertical: 4),
+                          //     color: context.theme.cardColor,
+                          //     child: Icon(
+                          //         FluentIcons
+                          //             .arrow_bidirectional_left_right_16_filled,
+                          //         size: 16),
+                          //   ),
+                          // ),
+
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: FlyoutTarget(
+                              controller: flyoutTargetTranslateTo,
+                              child: GestureDetector(
+                                onTap: selectTranslateTo,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8)),
+                                  child: Text(languageTo),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    Acrylic(
-                      blurAmount: 5,
-                      luminosityAlpha: 0.5,
-                      shadowColor: Colors.white,
-                      child: SizedBox(
-                        width: 400,
-                        height: 400,
-                        child: Image.memory(
-                          base64Decode(widget.base64String),
-                          fit: BoxFit.scaleDown,
+                  if (points.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: context.theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => viewAllAnnotations(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8)),
+                            child: Text('Transcript points'),
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                ],
               ),
             ),
+            if (imageBytes != null)
+              Shimmer(
+                enabled: isLoading,
+                duration: const Duration(seconds: 1),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: screenSize.width,
+                    maxHeight: screenSize.height * 0.7,
+                    minHeight: 200,
+                  ),
+                  child: AnnotatedImageOverlay(
+                    image: Image.memory(imageBytes!),
+                    annotations: points,
+                    originalHeight: imageDimensions!.height,
+                    originalWidth: imageDimensions!.width,
+                  ),
+                ),
+              ),
             biggerSpacer,
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -180,7 +457,6 @@ class _AiLensDialogState extends State<AiLensDialog> {
                     });
                   },
                   child: Button(
-                    child: const Text('Extract text'),
                     onPressed: !selectedChatRoom.model.imageSupported
                         ? null
                         : () {
@@ -192,6 +468,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                             );
                             Navigator.of(context).pop();
                           },
+                    child: const Text('Extract text'),
                   ),
                 ),
               ],
@@ -231,5 +508,190 @@ class _AiLensDialogState extends State<AiLensDialog> {
         ],
       );
     });
+  }
+
+  bool isLoading = false;
+
+  _selectedFeature(AiLensSelectedFeature feature) {
+    if (selectedFeature == feature) {
+      selectedFeature = null;
+      points.clear();
+      setState(() {});
+      return;
+    }
+    setState(() {
+      selectedFeature = feature;
+    });
+    if (feature == AiLensSelectedFeature.translate) {
+      // updateAnnotationPointsDebug();
+      _translateImage();
+    } else if (feature == AiLensSelectedFeature.scan) {
+      _scanImage();
+    }
+  }
+
+  _translateImage() async {
+    final provider = context.read<ChatProvider>();
+    setState(() {
+      isLoading = true;
+    });
+    String format = '[{"x":"0","y":"0","label":"text"}]';
+    String instruction =
+        'Translate what\'s on the image to "$languageTo" language. The answer should follow the json format: $format, ...]. DON\'T WRITE ANYTHING ELSE!';
+    final finalizedPrompt = instruction;
+    final response = await provider
+        .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
+      FluentChatMessage.image(
+        id: "0",
+        content: widget.base64String,
+        creator: "user",
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      ),
+    ]);
+    final normalizedText = response.trim().removeWrappedQuotes;
+    try {
+      final json = jsonDecode(normalizedText) as List;
+      final annotationsResponseList =
+          json.map((e) => AnnotationPoint.fromJson(e)).toList();
+
+      points.clear();
+      points.addAll(annotationsResponseList);
+      log('json: $json');
+    } catch (e) {
+      logError('Error: $e');
+      displayErrorInfoBar(
+        title: 'Error translating image',
+        message: e.toString(),
+      );
+    } finally {
+      isLoading = false;
+      setState(() {});
+    }
+  }
+
+  String extractCodeFromMarkdown(String text) {
+    final regex = RegExp(r'```json\n(.*?)```', dotAll: true);
+    final match = regex.firstMatch(text);
+    return match?.group(1) ?? '';
+  }
+
+  _scanImage() async {
+    final provider = context.read<ChatProvider>();
+    setState(() {
+      isLoading = true;
+    });
+    String format = '[{"x":"0","y":"0","label":"text"}]';
+    String youAre = 'You are a spatial understanding Agent.';
+    String instruction =
+        'Point to the items/objects/persons with no more than 10 items. The answer should follow the json format: $format, ...]. DON\'T WRITE ANYTHING ELSE!';
+    final finalizedPrompt = '$youAre\n\n$instruction';
+    final response = await provider
+        .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
+      FluentChatMessage.image(
+        id: "0",
+        content: widget.base64String,
+        creator: "user",
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      ),
+    ]);
+    final normalizedText = response.trim().removeWrappedQuotes;
+    try {
+      final isContainsMarkdown = normalizedText.contains('```json');
+      final jsonText = isContainsMarkdown
+          ? extractCodeFromMarkdown(normalizedText)
+          : normalizedText;
+      final json = jsonDecode(jsonText) as List;
+      final annotationsResponseList =
+          json.map((e) => AnnotationPoint.fromJson(e)).toList();
+
+      points.clear();
+      points.addAll(annotationsResponseList);
+      log('json: $json');
+    } catch (e) {
+      selectedFeature = null;
+      logError('Error: $e');
+      displayErrorInfoBar(
+        title: 'Error translating image',
+        message: e.toString(),
+      );
+    } finally {
+      isLoading = false;
+      setState(() {});
+    }
+  }
+
+  viewAllAnnotations() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ContentDialog(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width - 64,
+            maxHeight: MediaQuery.sizeOf(context).height,
+          ),
+          title: const Text('Annotations'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final point in points)
+                  BasicListTile(
+                    title: SelectableText('label: ${point.label}'),
+                    trailing: Text('x: ${point.x}, y: ${point.y}'),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            Button(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class HoverListTile extends StatefulWidget {
+  const HoverListTile(
+      {super.key, this.backgroundColor, required this.child, this.onTap});
+  final Color? backgroundColor;
+  final Widget child;
+  final VoidCallback? onTap;
+
+  @override
+  State<HoverListTile> createState() => _HoverListTileState();
+}
+
+class _HoverListTileState extends State<HoverListTile> {
+  bool isHovering = false;
+  @override
+  Widget build(BuildContext context) {
+    final tileColor =
+        widget.backgroundColor ?? context.theme.scaffoldBackgroundColor;
+    return MouseRegion(
+      onEnter: (_) {
+        if (isHovering) return;
+        setState(() {
+          isHovering = true;
+        });
+      },
+      onExit: (_) {
+        if (!isHovering) return;
+        setState(() {
+          isHovering = false;
+        });
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          color: isHovering ? tileColor.withOpacity(0.5) : tileColor,
+          child: widget.child,
+        ),
+      ),
+    );
   }
 }
