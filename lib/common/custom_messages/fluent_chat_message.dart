@@ -17,6 +17,7 @@ class FluentChatMessage {
   final int timestamp;
   final int tokens;
   final FluentChatMessageType type;
+  final bool useLowResImage = false;
 
   bool get isTextMessage =>
       type == FluentChatMessageType.textHuman ||

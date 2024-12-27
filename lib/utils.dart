@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import 'package:langchain/langchain.dart';
 import 'package:nanoid2/nanoid2.dart';
 import 'package:system_info2/system_info2.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 
 /// Generates a random 16 character ID for chats
 String generateChatID() => nanoid(length: 16);
@@ -249,4 +251,46 @@ Future<void> displayErrorInfoBar({String? title, String? message}) {
       severity: InfoBarSeverity.error,
     ),
   );
+}
+
+
+
+class ImageDimensions {
+  final double width;
+  final double height;
+
+  const ImageDimensions({
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  String toString() => 'ImageDimensions(width: $width, height: $height)';
+
+  static Future<ImageDimensions> fromBytes(Uint8List bytes) async {
+    return getImageDimensionsFromBytes(bytes);
+  }
+}
+
+/// Gets the dimensions of an image from its bytes
+/// 
+/// Returns [ImageDimensions] containing width and height
+/// Throws [Exception] if image cannot be decoded
+Future<ImageDimensions> getImageDimensionsFromBytes(Uint8List bytes) async {
+  try {
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frameInfo = await codec.getNextFrame();
+    final image = frameInfo.image;
+    
+    return ImageDimensions(
+      width: image.width.toDouble(),
+      height: image.height.toDouble(),
+    );
+  } catch (e) {
+    throw Exception('Failed to decode image: $e');
+  } finally {
+    // Clean up resources
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+  }
 }

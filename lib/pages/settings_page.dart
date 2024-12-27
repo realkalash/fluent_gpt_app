@@ -59,7 +59,7 @@ import 'package:window_manager/window_manager.dart';
 import '../theme.dart';
 import '../widgets/confirmation_dialog.dart';
 
-BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('en');
+BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('english');
 bool isLaunchAtStartupEnabled = false;
 
 class SettingsPage extends StatefulWidget {
