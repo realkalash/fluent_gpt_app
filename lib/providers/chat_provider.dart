@@ -969,7 +969,8 @@ class ChatProvider with ChangeNotifier {
     if (includeConversationGlobal) {
       await Future.delayed(const Duration(milliseconds: 50));
       final lastMessages = await getLastMessagesLimitToTokens(
-        selectedChatRoom.maxTokenLength,
+        selectedChatRoom.maxTokenLength -
+            (selectedChatRoom.systemMessageTokensCount ?? 0),
         allowImages: true,
       );
       final lastMessagesLangChain =
@@ -1022,7 +1023,8 @@ class ChatProvider with ChangeNotifier {
             messagesToSend,
             options: ChatOpenAIOptions(
               model: selectedChatRoom.model.modelName,
-              maxTokens: selectedChatRoom.maxTokenLength,
+              maxTokens: selectedChatRoom.maxTokenLength -
+                  (selectedChatRoom.systemMessageTokensCount ?? 0),
               user: AppCache.userName.value,
             ),
           );
@@ -1031,7 +1033,8 @@ class ChatProvider with ChangeNotifier {
             messagesToSend,
             options: ChatOpenAIOptions(
               model: selectedChatRoom.model.modelName,
-              maxTokens: selectedChatRoom.maxTokenLength,
+              maxTokens: selectedChatRoom.maxTokenLength -
+                  (selectedChatRoom.systemMessageTokensCount ?? 0),
             ),
           );
         }
@@ -2524,7 +2527,9 @@ class ChatProvider with ChangeNotifier {
   /// Scrolls up to the last message that is visible for the ai to see
   Future<void> scrollToLastOverflowMessage() async {
     final maxTokens = maxTokenLenght;
-    final messagesList = messagesReversedList;
+    final messagesList = messagesReversedList.toList();
+    messagesList.add(FluentChatMessage.system(
+        id: '000', content: selectedChatRoom.systemMessage ?? ''));
     int tokens = 0;
     for (var message in messagesList) {
       tokens += message.tokens == 0
@@ -2714,7 +2719,8 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
     final shouldOverrideChatTokens = await ConfirmationDialog.show(
       context: context!,
-      message: 'Do you want to save and override chat tokens with the new value?',
+      message:
+          'Do you want to save and override chat tokens with the new value?',
     );
     if (shouldOverrideChatTokens) {
       selectedChatRoom.totalReceivedTokens = totalTokens;
