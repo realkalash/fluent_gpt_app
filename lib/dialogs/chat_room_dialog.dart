@@ -75,7 +75,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
   var token = '';
   var index = 1;
 
-  Debouncer debouncer = Debouncer(milliseconds: 800);
+  Debouncer debouncer = Debouncer(milliseconds: 500);
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +89,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
       actions: [
         FilledButton(
           onPressed: () {
+            
             provider.editChatRoom(
               widget.room.id,
               widget.room.copyWith(
@@ -98,6 +99,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 token: token,
                 indexSort: index,
                 iconCodePoint: ico,
+                systemMessageTokensCount: tokensInMessage,
                 characterName: characterName,
                 avatarPath: characterAvatarPath,
               ),

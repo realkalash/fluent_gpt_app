@@ -30,6 +30,7 @@ class ChatRoom {
   int? totalSentTokens;
   int? totalReceivedTokens;
   String? systemMessage;
+  int? systemMessageTokensCount;
   String characterName;
   String? characterAvatarPath;
   List<ChatRoom>? children;
@@ -47,6 +48,7 @@ class ChatRoom {
     this.maxTokenLength = 2048,
     required this.repeatPenalty,
     this.systemMessage,
+    this.systemMessageTokensCount,
     required this.dateCreatedMilliseconds,
     this.indexSort = 999999,
 
@@ -157,6 +159,7 @@ class ChatRoom {
       maxTokenLength: map['maxLength'],
       repeatPenalty: map['repeatPenalty'],
       systemMessage: map['commandPrefix'],
+      systemMessageTokensCount: map['systemMessageTokensCount'] ?? 0,
       indexSort: map['indexSort'] ?? 999999,
       totalSentTokens: map['totalSentTokens'] ?? 0,
       totalReceivedTokens: map['totalReceivedTokens'] ?? 0,
@@ -195,6 +198,7 @@ class ChatRoom {
       /// List<int> Encrypted data
       // 'token': encryptedTokenBox.cipherText,
       'commandPrefix': systemMessage,
+      'systemMessageTokensCount': systemMessageTokensCount,
       // 'nonce': encryptedTokenBox.nonce,
       'indexSort': indexSort,
       'dateCreatedMilliseconds': dateCreatedMilliseconds,
@@ -263,6 +267,7 @@ class ChatRoom {
     String? token,
     String? orgID,
     String? systemMessage,
+    int? systemMessageTokensCount,
     String? characterName,
     String? avatarPath,
     double? costUSD,
@@ -286,6 +291,7 @@ class ChatRoom {
       maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
       systemMessage: systemMessage ?? this.systemMessage,
+      systemMessageTokensCount: systemMessageTokensCount ?? this.systemMessageTokensCount,
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       dateCreatedMilliseconds:
