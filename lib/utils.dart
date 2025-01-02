@@ -158,6 +158,7 @@ Future<String> getFormattedSystemPrompt(
       AppCache.includeUserNameToSysPrompt.value! ||
       AppCache.includeWeatherPrompt.value! ||
       AppCache.includeUserCityNamePrompt.value! ||
+      AppCache.includeTimeToSystemPrompt.value! ||
       AppCache.includeKnowledgeAboutUserToSysPrompt.value!;
 
   if (isIncludeAdditionalEnabled) {

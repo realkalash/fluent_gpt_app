@@ -559,7 +559,7 @@ class _OverlaySettingsState extends State<OverlaySettings> {
       children: [
         Text('Overlay settings',
             style: FluentTheme.of(context).typography.subtitle),
-        _CheckBoxTile(
+        CheckBoxTile(
           isChecked: AppCache.enableOverlay.value!,
           onChanged: (value) {
             setState(() {
@@ -569,7 +569,7 @@ class _OverlaySettingsState extends State<OverlaySettings> {
           },
           child: const Text('Enable overlay'),
         ),
-        _CheckBoxTile(
+        CheckBoxTile(
           isChecked: AppCache.showSettingsInOverlay.value!,
           onChanged: (value) {
             setState(() {
@@ -823,35 +823,35 @@ class _GlobalSettingsState extends State<GlobalSettings> {
                   Text('User name in OS: ${SysInfo.userName}'),
                 ]),
           ),
-          _CheckBoxTile(
+          CheckBoxTile(
             isChecked: AppCache.includeUserCityNamePrompt.value!,
             onChanged: (value) {
               AppCache.includeUserCityNamePrompt.value = value;
             },
             child: const Text('Include user city name in system prompt'),
           ),
-          _CheckBoxTile(
+          CheckBoxTile(
             isChecked: AppCache.includeWeatherPrompt.value!,
             onChanged: (value) {
               AppCache.includeWeatherPrompt.value = value;
             },
             child: const Text('Include weather in system prompt'),
           ),
-          _CheckBoxTile(
+          CheckBoxTile(
             isChecked: AppCache.includeUserNameToSysPrompt.value!,
             onChanged: (value) {
               AppCache.includeUserNameToSysPrompt.value = value;
             },
             child: const Text('Include user name in system prompt'),
           ),
-          _CheckBoxTile(
+          CheckBoxTile(
             isChecked: AppCache.includeTimeToSystemPrompt.value!,
             onChanged: (value) {
               AppCache.includeTimeToSystemPrompt.value = value;
             },
             child: const Text('Include current date and time in system prompt'),
           ),
-          _CheckBoxTile(
+          CheckBoxTile(
             isChecked: AppCache.includeSysInfoToSysPrompt.value!,
             onChanged: (value) {
               AppCache.includeSysInfoToSysPrompt.value = value;
@@ -865,7 +865,7 @@ class _GlobalSettingsState extends State<GlobalSettings> {
                 '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
             child: Row(
               children: [
-                _CheckBoxTile(
+                CheckBoxTile(
                   isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
                   onChanged: (value) {
                     AppCache.learnAboutUserAfterCreateNewChat.value = value;
@@ -894,7 +894,7 @@ class _GlobalSettingsState extends State<GlobalSettings> {
           ),
           Row(
             children: [
-              _CheckBoxTile(
+              CheckBoxTile(
                 isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
                 onChanged: (value) {
                   AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
@@ -919,8 +919,8 @@ class _GlobalSettingsState extends State<GlobalSettings> {
   }
 }
 
-class _CheckBoxTile extends StatefulWidget {
-  const _CheckBoxTile({
+class CheckBoxTile extends StatefulWidget {
+  const CheckBoxTile({
     super.key,
     required this.isChecked,
     required this.child,
@@ -930,10 +930,10 @@ class _CheckBoxTile extends StatefulWidget {
   final Widget child;
   final void Function(bool?)? onChanged;
   @override
-  State<_CheckBoxTile> createState() => _CheckBoxTileState();
+  State<CheckBoxTile> createState() => _CheckBoxTileState();
 }
 
-class _CheckBoxTileState extends State<_CheckBoxTile> {
+class _CheckBoxTileState extends State<CheckBoxTile> {
   bool isChecked = false;
   bool isHovered = false;
   @override
@@ -1052,7 +1052,7 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         Wrap(
           spacing: 15.0,
           children: [
-            _CheckBoxTile(
+            CheckBoxTile(
               isChecked: AppCache.gptToolCopyToClipboardEnabled.value!,
               onChanged: (value) {
                 setState(() {

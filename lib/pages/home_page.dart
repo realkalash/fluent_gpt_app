@@ -331,8 +331,10 @@ class PageHeaderText extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: ()=> chatProvider.recalculateTokensFromLocalMessages(),
-                child: const Icon(ic.FluentIcons.arrow_counterclockwise_20_filled)),
+                  onTap: () =>
+                      chatProvider.recalculateTokensFromLocalMessages(),
+                  child: const Icon(
+                      ic.FluentIcons.arrow_counterclockwise_20_filled)),
               const Spacer(),
               IconButton(
                 icon: const Icon(ic.FluentIcons.search_20_filled, size: 20),
@@ -1318,6 +1320,75 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         checked:
                             AppCache.learnAboutUserAfterCreateNewChat.value!,
                         icon: ic.FluentIcons.brain_circuit_20_regular,
+                        shrinkWrapActions: true,
+                        maxWidthContextMenu: 300,
+                        contextItems: [
+                          Text('Select items to include in system prompt'),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Divider(),
+                          ),
+                          CheckBoxTile(
+                            isChecked: AppCache
+                                .includeKnowledgeAboutUserToSysPrompt.value!,
+                            child: Text('Knowledge about user'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.learnAboutUserAfterCreateNewChat
+                                    .value = p0;
+                              });
+                            },
+                          ),
+                          CheckBoxTile(
+                            isChecked:
+                                AppCache.includeUserCityNamePrompt.value!,
+                            child: Text('City name'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.includeUserCityNamePrompt.value = p0;
+                              });
+                            },
+                          ),
+                          CheckBoxTile(
+                            isChecked: AppCache.includeWeatherPrompt.value!,
+                            child: Text('Weather'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.includeWeatherPrompt.value = p0;
+                              });
+                            },
+                          ),
+                          CheckBoxTile(
+                            isChecked:
+                                AppCache.includeUserNameToSysPrompt.value!,
+                            child: Text('User name'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.includeUserNameToSysPrompt.value = p0;
+                              });
+                            },
+                          ),
+                          CheckBoxTile(
+                            isChecked:
+                                AppCache.includeTimeToSystemPrompt.value!,
+                            child: Text('Current timestamp'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.includeUserNameToSysPrompt.value = p0;
+                              });
+                            },
+                          ),
+                          CheckBoxTile(
+                            isChecked:
+                                AppCache.includeSysInfoToSysPrompt.value!,
+                            child: Text('OS info'),
+                            onChanged: (p0) {
+                              setState(() {
+                                AppCache.includeSysInfoToSysPrompt.value = p0;
+                              });
+                            },
+                          ),
+                        ],
                         onChanged: (v) {
                           setState(() {
                             AppCache.learnAboutUserAfterCreateNewChat.value = v;
