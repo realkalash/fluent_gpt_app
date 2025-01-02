@@ -71,9 +71,10 @@ class AnnoyFeature {
         DateTime.now().difference(lastTimeAiAnswered ?? DateTime.now());
     String systemSuffix = '';
     if (messagesReversedList.isNotEmpty) {
-      final lastMessages = chatProvider.convertMessagesToString([
+      final lastMessages = chatProvider.convertMessagesToStringWithTimestamp([
         messagesReversedList.first,
         if (messagesReversedList.length > 1) messagesReversedList[1],
+        if (messagesReversedList.length > 2) messagesReversedList[2],
       ]);
       final lastChatMessage = messagesReversedList.first;
       systemSuffix = '\nlast messages in your conversation were: $lastMessages';
@@ -84,7 +85,7 @@ class AnnoyFeature {
     final baseSystemMessage =
         (selectedChatRoom.systemMessage ?? '') + systemSuffix;
     final additionalSuffix =
-        '(You are messaging to user via phone after ${diff.inMinutes} minutes. Write short 1 sentence message. You can be bored/excited/angry/questioning/neutral/want to talk. Act as a person)';
+        '(You are messaging to user via sms after ${diff.inMinutes} minutes. Write short 1 sentence message. You can be bored/excited/angry/questioning/neutral/want to talk or you can came up with event from your life. Act as a person)';
     final aiMessageString = await chatProvider.retrieveResponseFromPrompt(
       additionalSuffix,
       systemMessage: baseSystemMessage,

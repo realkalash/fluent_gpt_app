@@ -41,6 +41,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
+import 'package:intl/intl.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:record/record.dart';
@@ -735,8 +736,10 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<String> convertMessagesToString(List<FluentChatMessage> messages,
-      {bool includeSystemMessages = false}) async {
+  Future<String> convertMessagesToString(
+    List<FluentChatMessage> messages, {
+    bool includeSystemMessages = false,
+  }) async {
     final aiName = selectedChatRoom.characterName;
     final userName = AppCache.userName.value ?? 'User';
     final result = messages.map((e) {
@@ -745,6 +748,34 @@ class ChatProvider with ChangeNotifier {
       }
       if (e.type == FluentChatMessageType.textHuman) {
         return '$userName: ${e.content}';
+      }
+      if (e.type == FluentChatMessageType.webResult) {
+        final results = e.webResults;
+        return 'Web search results: ${results!.map((e) => '${e.title}->${e.description}').join(';')}';
+      }
+      if (includeSystemMessages && e.type == FluentChatMessageType.system) {
+        return 'System: ${e.content}';
+      }
+      return '';
+    }).join('\n');
+    return result;
+  }
+
+  Future<String> convertMessagesToStringWithTimestamp(
+    List<FluentChatMessage> messages, {
+    bool includeSystemMessages = false,
+  }) async {
+    final aiName = selectedChatRoom.characterName;
+    final userName = AppCache.userName.value ?? 'User';
+    final dateFormatter = DateFormat('EEE M/d HH:mm');
+    final result = messages.map((e) {
+      final date = dateFormatter
+          .format(DateTime.fromMillisecondsSinceEpoch(e.timestamp));
+      if (e.type == FluentChatMessageType.textAi) {
+        return '$date $aiName: ${e.content}';
+      }
+      if (e.type == FluentChatMessageType.textHuman) {
+        return '$date $userName: ${e.content}';
       }
       if (e.type == FluentChatMessageType.webResult) {
         final results = e.webResults;

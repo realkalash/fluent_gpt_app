@@ -106,7 +106,7 @@ class _InputFieldState extends State<InputField> {
     final clipboard = text;
     final chatProvider = context.read<ChatProvider>();
     final textSelection = chatProvider.messageController.selection;
-    final currentText = chatProvider.messageController.text ?? '';
+    final currentText = chatProvider.messageController.text;
 
     try {
       String newText;

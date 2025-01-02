@@ -46,7 +46,6 @@ class _AiLensDialogState extends State<AiLensDialog> {
       if (selectedChatRoom.model.imageSupported) {
         imageBytes = base64Decode(widget.base64String);
         imageDimensions = await ImageDimensions.fromBytes(imageBytes!);
-        print('$imageDimensions');
         if (mounted) setState(() {});
       }
     });
@@ -58,38 +57,6 @@ class _AiLensDialogState extends State<AiLensDialog> {
   void dispose() {
     super.dispose();
     textContr.dispose();
-  }
-
-  Future<void> updateAnnotationPointsDebug() async {
-    isLoading = true;
-    setState(() {});
-    await Future.delayed(const Duration(seconds: 2));
-    points.clear();
-    points.addAll([
-      AnnotationPoint(x: 0, y: 0, label: "start"),
-      AnnotationPoint(x: 100, y: 100, label: ""),
-      AnnotationPoint(x: 150, y: 150, label: "Point 2"),
-      AnnotationPoint(x: 200, y: 200, label: "Point 3"),
-      AnnotationPoint(x: 250, y: 250, label: "Point 4"),
-      AnnotationPoint(x: 300, y: 300, label: "Point 5"),
-      AnnotationPoint(x: 350, y: 350, label: "Point 6"),
-      AnnotationPoint(x: 400, y: 400, label: "Point 7"),
-      AnnotationPoint(x: 450, y: 450, label: "Point 8"),
-      AnnotationPoint(x: 500, y: 500, label: "Point 9"),
-      AnnotationPoint(
-          x: 550,
-          y: 550,
-          label:
-              "Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10Point 10"),
-      AnnotationPoint(x: 700, y: 1199, label: "end"),
-    ]);
-    if (selectedChatRoom.model.imageSupported) {
-      imageBytes = base64Decode(widget.base64String);
-      imageDimensions = await ImageDimensions.fromBytes(imageBytes!);
-      print('$imageDimensions');
-      isLoading = false;
-      if (mounted) setState(() {});
-    }
   }
 
   AiLensSelectedFeature? selectedFeature;
