@@ -12,7 +12,6 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
 - **Integration with ChatGPT from OpenAI**: Use ChatGPT by obtaining a token from OpenAI.
 - **Custom GPT**: You can use your own GPT models by providing a URL to the model. 
 - **Pin app**: Pin the app to the top of your screen for easy access.
-- **Search files support**: You can download and use "Everything" search engine to search files on your computer.
 - **Shell support**: GPT can run shell commands on your computer.
 - **Quick Prompts**: Users can create their custom quick prompts to use them faster in the chat and overlay.
 - **Overlay Mode on Text Selection (macOS only)**: When users select text, the app will show a compact horizontal overlay with pre-created user's quick prompts.
