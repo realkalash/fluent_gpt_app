@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:animate_do/animate_do.dart';
 import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
@@ -11,8 +12,8 @@ import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/common/weather_data.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
-import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
+import 'package:fluent_gpt/dialogs/edit_chat_drawer.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
@@ -45,6 +46,8 @@ import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import '../providers/chat_provider.dart';
 
 final promptTextFocusNode = FocusNode();
+final BehaviorSubject<bool> showEditChatDrawer =
+    BehaviorSubject<bool>.seeded(false);
 
 class ChatRoomPage extends StatelessWidget {
   const ChatRoomPage({super.key});
@@ -74,6 +77,12 @@ class ChatRoomPage extends StatelessWidget {
                       children: [
                         ChatGPTContent(),
                         HomeDropOverlay(),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: Center(child: EditChatDrawer()),
+                        ),
                         HomeDropRegion(),
                       ],
                     ),
@@ -81,6 +90,59 @@ class ChatRoomPage extends StatelessWidget {
                 );
               });
         });
+  }
+}
+
+class EditChatDrawer extends StatelessWidget {
+  const EditChatDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: 800),
+      child: StreamBuilder<bool>(
+          stream: showEditChatDrawer,
+          builder: (context, _) {
+            final showDrawer = showEditChatDrawer.value;
+            if (showDrawer == false) return const SizedBox.shrink();
+            return ExcludeSemantics(
+              excluding: !showDrawer,
+              child: IgnorePointer(
+                ignoring: !showDrawer,
+                child: FadeInDownBig(
+                  animate: showDrawer,
+                  curve: Curves.linearToEaseOut,
+                  duration: const Duration(milliseconds: 600),
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 32, right: 32),
+                    clipBehavior: Clip.hardEdge,
+                    decoration: BoxDecoration(
+                      color: FluentTheme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: SingleChildScrollView(
+                        child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: EditChatDrawerContainer(),
+                    )),
+                  ),
+                ),
+              ),
+            );
+          }),
+    );
   }
 }
 
@@ -255,7 +317,7 @@ class PageHeaderText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.watch<ChatProvider>();
+    var chatProvider = context.read<ChatProvider>();
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
@@ -266,11 +328,14 @@ class PageHeaderText extends StatelessWidget {
             stream: selectedChatRoomIdStream,
             builder: (_, __) {
               return GestureDetector(
-                onTap: () => EditChatRoomDialog.show(
-                  context: context,
-                  room: selectedChatRoom,
-                  onOkPressed: () {},
-                ),
+                onTap: () {
+                  showEditChatDrawer.add(!showEditChatDrawer.value);
+                  // EditChatRoomDialog.show(
+                  //   context: context,
+                  //   room: selectedChatRoom,
+                  //   onOkPressed: () {},
+                  // );
+                },
                 child: Row(
                   children: [
                     Expanded(
@@ -353,22 +418,24 @@ class PageHeaderText extends StatelessWidget {
                 tooltip: 'Text size',
                 shrinkWrapActions: true,
                 contextItems: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Text size'),
-                      NumberBox(
-                        value: chatProvider.textSize,
-                        min: 8,
-                        clearButton: false,
-                        autofocus: true,
-                        mode: SpinButtonPlacementMode.inline,
-                        onChanged: (v) {
-                          chatProvider.textSize = v ?? 14;
-                        },
-                      ),
-                    ],
-                  ),
+                  Consumer<ChatProvider>(builder: (context, value, child) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Text size'),
+                        NumberBox(
+                          value: chatProvider.textSize,
+                          min: 8,
+                          clearButton: false,
+                          autofocus: true,
+                          mode: SpinButtonPlacementMode.inline,
+                          onChanged: (v) {
+                            chatProvider.textSize = v ?? 14;
+                          },
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
               SizedBox(

@@ -159,54 +159,13 @@ class _AiLensDialogState extends State<AiLensDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: context.theme.cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: () =>
-                              _selectedFeature(AiLensSelectedFeature.translate),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: getSelectedFeatureBackgroundColorButton(
-                                  AiLensSelectedFeature.translate),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(FluentIcons.translate_24_regular,
-                                size: 24),
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () =>
-                              _selectedFeature(AiLensSelectedFeature.scan),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: getSelectedFeatureBackgroundColorButton(
-                                  AiLensSelectedFeature.scan),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(FluentIcons.scan_camera_20_filled,
-                                size: 24),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (selectedFeature == AiLensSelectedFeature.translate)
+            if (selectedChatRoom.model.imageSupported)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: context.theme.cardColor,
@@ -214,90 +173,132 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // MouseRegion(
-                          //   cursor: SystemMouseCursors.click,
-                          //   child: FlyoutTarget(
-                          //     controller: flyoutTargetTranslateFrom,
-                          //     child: GestureDetector(
-                          //       onTap: selectTranslateFrom,
-                          //       child: Container(
-                          //         padding: const EdgeInsets.symmetric(
-                          //             horizontal: 4, vertical: 2),
-                          //         decoration: BoxDecoration(
-                          //           color: context.theme.accentColor,
-                          //           borderRadius: BorderRadius.circular(8),
-                          //         ),
-                          //         child: Text(languageFrom),
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
-                          // GestureDetector(
-                          //   onTap: () {
-                          //     final temp = languageFrom == 'Auto'
-                          //         ? defaultGPTLanguage.value
-                          //         : languageFrom;
-                          //     languageFrom = languageTo;
-                          //     languageTo = temp;
-                          //     setState(() {});
-                          //   },
-                          //   child: Container(
-                          //     padding: const EdgeInsets.symmetric(
-                          //         horizontal: 16, vertical: 4),
-                          //     color: context.theme.cardColor,
-                          //     child: Icon(
-                          //         FluentIcons
-                          //             .arrow_bidirectional_left_right_16_filled,
-                          //         size: 16),
-                          //   ),
-                          // ),
-
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: FlyoutTarget(
-                              controller: flyoutTargetTranslateTo,
-                              child: GestureDetector(
-                                onTap: selectTranslateTo,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8)),
-                                  child: Text(languageTo),
-                                ),
+                          GestureDetector(
+                            onTap: () => _selectedFeature(
+                                AiLensSelectedFeature.translate),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: getSelectedFeatureBackgroundColorButton(
+                                    AiLensSelectedFeature.translate),
+                                borderRadius: BorderRadius.circular(8),
                               ),
+                              child: Icon(FluentIcons.translate_24_regular,
+                                  size: 24),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () =>
+                                _selectedFeature(AiLensSelectedFeature.scan),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: getSelectedFeatureBackgroundColorButton(
+                                    AiLensSelectedFeature.scan),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(FluentIcons.scan_camera_20_filled,
+                                  size: 24),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  if (points.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: context.theme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
+                    if (selectedFeature == AiLensSelectedFeature.translate)
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: context.theme.cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // MouseRegion(
+                            //   cursor: SystemMouseCursors.click,
+                            //   child: FlyoutTarget(
+                            //     controller: flyoutTargetTranslateFrom,
+                            //     child: GestureDetector(
+                            //       onTap: selectTranslateFrom,
+                            //       child: Container(
+                            //         padding: const EdgeInsets.symmetric(
+                            //             horizontal: 4, vertical: 2),
+                            //         decoration: BoxDecoration(
+                            //           color: context.theme.accentColor,
+                            //           borderRadius: BorderRadius.circular(8),
+                            //         ),
+                            //         child: Text(languageFrom),
+                            //       ),
+                            //     ),
+                            //   ),
+                            // ),
+                            // GestureDetector(
+                            //   onTap: () {
+                            //     final temp = languageFrom == 'Auto'
+                            //         ? defaultGPTLanguage.value
+                            //         : languageFrom;
+                            //     languageFrom = languageTo;
+                            //     languageTo = temp;
+                            //     setState(() {});
+                            //   },
+                            //   child: Container(
+                            //     padding: const EdgeInsets.symmetric(
+                            //         horizontal: 16, vertical: 4),
+                            //     color: context.theme.cardColor,
+                            //     child: Icon(
+                            //         FluentIcons
+                            //             .arrow_bidirectional_left_right_16_filled,
+                            //         size: 16),
+                            //   ),
+                            // ),
+
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: FlyoutTarget(
+                                controller: flyoutTargetTranslateTo,
+                                child: GestureDetector(
+                                  onTap: selectTranslateTo,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8)),
+                                    child: Text(languageTo),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => viewAllAnnotations(),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Text('Transcript points'),
+                    if (points.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: context.theme.cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => viewAllAnnotations(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8)),
+                              child: Text('Transcript points'),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
             if (imageBytes != null)
               Shimmer(
                 enabled: isLoading,
@@ -502,9 +503,9 @@ class _AiLensDialogState extends State<AiLensDialog> {
     setState(() {
       isLoading = true;
     });
-    String format = '[{"x":"0","y":"0","label":"text"}]';
+    String format = '[{"x":"0","y":"0","label":"text"},...]';
     String instruction =
-        'Translate what\'s on the image to "$languageTo" language. The answer should follow the json format: $format, ...]. DON\'T WRITE ANYTHING ELSE!';
+        'Translate what\'s on the image to "$languageTo" language. The answer should follow the json format: "$format". Use coordinates based on the image and "label" for the text! . DON\'T WRITE ANYTHING ELSE!';
     final finalizedPrompt = instruction;
     final response = await provider
         .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
