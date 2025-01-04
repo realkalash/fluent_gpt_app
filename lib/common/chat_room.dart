@@ -12,15 +12,15 @@ class ChatRoom {
   String id;
   String chatRoomName;
   ChatModelAi model;
-  double temp;
-  int topk;
-  int promptBatchSize;
-  int repeatPenaltyTokens;
-  double topP;
+  double? temp;
+  int? topk;
+  int? promptBatchSize;
+  double? topP;
 
   /// Max token length to include for the prompt/chat
   int maxTokenLength;
-  double repeatPenalty;
+  int? maxTokensResponseLenght;
+  double? repeatPenalty;
   int iconCodePoint;
 
   /// if pinned, it will be `999999`
@@ -29,6 +29,7 @@ class ChatRoom {
   int dateCreatedMilliseconds;
   int? totalSentTokens;
   int? totalReceivedTokens;
+  int? seed;
   String? systemMessage;
   int? systemMessageTokensCount;
   String characterName;
@@ -43,10 +44,10 @@ class ChatRoom {
     required this.temp,
     required this.topk,
     required this.promptBatchSize,
-    required this.repeatPenaltyTokens,
     required this.topP,
     this.maxTokenLength = 2048,
-    required this.repeatPenalty,
+    this.maxTokensResponseLenght,
+    this.repeatPenalty,
     this.systemMessage,
     this.systemMessageTokensCount,
     required this.dateCreatedMilliseconds,
@@ -59,6 +60,7 @@ class ChatRoom {
     this.characterName = 'ai',
     this.characterAvatarPath,
     this.children,
+    this.seed,
   });
 
   factory ChatRoom.folder({
@@ -71,6 +73,7 @@ class ChatRoom {
     int? repeatPenaltyTokens,
     double? topP,
     int? maxLength,
+    int? maxTokensResponseLenght,
     double? repeatPenalty,
     String? token,
     String? orgID,
@@ -84,19 +87,21 @@ class ChatRoom {
     int? dateCreatedMilliseconds,
     int? totalSentTokens,
     int? totalReceivedTokens,
+    int? systemMessageTokensCount,
     List<ChatRoom> children = const [],
   }) {
     return ChatRoom(
       id: id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       chatRoomName: chatRoomName ?? 'New Folder',
       model: model,
-      temp: temp ?? 0.7,
-      topk: topk ?? 50,
-      promptBatchSize: promptBatchSize ?? 1,
-      repeatPenaltyTokens: repeatPenaltyTokens ?? 1,
-      topP: topP ?? 0.9,
+      temp: temp,
+      topk: topk,
+      promptBatchSize: promptBatchSize,
+      topP: topP,
       maxTokenLength: maxLength ?? 2048,
-      repeatPenalty: repeatPenalty ?? 1.0,
+      maxTokensResponseLenght: maxTokensResponseLenght,
+      systemMessageTokensCount: systemMessageTokensCount,
+      repeatPenalty: repeatPenalty,
       systemMessage: systemMessage,
       dateCreatedMilliseconds:
           dateCreatedMilliseconds ?? DateTime.now().millisecondsSinceEpoch,
@@ -154,11 +159,11 @@ class ChatRoom {
       topk: map['topk'],
       iconCodePoint: map['iconCode'] as int? ?? 62087,
       promptBatchSize: map['promptBatchSize'],
-      repeatPenaltyTokens: map['repeatPenaltyTokens'],
       topP: map['topP'],
       maxTokenLength: map['maxLength'],
       repeatPenalty: map['repeatPenalty'],
       systemMessage: map['commandPrefix'],
+      maxTokensResponseLenght: map['maxTokensResponseLenght'],
       systemMessageTokensCount: map['systemMessageTokensCount'] ?? 0,
       indexSort: map['indexSort'] ?? 999999,
       totalSentTokens: map['totalSentTokens'] ?? 0,
@@ -167,6 +172,7 @@ class ChatRoom {
           DateTime.now().millisecondsSinceEpoch,
       characterName: map['characterName'] ?? 'ai',
       characterAvatarPath: map['avatarPath'],
+      seed: map['seed'],
       children: map['children'] != null
           ? (map['children'] as List)
               .map((e) => ChatRoom.fromMap(e as Map<String, dynamic>))
@@ -188,12 +194,13 @@ class ChatRoom {
       'topk': topk,
       'iconCode': iconCodePoint,
       'promptBatchSize': promptBatchSize,
-      'repeatPenaltyTokens': repeatPenaltyTokens,
       'topP': topP,
       'maxLength': maxTokenLength,
       'repeatPenalty': repeatPenalty,
       'totalSentTokens': totalSentTokens ?? 0,
       'totalReceivedTokens': totalReceivedTokens,
+      'maxTokensResponseLenght': maxTokensResponseLenght,
+      'seed': seed,
 
       /// List<int> Encrypted data
       // 'token': encryptedTokenBox.cipherText,
@@ -277,6 +284,8 @@ class ChatRoom {
     int? dateCreatedMilliseconds,
     int? totalSentTokens,
     int? totalReceivedTokens,
+    int? maxTokensResponseLenght,
+    int? seed,
     List<ChatRoom>? children,
   }) {
     return ChatRoom(
@@ -285,13 +294,15 @@ class ChatRoom {
       model: model ?? this.model,
       temp: temp ?? this.temp,
       topk: topk ?? this.topk,
+      maxTokensResponseLenght:
+          maxTokensResponseLenght ?? this.maxTokensResponseLenght,
       promptBatchSize: promptBatchSize ?? this.promptBatchSize,
-      repeatPenaltyTokens: repeatPenaltyTokens ?? this.repeatPenaltyTokens,
       topP: topP ?? this.topP,
       maxTokenLength: maxLength ?? maxTokenLength,
       repeatPenalty: repeatPenalty ?? this.repeatPenalty,
       systemMessage: systemMessage ?? this.systemMessage,
-      systemMessageTokensCount: systemMessageTokensCount ?? this.systemMessageTokensCount,
+      systemMessageTokensCount:
+          systemMessageTokensCount ?? this.systemMessageTokensCount,
       indexSort: indexSort ?? this.indexSort,
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       dateCreatedMilliseconds:
@@ -300,6 +311,7 @@ class ChatRoom {
       totalReceivedTokens: totalReceivedTokens ?? this.totalReceivedTokens,
       characterName: characterName ?? this.characterName,
       characterAvatarPath: avatarPath ?? characterAvatarPath,
+      seed: seed ?? this.seed,
       children: children ?? this.children,
     );
   }

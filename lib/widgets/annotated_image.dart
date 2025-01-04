@@ -60,13 +60,15 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
           offsetX = (constraints.maxWidth - displayWidth) / 1;
           // offsetY = 0;
         }
-        // else {
-        //   // Container is taller than image
-        //   displayWidth = constraints.maxWidth;
-        //   displayHeight = displayWidth / originalAspectRatio;
-        //   offsetX = 0;
-        //   offsetY = (constraints.maxHeight - displayHeight) / 2;
-        // }
+        else {
+          // Container is taller than image
+          displayWidth = 1; // constraints.maxWidth;
+          // displayHeight = displayWidth / originalAspectRatio;
+          offsetX = 0;
+          displayHeight = constraints.maxHeight;
+
+          // offsetY = (constraints.maxHeight - displayHeight) / 2;
+        }
 
         // Calculate scale factors
         // final scaleX = 1;
@@ -82,16 +84,16 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
             Positioned.fill(child: widget.image),
 
             ...widget.annotations.map((point) {
-              final scaledX = (point.x * scaleX) + offsetX;
-              // final scaledY = (point.y * scaleY) + offsetY;
+              // final scaledX = (point.x * scaleX) + offsetX;
+              // // final scaledY = (point.y * scaleY) + offsetY;
 
-              // Calculate maximum allowed width for the label
-              final remainingWidth = constraints.maxWidth - scaledX;
-              final maxLabelWidth =
-                  remainingWidth.clamp(0.0, 200.0); // Max 200px
+              // // Calculate maximum allowed width for the label
+              // final remainingWidth = constraints.maxWidth - scaledX;
+              // final maxLabelWidth =
+              //     remainingWidth.clamp(0.0, 200.0); // Max 200px
 
               return Positioned(
-                left: scaledX,
+                left: point.x,
                 top: point.y,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -112,7 +114,7 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
                     ),
                     ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: maxLabelWidth,
+                        // maxWidth: maxLabelWidth,
                       ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(

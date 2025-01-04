@@ -105,8 +105,6 @@ double get temp => chatRooms[selectedChatRoomId]?.temp ?? 0.9;
 int get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
 int get promptBatchSize =>
     chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
-int get repeatPenaltyTokens =>
-    chatRooms[selectedChatRoomId]?.repeatPenaltyTokens ?? 64;
 double get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
 int get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
 double get repeatPenalty =>
@@ -327,7 +325,6 @@ class ChatProvider with ChangeNotifier {
           temp: temp,
           topk: topk,
           promptBatchSize: promptBatchSize,
-          repeatPenaltyTokens: repeatPenaltyTokens,
           topP: topP,
           maxTokenLength: maxTokenLenght,
           repeatPenalty: repeatPenalty,
@@ -1045,29 +1042,38 @@ class ChatProvider with ChangeNotifier {
     }
     onMessageSent?.call();
     String responseId = '';
+    final options = ChatOpenAIOptions(
+      model: selectedChatRoom.model.modelName,
+      user: AppCache.userName.value,
+      maxTokens: selectedChatRoom.maxTokensResponseLenght != null
+          ? (selectedChatRoom.maxTokensResponseLenght! -
+              (selectedChatRoom.systemMessageTokensCount ?? 0))
+          : null,
+      temperature: selectedChatRoom.temp,
+      topP: selectedChatRoom.topP,
+      frequencyPenalty: selectedChatRoom.repeatPenalty,
+      seed: selectedChatRoom.seed,
+      toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
+      tools: isToolsEnabled
+          ? [
+              if (AppCache.gptToolCopyToClipboardEnabled.value!)
+                ToolSpec(
+                  name: 'copy_to_clipboard_tool',
+                  description: 'Tool to copy text to users clipboard',
+                  inputJsonSchema: copyToClipboardFunctionParameters,
+                ),
+            ]
+          : null,
+    );
     try {
       initModelsApi();
+
       if (!sendStream) {
         late AIChatMessage response;
         if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-          response = await openAI!.call(
-            messagesToSend,
-            options: ChatOpenAIOptions(
-              model: selectedChatRoom.model.modelName,
-              maxTokens: selectedChatRoom.maxTokenLength -
-                  (selectedChatRoom.systemMessageTokensCount ?? 0),
-              user: AppCache.userName.value,
-            ),
-          );
+          response = await openAI!.call(messagesToSend, options: options);
         } else {
-          response = await localModel!.call(
-            messagesToSend,
-            options: ChatOpenAIOptions(
-              model: selectedChatRoom.model.modelName,
-              maxTokens: selectedChatRoom.maxTokenLength -
-                  (selectedChatRoom.systemMessageTokensCount ?? 0),
-            ),
-          );
+          response = await localModel!.call(messagesToSend, options: options);
         }
         if (response.toolCalls.isNotEmpty) {
           final lastChar = response.toolCalls.first.argumentsRaw;
@@ -1091,25 +1097,8 @@ class ChatProvider with ChangeNotifier {
         return;
       }
       if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-        responseStream = openAI!.stream(
-          PromptValue.chat(messagesToSend),
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-            user: AppCache.userName.value,
-            maxTokens: selectedChatRoom.maxTokenLength,
-            toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
-            tools: isToolsEnabled
-                ? [
-                    if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                      ToolSpec(
-                        name: 'copy_to_clipboard_tool',
-                        description: 'Tool to copy text to users clipboard',
-                        inputJsonSchema: copyToClipboardFunctionParameters,
-                      ),
-                  ]
-                : null,
-          ),
-        );
+        responseStream =
+            openAI!.stream(PromptValue.chat(messagesToSend), options: options);
       } else {
         if (selectedChatRoom.model.ownedBy == OwnedByEnum.gemini.name) {
           throw Exception('Gemini is not supported yet');
@@ -1118,25 +1107,8 @@ class ChatProvider with ChangeNotifier {
           throw Exception('Claude is not supported yet');
           // TODO: add more models
         }
-        responseStream = localModel!.stream(
-          PromptValue.chat(messagesToSend),
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-            user: AppCache.userName.value,
-            maxTokens: selectedChatRoom.maxTokenLength,
-            toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
-            tools: isToolsEnabled
-                ? [
-                    if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                      ToolSpec(
-                        name: 'copy_to_clipboard_tool',
-                        description: 'Tool to copy text to users clipboard',
-                        inputJsonSchema: copyToClipboardFunctionParameters,
-                      ),
-                  ]
-                : null,
-          ),
-        );
+        responseStream = localModel!
+            .stream(PromptValue.chat(messagesToSend), options: options);
       }
 
       String functionCallString = '';
@@ -1875,7 +1847,6 @@ class ChatProvider with ChangeNotifier {
       temp: temp,
       topk: topk,
       promptBatchSize: promptBatchSize,
-      repeatPenaltyTokens: repeatPenaltyTokens,
       topP: topP,
       maxTokenLength: maxTokenLenght,
       repeatPenalty: repeatPenalty,
@@ -2796,8 +2767,10 @@ ChatRoom _generateDefaultChatroom({String? systemMessage}) {
     temp: temp,
     topk: topk,
     promptBatchSize: promptBatchSize,
-    repeatPenaltyTokens: repeatPenaltyTokens,
     topP: topP,
+    systemMessageTokensCount: 0,
+    totalReceivedTokens: 0,
+    totalSentTokens: 0,
     maxTokenLength: maxTokenLenght,
     repeatPenalty: repeatPenalty,
     systemMessage: '',
