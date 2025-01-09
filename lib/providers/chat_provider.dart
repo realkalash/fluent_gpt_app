@@ -1393,12 +1393,17 @@ class ChatProvider with ChangeNotifier {
   /// `TextFileCustomMessage`. If the `allowOverflow` parameter is set to true and no
   /// messages have been added to the result, the last message will be added regardless
   /// of the token limit.
+  /// if [stripMessage] is true, it will strip the message from new lines and double spaces
   Future<List<FluentChatMessage>> getLastMessagesLimitToTokens(
     int tokens, {
     bool allowOverflow = true,
     bool allowImages = false,
+    bool stripMessage = true,
   }) async {
     int currentTokens = 0;
+    // for debug purposes
+    // int currentTokensRaw = 0;
+    // int currentTokensStripped = 0;
     final result = <FluentChatMessage>[];
     final chatModel = selectedChatRoom.model;
 
@@ -1408,7 +1413,7 @@ class ChatProvider with ChangeNotifier {
           message.type == FluentChatMessageType.textHuman ||
           message.type == FluentChatMessageType.system ||
           message.type == FluentChatMessageType.file) {
-        final tokensCount = message.tokens;
+        var tokensCount = message.tokens;
         // await modelCounter.countTokens(PromptValue.string(message.content));
         if ((currentTokens + tokensCount) > tokens) {
           if (kDebugMode) {
@@ -1417,7 +1422,23 @@ class ChatProvider with ChangeNotifier {
           }
           break;
         }
+        // currentTokensRaw += message.tokens;
+        if (stripMessage) {
+          final countNewLines = message.content.split('\n\n').length;
+          if (countNewLines > 1) {
+            final newContent =
+                message.content.replaceAll('\n\n', ' ').replaceAll('  ', ' ');
+            // rough estimation of tokens because each model can count them differently
+            tokensCount = message.tokens - countNewLines + 1;
+            message = message.copyWith(
+              content: newContent,
+              tokens: tokensCount,
+            );
+          }
+        }
         currentTokens += tokensCount;
+        // print(
+        //     '${message.timestamp} Tokens stripped: $currentTokens; Tokens raw: $currentTokensRaw;');
         result.add(message);
       } else if (allowImages &&
           (message.type == FluentChatMessageType.image ||
@@ -1441,6 +1462,8 @@ class ChatProvider with ChangeNotifier {
     } else if (result.isEmpty && allowOverflow) {
       result.add(lastElement);
     }
+    // print(
+    //     'SUM Tokens stripped: $currentTokensStripped; Tokens raw: $currentTokensRaw;');
 
     /// because we counted from the bottom to top we need to invert it to original order
     return result.reversed.toList();

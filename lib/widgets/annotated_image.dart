@@ -48,24 +48,24 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
             constraints.maxWidth / constraints.maxHeight;
 
         // Calculate actual display dimensions maintaining aspect ratio
-        late final double displayWidth;
-        late final double displayHeight;
-        late final double offsetX;
+        // late final double displayWidth;
+        // late final double displayHeight;
+        // late final double offsetX;
         // late final double offsetY;
 
         if (containerAspectRatio > originalAspectRatio) {
           // Container is wider than image
-          displayHeight = constraints.maxHeight;
-          displayWidth = displayHeight * originalAspectRatio;
-          offsetX = (constraints.maxWidth - displayWidth) / 1;
+          // displayHeight = constraints.maxHeight;
+          // displayWidth = displayHeight * originalAspectRatio;
+          // offsetX = (constraints.maxWidth - displayWidth) / 1;
           // offsetY = 0;
         }
         else {
           // Container is taller than image
-          displayWidth = 1; // constraints.maxWidth;
+          // displayWidth = 1; // constraints.maxWidth;
           // displayHeight = displayWidth / originalAspectRatio;
-          offsetX = 0;
-          displayHeight = constraints.maxHeight;
+          // offsetX = 0;
+          // displayHeight = constraints.maxHeight;
 
           // offsetY = (constraints.maxHeight - displayHeight) / 2;
         }
@@ -73,7 +73,7 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
         // Calculate scale factors
         // final scaleX = 1;
         // final scaleY = 1;
-        final scaleX = displayWidth / (widget.originalWidth + 48);
+        // final scaleX = displayWidth / (widget.originalWidth + 48);
         // final scaleY = displayHeight / widget.originalHeight;
 
         return Stack(

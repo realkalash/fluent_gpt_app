@@ -210,6 +210,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                         basicPrompt: currentStrippedPrompt,
                       );
                       systemMessageContr.text = newPrompt;
+                      selectedChatRoom.systemMessage = newPrompt;
                     },
                     icon: Icon(FluentIcons.arrow_counterclockwise_16_regular),
                     tooltip: 'Update variables',
@@ -235,6 +236,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                 onChanged: (value) {
                   debouncer.run(() {
                     countTokens();
+                    selectedChatRoom.systemMessage = value;
                   });
                 },
               ),
