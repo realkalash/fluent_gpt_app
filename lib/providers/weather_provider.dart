@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 WeatherDay? weatherTodayMax;
 WeatherDay? weatherTodayMin;
 WeatherDay? weatherTomorrowMax;
+
 /// Timer to fetch weather data every 4 hours
 Timer? fetchTimer;
 Timer? updateTickTimer;
@@ -45,7 +46,7 @@ class WeatherProvider extends ChangeNotifier {
     fetchTimer?.cancel();
     fetchTimer = Timer.periodic(Duration(hours: 4), (timer) {
       if (AppCache.userCityName.value != null) {
-        fetchWeather(AppCache.userCityName.value!);
+        fetchWeather(AppCache.userCityName.value!, false);
       }
     });
     updateTickTimer?.cancel();
@@ -105,9 +106,10 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   /// https://api.open-meteo.com/v1/forecast?latitude=35&longitude=139&hourly=temperature_2m,precipitation,weather_code
-  Future<WeatherData?> fetchWeather(String cityName) async {
+  Future<WeatherData?> fetchWeather(String cityName,
+      [bool notify = false]) async {
     isLoading = true;
-    notifyListeners();
+    if (notify) notifyListeners();
     final coordinates = await _getCoordinates(cityName);
     final lat = coordinates['latitude'];
     final lon = coordinates['longitude'];
@@ -127,16 +129,18 @@ class WeatherProvider extends ChangeNotifier {
         filteredWeather = getFilteredWeather();
         refreshGlobalVariables();
         isLoading = false;
-        notifyListeners();
+        if (notify) notifyListeners();
+
         return weather;
       } else {
         isLoading = false;
-        notifyListeners();
+        if (notify) notifyListeners();
+
         throw Exception('Failed to fetch weather data');
       }
     } else {
       isLoading = false;
-      notifyListeners();
+      if (notify) notifyListeners();
       throw Exception('Invalid coordinates');
     }
   }

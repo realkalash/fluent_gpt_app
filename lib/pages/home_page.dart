@@ -1161,7 +1161,8 @@ class WeatherCard extends StatelessWidget {
                       children: [
                         SqueareIconButton(
                           onTap: () {
-                            provider.fetchWeather(AppCache.userCityName.value!);
+                            provider.fetchWeather(
+                                AppCache.userCityName.value!, true);
                           },
                           icon: Icon(
                               ic.FluentIcons.arrow_counterclockwise_12_regular),

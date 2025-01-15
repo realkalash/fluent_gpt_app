@@ -29,7 +29,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
-import 'package:glowy_borders/glowy_borders.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 // ignore: unused_import
 import 'package:langchain/langchain.dart';
@@ -473,27 +472,15 @@ class _InputFieldState extends State<InputField> {
                   if (chatProvider.isAnswering)
                     SizedBox.square(
                       dimension: 52,
-                      child: AnimatedGradientBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        gradientColors: [
-                          Colors.red,
-                          Colors.orange,
-                          Colors.yellow,
-                          Colors.green,
-                          Colors.blue,
-                        ],
-                        glowSize: 2,
-                        animationTime: 5,
-                        child: IconButton(
-                          style: ButtonStyle(
-                              backgroundColor: WidgetStatePropertyAll(
-                            context.theme.scaffoldBackgroundColor,
-                          )),
-                          onPressed: () => chatProvider.stopAnswering(),
-                          icon: Icon(
-                            ic.FluentIcons.stop_24_filled,
-                            size: 24,
-                          ),
+                      child: IconButton(
+                        style: ButtonStyle(
+                            backgroundColor: WidgetStatePropertyAll(
+                          context.theme.scaffoldBackgroundColor,
+                        )),
+                        onPressed: () => chatProvider.stopAnswering(),
+                        icon: Icon(
+                          ic.FluentIcons.stop_24_filled,
+                          size: 24,
                         ),
                       ),
                     )

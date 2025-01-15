@@ -29,12 +29,16 @@ class _ModelsListDialog extends State<ModelsListDialog> {
           Spacer(),
           SqueareIconButton(
             onTap: () async {
+              final isListWasEmpty = allModels.value.isEmpty;
               final model = await showDialog<ChatModelAi>(
                 context: context,
                 builder: (context) => const AddAiModelDialog(),
               );
               if (model != null) {
-                chatProvider.addNewCustomModel(model);
+                await chatProvider.addNewCustomModel(model);
+                if (isListWasEmpty) {
+                  chatProvider.selectNewModel(model);
+                }
               }
             },
             icon: Icon(FluentIcons.add_24_filled),

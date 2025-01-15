@@ -1,12 +1,7 @@
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart'
-    show
-        Button,
-        FlyoutController,
-        FlyoutTarget,
-        MenuFlyout,
-        MenuFlyoutItem;
+    show Button, FlyoutController, FlyoutTarget, MenuFlyout, MenuFlyoutItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -88,15 +83,17 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const ListTile(
-                            title: Text('Add your models'),
-                            trailing: _ChooseModelButton()),
+                          title: Text('Add your models'),
+                          trailing: _ChooseModelButton(),
+                        ),
                         const SizedBox(height: 24),
                         Button(
                             child: Text('Add'),
                             onPressed: () {
                               showDialog(
-                                  context: context,
-                                  builder: (ctx) => ModelsListDialog());
+                                context: context,
+                                builder: (ctx) => ModelsListDialog(),
+                              );
                             })
                       ],
                     ),
