@@ -14,7 +14,7 @@ The licensor cannot revoke these freedoms as long as you follow the license term
 
 - **NonCommercial** — You may not use the material for commercial purposes.
 
-- **NoDerivatives** — If you remix, transform, or build upon the material, you may not distribute the modified material.
+- **NoDerivatives** — If you remix, transform, or build upon the material, you may not distribute the modified material for commercial purposes or piracy purposes.
 
 - **No additional restrictions** — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
