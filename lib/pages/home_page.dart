@@ -1247,6 +1247,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               isCompactMode: false,
                               shouldBlink:
                                   chatProvider.blinkMessageId == message.id,
+                              indexMessage: index,
                             ),
                           );
                         },

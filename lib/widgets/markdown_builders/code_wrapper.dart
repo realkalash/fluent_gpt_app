@@ -193,3 +193,39 @@ class SqueareIconButton extends fluent.StatelessWidget {
     );
   }
 }
+
+class SqueareIconButtonSized extends fluent.StatelessWidget {
+  const SqueareIconButtonSized(
+      {super.key,
+      required this.onTap,
+      required this.icon,
+      this.width = 30,
+      this.height = 30,
+      required this.tooltip});
+  final void Function()? onTap;
+  final Widget icon;
+  final String tooltip;
+  final double width;
+  final double height;
+
+  @override
+  fluent.Widget build(fluent.BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: fluent.Tooltip(
+        message: tooltip,
+        child: fluent.SizedBox(
+          width: width,
+          height: height,
+          child: fluent.Button(
+            onPressed: onTap,
+            style: const fluent.ButtonStyle(
+              padding: WidgetStatePropertyAll(EdgeInsets.zero),
+            ),
+            child: icon,
+          ),
+        ),
+      ),
+    );
+  }
+}

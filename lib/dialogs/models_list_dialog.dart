@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -244,15 +245,34 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
                           .modelIcon,
                     ),
                     selected: ownedBy == item.name,
-                    onPressed: () {
+                    onPressed: () async {
                       if (item == OwnedByEnum.openai) {
                         model = model.copyWith(
                           uri: 'https://api.openai.com/v1',
                           ownedBy: item.name,
                         );
                         autoSuggestController.text = openAiModels.first;
+                      } else if (item == OwnedByEnum.lm_studio ||
+                          item == OwnedByEnum.custom) {
+                        modelUriController.text = '';
+                        autoSuggestController.text = '';
+                        await retrieveModelsFromPath(
+                            'http://localhost:1234/v1');
+                        if (autosuggestAdditionalItems.length == 1) {
+                          autoSuggestController.text =
+                              autosuggestAdditionalItems.first;
+                        } else {
+                          autoSuggestOverlayController.currentState!
+                              .showOverlay();
+                        }
+                        modelUriController.text = 'http://localhost:1234/v1';
+                        model = model.copyWith(
+                          ownedBy: item.name,
+                          uri: 'http://localhost:1234/v1',
+                        );
+                      } else {
+                        model = model.copyWith(ownedBy: item.name);
                       }
-                      model = model.copyWith(ownedBy: item.name);
 
                       setState(() {});
                     },
@@ -346,6 +366,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
   }
 
   Future retrieveModelsFromPath(String url) async {
+    log('Load models from $url');
     final urlModels = '$url/models';
     final response = await http.get(Uri.parse(urlModels));
     if (response.statusCode == 200) {

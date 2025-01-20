@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
@@ -796,6 +797,7 @@ class ChatProvider with ChangeNotifier {
     void Function()? onFinishResponse,
     void Function()? onMessageSent,
     bool sendAsUser = true,
+    int? seed,
   }) async {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
@@ -827,7 +829,7 @@ class ChatProvider with ChangeNotifier {
       );
       return;
     }
-    if (isThirdMessage) {
+    if (isThirdMessage && AppCache.useAiToNameChat.value == true) {
       String lastMessages = await getLastFewMessagesForContextAsString();
       lastMessages += ' Human: $messageContent';
       retrieveResponseFromPrompt(
@@ -836,7 +838,7 @@ class ChatProvider with ChangeNotifier {
     }
     if (isWebSearchEnabled) {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addHumanMessageToList(
+      await addHumanMessageToList(
         FluentChatMessage.humanText(
           id: '$timestamp',
           content: messageContent,
@@ -845,7 +847,7 @@ class ChatProvider with ChangeNotifier {
           tokens: await countTokensString(messageContent),
         ),
       );
-      final lastMessages = getLastFewMessagesForContextAsString();
+      final lastMessages = await getLastFewMessagesForContextAsString();
       String searchPrompt = await retrieveResponseFromPrompt(
         '$webSearchPrompt """$lastMessages"""\n GIVE ME RESULT ONLY IN THIS FORMAT. DON\'T ADD ANYTHING ELSE'
         '{"query":"<your response>"}',
@@ -1009,9 +1011,9 @@ class ChatProvider with ChangeNotifier {
         messagesToSend.insert(
             0, SystemChatMessage(content: selectedChatRoom.systemMessage!));
       }
-      if (messages.value.length > 1)
-        messagesToSend.insert(
-            0, ChatMessage.system('Previous chat hidden due to overflow'));
+      // if (messages.value.length > 1)
+      // messagesToSend.insert(
+      //     0, ChatMessage.system('Previous chat hidden due to overflow'));
     }
     if (!includeConversationGlobal) {
       if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
@@ -1052,7 +1054,7 @@ class ChatProvider with ChangeNotifier {
       temperature: selectedChatRoom.temp,
       topP: selectedChatRoom.topP,
       frequencyPenalty: selectedChatRoom.repeatPenalty,
-      seed: selectedChatRoom.seed,
+      seed: seed ?? selectedChatRoom.seed,
       toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
       tools: isToolsEnabled
           ? [
@@ -1430,10 +1432,8 @@ class ChatProvider with ChangeNotifier {
                 message.content.replaceAll('\n\n', ' ').replaceAll('  ', ' ');
             // rough estimation of tokens because each model can count them differently
             tokensCount = message.tokens - countNewLines + 1;
-            message = message.copyWith(
-              content: newContent,
-              tokens: tokensCount,
-            );
+            message =
+                message.copyWith(content: newContent, tokens: tokensCount);
           }
         }
         currentTokens += tokensCount;
@@ -2167,11 +2167,54 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<void> regenerateMessage(FluentChatMessage message) async {
+  Future<void> regenerateMessage(FluentChatMessage currentElementToDelete,
+      {required int indexInReversedList}) async {
+    final isLastMessage = indexInReversedList == 0;
+    final isBeforeLastMessage = indexInReversedList == 1;
+    final isSelectedMessageFromMe = currentElementToDelete.isTextFromMe;
+
+    final previousItemInRevList =
+        messagesReversedList.elementAtOrNull(indexInReversedList + 1);
+
+    final nextItemInRevList =
+        messagesReversedList.elementAtOrNull(indexInReversedList + 1);
+
+    if (isLastMessage || isBeforeLastMessage) {
+      // delete the message because we will regenerate from the chat history before that message appeared
+      deleteMessage(currentElementToDelete.id, false);
+      // if we just deleted ai text message it means we need to delete the previous (related) question from human
+      if (currentElementToDelete.type == FluentChatMessageType.textAi) {
+        //Just to confirm that the next message is AI message
+        if (previousItemInRevList != null &&
+            previousItemInRevList.type == FluentChatMessageType.textHuman) {
+          deleteMessage(previousItemInRevList.id, false);
+        }
+      }
+      if (currentElementToDelete.type == FluentChatMessageType.textHuman) {
+        //Just to confirm that the next message is AI message
+        if (nextItemInRevList != null &&
+            nextItemInRevList.type == FluentChatMessageType.textAi) {
+          deleteMessage(nextItemInRevList.id, false);
+        }
+      }
+    } else {
+      displayErrorInfoBar(
+        title: 'Not supported',
+        message: 'You can only regenerate the last message or previous one',
+      );
+      return;
+    }
+    final messageForType = isSelectedMessageFromMe
+        ? currentElementToDelete
+        : previousItemInRevList;
+
     await sendMessage(
-      message.content,
+      isSelectedMessageFromMe
+          ? currentElementToDelete.content
+          : previousItemInRevList!.content,
       hidePrompt: true,
-      sendAsUser: message.type == FluentChatMessageType.textHuman,
+      sendAsUser: messageForType?.type == FluentChatMessageType.textHuman,
+      seed: Random().nextInt(10000),
     );
   }
 
@@ -2202,8 +2245,9 @@ class ChatProvider with ChangeNotifier {
   Future _loadMessagesFromDisk(String id) async {
     final roomId = id;
     final fileContent = await FileUtils.getChatRoomMessagesFileById(roomId);
-    final chatRoomRaw =
-        jsonDecode(await fileContent.readAsString()) as List<dynamic>;
+    final fileContentString = await fileContent.readAsString();
+
+    final chatRoomRaw = jsonDecode(fileContentString) as List<dynamic>;
     // id is the key
     final roomMessages = <String, FluentChatMessage>{};
     for (var messageJson in chatRoomRaw) {

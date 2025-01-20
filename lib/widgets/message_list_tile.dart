@@ -105,6 +105,9 @@ class MessageCard extends StatefulWidget {
     required this.textSize,
     required this.isCompactMode,
     this.shouldBlink = false,
+
+    /// Index of the item in reversed list. 0 is the first bottom message
+    this.indexMessage = 0,
   });
   final FluentChatMessage message;
 
@@ -113,6 +116,9 @@ class MessageCard extends StatefulWidget {
   final bool isCompactMode;
   final bool shouldBlink;
   final int textSize;
+
+  /// Index of the item in reversed list. 0 is the first bottom message
+  final int indexMessage;
 
   @override
   State<MessageCard> createState() => _MessageCardState();
@@ -129,8 +135,12 @@ class _MessageCardState extends State<MessageCard> {
   void initState() {
     super.initState();
     _isMarkdownView = AppCache.isMarkdownViewEnabled.value ?? true;
-    if (widget.shouldBlink) {
+    if (widget.shouldBlink && mounted) {
       Timer.periodic(Duration(milliseconds: 600), (timer) {
+        if (!mounted) {
+          timer.cancel();
+          return;
+        }
         final cardColor = context.theme.cardColor;
         backgroundColor =
             backgroundColor == cardColor ? Colors.yellow.dark : cardColor;
@@ -205,260 +215,249 @@ class _MessageCardState extends State<MessageCard> {
 
     tileWidget = MessageListTile(
       tileColor: Colors.red,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
+      title: Text(widget.message.creator, style: myMessageStyle),
+      subtitle: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.message.type == FluentChatMessageType.textAi &&
               selectedChatRoom.characterAvatarPath != null)
-            HoverTooltip(
-              tooltipHeight: 128,
-              tooltipWidth: 128,
-              tooltipContent: Acrylic(
-                blurAmount: 10,
-                child: Container(
-                  width: 128,
-                  height: 128,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      fit: BoxFit.cover,
-                      isAntiAlias: true,
-                      image: FileImage(
-                        File(selectedChatRoom.characterAvatarPath!),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              child: GestureDetector(
-                onTap: () {
-                  final base64Image = base64Encode(
-                      File(selectedChatRoom.characterAvatarPath!)
-                          .readAsBytesSync());
-                  _showImageDialog(context,
-                      FluentChatMessage.imageAi(id: '', content: base64Image));
-                },
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                    image: DecorationImage(
-                      fit: BoxFit.cover,
-                      image: FileImage(
-                        File(selectedChatRoom.characterAvatarPath!),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          Text(widget.message.creator, style: myMessageStyle),
-        ],
-      ),
-      subtitle: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (widget.message.type == FluentChatMessageType.image ||
-              widget.message.type == FluentChatMessageType.imageAi)
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => _showImageDialog(context, widget.message),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 0.0, right: 12, top: 8, bottom: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10.0),
-                    child: Image.memory(
-                      decodeImage(widget.message.content),
-                      fit: BoxFit.cover,
-                      gaplessPlayback: true,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          if (isContentText && _isMarkdownView)
-            buildMarkdown(
-              context,
-              widget.message.content,
-              textSize: widget.textSize.toDouble(),
-              contextMenuBuilder: (ctx, state) =>
-                  ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
-                context,
-                state,
-                onShowCommandsPressed: (text) {
-                  flyoutController.showFlyout(
-                    builder: (context) => _showCommandsFlyout(text),
-                    position: mouseLocalPosition,
-                  );
-                },
-                onMorePressed: () {
-                  flyoutController.showFlyout(
-                    builder: (context) => _showOptionsFlyout(context),
-                    position: mouseLocalPosition,
-                  );
-                },
-                onQuoteSelectedText: (text) {
-                  final provider = context.read<ChatProvider>();
-                  provider.messageController.text =
-                      provider.messageController.text += '"$text" ';
-                  promptTextFocusNode.requestFocus();
-                },
-                onImproveSelectedText: (text) {
-                  final provider = context.read<ChatProvider>();
-                  provider.sendMessage('Improve writing: "$text"',
-                      hidePrompt: true);
-                },
-              ),
-            )
-          else if (isContentText)
-            SelectableText(
-              widget.message.content,
-              contextMenuBuilder: (ctx, state) =>
-                  ContextMenuBuilders.textChatMessageContextMenuBuilder(
-                ctx,
-                state,
-                onShowCommandsPressed: (text) {
-                  flyoutController.showFlyout(
-                    builder: (context) => _showCommandsFlyout(text),
-                    position: mouseLocalPosition,
-                  );
-                },
-                onMorePressed: () {
-                  flyoutController.showFlyout(
-                    builder: (context) => _showOptionsFlyout(context),
-                    position: mouseLocalPosition,
-                  );
-                },
-                onQuoteSelectedText: (text) {
-                  final provider = context.read<ChatProvider>();
-                  provider.messageController.text =
-                      provider.messageController.text += '"$text" ';
-                  promptTextFocusNode.requestFocus();
-                },
-                onImproveSelectedText: (text) {
-                  final provider = context.read<ChatProvider>();
-                  provider.sendMessage('Improve writing: "$text"',
-                      hidePrompt: true);
-                },
-              ),
-              style: TextStyle(
-                  fontSize: widget.textSize.toDouble(),
-                  fontWeight: FontWeight.normal),
-            ),
-          if (widget.message.type == FluentChatMessageType.file)
-            Button(
-              onPressed: () async {
-                if (Platform.isWindows) {
-                  final content = widget.message.content;
-                  showDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      builder: (ctx) {
-                        return ContentDialog(
-                          title: Text(widget.message.fileName ?? 'File'),
-                          constraints: const BoxConstraints(
-                            maxWidth: 800,
-                            maxHeight: 1200,
-                          ),
-                          actions: [
-                            Button(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('Close'),
-                            ),
-                          ],
-                          content: SizedBox(
-                            width: 800,
-                            child: SingleChildScrollView(
-                              child: SelectableText(
-                                content,
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
-                        );
-                      });
-                  return;
-                }
-                final tempDir = Directory.systemTemp;
-                final file = File(
-                    '${tempDir.path}${Platform.pathSeparator}${widget.message.fileName?.isEmpty == true ? 'file' : widget.message.fileName}');
-                await file.writeAsString(widget.message.content);
-                final mimeType = mime(file.path);
-                await OpenFilex.open(file.path, type: mimeType);
+            GestureDetector(
+              onTap: () {
+                final base64Image = base64Encode(
+                    File(selectedChatRoom.characterAvatarPath!)
+                        .readAsBytesSync());
+                _showImageDialog(context,
+                    FluentChatMessage.imageAi(id: '', content: base64Image));
               },
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(FluentIcons.document_24_filled, size: 24),
-                  Text(
-                    widget.message.fileName ?? 'File',
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+              child: Container(
+                width: 64,
+                height: 64,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.0),
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: FileImage(
+                      File(selectedChatRoom.characterAvatarPath!),
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
-          if (widget.message.type == FluentChatMessageType.webResult)
-            Wrap(
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final result in (widget.message.webResults!))
-                  SizedBox(
-                    width: 200,
-                    child: Button(
-                      onPressed: () => launchUrlString(result.url),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (result.favicon != null)
-                            Image.network(
-                              result.favicon!,
-                              width: 24,
-                              height: 24,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
-                                FluentIcons.globe_16_regular,
-                                size: 24,
-                              ),
-                            ),
-                          Text(
-                            result.title,
-                            style: FluentTheme.of(context).typography.subtitle!,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.start,
-                            maxLines: 2,
+                if (widget.message.type == FluentChatMessageType.image ||
+                    widget.message.type == FluentChatMessageType.imageAi)
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => _showImageDialog(context, widget.message),
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                            left: 0.0, right: 12, top: 8, bottom: 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10.0),
+                          child: Image.memory(
+                            decodeImage(widget.message.content),
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
                           ),
-
-                          /// url short one line
-                          Text(
-                            result.url,
-                            style: FluentTheme.of(context).typography.caption!,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.start,
-                            maxLines: 1,
-                          ),
-                        ],
+                        ),
                       ),
+                    ),
+                  ),
+                if (isContentText && _isMarkdownView)
+                  buildMarkdown(
+                    context,
+                    widget.message.content,
+                    textSize: widget.textSize.toDouble(),
+                    contextMenuBuilder: (ctx, state) => ContextMenuBuilders
+                        .markdownChatMessageContextMenuBuilder(
+                      context,
+                      state,
+                      onShowCommandsPressed: (text) {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showCommandsFlyout(text),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onMorePressed: () {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showOptionsFlyout(context),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onQuoteSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.messageController.text =
+                            provider.messageController.text += '"$text" ';
+                        promptTextFocusNode.requestFocus();
+                      },
+                      onImproveSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.sendMessage('Improve writing: "$text"',
+                            hidePrompt: true);
+                      },
                     ),
                   )
+                else if (isContentText)
+                  SelectableText(
+                    widget.message.content,
+                    contextMenuBuilder: (ctx, state) =>
+                        ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                      ctx,
+                      state,
+                      onShowCommandsPressed: (text) {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showCommandsFlyout(text),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onMorePressed: () {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showOptionsFlyout(context),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onQuoteSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.messageController.text =
+                            provider.messageController.text += '"$text" ';
+                        promptTextFocusNode.requestFocus();
+                      },
+                      onImproveSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.sendMessage('Improve writing: "$text"',
+                            hidePrompt: true);
+                      },
+                    ),
+                    style: TextStyle(
+                        fontSize: widget.textSize.toDouble(),
+                        fontWeight: FontWeight.normal),
+                  ),
+                if (widget.message.type == FluentChatMessageType.file)
+                  Button(
+                    onPressed: () async {
+                      if (Platform.isWindows) {
+                        final content = widget.message.content;
+                        showDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (ctx) {
+                              return ContentDialog(
+                                title: Text(widget.message.fileName ?? 'File'),
+                                constraints: const BoxConstraints(
+                                  maxWidth: 800,
+                                  maxHeight: 1200,
+                                ),
+                                actions: [
+                                  Button(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                                content: SizedBox(
+                                  width: 800,
+                                  child: SingleChildScrollView(
+                                    child: SelectableText(
+                                      content,
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            });
+                        return;
+                      }
+                      final tempDir = Directory.systemTemp;
+                      final file = File(
+                          '${tempDir.path}${Platform.pathSeparator}${widget.message.fileName?.isEmpty == true ? 'file' : widget.message.fileName}');
+                      await file.writeAsString(widget.message.content);
+                      final mimeType = mime(file.path);
+                      await OpenFilex.open(file.path, type: mimeType);
+                    },
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(FluentIcons.document_24_filled, size: 24),
+                        Text(
+                          widget.message.fileName ?? 'File',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                if (widget.message.type == FluentChatMessageType.webResult)
+                  Wrap(
+                    children: [
+                      for (final result in (widget.message.webResults!))
+                        SizedBox(
+                          width: 200,
+                          child: Button(
+                            onPressed: () => launchUrlString(result.url),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (result.favicon != null)
+                                  Image.network(
+                                    result.favicon!,
+                                    width: 24,
+                                    height: 24,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            const Icon(
+                                      FluentIcons.globe_16_regular,
+                                      size: 24,
+                                    ),
+                                  ),
+                                Text(
+                                  result.title,
+                                  style: FluentTheme.of(context)
+                                      .typography
+                                      .subtitle!,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  maxLines: 2,
+                                ),
+
+                                /// url short one line
+                                Text(
+                                  result.url,
+                                  style: FluentTheme.of(context)
+                                      .typography
+                                      .caption!,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  maxLines: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                    ],
+                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$formatDateTime, ',
+                        style: FluentTheme.of(context).typography.caption!),
+                    Text(
+                      'T: ${widget.message.tokens}',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.normal),
+                    ),
+                  ],
+                )
               ],
             ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('$formatDateTime, ',
-                  style: FluentTheme.of(context).typography.caption!),
-              Text(
-                'T: ${widget.message.tokens}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
-              ),
-            ],
-          )
+          ),
         ],
       ),
     );
@@ -511,19 +510,22 @@ class _MessageCardState extends State<MessageCard> {
                         _showEditMessageDialog(context, widget.message);
                       },
                     ),
-                    SqueareIconButton(
-                      tooltip: 'Continue',
-                      icon: const Icon(FluentIcons.arrow_counterclockwise_16_filled),
-                      onTap: () {
-                        final provider = context.read<ChatProvider>();
-                        provider.deleteMessage(widget.message.id, false);
-                        provider
-                            .regenerateMessage(widget.message)
-                            .then((value) {
-                          provider.sortMessages();
-                        });
-                      },
-                    ),
+                    // only for the last 2 items
+                    if (widget.indexMessage < 2)
+                      SqueareIconButton(
+                        tooltip: 'Regenerate message',
+                        icon: widget.message.isTextFromMe
+                            ? const Icon(FluentIcons.arrow_down_12_regular)
+                            : const Icon(
+                                FluentIcons.arrow_counterclockwise_16_filled),
+                        onTap: () {
+                          final provider = context.read<ChatProvider>();
+                          final indexInReversedList =
+                              messagesReversedList.indexOf(widget.message);
+                          provider.regenerateMessage(widget.message,
+                              indexInReversedList: indexInReversedList);
+                        },
+                      ),
                     SqueareIconButton(
                       tooltip: 'Read aloud (Requires Speech API)',
                       icon: _isLoadingReadAloud
@@ -755,8 +757,13 @@ class _MessageCardState extends State<MessageCard> {
                   creator: characterName.text,
                   content: contentController.text,
                 );
-                provider.deleteMessage(widget.message.id, false);
-                provider.regenerateMessage(newMessage).then((value) {
+                final indexInReversedList =
+                    messagesReversedList.indexOf(widget.message);
+
+                provider
+                    .regenerateMessage(newMessage,
+                        indexInReversedList: indexInReversedList)
+                    .then((value) {
                   provider.sortMessages();
                 });
                 Navigator.of(ctx).pop();
@@ -834,6 +841,7 @@ class _MessageCardState extends State<MessageCard> {
     showDialog(
       context: context,
       barrierColor: Colors.black,
+      barrierDismissible: true,
       builder: (context) {
         return ImageViewerDialog(
             provider: provider, description: message.imagePrompt);
@@ -905,17 +913,6 @@ class _MessageCardState extends State<MessageCard> {
               final provider = context.read<ChatProvider>();
               provider.continueMessage(widget.message.id);
             }),
-        MenuFlyoutItem(
-          text: const Text('Generate again'),
-          leading: const Icon(FluentIcons.arrow_counterclockwise_16_filled),
-          onPressed: () {
-            final provider = context.read<ChatProvider>();
-            provider.deleteMessage(widget.message.id, false);
-            provider.regenerateMessage(widget.message).then((value) {
-              provider.sortMessages();
-            });
-          },
-        ),
         if (message.isTextMessage) ...[
           MenuFlyoutItem(
             text: const Text('Remember this'),
@@ -1060,10 +1057,12 @@ class ImageViewerDialog extends StatefulWidget {
     super.key,
     required this.provider,
     this.description,
+    this.barrierDismissible = true,
   });
 
   final ImageProvider<Object> provider;
   final String? description;
+  final bool barrierDismissible;
 
   @override
   State<ImageViewerDialog> createState() => _ImageViewerDialogState();
@@ -1099,14 +1098,15 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                 tooltip: 'Full screen',
               ),
               const SizedBox(width: 8),
-              SqueareIconButton(
+              SqueareIconButtonSized(
+                width: 50,
                 onTap: () {
                   if (fullScreen) {
                     WindowManager.instance.setFullScreen(false);
                   }
                   Navigator.of(context).pop();
                 },
-                icon: const Text('X', style: TextStyle(fontSize: 12)),
+                icon: const Text('X  [esc]', style: TextStyle(fontSize: 12)),
                 tooltip: 'Close',
               ),
             ],

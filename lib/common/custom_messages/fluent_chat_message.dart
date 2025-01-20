@@ -22,6 +22,7 @@ class FluentChatMessage {
   bool get isTextMessage =>
       type == FluentChatMessageType.textHuman ||
       type == FluentChatMessageType.textAi;
+  bool get isTextFromMe => type == FluentChatMessageType.textHuman;
 
   const FluentChatMessage({
     required this.id,
