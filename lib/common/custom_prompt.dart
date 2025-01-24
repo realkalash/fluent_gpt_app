@@ -5,6 +5,7 @@ import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:intl/intl.dart';
 
 class CustomPrompt {
   /// The id of the prompt
@@ -71,8 +72,10 @@ class CustomPrompt {
     final replacements = <String, String Function()>{
       '\${lang}': () => defaultGPTLanguage.value,
       '\${userInfo}': () => AppCache.userInfo.valueSync(),
-      '\${timestamp}': () =>
-          DateTime.now().toIso8601String().split('.')[0].replaceAll('T', ' '),
+      '\${timestamp}': () {
+        final formatter = DateFormat('EEE d hh:mm a');
+        return formatter.format(DateTime.now());
+      },
       '\${systemInfo}': () => getSystemInfoString(),
       '\${clipboardAccess}': () =>
           AppCache.gptToolCopyToClipboardEnabled.value == true

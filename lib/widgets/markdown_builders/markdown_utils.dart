@@ -6,6 +6,15 @@ import 'package:markdown_widget/widget/all.dart';
 
 import 'code_wrapper.dart';
 
+
+///Tag: [MarkdownTag.em]
+///
+/// emphasis, Markdown treats asterisks (*) and underscores (_) as indicators of emphasis
+class EmCustomNode extends ElementNode {
+  @override
+  TextStyle get style => parentStyle!.merge(TextStyle(fontStyle: FontStyle.italic, color: Colors.amber));
+}
+
 Widget buildMarkdown(
   BuildContext context,
   String data, {
@@ -26,15 +35,26 @@ Widget buildMarkdown(
       focusNode: focusNode,
       selectionControls: materialTextSelectionHandleControls,
       child: MarkdownWidget(
-          data: data,
-          shrinkWrap: true,
-          selectable: false,
-          config: config.copy(configs: [
+        data: data,
+        shrinkWrap: true,
+        selectable: false,
+        markdownGenerator: MarkdownGenerator(generators: [
+          SpanNodeGeneratorWithTag(
+            generator: (e, config, visitor) {
+              return EmCustomNode();
+            },
+            tag: MarkdownTag.em.name,
+          )
+        ]),
+        config: config.copy(
+          configs: [
             PConfig(textStyle: TextStyle(fontSize: textSize ?? 16)),
             isDark
                 ? PreConfig.darkConfig.copy(
-                    styleNotMatched: TextStyle(fontSize: textSize),
-                    theme: _a11yDarkTheme(textSize),
+                    styleNotMatched: TextStyle(
+                        fontSize: textSize,
+                        color: Colors.amber,
+                        backgroundColor: Colors.black),
                     wrapper: (child, code, lang) => CodeWrapperWidget(
                       content: code,
                       language: lang,
@@ -56,15 +76,14 @@ Widget buildMarkdown(
                   )
                 : const PreConfig().copy(
                     styleNotMatched: TextStyle(fontSize: textSize),
-                    theme: _a11yDarkTheme(textSize),
                     wrapper: (child, code, lang) => CodeWrapperWidget(
                       content: code,
                       language: lang,
                       preConfig: PreConfig.darkConfig,
                       style: TextStyle(fontSize: textSize),
                       contextMenuBuilder: contextMenuBuilder,
-                      focusNode: FocusNode(),                    
-                      ),
+                      focusNode: FocusNode(),
+                    ),
                     language: language,
                     margin: const EdgeInsets.all(0),
                     textStyle: PreConfig.darkConfig.textStyle.copyWith(
@@ -78,49 +97,9 @@ Widget buildMarkdown(
                       ),
                     ),
                   )
-          ])),
+          ],
+        ),
+      ),
     ),
   );
 }
-
-_a11yDarkTheme(double? fontSize) => {
-      'comment': TextStyle(color: const Color(0xffd4d0ab), fontSize: fontSize),
-      'quote': TextStyle(color: const Color(0xffd4d0ab), fontSize: fontSize),
-      'variable': TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'template-variable':
-          TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'tag': TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'name': TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'selector-id':
-          TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'selector-class':
-          TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'regexp': TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'deletion': TextStyle(color: const Color(0xffffa07a), fontSize: fontSize),
-      'number': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'built_in': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'builtin-name':
-          TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'literal': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'type': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'params': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'meta': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'link': TextStyle(color: const Color(0xfff5ab35), fontSize: fontSize),
-      'attribute':
-          TextStyle(color: const Color(0xffffd700), fontSize: fontSize),
-      'string': TextStyle(color: const Color(0xffabe338), fontSize: fontSize),
-      'symbol': TextStyle(color: const Color(0xffabe338), fontSize: fontSize),
-      'bullet': TextStyle(color: const Color(0xffabe338), fontSize: fontSize),
-      'addition': TextStyle(color: const Color(0xffabe338), fontSize: fontSize),
-      'title': TextStyle(color: const Color(0xff00e0e0), fontSize: fontSize),
-      'section': TextStyle(color: const Color(0xff00e0e0), fontSize: fontSize),
-      'keyword': TextStyle(color: const Color(0xffdcc6e0), fontSize: fontSize),
-      'selector-tag':
-          TextStyle(color: const Color(0xffdcc6e0), fontSize: fontSize),
-      'root': TextStyle(
-          backgroundColor: const Color(0xff2b2b2b),
-          color: const Color(0xfff8f8f2),
-          fontSize: fontSize),
-      'emphasis': TextStyle(fontStyle: FontStyle.italic, fontSize: fontSize),
-      'strong': TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize),
-    };

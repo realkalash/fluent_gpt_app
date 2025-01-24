@@ -2190,7 +2190,7 @@ class ChatProvider with ChangeNotifier {
           deleteMessage(previousItemInRevList.id, false);
         }
       }
-      if (currentElementToDelete.type == FluentChatMessageType.textHuman) {
+      if (currentElementToDelete.type == FluentChatMessageType.textHuman && !isLastMessage) {
         //Just to confirm that the next message is AI message
         if (nextItemInRevList != null &&
             nextItemInRevList.type == FluentChatMessageType.textAi) {
