@@ -21,7 +21,6 @@ import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
-import 'package:fluent_gpt/widgets/hover_tooltip.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
@@ -683,6 +682,16 @@ class _MessageCardState extends State<MessageCard> {
     final Debouncer debouncer = Debouncer(milliseconds: 500);
     final provider = context.read<ChatProvider>();
     final textStyle = DefaultTextStyle.of(context).style;
+    bool canRegenerate = false;
+    final isLastMessage = messagesReversedList.first == message;
+    if (isLastMessage) {
+      canRegenerate = true;
+      final previousMessage =
+          messagesReversedList.length > 1 ? messagesReversedList[1] : null;
+      if (previousMessage?.type == FluentChatMessageType.textAi || message.type == FluentChatMessageType.textAi) {
+        canRegenerate = false;
+      }
+    }
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
@@ -750,38 +759,39 @@ class _MessageCardState extends State<MessageCard> {
           ),
         ),
         actions: [
-          FilledButton(
-              onPressed: () {
-                final provider = context.read<ChatProvider>();
-                final newMessage = message.copyWith(
-                  creator: characterName.text,
-                  content: contentController.text,
-                );
-                final indexInReversedList =
-                    messagesReversedList.indexOf(widget.message);
+          if (canRegenerate)
+            FilledButton(
+                onPressed: () {
+                  final provider = context.read<ChatProvider>();
+                  final newMessage = message.copyWith(
+                    creator: characterName.text,
+                    content: contentController.text,
+                  );
+                  final indexInReversedList =
+                      messagesReversedList.indexOf(widget.message);
 
-                provider
-                    .regenerateMessage(newMessage,
-                        indexInReversedList: indexInReversedList)
-                    .then((value) {
-                  provider.sortMessages();
-                });
-                Navigator.of(ctx).pop();
-              },
-              child: RichText(
-                text: TextSpan(
-                  text: 'Apply ',
-                  style: DefaultTextStyle.of(context).style,
-                  children: <TextSpan>[
-                    // TextSpan(
-                    //   text: '(ctrl+alt+enter)',
-                    //   style: TextStyle(
-                    //     color: textStyle.color?.withOpacity(0.5),
-                    //   ),
-                    // ),
-                  ],
-                ),
-              )),
+                  provider
+                      .regenerateMessage(newMessage,
+                          indexInReversedList: indexInReversedList)
+                      .then((value) {
+                    provider.sortMessages();
+                  });
+                  Navigator.of(ctx).pop();
+                },
+                child: RichText(
+                  text: TextSpan(
+                    text: 'Apply ',
+                    style: DefaultTextStyle.of(context).style,
+                    children: <TextSpan>[
+                      // TextSpan(
+                      //   text: '(ctrl+alt+enter)',
+                      //   style: TextStyle(
+                      //     color: textStyle.color?.withOpacity(0.5),
+                      //   ),
+                      // ),
+                    ],
+                  ),
+                )),
           Button(
             onPressed: () {
               final provider = context.read<ChatProvider>();
