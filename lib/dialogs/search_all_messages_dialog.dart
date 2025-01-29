@@ -31,7 +31,7 @@ class _SearchResult {
   final String chatRoomId;
   final String message;
 
-  _SearchResult(this.chatRoomName,this.chatRoomId, this.message);
+  _SearchResult(this.chatRoomName, this.chatRoomId, this.message);
 }
 
 class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
@@ -45,10 +45,10 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
     setState(() {});
     final path = await FileUtils.getChatRoomsPath();
     final chatRoomsFiles = FileUtils.getFilesRecursive(path);
-    final chatRooms = <String,ChatRoom>{};
+    final chatRooms = <String, ChatRoom>{};
     for (final file in chatRoomsFiles) {
       try {
-        await file.readAsString().then((text)  {
+        await file.readAsString().then((text) {
           final chatRoom = ChatRoom.fromJson(text);
           chatRooms[chatRoom.id] = chatRoom;
         });
@@ -68,14 +68,18 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
           // id is the key
           for (var messageJson in messagesRaw) {
             try {
-              final content = messageJson['message'] as Map<String, dynamic>;
-              final message = ChatRoom.chatMessageFromJson(content);
-              final contentAsString = message.contentAsString.toLowerCase();
-              if (contentAsString.contains(controller.text.toLowerCase())) {
-                results.add(_SearchResult(chatRoom?.chatRoomName ?? '-',chatRoom?.id ?? '-', contentAsString));
+              // final content = messageJson as Map<String, dynamic>;//['content'] as Map<String, dynamic>;
+              // final message = ChatRoom.chatMessageFromJson(content);
+              final contentAsString = messageJson['content'] as String? ?? '';
+              if (contentAsString
+                  .toLowerCase()
+                  .contains(controller.text.toLowerCase())) {
+                results.add(_SearchResult(chatRoom?.chatRoomName ?? '-',
+                    chatRoom?.id ?? '-', contentAsString));
               }
             } catch (e) {
-              logError('Error while loading message from disk: $e');
+              logError(
+                  'Error while loading message from disk: $e. file: ${file.path}');
             }
           }
         });
@@ -100,7 +104,6 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
             autofocus: true,
             placeholder: 'Search',
             autocorrect: true,
-            spellCheckConfiguration: SpellCheckConfiguration(),
             controller: controller,
             onSubmitted: (_) => _search(context),
           ),
@@ -115,7 +118,8 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
               itemBuilder: (context, index) {
                 final result = results[index];
                 return BasicListTile(
-                  title: Text(result.chatRoomName, style: context.theme.typography.subtitle),
+                  title: Text(result.chatRoomName,
+                      style: context.theme.typography.subtitle),
                   subtitle: Text(result.message),
                   margin: EdgeInsets.all(2),
                   onTap: () {
