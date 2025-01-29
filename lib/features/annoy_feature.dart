@@ -99,7 +99,7 @@ class AnnoyFeature {
       creator: selectedChatRoom.characterName,
     );
     final tokens = await chatProvider
-        .getTokensFromMessages([aiMessage.toLangChainChatMessage()]);
+        .countTokensFromMessages([aiMessage.toLangChainChatMessage()]);
     aiMessage = aiMessage.copyWith(tokens: tokens);
 
     chatProvider.addBotMessageToList(aiMessage);

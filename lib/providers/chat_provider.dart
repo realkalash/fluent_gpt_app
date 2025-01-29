@@ -1115,7 +1115,10 @@ class ChatProvider with ChangeNotifier {
 
       String functionCallString = '';
       String functionName = '';
+      String responseContent = '';
       int chunkNumber = 0;
+      int tokensReceivedInResponse = 0;
+      int tokensSentInResponse = 0;
 
       listenerResponseStream = responseStream!.listen(
         (final chunk) {
@@ -1132,6 +1135,7 @@ class ChatProvider with ChangeNotifier {
           // log tokens
           if (message.toolCalls.isEmpty && message.content.isNotEmpty) {
             responseId = chunk.id;
+            responseContent += message.content;
             final time = DateTime.now().millisecondsSinceEpoch;
             addBotMessageToList(
               FluentChatMessage.ai(
@@ -1154,6 +1158,8 @@ class ChatProvider with ChangeNotifier {
             totalTokens += chunk.usage.totalTokens ?? 0;
             totalSentTokens += chunk.usage.promptTokens ?? 0;
             totalReceivedTokens += chunk.usage.responseTokens ?? 0;
+            tokensReceivedInResponse += chunk.usage.responseTokens ?? 0;
+            tokensSentInResponse += chunk.usage.promptTokens ?? 0;
           }
           // print('function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
@@ -1184,8 +1190,21 @@ class ChatProvider with ChangeNotifier {
             isAnswering = false;
           }
         },
-        onDone: () {
+        onDone: () async {
           onFinishResponse?.call();
+          if (tokensReceivedInResponse == 0) {
+            log('No tokens received in response. Recalculate locally');
+            tokensReceivedInResponse = await countTokensString(responseContent);
+            totalTokens += tokensReceivedInResponse;
+            totalReceivedTokens += tokensReceivedInResponse;
+            totalReceivedForCurrentChat.add(totalReceivedTokens);
+          }
+          if (tokensSentInResponse == 0) {
+            tokensSentInResponse = await countTokensString(messageContent);
+            totalTokens += tokensSentInResponse;
+            totalSentTokens += tokensSentInResponse;
+            totalSentForCurrentChat.add(totalSentTokens);
+          }
         },
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
@@ -1311,23 +1330,6 @@ class ChatProvider with ChangeNotifier {
         }
       }
     }
-  }
-
-  Future<int> getTokensFromMessages(List<ChatMessage> messages) async {
-    int tokens = 0;
-    if (selectedChatRoom.model.ownedBy == 'openai') {
-      tokens = await openAI!.countTokens(PromptValue.chat(messages),
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-          ));
-    } else {
-      tokens = await openAI!.countTokens(PromptValue.chat(messages),
-          options: ChatOpenAIOptions(
-            // for all unknown models we assume it's gpt 3.5 turbo
-            model: 'gpt-3.5-turbo-16k-0613',
-          ));
-    }
-    return tokens;
   }
 
   /// Do not use it often because we don't know how many tokens it will consume
@@ -1497,12 +1499,21 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  Future<int> countTokensForMessagesString(List<ChatMessage> messages) async {
-    if (selectedModel.ownedBy == 'openai') {
-      return openAI!.countTokens(PromptValue.chat(messages));
+  Future<int> countTokensFromMessages(List<ChatMessage> messages) async {
+    int tokens = 0;
+    if (selectedChatRoom.model.ownedBy == 'openai') {
+      tokens = await openAI!.countTokens(PromptValue.chat(messages),
+          options: ChatOpenAIOptions(
+            model: selectedChatRoom.model.modelName,
+          ));
     } else {
-      return localModel!.countTokens(PromptValue.chat(messages));
+      tokens = await openAI!.countTokens(PromptValue.chat(messages),
+          options: ChatOpenAIOptions(
+            // for all unknown models we assume it's gpt 3.5 turbo
+            model: 'gpt-3.5-turbo-16k-0613',
+          ));
     }
+    return tokens;
   }
 
   /// Will not use chat history.
@@ -2091,7 +2102,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(newMessages);
   }
 
-  void stopAnswering() {
+  Future<void> stopAnswering() async {
     try {
       if (TextToSpeechService.isReadingAloud) {
         TextToSpeechService.stopReadingAloud();
@@ -2108,7 +2119,12 @@ class ChatProvider with ChangeNotifier {
     } finally {
       listenerResponseStream = null;
       isAnswering = false;
-      notifyListeners();
+      final lastMessage = messages.value.entries.last;
+      final tokens = await countTokensString(lastMessage.value.content);
+      totalTokens += tokens;
+      totalReceivedTokens += tokens;
+      totalReceivedForCurrentChat.add(totalReceivedTokens);
+      editMessage(lastMessage.value.id, lastMessage.value);
     }
   }
 
@@ -2190,7 +2206,8 @@ class ChatProvider with ChangeNotifier {
           deleteMessage(previousItemInRevList.id, false);
         }
       }
-      if (currentElementToDelete.type == FluentChatMessageType.textHuman && !isLastMessage) {
+      if (currentElementToDelete.type == FluentChatMessageType.textHuman &&
+          !isLastMessage) {
         //Just to confirm that the next message is AI message
         if (nextItemInRevList != null &&
             nextItemInRevList.type == FluentChatMessageType.textAi) {
@@ -2780,7 +2797,7 @@ class ChatProvider with ChangeNotifier {
     }
     // if tokens is still zero we need to calculate for each message
     if (_totalTokens == 0) {
-      _totalTokens = await getTokensFromMessages(
+      _totalTokens = await countTokensFromMessages(
         messagesReversedList.map((e) => e.toLangChainChatMessage()).toList(),
       );
     }

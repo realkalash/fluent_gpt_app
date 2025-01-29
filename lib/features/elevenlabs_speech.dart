@@ -26,7 +26,7 @@ class ElevenlabsSpeech {
 
   static String selectedVoiceName = 'Aria';
 
-  static String selectedModel = 'eleven_turbo_v2';
+  static String selectedModel = 'eleven_turbo_v2_5';
   static final modelsMap = {
     'eleven_monolingual_v1':
         "very first model, English v1, set the foundation for what's to come. This model was created specifically for English and is the smallest and fastest model we offer. Trained on a focused, English-only dataset, it quickly became the go-to choice for English-based tasks. As our oldest model, it has undergone extensive optimization to ensure reliable performance but it is also the most limited and generally the least accurate",
@@ -58,7 +58,7 @@ class ElevenlabsSpeech {
     selectedVoiceName = AppCache.elevenlabsVoiceModelName.value!;
     selectedModel = AppCache.elevenlabsModel.value ?? selectedModel;
     if (selectedModel.isEmpty) {
-      selectedModel = 'eleven_turbo_v2';
+      selectedModel = 'eleven_turbo_v2_5';
     }
   }
 
@@ -89,7 +89,7 @@ class ElevenlabsSpeech {
       return;
     }
     final fileName =
-        (AppCache.elevenlabsVoiceModel.value ?? '') + text.hashCode.toString();
+        (AppCache.elevenlabsVoiceModelName.value ?? '') + text.hashCode.toString();
     final audioPath = (FileUtils.temporaryAudioDirectoryPath ?? '') + fileName;
     final file = File(audioPath);
     try {
@@ -124,9 +124,9 @@ class ElevenlabsSpeech {
     final json = requestObj.toJson();
     /* 
     not working:
-    Request elevenlabs: {voice_id: eleven_turbo_v2_5, model_id: eleven_turbo_v2, text: Hey Alex, are you still up for some late-night chatting, or did you get lost in another anime episode? 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
+    Request elevenlabs: {voice_id: eleven_turbo_v2_5, model_id: eleven_turbo_v2, text: Hey User, are you still up for some late-night chatting 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
     working
-    Request elevenlabs: {voice_id: eVItLK1UvXctxuaRV2Oq, model_id: eleven_turbo_v2, text: Hey Alex, are you still up for some late-night chatting, or did you get lost in another anime episode? 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
+    Request elevenlabs: {voice_id: eVItLK1UvXctxuaRV2Oq, model_id: eleven_turbo_v2, text: Hey User, are you still up for some late-night chatting 🌙, voice_settings: {similarity_boost: 0.75, stability: 0.5}}
      */
     log('Request elevenlabs: $json');
     final result = await _elevenLabs!.synthesizeBytes(requestObj,
@@ -311,6 +311,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
                           onPressed: () {
                             ElevenlabsSpeech.selectedModel = voice.key;
                             AppCache.elevenlabsVoiceModelId.value = voice.key;
+                            AppCache.elevenlabsModel.value = voice.key;
                             setState(() {});
                           },
                         ),

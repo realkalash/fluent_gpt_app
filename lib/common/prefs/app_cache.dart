@@ -31,7 +31,6 @@ class AppCache {
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
   static const elevenlabsVoiceModelId =
       StringPref("elevenlabsVoiceModelId", '9BWtsMINqrJLrRacOk9x');
-  static const elevenlabsVoiceModel = StringPref("elevenlabsVoiceModel", '');
   static const autoScrollSpeed = DoublePref("autoScrollSpeed", 0.1);
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
   static const micrpohoneDeviceId = StringPref("micrpohoneDeviceId");
@@ -162,7 +161,6 @@ class AppCache {
     globalSystemPrompt,
     scrapOnlyDecription,
     autoScrollSpeed,
-    elevenlabsVoiceModel,
     elevenlabsVoiceModelId,
     elevenlabsModel,
     elevenlabsVoiceModelName,
