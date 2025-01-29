@@ -8,6 +8,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/common/stop_reason_enum.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/answer_with_tags_dialog.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
@@ -477,7 +478,7 @@ class _InputFieldState extends State<InputField> {
                             backgroundColor: WidgetStatePropertyAll(
                           context.theme.scaffoldBackgroundColor,
                         )),
-                        onPressed: () => chatProvider.stopAnswering(),
+                        onPressed: () => chatProvider.stopAnswering(StopReason.canceled),
                         icon: Icon(
                           ic.FluentIcons.stop_24_filled,
                           size: 24,

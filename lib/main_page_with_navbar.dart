@@ -363,11 +363,13 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(chatRoom.chatRoomName,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                )),
+                            Text(
+                              chatRoom.chatRoomName,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 4),
                             Divider(),
                             FlyoutListTile(

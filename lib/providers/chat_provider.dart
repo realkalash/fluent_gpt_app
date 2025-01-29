@@ -11,6 +11,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/common/stop_reason_enum.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
@@ -270,21 +271,23 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> saveToDisk(List<ChatRoom> rooms) async {
-    // ignore: no_leading_underscores_for_local_identifiers
-    final _chatRooms = rooms;
-    for (var chatRoom in _chatRooms) {
-      var chatRoomRaw = chatRoom.toJson();
-      final path = await FileUtils.getChatRoomsPath();
-      FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
-      // if it's current chat room, save messages
-      if (chatRoom.id == selectedChatRoomId) {
+    if (rooms.length == 1) {
+      if (rooms.first.id == selectedChatRoomId) {
+        // if it's current chat room, save messages
         final messagesRaw = <Map<String, dynamic>>[];
         for (var message in messages.value.entries) {
           /// add key and message.toJson
           messagesRaw.add(message.value.toJson());
         }
-        FileUtils.saveChatMessages(chatRoom.id, jsonEncode(messagesRaw));
+        await FileUtils.saveChatMessages(
+            rooms.first.id, jsonEncode(messagesRaw));
       }
+    }
+    for (var chatRoom in rooms) {
+      var chatRoomRaw = chatRoom.toJson();
+      final path = await FileUtils.getChatRoomsPath();
+      await FileUtils.saveFile(
+          '$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
     }
   }
 
@@ -1916,15 +1919,19 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> selectChatRoom(ChatRoom room) async {
-    stopAnswering();
+    stopAnswering(StopReason.switch_chat);
     selectedChatRoomId = room.id;
     initModelsApi();
 
     messages.add({});
+
+    await _loadMessagesFromDisk(room.id);
     totalTokens = (room.totalReceivedTokens ?? 0) + (room.totalSentTokens ?? 0);
     totalSentTokens = room.totalSentTokens ?? 0;
     totalReceivedTokens = room.totalReceivedTokens ?? 0;
-    await _loadMessagesFromDisk(room.id);
+    totalTokensForCurrentChat.add(totalTokens);
+    totalSentForCurrentChat.add(totalSentTokens);
+    totalReceivedForCurrentChat.add(totalReceivedTokens);
     AppCache.selectedChatRoomId.value = room.id;
     scrollToEnd();
   }
@@ -2102,7 +2109,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(newMessages);
   }
 
-  Future<void> stopAnswering() async {
+  Future<void> stopAnswering(StopReason stopReason) async {
     try {
       if (TextToSpeechService.isReadingAloud) {
         TextToSpeechService.stopReadingAloud();
@@ -2119,12 +2126,14 @@ class ChatProvider with ChangeNotifier {
     } finally {
       listenerResponseStream = null;
       isAnswering = false;
-      final lastMessage = messages.value.entries.last;
-      final tokens = await countTokensString(lastMessage.value.content);
-      totalTokens += tokens;
-      totalReceivedTokens += tokens;
-      totalReceivedForCurrentChat.add(totalReceivedTokens);
-      editMessage(lastMessage.value.id, lastMessage.value);
+      if (stopReason == StopReason.canceled) {
+        final lastMessage = messages.value.entries.last;
+        final tokens = await countTokensString(lastMessage.value.content);
+        totalTokens += tokens;
+        totalReceivedTokens += tokens;
+        totalReceivedForCurrentChat.add(totalReceivedTokens);
+        editMessage(lastMessage.value.id, lastMessage.value);
+      }
     }
   }
 
