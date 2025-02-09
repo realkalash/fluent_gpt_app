@@ -99,6 +99,39 @@ class ChatModelAi {
   }
 }
 
+class ChatModelProviderBase {
+  final String providerName;
+  final String apiUrl;
+
+  const ChatModelProviderBase(this.providerName, this.apiUrl);
+
+  // equals
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is ChatModelProviderBase &&
+        other.providerName == providerName &&
+        other.apiUrl == apiUrl;
+  }
+
+  @override
+  int get hashCode => providerName.hashCode ^ apiUrl.hashCode;
+
+  @override
+  String toString() =>
+      'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
+
+  static const List<ChatModelProviderBase> providersList = [
+    ChatModelProviderBase('OpenAI', 'https://api.openai.com/v1'),
+    ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1'),
+    ChatModelProviderBase('Deepinfra', 'https://api.deepinfra.com/v1/openai'),
+    // ChatModelProviderBase('Claude', 'https://api.openai.com/v1'),
+    // ChatModelProviderBase('Gemini', ''),
+    ChatModelProviderBase('Custom', 'http://localhost:1234/v1'),
+  ];
+}
+
 enum OwnedByEnum {
   openai,
   lm_studio,

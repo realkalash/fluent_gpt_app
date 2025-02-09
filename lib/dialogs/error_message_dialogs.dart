@@ -49,7 +49,7 @@ class MultimodalNotSupportedDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return ContentDialog(
       content: const Text(
-          'Multimodal is not supported for model. Please use different model.'),
+          'Multimodal is not supported for model. Please use different model or disable "Support images" checkbox for this model'),
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),

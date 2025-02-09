@@ -7,6 +7,7 @@ import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -98,9 +99,11 @@ class FileUtils {
 
   static Future<void> init() async {
     separatior = Platform.pathSeparator;
-    documentDirectoryPath = AppCache.appDocumentsDirectory.value!.isNotEmpty
-        ? AppCache.appDocumentsDirectory.value
-        : (await getApplicationDocumentsDirectory()).path;
+    documentDirectoryPath = kDebugMode
+        ? await getDebugAppDirectory()
+        : AppCache.appDocumentsDirectory.value!.isNotEmpty
+            ? AppCache.appDocumentsDirectory.value
+            : (await getApplicationDocumentsDirectory()).path;
     imageDirectoryPath =
         '$documentDirectoryPath${separatior}fluent_gpt${separatior}generated_images';
 
@@ -115,6 +118,10 @@ class FileUtils {
     log('temporaryDirectoryPath: $temporaryDirectoryPath');
     log('temporaryAudioDirectoryPath: $temporaryAudioDirectoryPath');
     log('externalToolsPath: $externalToolsPath');
+  }
+
+  static Future<String> getDebugAppDirectory() async {
+    return ('${(await getApplicationDocumentsDirectory()).path}${separatior!}debug');
   }
 
   static Future _createTestFileInDir(Future<Directory?> dirFuture) async {

@@ -113,6 +113,8 @@ class AppCache {
   /* Tools enabled/disabled */
   static const gptToolCopyToClipboardEnabled =
       BoolPref("copyToClipboardEnabled", true);
+  static const gptToolAutoOpenUrls = BoolPref("gptToolAutoOpenUrls", true);
+  static const gptToolGenerateImage = BoolPref("gptToolGenerateImage", true);
   static const useAiToNameChat =
       BoolPref("useSecondRequestForNamingChats", false);
   static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);

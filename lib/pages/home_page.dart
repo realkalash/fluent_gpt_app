@@ -1780,9 +1780,11 @@ List<String> getCodeFromMarkdown(String assistantContent) {
 
   final regexList = [
     shellCommandRegex,
+    runShellRegex,
     pythonCommandRegex,
-    everythingSearchCommandRegex,
+    // everythingSearchCommandRegex,
     copyToCliboardRegex,
+    openUrlRegex,
   ];
 
   for (final regex in regexList) {
@@ -1818,7 +1820,7 @@ class RunCodeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSupported = language == 'shell' || language == 'python';
+    final isSupported = language == 'shell' || language == 'python' || language == 'run-shell';
     if (!isSupported) {
       return const SizedBox.shrink();
     }

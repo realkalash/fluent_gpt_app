@@ -1044,6 +1044,12 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
   bool obscureOpenAiText = true;
   @override
   Widget build(BuildContext context) {
+    final allValues = [
+      AppCache.gptToolCopyToClipboardEnabled.value!,
+      AppCache.gptToolAutoOpenUrls.value!,
+      AppCache.gptToolGenerateImage.value!,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1052,7 +1058,26 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
         Wrap(
           spacing: 15.0,
           children: [
+            Button(
+              onPressed: () {
+                bool allChecked = true;
+                for (var value in allValues) {
+                  if (value == false) {
+                    allChecked = false;
+                    break;
+                  }
+                }
+                setState(() {
+                  AppCache.gptToolCopyToClipboardEnabled.value = !allChecked;
+                  AppCache.gptToolAutoOpenUrls.value = !allChecked;
+                  AppCache.gptToolGenerateImage.value = !allChecked;
+                });
+              },
+              child: const Text('Toggle All'),
+            ),
             CheckBoxTile(
+              key: Key(
+                  'gptToolCopyToClipboardEnabled ${AppCache.gptToolCopyToClipboardEnabled.value}'),
               isChecked: AppCache.gptToolCopyToClipboardEnabled.value!,
               onChanged: (value) {
                 setState(() {
@@ -1060,6 +1085,27 @@ class _EnabledGptToolsState extends State<EnabledGptTools> {
                 });
               },
               child: const Text('Auto copy to clipboard'),
+            ),
+            CheckBoxTile(
+              key: Key('autoOpenUrls ${AppCache.gptToolAutoOpenUrls.value}'),
+              isChecked: AppCache.gptToolAutoOpenUrls.value!,
+              onChanged: (value) {
+                setState(() {
+                  AppCache.gptToolAutoOpenUrls.value = value;
+                });
+              },
+              child: const Text('Auto open url'),
+            ),
+            CheckBoxTile(
+              key: Key(
+                  'gptToolGenerateImage ${AppCache.gptToolGenerateImage.value}'),
+              isChecked: AppCache.gptToolGenerateImage.value!,
+              onChanged: (value) {
+                setState(() {
+                  AppCache.gptToolGenerateImage.value = value;
+                });
+              },
+              child: const Text('Generate images'),
             ),
             biggerSpacer,
           ],

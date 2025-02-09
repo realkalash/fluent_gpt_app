@@ -20,7 +20,7 @@ const getCurrentWeatherFunction = {
     }
   }
 };
-
+@Deprecated('Not used anymore')
 const searchFilesFunction = {
   "type": "function",
   "function": {
@@ -95,4 +95,33 @@ const copyToClipboardFunctionParameters = {
     }
   },
   "required": ["clipboard", "responseMessage"]
+};
+const autoOpenUrlParameters = {
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "description":
+          "A valid URI with a scheme (e.g., https, tel, whatsapp, mailto, sms, geo)"
+    },
+    "responseMessage": {
+      "type": "string",
+      "description": "Short response summary message from chatGPT"
+    }
+  },
+  "required": ["url", "responseMessage"]
+};
+const generateImageParameters = {
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "A detailed description of the image to generate."
+    },
+    "responseMessage": {
+      "type": "string",
+      "description": "Your short response summary message"
+    }
+  },
+  "required": ["prompt"]
 };

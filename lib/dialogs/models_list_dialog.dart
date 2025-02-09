@@ -236,45 +236,36 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               ),
               title: Text(ownedBy.isEmpty ? 'Select' : ownedBy),
               items: [
-                for (final item in OwnedByEnum.values)
+                for (final item in ChatModelProviderBase.providersList)
                   MenuFlyoutItem(
-                    text: Text(item.name),
+                    text: Text(item.providerName),
                     trailing: SizedBox.square(
                       dimension: 20,
-                      child: ChatModelAi(modelName: '', ownedBy: item.name)
-                          .modelIcon,
+                      child:
+                          ChatModelAi(modelName: '', ownedBy: item.providerName)
+                              .modelIcon,
                     ),
-                    selected: ownedBy == item.name,
+                    selected: ownedBy == item.providerName,
                     onPressed: () async {
-                      if (item == OwnedByEnum.openai) {
-                        model = model.copyWith(
-                          uri: 'https://api.openai.com/v1',
-                          ownedBy: item.name,
-                        );
-                        autoSuggestController.text = openAiModels.first;
-                      } else if (item == OwnedByEnum.lm_studio ||
-                          item == OwnedByEnum.custom) {
-                        modelUriController.text = '';
-                        autoSuggestController.text = '';
-                        await retrieveModelsFromPath(
-                            'http://localhost:1234/v1');
-                        if (autosuggestAdditionalItems.length == 1) {
-                          autoSuggestController.text =
-                              autosuggestAdditionalItems.first;
-                        } else {
+                      modelUriController.text = item.apiUrl;
+                      model = model.copyWith(
+                        ownedBy: item.providerName,
+                        uri: item.apiUrl,
+                      );
+
+                      autoSuggestController.clear();
+                      await retrieveModelsFromPath(item.apiUrl);
+                      await retrieveModelsFromPath(item.apiUrl);
+                      setState(() {});
+                      if (autosuggestAdditionalItems.length == 1) {
+                        autoSuggestController.text =
+                            autosuggestAdditionalItems.first;
+                      } else {
+                        if (autosuggestAdditionalItems.isNotEmpty) {
                           autoSuggestOverlayController.currentState!
                               .showOverlay();
                         }
-                        modelUriController.text = 'http://localhost:1234/v1';
-                        model = model.copyWith(
-                          ownedBy: item.name,
-                          uri: 'http://localhost:1234/v1',
-                        );
-                      } else {
-                        model = model.copyWith(ownedBy: item.name);
                       }
-
-                      setState(() {});
                     },
                   )
               ],

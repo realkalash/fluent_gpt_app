@@ -1128,16 +1128,30 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
             bottom: 16,
             child: AnimatedContainer(
               duration: Duration(milliseconds: 400),
-              height: isDescriptionVisible ? null : 48,
-              width: isDescriptionVisible ? 200 : 48,
+              height: isDescriptionVisible ? 200 : 48,
+              width: isDescriptionVisible ? MediaQuery.sizeOf(context).width - 300 : 48,
               decoration: BoxDecoration(
                 color: context.theme.cardColor,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [],
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isDescriptionVisible)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: SelectableText(
+                        widget.description!,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

@@ -43,6 +43,23 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.language == 'func') {
+      return ExpansionTile(
+        title: Text('function'),
+        leading: Icon(Icons.code_rounded),
+        dense: true,
+        minTileHeight: 10,
+        showTrailingIcon: false,
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        visualDensity: VisualDensity.compact,
+        tilePadding: const EdgeInsets.all(0),
+        childrenPadding: const EdgeInsets.all(0),
+        expandedAlignment: Alignment.centerLeft,
+        children: [
+          Text(widget.content),
+        ],
+      );
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final splitContents = widget.content.split(RegExp(r'(\r?\n)|(\r?\t)|(\r)'));
     if (splitContents.last.isEmpty) splitContents.removeLast();
@@ -107,9 +124,11 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             fluent.Tooltip(
-              message: 'Run python code (only for python!)',
+              message: 'Run python/shell code (only for python and shell commands!)',
               child: RunCodeButton(
-                  code: widget.content, language: widget.language),
+                code: widget.content,
+                language: widget.language,
+              ),
             ),
             MouseRegion(
               cursor: SystemMouseCursors.click,

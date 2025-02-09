@@ -552,24 +552,42 @@ class ChatProvider with ChangeNotifier {
         final openAiModel = allModels.value
             .firstWhereOrNull((element) => element.ownedBy == 'openai');
         if (openAiModel == null) {
+          displayErrorInfoBar(
+            title: 'OpenAI model not found',
+            message: 'Please add at least one OpenAI model to use this feature',
+          );
           throw Exception(
               'OpenAI model not found. Please add at least one OpenAI model to use this feature');
         }
-        final imageChatMessage = await DalleApiGenerator.generateImage(
-          prompt: imagePrompt,
-          model: 'dall-e-3',
-          apiKey: openAiModel.apiKey,
-        );
-        final newTimestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage.imageAi(
-            id: '$newTimestamp',
-            content: imageChatMessage.content,
-            creator: imageChatMessage.generatedBy,
-            timestamp: newTimestamp,
-            imagePrompt: imageChatMessage.revisedPrompt,
-          ),
-        );
+        try {
+          final imageChatMessage = await DalleApiGenerator.generateImage(
+            prompt: imagePrompt,
+            model: 'dall-e-3',
+            apiKey: openAiModel.apiKey,
+          );
+          final newTimestamp = DateTime.now().millisecondsSinceEpoch;
+          addCustomMessageToList(
+            FluentChatMessage.imageAi(
+              id: '$newTimestamp',
+              content: imageChatMessage.content,
+              creator: imageChatMessage.generatedBy,
+              timestamp: newTimestamp,
+              imagePrompt: imageChatMessage.revisedPrompt,
+            ),
+          );
+        } catch (e) {
+          logError('error generating image $e');
+          final time = DateTime.now().millisecondsSinceEpoch;
+          addBotErrorMessageToList(
+            FluentChatMessage.ai(
+              id: '$time',
+              content: '$e',
+              timestamp: time,
+              creator: 'openai error',
+            ),
+          );
+        }
+
         isGeneratingImage = false;
         notifyListeners();
         // wait because the screen will update their size first
@@ -1067,6 +1085,18 @@ class ChatProvider with ChangeNotifier {
                   description: 'Tool to copy text to users clipboard',
                   inputJsonSchema: copyToClipboardFunctionParameters,
                 ),
+              if (AppCache.gptToolAutoOpenUrls.value!)
+                ToolSpec(
+                  name: 'auto_open_urls_tool',
+                  description: 'Tool to open urls in the browser',
+                  inputJsonSchema: autoOpenUrlParameters,
+                ),
+              if (AppCache.gptToolGenerateImage.value!)
+                ToolSpec(
+                  name: 'generate_image_tool',
+                  description: 'Tool to generate image',
+                  inputJsonSchema: generateImageParameters,
+                ),
             ]
           : null,
     );
@@ -1203,6 +1233,18 @@ class ChatProvider with ChangeNotifier {
             totalReceivedForCurrentChat.add(totalReceivedTokens);
           }
           if (tokensSentInResponse == 0) {
+            if (responseContent.isEmpty) {
+              final time = DateTime.now().millisecondsSinceEpoch;
+              addBotErrorMessageToList(
+                FluentChatMessage.ai(
+                  id: time.toString(),
+                  content: 'Empty response. Try disabling tools',
+                  creator: 'error',
+                  timestamp: time,
+                ),
+              );
+              return;
+            }
             tokensSentInResponse = await countTokensString(messageContent);
             totalTokens += tokensSentInResponse;
             totalSentTokens += tokensSentInResponse;
@@ -1312,7 +1354,7 @@ class ChatProvider with ChangeNotifier {
               await convertMessagesToString(lastFewMessages);
           await generateUserKnowladgeBasedOnText(lastMessagesAsString);
         } else if (action.actionEnum == OnMessageActionEnum.generateImage) {
-          _onResponseEndGenerateImage(response.content, response, action);
+          _onResponseEndGenerateImage(response, action);
         } else if (action.actionEnum == OnMessageActionEnum.openUrl) {
           await launchUrlString(match!.group(1)!);
         } else if (action.actionEnum == OnMessageActionEnum.runShellCommand) {
@@ -1498,7 +1540,7 @@ class ChatProvider with ChangeNotifier {
     if (selectedModel.ownedBy == 'openai') {
       return openAI!.countTokens(PromptValue.string(text));
     } else {
-      return localModel!.countTokens(PromptValue.string(text));
+      return (localModel ?? openAI)!.countTokens(PromptValue.string(text));
     }
   }
 
@@ -1787,6 +1829,69 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.ai(
             id: newId, content: "```Clipboard\n$textToCopy\n```\n$text"),
       );
+    } else if (toolName == 'auto_open_urls_tool' &&
+        AppCache.gptToolAutoOpenUrls.value!) {
+      final url = toolArgs['url'];
+      final text = toolArgs['responseMessage'];
+      final appendedText = text + '\n```func\n$url\n```';
+      final time = DateTime.now().millisecondsSinceEpoch;
+      addBotMessageToList(
+        FluentChatMessage.ai(
+          id: time.toString(),
+          content: appendedText,
+          timestamp: time,
+          creator: selectedChatRoom.characterName,
+          tokens: await countTokensString(appendedText),
+        ),
+      );
+      // User need time to read XD
+      await Future.delayed(const Duration(milliseconds: 1500));
+      if (await canLaunchUrlString(url)) await launchUrlString(url);
+    } else if (toolName == 'generate_image_tool' &&
+        AppCache.gptToolGenerateImage.value!) {
+      final String prompt = toolArgs['prompt'];
+      final String? responseMessage = toolArgs['responseMessage'];
+      final appendedText = '\n```func\n$prompt\n```';
+      final time = DateTime.now().millisecondsSinceEpoch;
+      final botPromptMessage = FluentChatMessage.ai(
+        id: time.toString(),
+        content: prompt,
+        timestamp: time,
+        creator: selectedChatRoom.characterName,
+      );
+
+      await _onResponseEndGenerateImage(
+        botPromptMessage,
+        OnMessageAction(
+          actionName: 'generate_image_tool',
+          isEnabled: true,
+          regExp: RegExp(''),
+          actionEnum: OnMessageActionEnum.generateImage,
+        ),
+      );
+      if (responseMessage != null) {
+        final newTime = DateTime.now().millisecondsSinceEpoch;
+        final botResponse = FluentChatMessage.ai(
+          id: newTime.toString(),
+          // safety mechanism to prevent generating an image from the response message
+          content: appendedText.replaceAll('```image', ''),
+          timestamp: newTime,
+          creator: selectedChatRoom.characterName,
+        );
+        addBotMessageToList(botResponse);
+      }
+    } else {
+      logError('Unknown tool: $toolName');
+      final time = DateTime.now().millisecondsSinceEpoch;
+      final id = time.toString();
+      addBotErrorMessageToList(
+        FluentChatMessage.ai(
+          id: id,
+          content: 'Unknown tool: $toolName.\n```json\n$toolArgs\n```',
+          timestamp: time,
+          creator: 'error',
+        ),
+      );
     }
     // if (toolName == 'search_files') {
     //   final fileName = '${toolArgs['filename']}';
@@ -1866,7 +1971,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> createNewChatRoom() async {
-    if (messages.value.isEmpty) return;
+    // if (messages.value.isEmpty) return;
     if (AppCache.learnAboutUserAfterCreateNewChat.value!) {
       generateUserKnowladgeBasedOnConversation();
     }
@@ -2534,31 +2639,31 @@ class ChatProvider with ChangeNotifier {
     // dont save chat right now because it will override messages in the file with empty list
   }
 
-  Future<void> _onResponseEndGenerateImage(String content,
+  Future<void> _onResponseEndGenerateImage(
       FluentChatMessage response, OnMessageAction action) async {
-    final promptMessage = messages.value.entries.last.value.copyWith();
-    // deleteMessage(messagesReversedList.first.id);
-    final prompt = response.content.replaceAll(action.regExp, '');
-
-    final openAiModel = allModels.value.firstWhereOrNull(
-      (element) => element.ownedBy == 'openai' && element.apiKey.isNotEmpty,
-    );
-    if (openAiModel == null) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addBotErrorMessageToList(
-        FluentChatMessage.ai(
-          id: timestamp.toString(),
-          content:
-              'OpenAI model with valid API token not found. Please add at least one openai model with API key.',
-          creator: 'error',
-          timestamp: timestamp,
-        ),
-      );
-      return;
-    }
-    isGeneratingImage = true;
-    notifyListeners();
     try {
+      final promptMessage = messages.value.entries.last.value.copyWith();
+      // deleteMessage(messagesReversedList.first.id);
+      final prompt = response.content.replaceAll(action.regExp, '');
+
+      final openAiModel = allModels.value.firstWhereOrNull(
+        (element) => element.ownedBy == 'openai' && element.apiKey.isNotEmpty,
+      );
+      if (openAiModel == null) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addBotErrorMessageToList(
+          FluentChatMessage.ai(
+            id: timestamp.toString(),
+            content:
+                'OpenAI model with valid API token not found. Please add at least one openai model with API key.',
+            creator: 'error',
+            timestamp: timestamp,
+          ),
+        );
+        return;
+      }
+      isGeneratingImage = true;
+      notifyListeners();
       final imageChatMessage = await DalleApiGenerator.generateImage(
         prompt: prompt,
         apiKey: openAiModel.apiKey,

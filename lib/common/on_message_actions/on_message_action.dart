@@ -19,16 +19,16 @@ final List<OnMessageAction> defaultCustomActionsList = [
   ),
   OnMessageAction(
     actionName: 'Generate image when contains quotes',
-    regExp: RegExp(r"image:(.*?)", caseSensitive: false),
+    regExp: RegExp(r"```image\n(.*?)\n```", caseSensitive: false),
     actionEnum: OnMessageActionEnum.generateImage,
     isEnabled: true,
   ),
-  OnMessageAction(
-    actionName: 'Remember things',
-    regExp: RegExp(r"remember:(.*?)", caseSensitive: false),
-    actionEnum: OnMessageActionEnum.remember,
-    isEnabled: true,
-  ),
+  // OnMessageAction(
+  //   actionName: 'Remember things',
+  //   regExp: RegExp(r"```remember:(.*?)\n```", caseSensitive: false),
+  //   actionEnum: OnMessageActionEnum.remember,
+  //   isEnabled: true,
+  // ),
 ];
 
 class OnMessageAction {
