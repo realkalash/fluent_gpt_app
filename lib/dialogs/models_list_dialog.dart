@@ -242,14 +242,14 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
                     trailing: SizedBox.square(
                       dimension: 20,
                       child:
-                          ChatModelAi(modelName: '', ownedBy: item.providerName)
+                          ChatModelAi(modelName: '', ownedBy: item.ownedBy.name)
                               .modelIcon,
                     ),
                     selected: ownedBy == item.providerName,
                     onPressed: () async {
                       modelUriController.text = item.apiUrl;
                       model = model.copyWith(
-                        ownedBy: item.providerName,
+                        ownedBy: item.ownedBy.name,
                         uri: item.apiUrl,
                       );
 

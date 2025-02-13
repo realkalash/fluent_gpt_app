@@ -359,7 +359,8 @@ class PageHeaderText extends StatelessWidget {
             children: [
               Tooltip(
                 message:
-                    'When you send a message, the app will use the system message along with your prompt. The answer also generates tokens. The sum of all these will be this value. This value may differ from your own calculations because some additional information can be sent with each of your prompts',
+                    'When you send a message, the app will use the system message along with your prompt. This value may differ from your own calculations because some additional information can be sent with each of your prompts.\nTotal is the total tokens that exists in current chat\nSent is the total tokens that you have sent\nReceived is the total tokens that you have received',
+                style: TooltipThemeData(maxWidth: 400),
                 child: HyperlinkButton(
                   style: ButtonStyle(
                     padding: WidgetStateProperty.all(EdgeInsets.zero),
@@ -368,14 +369,17 @@ class PageHeaderText extends StatelessWidget {
                   child: Row(
                     children: [
                       StreamBuilder<int>(
-                          stream: chatProvider.totalTokensForCurrentChat,
+                          stream:
+                              // ignore: deprecated_member_use_from_same_package
+                              chatProvider.totalTokensForCurrentChatByMessages,
                           builder: (context, snapshot) {
                             return Text(
-                              'Tokens total: ${(chatProvider.totalTokens)} ',
+                              'Tokens total: ${(chatProvider.totalTokensByMessages)} ',
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
                       StreamBuilder<int>(
+                          // ignore: deprecated_member_use_from_same_package
                           stream: chatProvider.totalSentForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
@@ -492,10 +496,13 @@ class PageHeaderText extends StatelessWidget {
 
   void showCostCalculatorDialog(BuildContext context) {
     final provider = context.read<ChatProvider>();
-    final tokens = provider.totalTokensForCurrentChat.value;
+
     showDialog(
       context: context,
-      builder: (context) => CostDialog(tokens: tokens),
+      builder: (context) => CostDialog(
+        sentTokens: provider.totalSentTokens,
+        receivedTokens: provider.totalReceivedTokens,
+      ),
     );
   }
 }
@@ -1820,7 +1827,8 @@ class RunCodeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSupported = language == 'shell' || language == 'python' || language == 'run-shell';
+    final isSupported =
+        language == 'shell' || language == 'python' || language == 'run-shell';
     if (!isSupported) {
       return const SizedBox.shrink();
     }

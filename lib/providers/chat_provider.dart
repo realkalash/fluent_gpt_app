@@ -1188,7 +1188,6 @@ class ChatProvider with ChangeNotifier {
           }
           if (chunk.usage.totalTokens != null) {
             log('Total tokens: ${chunk.usage.toString()}');
-            totalTokens += chunk.usage.totalTokens ?? 0;
             totalSentTokens += chunk.usage.promptTokens ?? 0;
             totalReceivedTokens += chunk.usage.responseTokens ?? 0;
             tokensReceivedInResponse += chunk.usage.responseTokens ?? 0;
@@ -1228,9 +1227,8 @@ class ChatProvider with ChangeNotifier {
           if (tokensReceivedInResponse == 0) {
             log('No tokens received in response. Recalculate locally');
             tokensReceivedInResponse = await countTokensString(responseContent);
-            totalTokens += tokensReceivedInResponse;
+            totalTokensByMessages += tokensReceivedInResponse;
             totalReceivedTokens += tokensReceivedInResponse;
-            totalReceivedForCurrentChat.add(totalReceivedTokens);
           }
           if (tokensSentInResponse == 0) {
             if (responseContent.isEmpty) {
@@ -1245,11 +1243,17 @@ class ChatProvider with ChangeNotifier {
               );
               return;
             }
-            tokensSentInResponse = await countTokensString(messageContent);
-            totalTokens += tokensSentInResponse;
-            totalSentTokens += tokensSentInResponse;
-            totalSentForCurrentChat.add(totalSentTokens);
+            // tokensSentInResponse = await countTokensString(messageContent);
+            // totalSentTokens += tokensSentInResponse;
           }
+          totalTokensByMessages = await countTokensFromMessagesCached([
+            if (selectedChatRoom.systemMessage != null)
+              FluentChatMessage.system(
+                id: '-1',
+                content: selectedChatRoom.systemMessage!,
+              ),
+            ...messages.value.values
+          ]);
         },
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
@@ -1537,10 +1541,12 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<int> countTokensString(String text) async {
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
     if (selectedModel.ownedBy == 'openai') {
-      return openAI!.countTokens(PromptValue.string(text));
+      return openAI!.countTokens(PromptValue.string(text), options: options);
     } else {
-      return (localModel ?? openAI)!.countTokens(PromptValue.string(text));
+      return (localModel ?? openAI)!
+          .countTokens(PromptValue.string(text), options: options);
     }
   }
 
@@ -1557,6 +1563,27 @@ class ChatProvider with ChangeNotifier {
             // for all unknown models we assume it's gpt 3.5 turbo
             model: 'gpt-3.5-turbo-16k-0613',
           ));
+    }
+    return tokens;
+  }
+
+  /// will calculate tokens for messages using cached tokens in each message.
+  ///
+  /// If the message has tokens, it will use them. Otherwise, it will use Future to calculate the tokens for the message.
+  Future<int> countTokensFromMessagesCached(
+      Iterable<FluentChatMessage> messages) async {
+    int tokens = 0;
+    for (int i = 0; i < messages.length; i++) {
+      var message = messages.elementAt(i);
+      if (message.tokens > 0) {
+        tokens += message.tokens;
+      } else {
+        if (message.type == FluentChatMessageType.textAi ||
+            message.type == FluentChatMessageType.textHuman ||
+            message.type == FluentChatMessageType.system) {
+          tokens += await countTokensString(message.content);
+        }
+      }
     }
     return tokens;
   }
@@ -1628,12 +1655,19 @@ class ChatProvider with ChangeNotifier {
         await stream.forEach(
           (final chunk) {
             final message = chunk.output;
-            totalTokens += chunk.usage.totalTokens ?? 0;
             totalSentTokens += chunk.usage.promptTokens ?? 0;
             totalReceivedTokens += chunk.usage.responseTokens ?? 0;
             responseId = chunk.id;
+            // total is the overral tokens count in current chat. Not in the message
+            totalTokensByMessages += chunk.usage.responseTokens ?? 0;
             addBotMessageToList(
-                FluentChatMessage.ai(id: responseId, content: message.content));
+              FluentChatMessage.ai(
+                id: responseId,
+                content: message.content,
+                tokens: chunk.usage.responseTokens ?? 0,
+                creator: selectedChatRoom.characterName,
+              ),
+            );
             if (chunk.finishReason == FinishReason.stop) {
               saveToDisk([selectedChatRoom]);
             } else if (chunk.finishReason == FinishReason.length) {
@@ -1719,16 +1753,29 @@ class ChatProvider with ChangeNotifier {
     return response.content;
   }
 
-  BehaviorSubject<int> totalTokensForCurrentChat = BehaviorSubject.seeded(0);
-  set totalTokens(int value) => totalTokensForCurrentChat.add(value);
-  int get totalTokens => totalTokensForCurrentChat.value;
+  @Deprecated('Don not use it to set value. Only for StreamBuilder')
 
-  BehaviorSubject<int> totalSentForCurrentChat = BehaviorSubject.seeded(0);
+  /// Calculated by current messages in the chat.
+  final BehaviorSubject<int> totalTokensForCurrentChatByMessages =
+      BehaviorSubject.seeded(0);
+  set totalTokensByMessages(int value) =>
+      // ignore: deprecated_member_use_from_same_package
+      totalTokensForCurrentChatByMessages.add(value);
+
+  /// Calculated by current messages in the chat.
+  // ignore: deprecated_member_use_from_same_package
+  int get totalTokensByMessages => totalTokensForCurrentChatByMessages.value;
+
+  @Deprecated('Don not use it to set value. Only for StreamBuilder')
+  final BehaviorSubject<int> totalSentForCurrentChat =
+      BehaviorSubject.seeded(0);
   set totalSentTokens(int value) {
+    // ignore: deprecated_member_use_from_same_package
     totalSentForCurrentChat.add(value);
     selectedChatRoom.totalSentTokens = value;
   }
 
+  // ignore: deprecated_member_use_from_same_package
   int get totalSentTokens => totalSentForCurrentChat.value;
 
   BehaviorSubject<int> totalReceivedForCurrentChat = BehaviorSubject.seeded(0);
@@ -1997,7 +2044,7 @@ class ChatProvider with ChangeNotifier {
       totalReceivedTokens: 0,
       totalSentTokens: 0,
     );
-    totalTokens = 0;
+    totalTokensByMessages = 0;
     totalSentTokens = 0;
     totalReceivedTokens = 0;
     notifyListeners();
@@ -2031,13 +2078,21 @@ class ChatProvider with ChangeNotifier {
     messages.add({});
 
     await _loadMessagesFromDisk(room.id);
-    totalTokens = (room.totalReceivedTokens ?? 0) + (room.totalSentTokens ?? 0);
     totalSentTokens = room.totalSentTokens ?? 0;
     totalReceivedTokens = room.totalReceivedTokens ?? 0;
-    totalTokensForCurrentChat.add(totalTokens);
-    totalSentForCurrentChat.add(totalSentTokens);
     totalReceivedForCurrentChat.add(totalReceivedTokens);
     AppCache.selectedChatRoomId.value = room.id;
+    countTokensFromMessagesCached([
+      //add system message
+      if (room.systemMessage != null)
+        FluentChatMessage.system(
+          id: '-1',
+          content: room.systemMessage!,
+        ),
+      ...messages.value.values
+    ]).then((value) {
+      totalTokensByMessages = value;
+    });
     scrollToEnd();
   }
 
@@ -2234,7 +2289,7 @@ class ChatProvider with ChangeNotifier {
       if (stopReason == StopReason.canceled) {
         final lastMessage = messages.value.entries.last;
         final tokens = await countTokensString(lastMessage.value.content);
-        totalTokens += tokens;
+        totalTokensByMessages += tokens;
         totalReceivedTokens += tokens;
         totalReceivedForCurrentChat.add(totalReceivedTokens);
         editMessage(lastMessage.value.id, lastMessage.value);
@@ -2557,16 +2612,22 @@ class ChatProvider with ChangeNotifier {
   Future editMessage(String id, FluentChatMessage message) async {
     if (message.type == FluentChatMessageType.textHuman ||
         message.type == FluentChatMessageType.textAi) {
+      final lastTokenLenght = messages.value[id]?.tokens ?? 0;
       final newLenghtTokens = await countTokensString(message.content);
 
       final messagesList = messages.value;
       messagesList[id] = message.copyWith(tokens: newLenghtTokens);
       messages.add(messagesList);
+      // recalculate total tokens without iterating the list
+      if (lastTokenLenght != newLenghtTokens) {
+        totalTokensByMessages += newLenghtTokens - lastTokenLenght;
+      }
     } else {
       final messagesList = messages.value;
       messagesList[id] = message;
       messages.add(messagesList);
     }
+
     saveToDisk([selectedChatRoom]);
     notifyListeners();
   }
@@ -2897,37 +2958,38 @@ class ChatProvider with ChangeNotifier {
     saveToDisk(chatRoomsStream.value.values.toList());
   }
 
-  Future<void> recalculateTokensFromLocalMessages() async {
-    var _totalTokens = 0;
+  Future<void> recalculateTokensFromLocalMessages(
+      [bool showPromptToOverride = true]) async {
     var _sentTokens = 0;
     var _receivedTokens = 0;
     for (var message in messages.value.values) {
-      _totalTokens += message.tokens;
       if (message.type == FluentChatMessageType.textAi) {
         _receivedTokens += message.tokens;
       } else {
         _sentTokens += message.tokens;
       }
     }
-    // if tokens is still zero we need to calculate for each message
-    if (_totalTokens == 0) {
-      _totalTokens = await countTokensFromMessages(
-        messagesReversedList.map((e) => e.toLangChainChatMessage()).toList(),
-      );
-    }
-    totalTokens = _totalTokens;
+    totalTokensByMessages = await countTokensFromMessagesCached([
+      //add system message
+      if (selectedChatRoom.systemMessage != null)
+        FluentChatMessage.system(
+          id: '-1',
+          content: selectedChatRoom.systemMessage!,
+        ),
+      ...messages.value.values
+    ]);
     notifyListeners();
+    if (showPromptToOverride == false) return;
     final shouldOverrideChatTokens = await ConfirmationDialog.show(
       context: context!,
       message:
           'Do you want to save and override chat tokens with the new value?',
     );
     if (shouldOverrideChatTokens) {
-      selectedChatRoom.totalReceivedTokens = totalTokens;
       selectedChatRoom.totalSentTokens = _sentTokens;
       selectedChatRoom.totalReceivedTokens = _receivedTokens;
       totalReceivedForCurrentChat.add(_receivedTokens);
-      totalSentForCurrentChat.add(_sentTokens);
+      totalSentTokens = _sentTokens;
       saveToDisk([selectedChatRoom]);
     }
   }

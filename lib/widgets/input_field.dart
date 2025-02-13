@@ -260,7 +260,7 @@ class _InputFieldState extends State<InputField> {
   @override
   Widget build(BuildContext context) {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
-    final totalTokens = chatProvider.totalTokensForCurrentChat.value;
+    final totalTokens = chatProvider.totalTokensByMessages;
 
     return CallbackShortcuts(
       bindings: {

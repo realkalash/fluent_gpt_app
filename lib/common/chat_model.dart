@@ -23,9 +23,21 @@ class ChatModelAi {
   });
 
   Widget get modelIcon {
-    if (ownedBy == 'openai') {
+    if (ownedBy == OwnedByEnum.openai.name) {
       return Image.asset(
         'assets/openai_icon.png',
+        fit: BoxFit.contain,
+      );
+    }
+    if (ownedBy == OwnedByEnum.lm_studio.name) {
+      return Image.asset(
+        'assets/lmstudio_icon.png',
+        fit: BoxFit.contain,
+      );
+    }
+    if (ownedBy == OwnedByEnum.deepinfra.name) {
+      return Image.asset(
+        'assets/deepinfra_icon.png',
         fit: BoxFit.contain,
       );
     }
@@ -97,13 +109,26 @@ class ChatModelAi {
       imageSupported: imageSupported ?? this.imageSupported,
     );
   }
+
+  ChatModelProviderBase getChatModelProviderBase() {
+    for (var element in ChatModelProviderBase.providersList) {
+      if (element.ownedBy.name == ownedBy) {
+        return element;
+      }
+    }
+    return ChatModelProviderBase('Custom', 'http://localhost:1234/v1',
+        ownedBy: OwnedByEnum.custom);
+  }
 }
 
 class ChatModelProviderBase {
   final String providerName;
   final String apiUrl;
+  final OwnedByEnum ownedBy;
+  final String? priceUrl;
 
-  const ChatModelProviderBase(this.providerName, this.apiUrl);
+  const ChatModelProviderBase(this.providerName, this.apiUrl,
+      {this.ownedBy = OwnedByEnum.custom, this.priceUrl});
 
   // equals
   @override
@@ -123,12 +148,25 @@ class ChatModelProviderBase {
       'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
 
   static const List<ChatModelProviderBase> providersList = [
-    ChatModelProviderBase('OpenAI', 'https://api.openai.com/v1'),
-    ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1'),
-    ChatModelProviderBase('Deepinfra', 'https://api.deepinfra.com/v1/openai'),
-    // ChatModelProviderBase('Claude', 'https://api.openai.com/v1'),
-    // ChatModelProviderBase('Gemini', ''),
-    ChatModelProviderBase('Custom', 'http://localhost:1234/v1'),
+    ChatModelProviderBase(
+      'OpenAI',
+      'https://api.openai.com/v1',
+      ownedBy: OwnedByEnum.openai,
+      priceUrl:
+          'https://help.openai.com/en/articles/7127956-how-much-does-gpt-4-cost',
+    ),
+    ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1',
+        ownedBy: OwnedByEnum.lm_studio),
+    ChatModelProviderBase(
+      'Deepinfra',
+      'https://api.deepinfra.com/v1/openai',
+      ownedBy: OwnedByEnum.deepinfra,
+      priceUrl: 'https://deepinfra.com/pricing',
+    ),
+    // ChatModelProviderBase('Claude', 'https://api.openai.com/v1', OwnedByEnum.claude),
+    // ChatModelProviderBase('Gemini', '', OwnedByEnum.custom, priceUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing'),
+    ChatModelProviderBase('Custom', 'http://localhost:1234/v1',
+        ownedBy: OwnedByEnum.custom),
   ];
 }
 
@@ -136,6 +174,7 @@ enum OwnedByEnum {
   openai,
   lm_studio,
   gemini,
+  deepinfra,
   claude,
   custom,
 }

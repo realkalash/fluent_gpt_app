@@ -1,4 +1,3 @@
-import 'package:fluent_gpt/log.dart';
 
 class CostCalculator {
   /* 
@@ -26,6 +25,7 @@ GPT-3.5 Turbo models are capable and cost-effective.
 gpt-3.5-turbo-0125 is the flagship model of this family, supports a 16K context
  */
 
+  @Deprecated('Not used anymore')
   static final pricePerThousendPromptToken = {
     'gpt-4o': 0.015,
     'gpt-4-0125-preview': 0.03,
@@ -35,19 +35,11 @@ gpt-3.5-turbo-0125 is the flagship model of this family, supports a 16K context
     'gpt-3.5-turbo-instruct': 0.0020,
   };
 
-  static double calculateCostPerToken(int tokens, String model) {
-    if (!pricePerThousendPromptToken.containsKey(model)) {
-      logError('Model $model not found in pricePerPromptToken');
-      return 0.0;
-    }
-    return tokens * (pricePerThousendPromptToken[model]! / 1000);
+  static double calculateCostPer1MToken(int tokens, int pricePer1M) {
+    return tokens * (pricePer1M / 1_000_000); 
   }
 
-  static Map<String, double> calculateCostPerTokenForAllModels(int tokens) {
-    final costs = <String, double>{};
-    pricePerThousendPromptToken.forEach((key, value) {
-      costs[key] = tokens * (value / 1000);
-    });
-    return costs;
+  static double calculateCostPer1KToken(int tokens, int pricePer1M) {
+    return tokens * (pricePer1M / 1_000_000) / 1_000;
   }
 }
