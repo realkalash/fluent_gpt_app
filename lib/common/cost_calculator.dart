@@ -35,11 +35,11 @@ gpt-3.5-turbo-0125 is the flagship model of this family, supports a 16K context
     'gpt-3.5-turbo-instruct': 0.0020,
   };
 
-  static double calculateCostPer1MToken(int tokens, int pricePer1M) {
+  static double calculateCostPer1MToken(int tokens, double pricePer1M) {
     return tokens * (pricePer1M / 1_000_000); 
   }
-
-  static double calculateCostPer1KToken(int tokens, int pricePer1M) {
+  
+  static double calculateCostPer1KToken(int tokens, double pricePer1M) {
     return tokens * (pricePer1M / 1_000_000) / 1_000;
   }
 }

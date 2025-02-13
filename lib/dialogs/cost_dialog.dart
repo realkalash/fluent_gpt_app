@@ -28,8 +28,10 @@ class _CostDialogState extends State<CostDialog> {
   @override
   void initState() {
     super.initState();
-    _controllerPriceSent.text = widget.sentTokens.toString();
-    _controllerPriceReceived.text = widget.receivedTokens.toString();
+    // _controllerPriceSent.text = widget.sentTokens.toString();
+    // _controllerPriceReceived.text = widget.receivedTokens.toString();
+    _controllerPriceSent.text = '1.0';
+    _controllerPriceReceived.text = '1.0';
     sentTokens = widget.sentTokens;
     receivedTokens = widget.receivedTokens;
   }
@@ -37,9 +39,10 @@ class _CostDialogState extends State<CostDialog> {
   @override
   Widget build(BuildContext context) {
     final sentCost = CostCalculator.calculateCostPer1MToken(
-        widget.sentTokens, int.parse(_controllerPriceSent.text));
+        widget.sentTokens, double.tryParse(_controllerPriceSent.text) ?? 0);
     final receivedCost = CostCalculator.calculateCostPer1MToken(
-        widget.receivedTokens, int.parse(_controllerPriceReceived.text));
+        widget.receivedTokens,
+        double.tryParse(_controllerPriceReceived.text) ?? 0);
     final totalCost = sentCost + receivedCost;
     return ContentDialog(
       title: const Text('Cost Calculator'),
@@ -114,10 +117,13 @@ class _CostDialogState extends State<CostDialog> {
                       children: [
                         TextSpan(
                           text: '\$${totalCost.toStringAsFixed(3)}',
-                          style:  TextStyle(fontWeight: FontWeight.bold,fontSize: 24, color: Colors.green.basedOnLuminance(
-                            darkColor: Colors.green.darker,
-                            lightColor: Colors.green.lighter,
-                          )),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                              color: Colors.green.basedOnLuminance(
+                                darkColor: Colors.green.darker,
+                                lightColor: Colors.green.lighter,
+                              )),
                         ),
                       ],
                     ),

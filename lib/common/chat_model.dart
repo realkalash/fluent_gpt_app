@@ -37,7 +37,7 @@ class ChatModelAi {
     }
     if (ownedBy == OwnedByEnum.deepinfra.name) {
       return Image.asset(
-        'assets/deepinfra_icon.png',
+        'assets/deepinfra_icon.webp',
         fit: BoxFit.contain,
       );
     }
@@ -48,7 +48,7 @@ class ChatModelAi {
     return ChatModelAi(
       apiKey: json['apiKey'],
       modelName: json['name'],
-      ownedBy: json['ownedBy'],
+      ownedBy: json['ownedBy'] ?? OwnedByEnum.custom.name,
       uri: json['uri'],
       customName: json['customName'] ?? 'Custom',
       imageSupported: json['imageSupported'] ?? false,
