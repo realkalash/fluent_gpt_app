@@ -71,7 +71,7 @@ Map<String, List<ChatRoom>> get chatRoomsGrouped {
   final grouped = groupBy(chatRooms.values, (ChatRoom chatRoom) {
     if (chatRoom.isPinned) return 'Pinned';
     final date =
-        DateTime.fromMillisecondsSinceEpoch(chatRoom.dateCreatedMilliseconds);
+        DateTime.fromMillisecondsSinceEpoch(chatRoom.dateModifiedMilliseconds);
     return '${date.day}/${date.month}/${date.year}';
   });
   return grouped;
@@ -294,31 +294,32 @@ class ChatProvider with ChangeNotifier {
   Future<void> initChatsFromDisk() async {
     final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
-    // ChatRoom? _selectedChatRoomFromCache;
     for (var file in files) {
       try {
-        if (file.path.contains('.DS_Store')) continue;
         final fileContent = await file.readAsString();
         final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
         final chatRoom = ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
-        if (chatRoom.children != null) {
+        // root level check to load mesages
+        if (chatRoom.id == selectedChatRoomId) {
+          _loadMessagesFromDisk(selectedChatRoomId);
+        } else if (chatRoom.children != null) {
           // TODO: this can fix init selection only for first 2 levels deep
-          // for (var subItem in chatRoom.children!) {
-          //   if (subItem.children != null) {
-          //     for (var subSubItem in subItem.children!) {
-          //       if (subSubItem.id == selectedChatRoomId) {
-          //         // _selectedChatRoomFromCache = chatRoom;
-          //       }
-          //     }
-          //   } else if (subItem.id == selectedChatRoomId) {
-          //     // _selectedChatRoomFromCache = chatRoom;
-          //   }
-          // }
-        } else {
-          // TODO: isnt this will load messages in a loop for the same chat for each chat?
-          initModelsApi();
-          await _loadMessagesFromDisk(selectedChatRoomId);
+          for (var subItem in chatRoom.children!) {
+            if (subItem.children != null) {
+              // 2 deep level check level check to load mesages
+              for (var subSubItem in subItem.children!) {
+                if (subSubItem.id == selectedChatRoomId) {
+                  selectedChatRoomId = chatRoom.id;
+                  _loadMessagesFromDisk(selectedChatRoomId);
+                }
+              }
+            } else if (subItem.id == selectedChatRoomId) {
+              // 1 deep level check level check to load mesages
+              selectedChatRoomId = chatRoom.id;
+              _loadMessagesFromDisk(selectedChatRoomId);
+            }
+          }
         }
       } catch (e) {
         log('initChatsFromDisk error: $e');
@@ -342,11 +343,14 @@ class ChatProvider with ChangeNotifier {
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
-    // if (_selectedChatRoomFromCache != null) {}
 
-    /// notify listeners
     selectedChatRoomId = selectedChatRoomId;
-
+    if (openAI == null &&
+        localModel == null &&
+        selectedChatRoom.model.ownedBy != null) {
+      initModelsApi();
+    }
+    // dumb way to notify UI listeners
     notifyRoomsStream();
   }
 
@@ -1196,6 +1200,7 @@ class ChatProvider with ChangeNotifier {
           // print('function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
             /// TODO: add more logic here
+            updateChatRoomTimestamp();
             saveToDisk([selectedChatRoom]);
             isAnswering = false;
             notifyListeners();
@@ -1224,6 +1229,7 @@ class ChatProvider with ChangeNotifier {
         },
         onDone: () async {
           onFinishResponse?.call();
+          updateChatRoomTimestamp();
           if (tokensReceivedInResponse == 0) {
             log('No tokens received in response. Recalculate locally');
             tokensReceivedInResponse = await countTokensString(responseContent);
@@ -1805,7 +1811,6 @@ class ChatProvider with ChangeNotifier {
       type: message.type,
     );
     // if (kDebugMode) print(newString);
-
     messages.add(values);
     autoScrollToEnd(withDelay: false);
   }
@@ -1815,6 +1820,7 @@ class ChatProvider with ChangeNotifier {
     values[message.id] = message;
     messages.add(values);
     await scrollToEnd();
+    updateChatRoomTimestamp();
     final content = message.content;
     if (content.contains('Tool calling is not supported for model')) {
       ToolCallingNotSupportedDialog.show(context!);
@@ -1840,6 +1846,7 @@ class ChatProvider with ChangeNotifier {
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
+    updateChatRoomTimestamp();
     notifyListeners();
 
     if (message.type == FluentChatMessageType.textHuman) {
@@ -1858,6 +1865,16 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
     notifyListeners();
+  }
+
+  void updateChatRoomTimestamp() {
+    final lastUpdated = selectedChatRoom.dateModifiedMilliseconds;
+    selectedChatRoom.dateModifiedMillisecondsNullable =
+        DateTime.now().millisecondsSinceEpoch;
+    // notify if the chat room was not updated in the last 30 seconds. Just a safety mechanism
+    if (selectedChatRoom.dateModifiedMilliseconds - lastUpdated > 30_000) {
+      notifyRoomsStream();
+    }
   }
 
   Future _onToolsResponseEnd(
@@ -1976,7 +1993,8 @@ class ChatProvider with ChangeNotifier {
     final sortedChatRooms = chatRoomsStream.value.values.toList()
       ..sort((a, b) {
         if (a.indexSort == b.indexSort) {
-          return b.dateCreatedMilliseconds.compareTo(a.dateCreatedMilliseconds);
+          return b.dateModifiedMilliseconds
+              .compareTo(a.dateModifiedMilliseconds);
         }
         return a.indexSort.compareTo(b.indexSort);
       });
@@ -1995,8 +2013,8 @@ class ChatProvider with ChangeNotifier {
       if (chatRoom.isFolder && chatRoom.children != null) {
         chatRoom.children!.sort((a, b) {
           if (a.indexSort == b.indexSort) {
-            return b.dateCreatedMilliseconds
-                .compareTo(a.dateCreatedMilliseconds);
+            return b.dateModifiedMilliseconds
+                .compareTo(a.dateModifiedMilliseconds);
           }
           return a.indexSort.compareTo(b.indexSort);
         });
@@ -2171,6 +2189,8 @@ class ChatProvider with ChangeNotifier {
     final oldChatRoom = chatRooms[oldChatRoomId];
     final isCharNameChanged =
         oldChatRoom!.characterName != chatRoom.characterName;
+    chatRoom.dateModifiedMillisecondsNullable =
+        DateTime.now().millisecondsSinceEpoch;
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
       if (isCharNameChanged) {
@@ -2692,13 +2712,21 @@ class ChatProvider with ChangeNotifier {
   void pinChatRoom(ChatRoom chatRoom) {
     chatRoom.indexSort = chatRoom.indexSort - 1;
     notifyRoomsStream();
-    // dont save chat right now because it will override messages in the file with empty list
+    saveChatWithoutMessages(chatRoom);
   }
 
   void unpinChatRoom(ChatRoom chatRoom) {
     chatRoom.indexSort = 999999;
+
     notifyRoomsStream();
-    // dont save chat right now because it will override messages in the file with empty list
+    saveChatWithoutMessages(chatRoom);
+  }
+
+  Future<void> saveChatWithoutMessages(ChatRoom chatRoom) async {
+    final chatRoomRaw = chatRoom.toJson();
+    final path = await FileUtils.getChatRoomsPath();
+    await FileUtils.saveFile(
+        '$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
   }
 
   Future<void> _onResponseEndGenerateImage(
@@ -2817,6 +2845,7 @@ class ChatProvider with ChangeNotifier {
         model: selectedModel,
         id: id,
         chatRoomName: chatRoomName,
+        dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
       );
       chatRoomsStream.add(chRooms);
       return;

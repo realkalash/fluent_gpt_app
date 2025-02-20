@@ -27,6 +27,8 @@ class ChatRoom {
   int indexSort;
   bool get isPinned => indexSort != 999999;
   int dateCreatedMilliseconds;
+  int? dateModifiedMillisecondsNullable;
+  int get dateModifiedMilliseconds => dateModifiedMillisecondsNullable ?? dateCreatedMilliseconds;
   int? totalSentTokens;
   int? totalReceivedTokens;
   int? seed;
@@ -51,6 +53,7 @@ class ChatRoom {
     this.systemMessage,
     this.systemMessageTokensCount,
     required this.dateCreatedMilliseconds,
+    this.dateModifiedMillisecondsNullable,
     this.indexSort = 999999,
 
     /// 62087 is the code point for the `chat_24_filled` from [FluentIcons]
@@ -61,7 +64,9 @@ class ChatRoom {
     this.characterAvatarPath,
     this.children,
     this.seed,
-  });
+  }) {
+    dateModifiedMillisecondsNullable ??= dateCreatedMilliseconds;
+  }
 
   factory ChatRoom.folder({
     String? id,
@@ -85,13 +90,15 @@ class ChatRoom {
     int? iconCodePoint,
     int? indexSort,
     int? dateCreatedMilliseconds,
+    int? dateModifiedMilliseconds,
     int? totalSentTokens,
     int? totalReceivedTokens,
     int? systemMessageTokensCount,
     List<ChatRoom> children = const [],
   }) {
+    final time = DateTime.now().millisecondsSinceEpoch;
     return ChatRoom(
-      id: id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: id ?? time.toString(),
       chatRoomName: chatRoomName ?? 'New Folder',
       model: model,
       temp: temp,
@@ -103,8 +110,8 @@ class ChatRoom {
       systemMessageTokensCount: systemMessageTokensCount,
       repeatPenalty: repeatPenalty,
       systemMessage: systemMessage,
-      dateCreatedMilliseconds:
-          dateCreatedMilliseconds ?? DateTime.now().millisecondsSinceEpoch,
+      dateCreatedMilliseconds: dateCreatedMilliseconds ?? time,
+      dateModifiedMillisecondsNullable: dateModifiedMilliseconds ?? time,
       indexSort: indexSort ?? 999999,
       iconCodePoint: iconCodePoint ?? 62087,
       totalSentTokens: totalSentTokens ?? 0,
@@ -169,6 +176,9 @@ class ChatRoom {
       totalSentTokens: map['totalSentTokens'] ?? 0,
       totalReceivedTokens: map['totalReceivedTokens'] ?? 0,
       dateCreatedMilliseconds: map['dateCreatedMilliseconds'] ??
+          DateTime.now().millisecondsSinceEpoch,
+      dateModifiedMillisecondsNullable: map['dateModifiedMilliseconds'] ??
+          map['dateCreatedMilliseconds'] ??
           DateTime.now().millisecondsSinceEpoch,
       characterName: map['characterName'] ?? 'ai',
       characterAvatarPath: map['avatarPath'],
@@ -265,23 +275,24 @@ class ChatRoom {
     String? chatRoomName,
     ChatModelAi? model,
     double? temp,
-    int? topk,
-    int? promptBatchSize,
-    int? repeatPenaltyTokens,
     double? topP,
-    int? maxLength,
+    double? costUSD,
     double? repeatPenalty,
     String? token,
     String? orgID,
     String? systemMessage,
-    int? systemMessageTokensCount,
     String? characterName,
     String? avatarPath,
-    double? costUSD,
+    int? topk,
+    int? promptBatchSize,
+    int? repeatPenaltyTokens,
+    int? maxLength,
+    int? systemMessageTokensCount,
     int? tokens,
     int? iconCodePoint,
     int? indexSort,
     int? dateCreatedMilliseconds,
+    int? dateModifiedMilliseconds,
     int? totalSentTokens,
     int? totalReceivedTokens,
     int? maxTokensResponseLenght,
@@ -307,6 +318,8 @@ class ChatRoom {
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       dateCreatedMilliseconds:
           dateCreatedMilliseconds ?? this.dateCreatedMilliseconds,
+      dateModifiedMillisecondsNullable:
+          dateModifiedMilliseconds ?? this.dateModifiedMilliseconds,
       totalSentTokens: totalSentTokens ?? this.totalSentTokens,
       totalReceivedTokens: totalReceivedTokens ?? this.totalReceivedTokens,
       characterName: characterName ?? this.characterName,

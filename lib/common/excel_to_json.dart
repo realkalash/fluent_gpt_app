@@ -82,6 +82,7 @@ class ExcelToJson {
               temp.addAll({tk: value.toString()});
             case DateTimeCellValue():
               temp.addAll({tk: value.toString()});
+            // ignore: unreachable_switch_default
             default:
               temp.addAll({tk: value.toString()});
           }

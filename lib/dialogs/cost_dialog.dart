@@ -1,22 +1,24 @@
 import 'package:fluent_gpt/common/cost_calculator.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-class CostDialog extends StatefulWidget {
-  const CostDialog(
+class CostCalcDialog extends StatefulWidget {
+  const CostCalcDialog(
       {super.key, required this.receivedTokens, required this.sentTokens});
   final int receivedTokens;
   final int sentTokens;
 
   @override
-  State<CostDialog> createState() => _CostDialogState();
+  State<CostCalcDialog> createState() => _CostCalcDialogState();
 }
 
-class _CostDialogState extends State<CostDialog> {
+class _CostCalcDialogState extends State<CostCalcDialog> {
   final pricePer1MSent = 1;
+  final TextEditingController _notesController = TextEditingController();
   final TextEditingController _controllerPriceSent = TextEditingController();
   final pricePer1MReceived = 1;
   final TextEditingController _controllerPriceReceived =
@@ -30,8 +32,9 @@ class _CostDialogState extends State<CostDialog> {
     super.initState();
     // _controllerPriceSent.text = widget.sentTokens.toString();
     // _controllerPriceReceived.text = widget.receivedTokens.toString();
-    _controllerPriceSent.text = '1.0';
-    _controllerPriceReceived.text = '1.0';
+    _controllerPriceSent.text = AppCache.pricePer1MSent.value!;
+    _controllerPriceReceived.text = AppCache.pricePer1MReceived.value!;
+    _notesController.text = AppCache.costCalcNotes.value!;
     sentTokens = widget.sentTokens;
     receivedTokens = widget.receivedTokens;
   }
@@ -67,6 +70,7 @@ class _CostDialogState extends State<CostDialog> {
                               controller: _controllerPriceSent,
                               placeholder: '1',
                               onChanged: (value) {
+                                AppCache.pricePer1MSent.value = value;
                                 setState(() {});
                               },
                             ),
@@ -82,6 +86,7 @@ class _CostDialogState extends State<CostDialog> {
                               controller: _controllerPriceReceived,
                               placeholder: '1',
                               onChanged: (value) {
+                                AppCache.pricePer1MReceived.value = value;
                                 setState(() {});
                               },
                             ),
@@ -97,11 +102,14 @@ class _CostDialogState extends State<CostDialog> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text('Cost: \$${sentCost.toStringAsFixed(3)}'),
+                        child: Text('Tokens: $sentTokens'
+                            '\nCost: \$${sentCost.toStringAsFixed(3)}'),
                       ),
                       Expanded(
                         child:
-                            Text('Cost: \$${receivedCost.toStringAsFixed(3)}'),
+                            Text(
+                              'Tokens: $receivedTokens'
+                              '\nCost: \$${receivedCost.toStringAsFixed(3)}'),
                       ),
                     ],
                   ),
@@ -131,6 +139,16 @@ class _CostDialogState extends State<CostDialog> {
                 ],
               ),
             ),
+          ),
+          spacer,
+          TextBox(
+            controller: _notesController,
+            placeholder: 'Your notes',
+            minLines: 1,
+            maxLines: 50,
+            onChanged: (v) {
+              AppCache.costCalcNotes.value = v;
+            },
           ),
           spacer,
           StreamBuilder(

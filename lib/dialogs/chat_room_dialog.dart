@@ -12,6 +12,7 @@ import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class EditChatRoomDialog extends StatefulWidget {
@@ -80,6 +81,14 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ChatProvider>();
+    final dateCreated = DateTime.fromMillisecondsSinceEpoch(
+        widget.room.dateCreatedMilliseconds);
+    final dateCreatedString =
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(dateCreated);
+    final dateModified = DateTime.fromMillisecondsSinceEpoch(
+        widget.room.dateModifiedMilliseconds);
+    final dateModifiedString =
+        DateFormat('yyyy-MM-dd HH:mm:ss').format(dateModified);
 
     return ContentDialog(
       title: widget.room.isFolder
@@ -89,7 +98,6 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
       actions: [
         FilledButton(
           onPressed: () {
-            
             provider.editChatRoom(
               widget.room.id,
               widget.room.copyWith(
@@ -119,6 +127,13 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
       content: ListView(
         shrinkWrap: true,
         children: [
+          // date created and date modified
+          Row(
+            children: [
+              Text('Created $dateCreatedString | Modified $dateModifiedString'),
+            ],
+          ),
+          const SizedBox(height: 8),
           if (!widget.room.isFolder)
             Align(
               alignment: Alignment.centerLeft,

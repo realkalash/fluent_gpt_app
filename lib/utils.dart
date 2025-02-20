@@ -216,6 +216,7 @@ extension ListExtension<T> on List<T> {
 Future<void> displayCopiedToClipboard() {
   return displayInfoBar(
     appContext!,
+    alignment: Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: const Text('Copied'),
       severity: InfoBarSeverity.info,
@@ -227,15 +228,18 @@ Future<void> displayCopiedToClipboard() {
 Future<void> displaySuccessInfoBar({String? title}) {
   return displayInfoBar(
     appContext!,
+    alignment: Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: Text(title ?? 'Success'),
       severity: InfoBarSeverity.success,
     ),
   );
 }
+
 Future<void> displayTextInfoBar(title) {
   return displayInfoBar(
     appContext!,
+    alignment: Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: Text(title),
       severity: InfoBarSeverity.info,
@@ -246,6 +250,7 @@ Future<void> displayTextInfoBar(title) {
 Future<void> displayErrorInfoBar({String? title, String? message}) {
   return displayInfoBar(
     appContext!,
+    alignment: Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: Text(title ?? 'Error'),
       content: message != null ? Text(message) : null,
@@ -253,8 +258,6 @@ Future<void> displayErrorInfoBar({String? title, String? message}) {
     ),
   );
 }
-
-
 
 class ImageDimensions {
   final double width;
@@ -274,7 +277,7 @@ class ImageDimensions {
 }
 
 /// Gets the dimensions of an image from its bytes
-/// 
+///
 /// Returns [ImageDimensions] containing width and height
 /// Throws [Exception] if image cannot be decoded
 Future<ImageDimensions> getImageDimensionsFromBytes(Uint8List bytes) async {
@@ -282,7 +285,7 @@ Future<ImageDimensions> getImageDimensionsFromBytes(Uint8List bytes) async {
     final codec = await ui.instantiateImageCodec(bytes);
     final frameInfo = await codec.getNextFrame();
     final image = frameInfo.image;
-    
+
     return ImageDimensions(
       width: image.width.toDouble(),
       height: image.height.toDouble(),

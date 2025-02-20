@@ -22,23 +22,42 @@ class ChatModelAi {
     this.imageSupported = false,
   });
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is ChatModelAi &&
+        other.apiKey == apiKey &&
+        other.modelName == modelName &&
+        other.ownedBy == ownedBy &&
+        other.uri == uri;
+  }
+
+  @override
+  int get hashCode {
+    return apiKey.hashCode ^ modelName.hashCode ^ ownedBy.hashCode ^ uri.hashCode;
+  }
+
   Widget get modelIcon {
     if (ownedBy == OwnedByEnum.openai.name) {
       return Image.asset(
         'assets/openai_icon.png',
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     if (ownedBy == OwnedByEnum.lm_studio.name) {
       return Image.asset(
         'assets/lmstudio_icon.png',
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     if (ownedBy == OwnedByEnum.deepinfra.name) {
       return Image.asset(
         'assets/deepinfra_icon.webp',
         fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
       );
     }
     return const Icon(FluentIcons.chat_24_regular);

@@ -212,6 +212,7 @@ class FluentChatMessage {
       case FluentChatMessageType.webResult:
         return WebResultCustomMessage(
             content: content, searchResults: webResults ?? []);
+      // ignore: unreachable_switch_default
       default:
         return HumanChatMessage(content: ChatMessageContentText(text: content));
     }

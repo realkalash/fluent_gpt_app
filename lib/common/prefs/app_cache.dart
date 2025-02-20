@@ -39,6 +39,9 @@ class AppCache {
   static const fetchChatsPeriodically =
       BoolPref("fetchChatsPeriodically", false);
   static const fetchChatsPeriodMin = IntPref("fetchChatsPeriodMin", 10);
+  static const pricePer1MSent = StringPref("pricePer1MSent", '1.0');
+  static const pricePer1MReceived = StringPref("pricePer1MReceived", '1.0');
+  static const costCalcNotes = StringPref("costCalcNotes", '');
 
   /// Contains Strings that we can't migrate beacuse they are used by StringPref, IntPref etc.
   /// the format is:

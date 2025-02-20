@@ -499,7 +499,7 @@ class PageHeaderText extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => CostDialog(
+      builder: (context) => CostCalcDialog(
         sentTokens: provider.totalSentTokens,
         receivedTokens: provider.totalReceivedTokens,
       ),

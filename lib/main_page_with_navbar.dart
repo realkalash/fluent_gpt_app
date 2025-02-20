@@ -18,9 +18,14 @@ import 'pages/log_page.dart';
 import 'pages/settings_page.dart';
 import 'widgets/main_app_header_buttons.dart';
 
-class MainPageWithNavigation extends StatelessWidget {
+class MainPageWithNavigation extends StatefulWidget {
   const MainPageWithNavigation({super.key});
 
+  @override
+  State<MainPageWithNavigation> createState() => _MainPageWithNavigationState();
+}
+
+class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
   @override
   Widget build(BuildContext context) {
     final navigationProvider = context.read<NavigationProvider>();
@@ -73,6 +78,18 @@ class MainPageWithNavigation extends StatelessWidget {
                             final provider = context.read<ChatProvider>();
                             provider.createNewChatRoom();
                           }),
+                    ),
+                    Tooltip(
+                      message: 'Create folder',
+                      child: IconButton(
+                        icon: const Icon(FluentIcons.folder_add_24_regular,
+                            size: 20),
+                        onPressed: () {
+                          final provider = context.read<ChatProvider>();
+                          provider.createChatRoomFolder();
+                          setState(() {});
+                        },
+                      ),
                     ),
                     Tooltip(
                       message: 'Deleted chats',
@@ -203,7 +220,11 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (mode != PaneDisplayMode.compact && widget.group.key != '')
-          Text(widget.group.key),
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+            child:
+                Text(widget.group.key, style: widget.theme.typography.subtitle),
+          ),
         ...List.generate(widget.group.value.length, (i) {
           final chatRoom = widget.group.value[i];
           final selected = chatRoom.id == selectedChatRoomId;
@@ -396,19 +417,21 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                   Navigator.of(context).pop();
                                 },
                               ),
-                            FlyoutListTile(
-                              text: Text('Create folder', style: TextStyle()),
-                              icon: Icon(FluentIcons.folder_24_filled),
-                              onPressed: () {
-                                final provider = context.read<ChatProvider>();
-                                provider.createChatRoomFolder(
-                                  chatRoomsForFolder: [chatRoom],
-                                  parentFolderId: widget.parentFolderId,
-                                );
-                                _updateUI();
-                                Navigator.of(context).pop();
-                              },
-                            ),
+                            // if root we can create folder
+                            if (widget.parentFolderId == null)
+                              FlyoutListTile(
+                                text: Text('Create folder', style: TextStyle()),
+                                icon: Icon(FluentIcons.folder_24_filled),
+                                onPressed: () {
+                                  final provider = context.read<ChatProvider>();
+                                  provider.createChatRoomFolder(
+                                    chatRoomsForFolder: [chatRoom],
+                                    parentFolderId: widget.parentFolderId,
+                                  );
+                                  _updateUI();
+                                  Navigator.of(context).pop();
+                                },
+                              ),
                             FlyoutListTile(
                               text: Text('Move to Folder', style: TextStyle()),
                               icon: Icon(FluentIcons.folder_24_filled),

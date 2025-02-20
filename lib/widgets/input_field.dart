@@ -33,6 +33,7 @@ import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 // ignore: unused_import
 import 'package:langchain/langchain.dart';
+import 'package:langchain_openai/langchain_openai.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
@@ -179,25 +180,9 @@ class _InputFieldState extends State<InputField> {
     final provider = context.read<ChatProvider>();
     provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
     if (provider.includeConversationGlobal) {
-      displayInfoBar(
-        context,
-        builder: (ctx, close) {
-          return const InfoBar(
-            title: Text('History enabled'),
-          );
-        },
-        duration: const Duration(milliseconds: 1400),
-      );
+      displayTextInfoBar('History enabled');
     } else {
-      displayInfoBar(
-        context,
-        builder: (ctx, close) {
-          return const InfoBar(
-            title: Text('History disabled'),
-          );
-        },
-        duration: const Duration(milliseconds: 1400),
-      );
+      displayTextInfoBar('History disabled');
     }
   }
 
@@ -258,10 +243,21 @@ class _InputFieldState extends State<InputField> {
   final debouncer = Debouncer(milliseconds: 500);
   int tokensInInputField = 0;
 
+  Future<int> countTokensString(String text) async {
+    if (text.isEmpty) return 0;
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
+    if (selectedModel.ownedBy == 'openai') {
+      return openAI!.countTokens(PromptValue.string(text), options: options);
+    } else {
+      return (localModel ?? openAI)!
+          .countTokens(PromptValue.string(text), options: options);
+    }
+  }
+
   void countTokensInInputField() {
     debouncer.run(() async {
       final text = ChatProvider.messageControllerGlobal.text;
-      final tokens = await context.read<ChatProvider>().countTokensString(text);
+      final tokens = await countTokensString(text);
       tokensInInputField = tokens;
       if (mounted) setState(() {});
     });
@@ -407,7 +403,7 @@ class _InputFieldState extends State<InputField> {
                           focusNode: promptTextFocusNode,
                           prefixMode: OverlayVisibilityMode.always,
                           controller: chatProvider.messageController,
-                          minLines: 2,
+                          minLines: 3,
                           maxLines: 30,
                           onChanged: (_) => countTokensInInputField(),
                           suffix: Row(
@@ -446,7 +442,15 @@ class _InputFieldState extends State<InputField> {
                           prefix: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const _ChooseModelButton(),
+                              Tooltip(
+                                richMessage: WidgetSpan(
+                                  child: ModelsTooltipContainer(),
+                                  alignment: PlaceholderAlignment.top,
+                                ),
+                                style: TooltipThemeData(
+                                    waitDuration: Duration.zero),
+                                child: const _ChooseModelButton(),
+                              ),
                               AiLibraryButton(
                                 onPressed: () async {
                                   // ignore: use_build_context_synchronously
@@ -540,10 +544,8 @@ class _InputFieldState extends State<InputField> {
                           ),
                         ),
                       if (tokensInInputField > 0)
-                        Text(
-                          'Tokens in field: $tokensInInputField',
-                          style: context.theme.typography.caption
-                        ),
+                        Text('Tokens in field: $tokensInInputField',
+                            style: context.theme.typography.caption),
                     ],
                   ),
                 ),
@@ -553,8 +555,8 @@ class _InputFieldState extends State<InputField> {
       ),
     );
   }
+
   final menuController = FlyoutController();
-  
 
   void _onSecondaryTap() {
     final provider = context.read<ChatProvider>();
@@ -661,6 +663,53 @@ class _InputFieldState extends State<InputField> {
     provider.addHumanMessageToList(fMessage);
     provider.messageController.clear();
     promptTextFocusNode.requestFocus();
+  }
+}
+
+class ModelsTooltipContainer extends StatelessWidget {
+  const ModelsTooltipContainer({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    context.watch<ChatProvider>();
+    final models = allModels.value;
+    final selectedModel = selectedChatRoom.model;
+    return SizedBox(
+      width: 200,
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: models.length,
+        itemBuilder: (context, index) {
+          final model = models[index];
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: BasicListTile(
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: SizedBox.square(
+                      dimension: 24,
+                      child: model.modelIcon,
+                    ),
+                  ),
+                  title: Text(model.customName),
+                  // subtitle: Text(model.modelName),
+                  trailing: selectedModel == model
+                      ? const Icon(ic.FluentIcons.checkmark_16_filled)
+                      : null,
+                  color: Colors.transparent,
+                ),
+              ),
+              // if not last element add divider
+              if (index < models.length - 1) const Divider(),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -1068,11 +1117,11 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
             ...List.generate(models.length, (i) {
               final e = models[i];
               return MenuFlyoutItem(
-                selected: e.modelName == selectedModel.modelName,
+                selected: e == selectedModel,
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (e.modelName == selectedModel.modelName)
+                    if (e == selectedModel)
                       Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: const Icon(ic.FluentIcons.checkmark_16_filled),
