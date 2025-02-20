@@ -121,12 +121,12 @@ class EditChatDrawer extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
+                          color: Colors.black.withAlpha(50),
                           blurRadius: 8,
                           offset: Offset(0, 4),
                         ),
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withAlpha(50),
                           blurRadius: 8,
                           offset: Offset(0, 4),
                         ),
@@ -172,7 +172,7 @@ class HomeDropOverlay extends StatelessWidget {
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: FluentTheme.of(context).accentColor.withOpacity(0.5),
+                  color: FluentTheme.of(context).accentColor.withAlpha(127),
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: const Center(

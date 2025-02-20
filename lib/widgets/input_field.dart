@@ -256,6 +256,16 @@ class _InputFieldState extends State<InputField> {
   bool _useShimmer = false;
 
   final debouncer = Debouncer(milliseconds: 500);
+  int tokensInInputField = 0;
+
+  void countTokensInInputField() {
+    debouncer.run(() async {
+      final text = ChatProvider.messageControllerGlobal.text;
+      final tokens = await context.read<ChatProvider>().countTokensString(text);
+      tokensInInputField = tokens;
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,6 +409,7 @@ class _InputFieldState extends State<InputField> {
                           controller: chatProvider.messageController,
                           minLines: 2,
                           maxLines: 30,
+                          onChanged: (_) => countTokensInInputField(),
                           suffix: Row(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -478,7 +489,8 @@ class _InputFieldState extends State<InputField> {
                             backgroundColor: WidgetStatePropertyAll(
                           context.theme.scaffoldBackgroundColor,
                         )),
-                        onPressed: () => chatProvider.stopAnswering(StopReason.canceled),
+                        onPressed: () =>
+                            chatProvider.stopAnswering(StopReason.canceled),
                         icon: Icon(
                           ic.FluentIcons.stop_24_filled,
                           size: 24,
@@ -508,18 +520,31 @@ class _InputFieldState extends State<InputField> {
                   const SizedBox(width: 10),
                 ],
               ),
-            if (!widget.isMini &&
-                totalTokens >= 0.8 * selectedChatRoom.maxTokenLength)
+            if (!widget.isMini)
               Align(
                 alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: chatProvider.scrollToLastOverflowMessage,
-                  child: Text(
-                    '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}% overflow. Click here to go to the last overflow message',
-                    style: context.theme.typography.caption?.copyWith(
-                      color: context.theme.typography.caption?.color
-                          ?.withOpacity(0.5),
-                    ),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 50),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (totalTokens >= 0.8 * selectedChatRoom.maxTokenLength)
+                        GestureDetector(
+                          onTap: chatProvider.scrollToLastOverflowMessage,
+                          child: Text(
+                            '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}% overflow. Click here to go to the last overflow message  ',
+                            style: context.theme.typography.caption?.copyWith(
+                              color: context.theme.typography.caption?.color
+                                  ?.withAlpha(127),
+                            ),
+                          ),
+                        ),
+                      if (tokensInInputField > 0)
+                        Text(
+                          'Tokens in field: $tokensInInputField',
+                          style: context.theme.typography.caption
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -528,8 +553,8 @@ class _InputFieldState extends State<InputField> {
       ),
     );
   }
-
   final menuController = FlyoutController();
+  
 
   void _onSecondaryTap() {
     final provider = context.read<ChatProvider>();

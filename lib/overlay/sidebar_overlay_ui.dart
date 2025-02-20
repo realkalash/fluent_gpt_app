@@ -364,7 +364,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
               fluent.ListTile(
                 leading: const Icon(FluentIcons.dismiss_16_filled),
                 tileColor:
-                    fluent.WidgetStateProperty.all(Colors.red.withOpacity(0.4)),
+                    fluent.WidgetStateProperty.all(Colors.red.withAlpha(127)),
                 title: const Text('CLOSE'),
                 onPressed: () {
                   Navigator.of(context).pop();

@@ -116,7 +116,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                 Center(
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.5),
+                                      color: Colors.black.withAlpha(127),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     padding: const EdgeInsets.all(4.0),

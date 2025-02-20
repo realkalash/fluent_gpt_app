@@ -656,7 +656,7 @@ class _HoverListTileState extends State<HoverListTile> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: Container(
-          color: isHovering ? tileColor.withOpacity(0.5) : tileColor,
+          color: isHovering ? tileColor.withAlpha(127) : tileColor,
           child: widget.child,
         ),
       ),

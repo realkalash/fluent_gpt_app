@@ -92,7 +92,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                                               .toLowerCase()
                                               .contains(textController.text
                                                   .toLowerCase())
-                                          ? Colors.yellow.withOpacity(0.5)
+                                          ? Colors.yellow.withAlpha(127)
                                           : null,
                                       // color: word.toLowerCase().contains(
                                       //         textController.text.toLowerCase())

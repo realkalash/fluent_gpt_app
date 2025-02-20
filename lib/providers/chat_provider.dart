@@ -1541,6 +1541,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<int> countTokensString(String text) async {
+    if (text.isEmpty) return 0;
     final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
     if (selectedModel.ownedBy == 'openai') {
       return openAI!.countTokens(PromptValue.string(text), options: options);

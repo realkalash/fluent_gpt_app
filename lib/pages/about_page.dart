@@ -75,7 +75,7 @@ Welcome to Fluent GPT App, an open-source, multi-platform desktop application th
   Widget build(BuildContext context) {
     return Card(
       backgroundColor:
-          FluentTheme.of(context).micaBackgroundColor.withOpacity(0.8),
+          FluentTheme.of(context).micaBackgroundColor.withAlpha(200),
       child: const MarkdownWidget(
         data: message,
         shrinkWrap: true,

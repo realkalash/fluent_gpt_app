@@ -221,7 +221,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                           ? widget.theme.accentColor
                           : widget.theme.cardColor,
                       border: mode != PaneDisplayMode.open
-                          ? Border.all(color: Colors.white.withOpacity(0.1))
+                          ? Border.all(color: Colors.white.withAlpha(25))
                           : null,
                       borderRadius: BorderRadius.circular(4),
                     ),
