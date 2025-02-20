@@ -73,7 +73,7 @@ class LogListTile extends StatelessWidget {
       margin: EdgeInsets.zero,
       padding: EdgeInsets.zero,
       backgroundColor: message.contains('Error')
-          ? Colors.red.withOpacity(0.5)
+          ? Colors.red.withAlpha(128)
           : const Color(0xff636363),
       child: ListTile(
         title: SelectableText(message),

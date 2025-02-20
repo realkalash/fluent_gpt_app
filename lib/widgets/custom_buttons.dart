@@ -34,7 +34,7 @@ class FilledRedButton extends StatelessWidget {
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(Colors.white),
         backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.isDisabled) return Colors.red.withOpacity(0.25);
+          if (states.isDisabled) return Colors.red.withAlpha(64);
           if (states.isHovered) return Colors.red['lighter'];
           if (states.isFocused) return Colors.red['light'];
           return Colors.red['normal'];
@@ -67,7 +67,7 @@ class FilledAccentButton extends StatelessWidget {
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(Colors.white),
         backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.isDisabled) return accentColor.withOpacity(0.25);
+          if (states.isDisabled) return accentColor.withAlpha(64);
           if (states.isHovered) return accentColor['lighter'];
           if (states.isFocused) return accentColor['light'];
           return accentColor['normal'];

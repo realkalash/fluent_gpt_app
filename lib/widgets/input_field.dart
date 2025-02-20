@@ -829,8 +829,8 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                               child: BasicListTile(
                                 title: Text(command),
                                 color: isHovered
-                                    ? context.theme.accentColor.withOpacity(0.2)
-                                    : Colors.black.withOpacity(0.1),
+                                    ? context.theme.accentColor.withAlpha(51)
+                                    : Colors.black.withAlpha(26),
                                 padding: EdgeInsets.symmetric(
                                     vertical: 4, horizontal: 16),
                                 onTap: () async {
@@ -1263,7 +1263,7 @@ class _FileThumbnail extends StatelessWidget {
             child: IconButton(
               style: ButtonStyle(
                 backgroundColor:
-                    WidgetStateProperty.all(Colors.black.withOpacity(0.5)),
+                    WidgetStateProperty.all(Colors.black.withAlpha(128)),
               ),
               onPressed: () => chatProvider.removeFileFromInput(),
               icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),

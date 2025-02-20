@@ -130,7 +130,7 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
                       Text(
                         'This is your quick shortcuts you can use anytime',
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.7), fontSize: 14),
+                            color: Colors.white.withAlpha(178), fontSize: 14),
                       ),
                     ],
                   ),

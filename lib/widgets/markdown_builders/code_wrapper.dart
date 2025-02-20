@@ -112,7 +112,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
         width: double.infinity,
         padding: const EdgeInsets.all(8.0),
         decoration: BoxDecoration(
-          color: context.theme.accentColor.withOpacity(0.5),
+          color: context.theme.accentColor.withAlpha(128),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(8),
             topRight: Radius.circular(8),

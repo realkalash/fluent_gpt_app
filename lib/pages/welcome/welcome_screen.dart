@@ -71,7 +71,7 @@ class _WelcomePageState extends State<WelcomePage> {
                         initialDelay: const Duration(milliseconds: 1000),
                         characterDelay: const Duration(milliseconds: 15),
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.7), fontSize: 14),
+                            color: Colors.white.withAlpha(178), fontSize: 14),
                       ),
                     ],
                   ),

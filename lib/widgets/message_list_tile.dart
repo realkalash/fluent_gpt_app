@@ -754,7 +754,7 @@ class _MessageCardState extends State<MessageCard> {
               Text('Tokens: $tokens'),
               Divider(),
               Text('Press tab to navigate to buttons below',
-                  style: TextStyle(color: textStyle.color?.withOpacity(0.5))),
+                  style: TextStyle(color: textStyle.color?.withAlpha(128))),
             ],
           ),
         ),
@@ -786,7 +786,7 @@ class _MessageCardState extends State<MessageCard> {
                       // TextSpan(
                       //   text: '(ctrl+alt+enter)',
                       //   style: TextStyle(
-                      //     color: textStyle.color?.withOpacity(0.5),
+                      //     color: textStyle.color?.withAlpha(128),
                       //   ),
                       // ),
                     ],
@@ -811,7 +811,7 @@ class _MessageCardState extends State<MessageCard> {
                 children: <TextSpan>[
                   TextSpan(
                     text: '(alt+enter)',
-                    style: TextStyle(color: textStyle.color?.withOpacity(0.5)),
+                    style: TextStyle(color: textStyle.color?.withAlpha(128)),
                   ),
                 ],
               ),
@@ -829,7 +829,7 @@ class _MessageCardState extends State<MessageCard> {
                     TextSpan(
                       text: '(esc)',
                       style: TextStyle(
-                        color: textStyle.color?.withOpacity(0.5),
+                        color: textStyle.color?.withAlpha(128),
                       ),
                     ),
                   ],

@@ -90,7 +90,7 @@ class AppTheme extends ChangeNotifier {
   WindowEffect get windowEffect => _windowEffect;
 
   /// By default is blue with 5% opacity
-  static Color micaColor = Colors.blue.withOpacity(0.7);
+  static Color micaColor = Colors.blue.withAlpha(178);
 
   Color windowEffectColor = micaColor;
 
@@ -102,7 +102,7 @@ class AppTheme extends ChangeNotifier {
     }
     await Window.setEffect(
       effect: effect,
-      color: windowEffectColor.withOpacity(windowEffectOpacity),
+      color: windowEffectColor.withAlpha((255*windowEffectOpacity).round()),
       dark: isDark,
     );
     if (effect == WindowEffect.disabled) {
@@ -115,10 +115,10 @@ class AppTheme extends ChangeNotifier {
       /// if the effect is transperent or blur
       if (isDark) {
         darkBackgroundColor =
-            defaultDarkBackgroundColor.withOpacity(windowEffectOpacity);
+            defaultDarkBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
       } else {
         lightBackgroundColor =
-            defaultLightBackgroundColor.withOpacity(windowEffectOpacity);
+            defaultLightBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
       }
     }
     _windowEffect = effect;

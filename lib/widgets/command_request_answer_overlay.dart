@@ -134,7 +134,7 @@ class CommandRequestAnswerOverlayState
                         Text(
                           'T: $responseTokens, R: ${widget.message.tokens}',
                           style: TextStyle(
-                              color: Colors.white.withOpacity(0.5), fontSize: 10),
+                              color: Colors.white.withAlpha(128), fontSize: 10),
                         ),
                       ],
                     ),

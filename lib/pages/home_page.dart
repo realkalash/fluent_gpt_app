@@ -166,7 +166,7 @@ class HomeDropOverlay extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.data == DropOverlayState.dropOver) {
           return Container(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withAlpha(51),
             child: Center(
               child: Container(
                 width: 200,
@@ -188,13 +188,13 @@ class HomeDropOverlay extends StatelessWidget {
         }
         if (snapshot.data == DropOverlayState.dropInvalidFormat) {
           return Container(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withAlpha(51),
             child: Center(
               child: Container(
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.5),
+                  color: Colors.red.withAlpha(128),
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: const Center(
@@ -243,7 +243,7 @@ class ConversationStyleRow extends StatelessWidget {
                                     FluentTheme.of(context).accentColor,
                                 unselectedColor: FluentTheme.of(context)
                                     .accentColor
-                                    .withOpacity(0.5),
+                                    .withAlpha(128),
                                 isSelected: style == e,
                                 onTap: () => conversationStyleStream.add(e),
                                 child: Text(e.name,
@@ -264,7 +264,7 @@ class ConversationStyleRow extends StatelessWidget {
                           selectedColor: FluentTheme.of(context).accentColor,
                           unselectedColor: FluentTheme.of(context)
                               .accentColor
-                              .withOpacity(0.5),
+                              .withAlpha(128),
                           isSelected: lenghtStyle == e,
                           onTap: () => conversationLenghtStyleStream.add(e),
                           child: Row(
@@ -456,7 +456,7 @@ class PageHeaderText extends StatelessWidget {
                         builder: (p0, state) {
                           return Container(
                               color: state.contains(WidgetState.hovered)
-                                  ? Colors.white.withOpacity(0.2)
+                                  ? Colors.white.withAlpha(51)
                                   : Colors.transparent,
                               padding: const EdgeInsets.all(4),
                               child: Icon(ic.FluentIcons.arrow_up_16_filled,
@@ -473,7 +473,7 @@ class PageHeaderText extends StatelessWidget {
                         builder: (p0, state) {
                           return Container(
                             color: state.contains(WidgetState.hovered)
-                                ? Colors.white.withOpacity(0.2)
+                                ? Colors.white.withAlpha(51)
                                 : Colors.transparent,
                             padding: const EdgeInsets.all(4),
                             child: Icon(
@@ -642,7 +642,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: isHovered
-                ? FluentTheme.of(context).accentColor.withOpacity(0.1)
+                ? FluentTheme.of(context).accentColor.withAlpha(26)
                 : FluentTheme.of(context).cardColor,
           ),
           width: double.infinity,
@@ -947,7 +947,7 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
             color: widget.color ?? FluentTheme.of(context).cardColor,
             boxShadow: [
               BoxShadow(
-                color: FluentTheme.of(context).shadowColor.withOpacity(0.2),
+                color: FluentTheme.of(context).shadowColor.withAlpha(51),
                 blurRadius: isHovered ? 16 : 8,
                 offset: const Offset(0, 4),
               ),
@@ -1123,7 +1123,7 @@ class WeatherCard extends StatelessWidget {
                                 child: Container(
                                   clipBehavior: Clip.hardEdge,
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.8),
+                                    color: Colors.black.withAlpha(204),
                                     shape: BoxShape.circle,
                                   ),
                                   padding: const EdgeInsets.all(12),
@@ -1150,7 +1150,7 @@ class WeatherCard extends StatelessWidget {
                                 child: Container(
                                   clipBehavior: Clip.hardEdge,
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.8),
+                                    color: Colors.black.withAlpha(204),
                                     shape: BoxShape.circle,
                                   ),
                                   padding: const EdgeInsets.all(12),
@@ -1707,7 +1707,7 @@ class _ScrollToBottomButton extends StatelessWidget {
         checkedButtonStyle: ButtonStyle(
           padding: WidgetStateProperty.all(EdgeInsets.zero),
           backgroundColor: WidgetStateProperty.all(
-              context.theme.accentColor.withOpacity(0.5)),
+              context.theme.accentColor.withAlpha(128)),
         ),
         uncheckedButtonStyle: ButtonStyle(
           padding: WidgetStateProperty.all(EdgeInsets.zero),

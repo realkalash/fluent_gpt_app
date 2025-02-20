@@ -15,7 +15,7 @@ class LinkTextButton extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            color: Colors.blue.withOpacity(0.7),
+            color: Colors.blue.withAlpha(178),
             fontSize: 14,
             decoration: TextDecoration.underline,
           ),

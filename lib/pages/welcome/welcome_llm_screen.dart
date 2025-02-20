@@ -63,7 +63,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       initialDelay: const Duration(milliseconds: 1500),
                       characterDelay: const Duration(milliseconds: 5),
                       style: TextStyle(
-                          color: Colors.white.withOpacity(0.7), fontSize: 14),
+                          color: Colors.white.withAlpha(178), fontSize: 14),
                     ),
                   ],
                 ),
