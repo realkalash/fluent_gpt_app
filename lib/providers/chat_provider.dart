@@ -3023,6 +3023,37 @@ class ChatProvider with ChangeNotifier {
       saveToDisk([selectedChatRoom]);
     }
   }
+
+  Future<void> deleteMessagesAbove(String id) async {
+    final confirmed = await ConfirmationDialog.show(context: context!,message: 'Everything above will be deleted in current chat');
+    if (!confirmed) return;
+    final messagesList = messages.value;
+    final keys = messagesList.keys.toList();
+    final index = keys.indexOf(id);
+    for (var i = 0; i < index; i++) {
+      messagesList.remove(keys[i]);
+    }
+    messages.add(messagesList);
+    recalculateTokensFromLocalMessages(false);
+    saveToDisk([selectedChatRoom]);
+  }
+
+  void deleteMessagesBelow(String id) {}
+
+  void duplicatedChatRoom(ChatRoom chatRoom) {
+    final newChatRoom = chatRoom.copyWith(
+      id: generateChatID(),
+      chatRoomName: '${chatRoom.chatRoomName} copy',
+      dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
+      dateModifiedMilliseconds: DateTime.now().millisecondsSinceEpoch,
+      
+    );
+    chatRooms[newChatRoom.id] = newChatRoom;
+    selectedChatRoomId = newChatRoom.id;
+    messages.add({});
+    notifyRoomsStream();
+    saveToDisk([newChatRoom]);
+  }
 }
 
 List<ChatRoom> getChatRoomsFoldersRecursive(List<ChatRoom> chatRooms) {

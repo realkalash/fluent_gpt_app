@@ -1016,6 +1016,21 @@ class _MessageCardState extends State<MessageCard> {
             final provider = context.read<ChatProvider>();
             provider.deleteMessage(widget.message.id);
           },
+        ),MenuFlyoutItem(
+          text: Text('Delete everything above', style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.deleteMessagesAbove(widget.message.id);
+          },
+        ),
+        MenuFlyoutItem(
+          text: Text('Delete everything below', style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.deleteMessagesBelow(widget.message.id);
+          },
         ),
       ],
     );

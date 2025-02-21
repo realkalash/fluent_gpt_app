@@ -458,6 +458,15 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
+                              text: Text('Duplicated chat', style: TextStyle()),
+                              icon: Icon(FluentIcons.chat_settings_20_regular),
+                              onPressed: () async {
+                                final provider = context.read<ChatProvider>();
+                                provider.duplicatedChatRoom(chatRoom);
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            FlyoutListTile(
                               text: Text('Delete chat',
                                   style: TextStyle(color: Colors.red)),
                               icon: Icon(FluentIcons.delete_20_filled,
