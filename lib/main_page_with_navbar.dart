@@ -458,12 +458,14 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text: Text('Duplicated chat', style: TextStyle()),
-                              icon: Icon(FluentIcons.chat_settings_20_regular),
+                              text: Text('Duplicate chat', style: TextStyle()),
+                              icon: Icon(FluentIcons.document_copy_20_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
-                                provider.duplicatedChatRoom(chatRoom);
+                                await provider.duplicateChatRoom(chatRoom);
+                                // ignore: use_build_context_synchronously
                                 Navigator.of(context).pop();
+                                _updateUI();
                               },
                             ),
                             FlyoutListTile(

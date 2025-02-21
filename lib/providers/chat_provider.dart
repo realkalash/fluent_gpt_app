@@ -270,6 +270,7 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// if [rooms] list is 1 element and it's current chat room, it will save messages to disk
   Future<void> saveToDisk(List<ChatRoom> rooms) async {
     if (rooms.length == 1) {
       if (rooms.first.id == selectedChatRoomId) {
@@ -3038,19 +3039,44 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([selectedChatRoom]);
   }
 
-  void deleteMessagesBelow(String id) {}
+  Future<void> deleteMessagesBelow(String id) async {
+    final confirmed = await ConfirmationDialog.show(context: context!,message: 'Everything below will be deleted in current chat');
+    if (!confirmed) return;
+    final messagesList = messages.value;
+    final keys = messagesList.keys.toList();
+    final index = keys.indexOf(id);
+    for (var i = index + 1; i < keys.length; i++) {
+      messagesList.remove(keys[i]);
+    }
+    messages.add(messagesList);
+    recalculateTokensFromLocalMessages(false);
+    saveToDisk([selectedChatRoom]);
+  }
 
-  void duplicatedChatRoom(ChatRoom chatRoom) {
+  Future<void> duplicateChatRoom(ChatRoom chatRoom) async {
     final newChatRoom = chatRoom.copyWith(
       id: generateChatID(),
       chatRoomName: '${chatRoom.chatRoomName} copy',
       dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
       dateModifiedMilliseconds: DateTime.now().millisecondsSinceEpoch,
-      
     );
     chatRooms[newChatRoom.id] = newChatRoom;
-    selectedChatRoomId = newChatRoom.id;
-    messages.add({});
+    // if it's current chat room, save messages
+    final messagesRaw = <Map<String, dynamic>>[];
+    final fileMessagesOfSelectedChat = await FileUtils.getChatRoomMessagesFileById(
+      chatRoom.id,
+    );
+    final stringMessages = await fileMessagesOfSelectedChat.readAsString();
+    final mappedMessages = jsonDecode(stringMessages) as List<dynamic>;
+    for (var message in mappedMessages) {
+      messagesRaw.add(message as Map<String, dynamic>);
+    }
+   
+    await FileUtils.saveChatMessages(
+      newChatRoom.id, jsonEncode(messagesRaw),
+    );
+    
+    notifyListeners();
     notifyRoomsStream();
     saveToDisk([newChatRoom]);
   }

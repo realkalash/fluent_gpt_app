@@ -688,7 +688,8 @@ class _MessageCardState extends State<MessageCard> {
       canRegenerate = true;
       final previousMessage =
           messagesReversedList.length > 1 ? messagesReversedList[1] : null;
-      if (previousMessage?.type == FluentChatMessageType.textAi || message.type == FluentChatMessageType.textAi) {
+      if (previousMessage?.type == FluentChatMessageType.textAi ||
+          message.type == FluentChatMessageType.textAi) {
         canRegenerate = false;
       }
     }
@@ -1016,20 +1017,29 @@ class _MessageCardState extends State<MessageCard> {
             final provider = context.read<ChatProvider>();
             provider.deleteMessage(widget.message.id);
           },
-        ),MenuFlyoutItem(
-          text: Text('Delete everything above', style: TextStyle(color: Colors.red)),
-          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
-          onPressed: () {
+        ),
+        MenuFlyoutItem(
+          text: Text('Delete everything above',
+              style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.arrow_up_exclamation_20_regular,
+              color: Colors.red),
+          onPressed: () async {
             final provider = context.read<ChatProvider>();
-            provider.deleteMessagesAbove(widget.message.id);
+            await provider.deleteMessagesAbove(widget.message.id);
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).maybePop();
           },
         ),
         MenuFlyoutItem(
-          text: Text('Delete everything below', style: TextStyle(color: Colors.red)),
-          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
-          onPressed: () {
+          text: Text('Delete everything below',
+              style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.arrow_down_exclamation_20_regular,
+              color: Colors.red),
+          onPressed: () async {
             final provider = context.read<ChatProvider>();
-            provider.deleteMessagesBelow(widget.message.id);
+            await provider.deleteMessagesBelow(widget.message.id);
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).maybePop();
           },
         ),
       ],
@@ -1144,7 +1154,9 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
             child: AnimatedContainer(
               duration: Duration(milliseconds: 400),
               height: isDescriptionVisible ? 200 : 48,
-              width: isDescriptionVisible ? MediaQuery.sizeOf(context).width - 300 : 48,
+              width: isDescriptionVisible
+                  ? MediaQuery.sizeOf(context).width - 300
+                  : 48,
               decoration: BoxDecoration(
                 color: context.theme.cardColor,
                 borderRadius: BorderRadius.circular(10),
@@ -1155,16 +1167,16 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (isDescriptionVisible)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: SelectableText(
-                        widget.description!,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: SelectableText(
+                          widget.description!,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
