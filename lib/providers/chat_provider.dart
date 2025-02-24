@@ -20,6 +20,7 @@ import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
@@ -456,11 +457,14 @@ class ChatProvider with ChangeNotifier {
     trayButtonStream.listen((value) async {
       var command = '';
       var text = '';
+      Uri? uri;
+      Map<String, String> params = {};
       if (value?.contains('fluentgpt:///') == true ||
           value?.contains('fluentgpt://') == true) {
-        final uri = Uri.parse(value!);
-        command = uri.queryParameters['command'] ?? '';
+        uri = Uri.tryParse(value!);
+        command = uri!.queryParameters['command'] ?? '';
         text = uri.queryParameters['text'] ?? '';
+        params = uri.queryParameters;
       } else {
         final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
         text = clipboard?.text ?? '';
@@ -476,7 +480,22 @@ class ChatProvider with ChangeNotifier {
         }
       } else if (command == TrayCommand.custom.name) {
         messageController.clear();
-        sendMessage(text, hidePrompt: true);
+        sendMessage(
+          text,
+          hidePrompt: true,
+          includeConversationOnSend: params['includeConversation'] == 'true',
+          useSystemPrompt: params['includeSystemPrompt'] == 'true',
+          onFinishResponse: () {
+            if (params['status'] == 'silent') {
+              final lastMessage = messagesReversedList.first;
+              NotificationService.showNotification(
+                selectedChatRoom.characterName,
+                lastMessage.content,
+                id: text.length.toString(),
+              );
+            }
+          },
+        );
       } else if (command == TrayCommand.push_to_talk_message.name) {
         messageController.clear();
         sendMessage(text, hidePrompt: true, onFinishResponse: () async {
@@ -647,7 +666,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   void renameCurrentChatRoom(String newName, [bool applyIcon = true]) {
-    final chatRoom = chatRooms[selectedChatRoomId]!;
+    final chatRoom =
+        chatRooms[selectedChatRoomId] ?? chatRooms.entries.first.value;
+
     chatRoom.chatRoomName = newName.removeWrappedQuotes;
     if (applyIcon) {
       final words = newName.split(' ');
@@ -823,12 +844,14 @@ class ChatProvider with ChangeNotifier {
     void Function()? onFinishResponse,
     void Function()? onMessageSent,
     bool sendAsUser = true,
+    bool useSystemPrompt = true,
+    bool includeConversationOnSend = true,
     int? seed,
   }) async {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final isToolsEnabled = AppCache.gptToolCopyToClipboardEnabled.value == true;
-    if (isFirstMessage) {
+    if (isFirstMessage && useSystemPrompt) {
       // regenerate system message to update time/weather etc
       // This is a first message, so it will regenerate the system message from the global prompt
       // for chat that been cleared. This is expected bug!
@@ -923,7 +946,7 @@ class ChatProvider with ChangeNotifier {
         FluentChatMessage.humanText(
           id: '$timestamp',
           content: messageContent,
-          creator: AppCache.userName.value!,
+          creator: AppCache.userName.value ?? 'User',
           timestamp: timestamp,
         ),
       );
@@ -1024,16 +1047,29 @@ class ChatProvider with ChangeNotifier {
     final messagesToSend = <ChatMessage>[];
     if (includeConversationGlobal) {
       await Future.delayed(const Duration(milliseconds: 50));
-      final lastMessages = await getLastMessagesLimitToTokens(
-        selectedChatRoom.maxTokenLength -
-            (selectedChatRoom.systemMessageTokensCount ?? 0),
-        allowImages: true,
-      );
-      final lastMessagesLangChain =
-          lastMessages.map((e) => e.toLangChainChatMessage());
-      messagesToSend.addAll(lastMessagesLangChain);
+      if (includeConversationOnSend) {
+        final lastMessages = await getLastMessagesLimitToTokens(
+          selectedChatRoom.maxTokenLength -
+              (selectedChatRoom.systemMessageTokensCount ?? 0),
+          allowImages: true,
+        );
+        // if false it will just skip all messages in chat for this case
+        final lastMessagesLangChain =
+            lastMessages.map((e) => e.toLangChainChatMessage());
+        messagesToSend.addAll(lastMessagesLangChain);
+      }
+      else {
+         messagesToSend.add(
+          sendAsUser
+              ? HumanChatMessage(
+                  content: ChatMessageContent.text(messageContent),
+                )
+              : AIChatMessage(content: messageContent),
+        );
+      }
 
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true &&
+          useSystemPrompt) {
         messagesToSend.insert(
             0, SystemChatMessage(content: selectedChatRoom.systemMessage!));
       }
@@ -1042,7 +1078,8 @@ class ChatProvider with ChangeNotifier {
       //     0, ChatMessage.system('Previous chat hidden due to overflow'));
     }
     if (!includeConversationGlobal) {
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true) {
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true &&
+          useSystemPrompt) {
         final systemMessage = await getFormattedSystemPrompt(
           basicPrompt: selectedChatRoom.systemMessage!,
         );
@@ -3026,7 +3063,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> deleteMessagesAbove(String id) async {
-    final confirmed = await ConfirmationDialog.show(context: context!,message: 'Everything above will be deleted in current chat');
+    final confirmed = await ConfirmationDialog.show(
+        context: context!,
+        message: 'Everything above will be deleted in current chat');
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -3040,7 +3079,9 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> deleteMessagesBelow(String id) async {
-    final confirmed = await ConfirmationDialog.show(context: context!,message: 'Everything below will be deleted in current chat');
+    final confirmed = await ConfirmationDialog.show(
+        context: context!,
+        message: 'Everything below will be deleted in current chat');
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -3063,7 +3104,8 @@ class ChatProvider with ChangeNotifier {
     chatRooms[newChatRoom.id] = newChatRoom;
     // if it's current chat room, save messages
     final messagesRaw = <Map<String, dynamic>>[];
-    final fileMessagesOfSelectedChat = await FileUtils.getChatRoomMessagesFileById(
+    final fileMessagesOfSelectedChat =
+        await FileUtils.getChatRoomMessagesFileById(
       chatRoom.id,
     );
     final stringMessages = await fileMessagesOfSelectedChat.readAsString();
@@ -3071,11 +3113,12 @@ class ChatProvider with ChangeNotifier {
     for (var message in mappedMessages) {
       messagesRaw.add(message as Map<String, dynamic>);
     }
-   
+
     await FileUtils.saveChatMessages(
-      newChatRoom.id, jsonEncode(messagesRaw),
+      newChatRoom.id,
+      jsonEncode(messagesRaw),
     );
-    
+
     notifyListeners();
     notifyRoomsStream();
     saveToDisk([newChatRoom]);

@@ -42,8 +42,12 @@ class CustomPrompt {
   /// Shortcut for using this custom prompt
   final HotKey? hotkey;
 
-  /// If true will automatically focus the window when the prompt is run
-  final bool focusTheWindowOnRun;
+  /// If true the main window will not be shown after the prompt is run
+  /// and the result will be shown in Push notification
+  final bool silentHideWindowsAfterRun;
+
+  final bool includeSystemPrompt;
+  final bool includeConversation;
 
   IconData get icon => IconData(iconCodePoint,
       fontFamily: CustomPrompt.fontFamily,
@@ -61,8 +65,10 @@ class CustomPrompt {
     this.children = const [],
     this.iconCodePoint = 62086,
     this.hotkey,
-    this.focusTheWindowOnRun = false,
     this.tags = const [],
+    this.silentHideWindowsAfterRun = false,
+    this.includeSystemPrompt = true,
+    this.includeConversation = true,
   });
 
   /// Returns the prompt text with the selected text
@@ -126,9 +132,11 @@ class CustomPrompt {
       'children': children.map((e) => e.toJson()).toList(),
       'icon': iconCodePoint,
       'hotkey': hotkey?.toJson(),
-      'focusTheWindowOnRun': focusTheWindowOnRun,
       'index': index,
       'tags': tags,
+      'silentHideWindowsAfterRun': silentHideWindowsAfterRun,
+      'includeSystemPrompt': includeSystemPrompt,
+      'includeConversation': includeConversation,
     };
   }
 
@@ -152,10 +160,12 @@ class CustomPrompt {
           : [],
       iconCodePoint: json['icon'] as int? ?? 62086,
       hotkey: json['hotkey'] != null ? HotKey.fromJson(json['hotkey']) : null,
-      focusTheWindowOnRun: json['focusTheWindowOnRun'] ?? false,
       tags: json['tags'] != null
           ? (json['tags'] as List).map((e) => e.toString()).toList()
           : [],
+      silentHideWindowsAfterRun: json['silentHideWindowsAfterRun'] ?? false,
+      includeSystemPrompt: json['includeSystemPrompt'] ?? true,
+      includeConversation: json['includeConversation'] ?? true,
     );
   }
 
@@ -181,6 +191,9 @@ class CustomPrompt {
     HotKey? hotkey,
     bool? focusTheWindowOnRun,
     List<String>? tags,
+    bool? silentHideWindowsAfterRun,
+    bool? includeSystemPrompt,
+    bool? includeConversation,
   }) {
     return CustomPrompt(
       id: id ?? this.id,
@@ -194,8 +207,11 @@ class CustomPrompt {
       showInHomePage: showInHomePage ?? this.showInHomePage,
       children: children ?? this.children,
       hotkey: hotkey ?? this.hotkey,
-      focusTheWindowOnRun: focusTheWindowOnRun ?? this.focusTheWindowOnRun,
       tags: tags ?? this.tags,
+      silentHideWindowsAfterRun:
+          silentHideWindowsAfterRun ?? this.silentHideWindowsAfterRun,
+      includeSystemPrompt: includeSystemPrompt ?? this.includeSystemPrompt,
+      includeConversation: includeConversation ?? this.includeConversation,
     );
   }
 }

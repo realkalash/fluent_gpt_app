@@ -2023,11 +2023,12 @@ class __CacheSectionState extends State<_CacheSection> {
           spacing: 8.0,
           runSpacing: 8,
           children: [
-            Button(
-                child: Text('PN'),
-                onPressed: () {
-                  NotificationService.showNotification('title', 'body');
-                }),
+            if (kDebugMode)
+              Button(
+                  child: Text('PN'),
+                  onPressed: () {
+                    NotificationService.showNotification('title', 'body');
+                  }),
             Button(
                 child: Text('Application storage location'),
                 onPressed: () {

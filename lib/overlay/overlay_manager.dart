@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -285,24 +286,37 @@ class OverlayManager {
         // }
         selectedText = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
         final isAppVisible = await windowManager.isVisible();
+        Map<String, String> data = {};
 
-        /// show app window
-        if (!isAppVisible) {
-          final Offset? mouseCoord =
-              await NativeChannelUtils.getMousePosition();
-          // windows can't resize windows at all
-          if (!Platform.isLinux) {
-            /// show mini overlay
-            if (!overlayVisibility.value.isEnabled) {
-              await showOverlay(
-                navigatorKey.currentContext!,
-                positionX: mouseCoord?.dx,
-                positionY: mouseCoord?.dy,
-              );
+        if (prompt.silentHideWindowsAfterRun == false) {
+          /// show app window
+          if (!isAppVisible) {
+            final Offset? mouseCoord =
+                await NativeChannelUtils.getMousePosition();
+            // windows can't resize windows at all
+            if (!Platform.isLinux) {
+              /// show mini overlay
+              if (!overlayVisibility.value.isEnabled) {
+                await showOverlay(
+                  navigatorKey.currentContext!,
+                  positionX: mouseCoord?.dx,
+                  positionY: mouseCoord?.dy,
+                );
+              }
             }
           }
+          await windowManager.show();
+        } else {
+          log('Prompt is silent. Show processing...');
+
+          /// show only Push notification after run
+          NotificationService.showNotification(
+            prompt.title,
+            'Processing',
+            id: prompt.getPromptText(selectedText).length.toString(),
+          );
         }
-        await windowManager.show();
+
         if (!Platform.isLinux) {
           /// if already open show chat UI inside the overlay
           if (overlayVisibility.value.isShowingSidebarOverlay) {
@@ -316,7 +330,16 @@ class OverlayManager {
           Clipboard.setData(ClipboardData(text: previousClipboard));
         }
 
-        await onTrayButtonTapCommand(prompt.getPromptText(selectedText));
+        data['status'] = prompt.silentHideWindowsAfterRun ? 'silent' : 'visible';
+        data['includeConversation'] = prompt.includeConversation.toString();
+        data['includeSystemPrompt'] = prompt.includeSystemPrompt.toString();
+
+
+        await onTrayButtonTapCommand(
+          prompt.getPromptText(selectedText),
+          null,
+          data.isNotEmpty ? data : null,
+        );
         _isHotKeyRegistering = false;
       },
     );

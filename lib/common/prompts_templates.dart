@@ -13,6 +13,8 @@ Only give me the output and nothing else. Respond in the same language variety o
     showInChatField: true,
     showInOverlay: true,
     children: [],
+    includeConversation: false,
+    includeSystemPrompt: false,
   ),
 ];
 const List<CustomPrompt> basePromptsTemplate = [
@@ -48,14 +50,18 @@ Only give me the output and nothing else. Respond in the \${lang} language. Answ
     iconCodePoint: 60703, // FluentIcons.text_grammar_wand_24_filled,
     index: 3,
     prompt: '''Check spelling and grammar in the following text.
-If the original text has no mistake, write "Original text has no mistake". 
-Answer only in clipboard quotes: \${clipboardAccess}. 
-"""
-\${input}
-"""''',
+If the original text has no mistake, write "None". 
+"\${input}"
+Output format:
+```clipboard
+{only corrected output}
+```
+''',
     showInChatField: true,
     showInOverlay: true,
     children: [],
+    includeConversation: false,
+    includeSystemPrompt: false,
   ),
   CustomPrompt(
     id: 4,
@@ -71,6 +77,8 @@ Answer only in clipboard quotes: \${clipboardAccess}.
     showInChatField: true,
     showInOverlay: true,
     children: [],
+    includeConversation: false,
+    includeSystemPrompt: false,
   ),
   CustomPrompt(
     id: 5,
@@ -82,6 +90,8 @@ Answer only in clipboard quotes: \${clipboardAccess}.
     "\${input}"''',
     showInChatField: true,
     showInOverlay: true,
+    includeConversation: false,
+    includeSystemPrompt: false,
     children: [
       CustomPrompt(
         id: 6,
@@ -90,6 +100,8 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         prompt:
             '''Please translate the following text to English. Only give me the output and nothing else:
     "\${input}"''',
+        includeConversation: false,
+        includeSystemPrompt: false,
       ),
       CustomPrompt(
         id: 7,
@@ -98,6 +110,8 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         prompt:
             '''Please translate the following text to Russian. Only give me the output and nothing else:
     "\${input}"''',
+        includeConversation: false,
+        includeSystemPrompt: false,
       ),
       CustomPrompt(
         id: 8,
@@ -106,6 +120,8 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         prompt:
             '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
     "\${input}"''',
+        includeConversation: false,
+        includeSystemPrompt: false,
       ),
     ],
   ),

@@ -11,7 +11,6 @@ class TextSelectionCustomPrompt extends CustomPrompt {
     super.children = const [],
     super.iconCodePoint = 62086,
     super.hotkey,
-    super.focusTheWindowOnRun = false,
     super.tags = const [],
   });
 

@@ -4,6 +4,8 @@ import FlutterMacOS
 import Foundation
 import AVFoundation
 import Quartz
+// This is required for calling FlutterLocalNotificationsPlugin.setPluginRegistrantCallback method.
+// import flutter_local_notifications
 
 @main
 class AppDelegate: FlutterAppDelegate {

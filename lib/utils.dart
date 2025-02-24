@@ -20,7 +20,7 @@ import 'dart:typed_data';
 String generateChatID() => nanoid(length: 16);
 
 /// Generates a random 16 character ID
-String generate16ID() => nanoid(length: 16);
+String generate16ID() => nanoid(length: 16, alphabet: Alphabet.alphanumeric);
 
 extension ThemeExtension on BuildContext {
   FluentThemeData get theme => FluentTheme.of(this);

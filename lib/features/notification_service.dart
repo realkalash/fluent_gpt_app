@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -51,24 +52,59 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
     log("Notification service activated with app id: $appId");
   }
 
-  static void showNotification(
+  static Future<void> showNotification(
     String title,
     String body, {
+    /// should be string number
+    String? id,
     Map<String, dynamic> payload = const {},
     String? thumbnailFilePath,
     String? imageFilePath,
-  }) {
-    String id = generate16ID();
+  }) async {
+    String _id = id ?? generate16ID();
+    if (Platform.isWindows) {
+      NotificationMessage message = NotificationMessage.fromPluginTemplate(
+        _id,
+        title,
+        body,
+        largeImage: imageFilePath,
+        image: thumbnailFilePath,
+        payload: payload,
+      );
 
-    NotificationMessage message = NotificationMessage.fromPluginTemplate(
-      id,
-      title,
-      body,
-      largeImage: imageFilePath,
-      image: thumbnailFilePath,
-      payload: payload,
-    );
-
-    _winNotifyPlugin.showNotificationPluginTemplate(message);
+      _winNotifyPlugin.showNotificationPluginTemplate(message);
+      return;
+    }
+    if (Platform.isMacOS || Platform.isIOS) {
+      final permission =
+          await MacOSFlutterLocalNotificationsPlugin().checkPermissions();
+      if (permission?.isEnabled == false) {
+        await MacOSFlutterLocalNotificationsPlugin().requestPermissions(
+          alert: true,
+          badge: true,
+          provisional: true,
+        );
+      }
+      final stringPayload = jsonEncode(payload);
+      await notificationsPlugin.show(
+        int.tryParse(_id) ?? 999,
+        title,
+        body,
+        null,
+        payload: stringPayload,
+      );
+      return;
+    }
+    if (Platform.isLinux) {
+      final stringPayload = jsonEncode(payload);
+      await notificationsPlugin.show(
+        int.tryParse(_id) ?? 999,
+        title,
+        body,
+        null,
+        payload: stringPayload,
+      );
+      return;
+    }
   }
 }

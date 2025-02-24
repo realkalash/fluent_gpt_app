@@ -117,15 +117,17 @@ onTrayButtonTap(String item) {
 ///
 /// Example: `onTrayButtonTapCommand('Hello World', TrayCommand.paste.name);`
 Future<void> onTrayButtonTapCommand(String promptText,
-    [String? command]) async {
+    [String? command, Map<String, dynamic>? data]) async {
   /// generate a command with prompt uri
   const urlScheme = 'fluentgpt';
   final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
     'command': command ?? TrayCommand.custom.name,
     'text': promptText,
+    if (data != null) ...data,
   });
 
   trayButtonStream.add(uri.toString());
+  if (data?['status'] == 'silent') return;
   final visible = await windowManager.isVisible();
   if (!visible) {
     await windowManager.show();
