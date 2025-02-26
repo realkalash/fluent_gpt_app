@@ -50,7 +50,7 @@ int calcAllPromptsLenght() {
 class OverlayStatus {
   final bool isShowingOverlay;
   final bool isShowingSidebarOverlay;
-  OverlayStatus({
+  const OverlayStatus({
     this.isShowingOverlay = false,
     this.isShowingSidebarOverlay = false,
   });
@@ -305,7 +305,7 @@ class OverlayManager {
               }
             }
           }
-          await windowManager.show();
+          await showWindow();
         } else {
           log('Prompt is silent. Show processing...');
 
@@ -330,10 +330,10 @@ class OverlayManager {
           Clipboard.setData(ClipboardData(text: previousClipboard));
         }
 
-        data['status'] = prompt.silentHideWindowsAfterRun ? 'silent' : 'visible';
+        data['status'] =
+            prompt.silentHideWindowsAfterRun ? 'silent' : 'visible';
         data['includeConversation'] = prompt.includeConversation.toString();
         data['includeSystemPrompt'] = prompt.includeSystemPrompt.toString();
-
 
         await onTrayButtonTapCommand(
           prompt.getPromptText(selectedText),

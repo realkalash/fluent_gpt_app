@@ -12,7 +12,10 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/overlay/overlay_ui.dart';
+import 'package:fluent_gpt/widgets/input_field.dart';
+import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:pasteboard/pasteboard.dart';
@@ -25,7 +28,7 @@ import 'package:rxdart/rxdart.dart';
 final trayButtonStream = BehaviorSubject<String?>();
 AppTrayListener appTrayListener = AppTrayListener();
 final List<MenuItem> trayMenuFooterItems = [
-  MenuItem(label: 'Show', onClick: (_) => windowManager.show()),
+  MenuItem(label: 'Show', onClick: (_) => showWindow()),
   MenuItem(label: 'Hide', onClick: (_) => windowManager.hide()),
   MenuItem(
       label: 'Exit',
@@ -110,7 +113,7 @@ Future<void> initTrayMenuItems() async {
 @Deprecated('Use onTrayButtonTapCommand instead')
 onTrayButtonTap(String item) {
   trayButtonStream.add(item);
-  windowManager.show();
+  showWindow();
 }
 
 /// You can use [TrayCommand] enum to send commands to the app.
@@ -130,7 +133,7 @@ Future<void> onTrayButtonTapCommand(String promptText,
   if (data?['status'] == 'silent') return;
   final visible = await windowManager.isVisible();
   if (!visible) {
-    await windowManager.show();
+    await showWindow();
   }
 }
 
@@ -154,8 +157,11 @@ enum TrayCommand {
   generate_dalle_image,
 }
 
-showWindow() {
-  windowManager.show(inactive: Platform.isMacOS ? true : false);
+Future showWindow() async {
+  await windowManager.show(inactive: false);
+  if (Platform.isMacOS) {
+    // await windowManager.focus();
+  }
 }
 
 /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
@@ -193,7 +199,7 @@ Future<void> initShortcuts() async {
         windowManager.hide();
       } else {
         log('Showing Window');
-        windowManager.show();
+        await showWindow();
       }
     },
   );
@@ -286,7 +292,7 @@ Future<void> initCachedHotKeys() async {
         //   return;
         // }
         if (!isAppVisible) {
-          windowManager.show();
+          await showWindow();
           _isHotKeyRegistering = false;
           return;
         }
@@ -388,13 +394,15 @@ class AppTrayListener extends TrayListener {
   /// Emitted when the mouse clicks the tray icon.
   @override
   void onTrayIconMouseDown() {
+    if (kDebugMode) {
+      print('onTrayIconMouseUp');
+    }
     if (Platform.isWindows) {
-      windowManager.isVisible().then((isVisible) {
+      windowManager.isVisible().then((isVisible) async {
         if (isVisible) {
           windowManager.hide();
         } else {
-          windowManager.show();
-          windowManager.focus();
+          await showWindow();
         }
       });
     }
@@ -403,12 +411,31 @@ class AppTrayListener extends TrayListener {
   /// Emitted when the mouse is released from clicking the tray icon.
   @override
   void onTrayIconMouseUp() {
-    windowManager.isVisible().then((isVisible) {
+    if (kDebugMode) {
+      print('onTrayIconMouseUp');
+    }
+    windowManager.isVisible().then((isVisible) async {
       if (isVisible) {
         windowManager.hide();
+        OverlayUI.isChatVisible.add(false);
+        overlayVisibility.add(OverlayStatus.disabled);
       } else {
-        windowManager.show();
-        windowManager.focus();
+        final cursorPos = await NativeChannelUtils.getMousePosition();
+        await showWindow();
+        if (cursorPos != null) {
+          // dy is 961 instead of 38. We need to calc based on the height of the window
+          final screen = await NativeChannelUtils.getScreenSize();
+          final height = screen?['height'] ?? 720;
+          final modifCursorPos = Offset(cursorPos.dx, cursorPos.dy - height);
+          windowManager.setPosition(modifCursorPos, animate: false);
+          OverlayUI.isChatVisible.add(true);
+          overlayVisibility.add(OverlayStatus.enabled);
+
+          /// because focus node is linked to both widgets we need to unfocus from the old one
+          promptTextFocusNode.unfocus();
+          await Future.delayed(const Duration(milliseconds: 100));
+          promptTextFocusNode.requestFocus();
+        }
       }
     });
   }

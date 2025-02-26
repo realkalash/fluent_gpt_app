@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:window_manager/window_manager.dart';
@@ -36,6 +37,10 @@ class AppWindowListener extends WindowListener {
     }
     final size = await windowManager.getSize();
     log('Window resized. Size: $size');
+    if (size.width < defaultMinimumWindowSize.width ||
+        size.height < defaultMinimumWindowSize.height) {
+      return;
+    }
     AppCache.windowWidth.set(size.width.toInt());
     AppCache.windowHeight.set(size.height.toInt());
   }

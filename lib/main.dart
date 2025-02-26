@@ -50,8 +50,6 @@ Future<void> initWindow() async {
     );
   }
 
-  // The chairs look good
-
   await windowManager.setTitle('fluent_gpt');
   await windowManager.setMinimumSize(defaultMinimumWindowSize);
   await windowManager.show();

@@ -18,7 +18,6 @@ import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -42,6 +41,10 @@ import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_provider.dart';
+
+final promptTextFocusNode = FocusNode();
+// only for mini input field
+final promptTextMiniFocusNode = FocusNode();
 
 class InputField extends StatefulWidget {
   const InputField({super.key, this.isMini = false});
@@ -362,6 +365,16 @@ class _InputFieldState extends State<InputField> {
             if (widget.isMini) ...[
               Row(
                 children: [
+                  IconButton(
+                    // visualDensity: VisualDensity.compact,
+                    icon: Icon(ic.FluentIcons.chat_add_20_filled),
+                    onPressed: () {
+                      // if messages are not empty
+                      if (messages.value.isEmpty) return;
+                      onTrayButtonTapCommand(
+                          '', TrayCommand.create_new_chat.name);
+                    },
+                  ),
                   if (chatProvider.fileInput == null)
                     _AddFileButton(
                         chatProvider: chatProvider, isMini: widget.isMini),
@@ -377,6 +390,7 @@ class _InputFieldState extends State<InputField> {
                   focusNode: promptTextFocusNode,
                   prefixMode: OverlayVisibilityMode.always,
                   controller: chatProvider.messageController,
+                  expands: false,
                   minLines: 2,
                   maxLines: 30,
                   suffix: const _MicrophoneButton(),

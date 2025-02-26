@@ -2062,6 +2062,12 @@ class ChatProvider with ChangeNotifier {
   }
 
   void selectNewModel(ChatModelAi model) {
+    if (chatRooms[selectedChatRoomId] == null) {
+      // create new chat Room
+      final id = generateChatID();
+      chatRooms[id] = selectedChatRoom.copyWith(model: model);
+      selectedChatRoomId = id;
+    }
     chatRooms[selectedChatRoomId]!.model = model;
     initModelsApi();
     notifyListeners();

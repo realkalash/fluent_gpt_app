@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/subjects.dart';
+import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_provider.dart';
@@ -119,16 +120,6 @@ class _OverlayUIState extends State<OverlayUI> {
                                 ? const Icon(Icons.arrow_circle_up_rounded)
                                 : const Icon(Icons.arrow_circle_down_rounded),
                             onPressed: () => toggleChatVisibilityStream(),
-                          )),
-                    if (isShowChatUI == true)
-                      Positioned(
-                          left: 0,
-                          bottom: 24,
-                          child: IconButton(
-                            visualDensity: VisualDensity.compact,
-                            icon: const Icon(FluentIcons.chat_add_20_filled),
-                            onPressed: () =>
-                                onTrayButtonTapCommand('', 'create_new_chat'),
                           )),
                     Positioned(
                       top: isSuperCompact ? 7.0 : 0,
@@ -397,6 +388,78 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
     super.initState();
   }
 
+  static const List<String> welcomesForEmptyList = [
+    'Ask me anything',
+    'What can I do for you?',
+    'How can I help you?',
+    'What do you need?',
+    'Hey {user}',
+    '👋 Hi there!',
+    '✨ Ready when you are',
+    '🤔 Got a question?',
+    '💬 Chat with me',
+    '🚀 Let\'s get started',
+    '💡 Need some ideas?',
+    '🔍 Looking for something?',
+    '📝 Need help with writing?',
+    '👨‍💻 Coding assistance?',
+    '🎯 What\'s your goal today?',
+    '✌️ At your service',
+    '🌈 Let\'s create something',
+    '🧠 Pick my brain',
+    '🎨 Need creative help?',
+    '🛠️ Tool time!',
+    '💪 Let\'s solve problems',
+    '🌟 What shall we explore?',
+    '🔮 Tell me your thoughts',
+    '🌱 Growing ideas together',
+    '🧩 Puzzle-solving time',
+    '⚡ Ready for anything',
+    '🎭 How can I assist?',
+    '🎬 Action!',
+    '📊 Need data analysis?',
+    '🚦 Where to next?',
+    '🎵 What\'s your tune today?',
+    '🧪 Let\'s experiment',
+    '📱 App help needed?',
+    '🔧 Technical questions?',
+    '🌐 Web development?',
+    '✏️ Drafting together',
+    '👾 Debugging help?',
+    '🤝 Let\'s collaborate',
+    '📚 Research assistance?',
+    '🏗️ Building something?',
+    '🧮 Math problems?',
+    '💻 Code review needed?',
+    '🧵 Threading thoughts...',
+    '🔥 What\'s hot on your mind?',
+    '🦄 Magical solutions await',
+    '🎪 Welcome to the show',
+    '🚢 Let\'s navigate together',
+    '🧐 Curious minds unite',
+    '🌞 Brightening your day',
+    '🎁 Got a surprise question?',
+    '🔠 Language help needed?',
+    '🧗 Tackling challenges',
+    '🏆 Aiming for excellence',
+    '🎲 Let\'s take a chance',
+    '🪄 Working magic here',
+    '🔋 Fully charged to help',
+    '🌊 Dive into questions',
+    '🧘 How can I bring clarity?',
+    '🏎️ Speed-solving ready',
+    '🔍 Investigating together',
+    '👁️ Looking for insights?',
+    '🎮 Game development help?',
+    '🧬 Complex problem to solve?',
+    '📡 Broadcasting assistance',
+    '🎯 Targeting solutions',
+    '🌎 Global questions welcome',
+    '🧠 Brain.exe is running',
+    '🎧 I\'m listening...',
+    '🌈 Inspiration needed?'
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -408,6 +471,18 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                 stream: messages,
                 builder: (context, snapshot) {
                   final reverseList = messagesReversedList;
+                  if (reverseList.isEmpty) {
+                    final randWelcome = welcomesForEmptyList[
+                        Random().nextInt(welcomesForEmptyList.length)];
+                    return Center(
+                      child: TextAnimator(
+                        randWelcome,
+                        initialDelay: Duration(milliseconds: 200),
+                        style: TextStyle(fontSize: 30),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
 
                   return ListView.builder(
                     itemCount: reverseList.length,

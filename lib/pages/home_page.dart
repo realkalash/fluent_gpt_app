@@ -45,7 +45,6 @@ import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_provider.dart';
 
-final promptTextFocusNode = FocusNode();
 final BehaviorSubject<bool> showEditChatDrawer =
     BehaviorSubject<bool>.seeded(false);
 
@@ -1706,8 +1705,8 @@ class _ScrollToBottomButton extends StatelessWidget {
       style: ToggleButtonThemeData(
         checkedButtonStyle: ButtonStyle(
           padding: WidgetStateProperty.all(EdgeInsets.zero),
-          backgroundColor: WidgetStateProperty.all(
-              context.theme.accentColor.withAlpha(128)),
+          backgroundColor:
+              WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
         ),
         uncheckedButtonStyle: ButtonStyle(
           padding: WidgetStateProperty.all(EdgeInsets.zero),
