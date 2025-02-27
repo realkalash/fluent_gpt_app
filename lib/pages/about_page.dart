@@ -8,25 +8,28 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
-      header: PageHeader(
-        title: Text(
-          'FluentGPT',
-          style: FluentTheme.of(context).typography.display,
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage(
+        header: PageHeader(
+          title: Text(
+            'FluentGPT',
+            style: FluentTheme.of(context).typography.display,
+          ),
+          leading: IconButton(
+            icon: const Icon(FluentIcons.arrow_left_24_regular, size: 24),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-        leading: IconButton(
-          icon: const Icon(FluentIcons.arrow_left_24_regular, size: 24),
-          onPressed: () => Navigator.of(context).pop(),
+        content: ListView(
+          padding: const EdgeInsets.all(20.0),
+          children: const [
+            AppVersion(),
+            SizedBox(height: 16.0),
+            // description
+            AppDescription(),
+          ],
         ),
-      ),
-      content: ListView(
-        padding: const EdgeInsets.all(20.0),
-        children: const [
-          AppVersion(),
-          SizedBox(height: 16.0),
-          // description
-          AppDescription(),
-        ],
       ),
     );
   }

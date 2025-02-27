@@ -18,6 +18,7 @@ import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -936,7 +937,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                                     Navigator.of(context).push(
                                       FluentPageRoute(
                                         builder: (context) =>
-                                            const SettingsPage(),
+                                            const NewSettingsPage(),
                                       ),
                                     );
                                   } else {

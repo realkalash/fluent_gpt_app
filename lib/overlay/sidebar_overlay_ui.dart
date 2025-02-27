@@ -7,7 +7,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -145,7 +145,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                                             .push(
                                           fluent.FluentPageRoute(
                                               builder: (context) =>
-                                                  const SettingsPage()),
+                                                  const NewSettingsPage()),
                                         );
                                       },
                                     ),

@@ -30,7 +30,7 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -2611,7 +2611,7 @@ class ChatProvider with ChangeNotifier {
                 // ensure its closed
                 await Future.delayed(const Duration(milliseconds: 200));
                 Navigator.of(context!).push(
-                  FluentPageRoute(builder: (ctx) => const SettingsPage()),
+                  FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
                 );
               },
               child: const Text('Settings'),

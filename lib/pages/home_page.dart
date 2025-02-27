@@ -17,6 +17,7 @@ import 'package:fluent_gpt/dialogs/edit_chat_drawer.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/theme.dart';
@@ -24,6 +25,7 @@ import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
+import 'package:fluent_gpt/widgets/home_widgets/src.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
@@ -959,239 +961,6 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
   }
 }
 
-class WeatherCard extends StatelessWidget {
-  const WeatherCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (AppCache.userCityName.value?.isEmpty == true) {
-      return const SizedBox.shrink();
-    }
-    if (AppCache.showWeatherWidget.value == false) {
-      return const SizedBox.shrink();
-    }
-    final scrollController = ScrollController();
-    return Entry.all(
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-      delay: const Duration(milliseconds: 500),
-      child: ChangeNotifierProvider(
-        create: (BuildContext context) => WeatherProvider(context),
-        builder: (ctx, _) {
-          final provider = ctx.watch<WeatherProvider>();
-          final isWeatherPresent = provider.filteredWeather.isNotEmpty;
-          final weatherDays = provider.filteredWeather;
-          return SizedBox(
-            width: 200,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
-              child: Card(
-                borderRadius: BorderRadius.circular(12),
-                margin: const EdgeInsets.all(0),
-                padding: const EdgeInsets.only(
-                    left: 16, right: 16, top: 4, bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text('Weather in',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(' ${AppCache.userCityName.value}',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold)),
-                        Spacer(),
-                        GestureDetector(
-                          onTap: () =>
-                              launchUrlString('https://open-meteo.com/'),
-                          child: Text(
-                            'by Open-Meteo',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w100,
-                              decoration: TextDecoration.underline,
-                              color: Colors.blue.lighter,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(FluentIcons.chrome_close, size: 10),
-                          onPressed: () {
-                            AppCache.showWeatherWidget.value =
-                                !(AppCache.showWeatherWidget.value!);
-                          },
-                        ),
-                      ],
-                    ),
-                    if (provider.isLoading) const Center(child: ProgressBar()),
-                    SizedBox(
-                      height: isWeatherPresent ? 130 : 0,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ListView.builder(
-                              controller: scrollController,
-                              padding: const EdgeInsets.only(left: 50),
-                              scrollDirection: Axis.horizontal,
-                              itemCount: weatherDays.length,
-                              itemBuilder: (ctx, i) {
-                                final weather = weatherDays[i];
-                                final weatherStatus = weather.weatherStatus;
-                                final date = weather.date ?? DateTime(1970);
-
-                                final formatter =
-                                    MediaQuery.of(context).alwaysUse24HourFormat
-                                        ? DateFormat('yyyy-MM-dd\nHH:mm')
-                                        : DateFormat('yyyy-MM-dd\nh:mm a');
-                                final formattedDate = formatter.format(date);
-                                return Card(
-                                  backgroundColor: i == 0
-                                      ? Colors.blue
-                                      : context.theme.cardColor,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        formattedDate,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      if (weatherStatus == WeatherCode.clearSky)
-                                        Icon(
-                                          ic.FluentIcons
-                                              .weather_sunny_20_filled,
-                                          color: Colors.yellow,
-                                        ),
-                                      if (weatherStatus ==
-                                          WeatherCode.partlyCloudy)
-                                        Icon(
-                                          ic.FluentIcons
-                                              .weather_partly_cloudy_day_20_filled,
-                                          color: Colors.blue,
-                                        ),
-                                      if (weatherStatus == WeatherCode.cloudy)
-                                        Icon(
-                                          ic.FluentIcons
-                                              .weather_cloudy_20_filled,
-                                          color: Colors.blue,
-                                        ),
-                                      if (weatherStatus == WeatherCode.foggy)
-                                        Icon(
-                                          ic.FluentIcons.weather_fog_20_filled,
-                                          color: Colors.teal,
-                                        ),
-                                      if (weatherStatus ==
-                                          WeatherCode.partlyCloudy)
-                                        Icon(
-                                          ic.FluentIcons
-                                              .weather_partly_cloudy_day_20_filled,
-                                          color: Colors.yellow,
-                                        ),
-                                      if (weatherStatus == WeatherCode.rain)
-                                        Icon(
-                                          ic.FluentIcons.weather_rain_20_filled,
-                                          color: Colors.blue,
-                                        ),
-                                      if (weatherStatus == WeatherCode.snow)
-                                        Icon(
-                                          ic.FluentIcons.weather_snow_20_filled,
-                                          color: Colors.blue,
-                                        ),
-                                      Text('${weather.precipitation} mm'),
-                                      Text(
-                                          '${weather.temperature}${weather.units}'),
-                                    ],
-                                  ),
-                                );
-                              }),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  scrollController.animateTo(
-                                    scrollController.offset + 150,
-                                    duration: const Duration(milliseconds: 100),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
-                                child: Container(
-                                  clipBehavior: Clip.hardEdge,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withAlpha(204),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  child: const Icon(
-                                      ic.FluentIcons.arrow_right_20_filled),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  scrollController.animateTo(
-                                    scrollController.offset - 150,
-                                    duration: const Duration(milliseconds: 100),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
-                                child: Container(
-                                  clipBehavior: Clip.hardEdge,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withAlpha(204),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  child: const Icon(
-                                      ic.FluentIcons.arrow_left_20_filled),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        SqueareIconButton(
-                          onTap: () {
-                            provider.fetchWeather(
-                                AppCache.userCityName.value!, true);
-                          },
-                          icon: Icon(
-                              ic.FluentIcons.arrow_counterclockwise_12_regular),
-                          tooltip: 'Refresh',
-                        ),
-                        const SizedBox(width: 8),
-                        Button(
-                          onPressed: () =>
-                              launchUrlString('https://weatherian.com/'),
-                          child: const Text('More'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
 
 class ChatGPTContent extends StatefulWidget {
   const ChatGPTContent({super.key});
@@ -1303,7 +1072,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                     Navigator.of(context).push(
                                       FluentPageRoute(
                                           builder: (context) =>
-                                              const SettingsPage()),
+                                              const NewSettingsPage()),
                                     );
                                   },
                                   child: const Text('Settings->API and URLs'),

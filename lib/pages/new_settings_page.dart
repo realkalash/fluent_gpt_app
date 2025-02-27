@@ -1,0 +1,1607 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:fluent_gpt/cities_list.dart';
+import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/common/enums.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/dialogs/custom_action_dialog.dart';
+import 'package:fluent_gpt/dialogs/global_system_prompt_sample_dialog.dart';
+import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
+import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
+import 'package:fluent_gpt/features/annoy_feature.dart';
+import 'package:fluent_gpt/features/azure_speech.dart';
+import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/elevenlabs_speech.dart';
+import 'package:fluent_gpt/features/imgur_integration.dart';
+import 'package:fluent_gpt/features/notification_service.dart';
+import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/navigation_provider.dart';
+import 'package:fluent_gpt/pages/about_page.dart';
+import 'package:fluent_gpt/pages/prompts_settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/shell_driver.dart';
+import 'package:fluent_gpt/system_messages.dart';
+import 'package:fluent_gpt/theme.dart';
+import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
+import 'package:fluent_gpt/widgets/custom_buttons.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
+import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
+import 'package:fluent_gpt/widgets/text_link.dart';
+import 'package:fluent_gpt/widgets/wiget_constants.dart';
+import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_acrylic/window_effect.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:system_info2/system_info2.dart';
+
+import 'settings_page.dart';
+
+class NewSettingsPage extends StatefulWidget {
+  const NewSettingsPage({super.key});
+
+  @override
+  State<NewSettingsPage> createState() => _NewSettingsPageState();
+}
+
+class _NewSettingsPageState extends State<NewSettingsPage> {
+  int selectedIndex = 0;
+  @override
+  Widget build(BuildContext context) {
+    return NavigationView(
+      appBar: NavigationAppBar(title: Text('Settings')),
+      pane: NavigationPane(
+        displayMode: PaneDisplayMode.open,
+        size: NavigationPaneSize(openMaxWidth: 200),
+        selected: selectedIndex,
+        onChanged: (value) {
+          setState(() {
+            selectedIndex = value;
+          });
+        },
+        items: [
+          PaneItem(
+            title: Text('General'),
+            body: GeneralSettingsPage(),
+            icon: Icon(FluentIcons.settings_32_filled, color: Colors.blue),
+          ),
+          PaneItem(
+            title: Text('Appearance'),
+            body: AppearanceSettings(),
+            icon: Icon(FluentIcons.paint_bucket_24_filled, color: Colors.teal),
+          ),
+          PaneItem(
+            title: Text('Tools'),
+            body: ToolsSettings(),
+            icon: Icon(FluentIcons.toolbox_24_filled, color: Colors.green),
+          ),
+          PaneItem(
+            title: Text('User info'),
+            body: UserSettignsInfoPage(),
+            icon: Icon(FluentIcons.person_32_filled, color: Colors.magenta),
+          ),
+          PaneItem(
+            title: Text('API and URLs'),
+            body: APIandUrlsSettingsPage(),
+            icon: Icon(FluentIcons.apps_add_in_24_filled, color: Colors.yellow),
+          ),
+          PaneItem(
+            title: Text('On response'),
+            body: OnResponseEndSettingsPage(),
+            icon: Icon(
+              FluentIcons.chat_32_filled,
+              color: Color.fromARGB(255, 43, 226, 202),
+            ),
+          ),
+          PaneItem(
+            title: Text('Quick prompts'),
+            body: QuickPromptsSettingsPage(),
+            icon: Icon(FluentIcons.book_toolbox_24_filled,
+                color: Color.fromARGB(255, 55, 43, 226)),
+          ),
+          PaneItem(
+            title: Text('Permissions'),
+            body: PermissionsSettingsPage(),
+            icon: Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
+          ),
+          PaneItem(
+            title: Text('Overlay'),
+            body: OverlaySettingsPage(),
+            icon: Icon(FluentIcons.oven_32_filled, color: Colors.orange),
+          ),
+          PaneItem(
+            title: Text('Storage'),
+            body: StorageSettingsPage(),
+            icon: Icon(FluentIcons.storage_32_filled, color: Color(0xFF8A2BE2)),
+          ),
+          PaneItem(
+            title: Text('Hotkeys'),
+            body: HotkeysSettingsPage(),
+            icon: Icon(
+              FluentIcons.key_command_24_filled,
+              color: Color.fromARGB(255, 226, 43, 144),
+            ),
+          ),
+          if (kDebugMode)
+            PaneItem(
+              title: Text('Debug'),
+              body: DebugPage(),
+              icon: Icon(FluentIcons.accessibility_32_filled,
+                  color: Colors.green),
+            ),
+          PaneItem(
+            title: Text('About'),
+            body: AboutPage(),
+            icon: Icon(FluentIcons.info_32_filled, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HotkeysSettingsPage extends StatefulWidget {
+  const HotkeysSettingsPage({super.key});
+
+  @override
+  State<HotkeysSettingsPage> createState() => _HotkeysSettingsPageState();
+}
+
+class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Button(
+          onPressed: () async {
+            final key = await KeybindingDialog.show(
+              context,
+              initHotkey: openWindowHotkey,
+              title: const Text('Open the window keybinding'),
+            );
+            if (key != null && key != openWindowHotkey) {
+              setState(() {
+                openWindowHotkey = key;
+              });
+              await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
+              initShortcuts();
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Open the window'),
+              const SizedBox(width: 10.0),
+              HotKeyVirtualView(hotKey: openWindowHotkey),
+            ],
+          ),
+        ),
+        spacer,
+        Button(
+          onPressed: () async {
+            final key = await KeybindingDialog.show(
+              context,
+              initHotkey: takeScreenshot,
+              title: const Text('Take a screenshot keybinding'),
+            );
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
+                .any((element) => element == key);
+            if (key != null && key != takeScreenshot) {
+              setState(() {
+                takeScreenshot = key;
+              });
+              if (wasRegistered) {
+                await HotKeyManager.instance.unregister(key);
+              }
+              await AppCache.takeScreenshotKey.set(jsonEncode(key.toJson()));
+              initShortcuts();
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Use visual AI'),
+              const SizedBox(width: 10.0),
+              if (takeScreenshot != null)
+                HotKeyVirtualView(hotKey: takeScreenshot!)
+              else
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
+                  child: Text('[Not set]'),
+                ),
+            ],
+          ),
+        ),
+        spacer,
+        Button(
+          onPressed: () async {
+            final key = await KeybindingDialog.show(
+              context,
+              initHotkey: pttScreenshotKey,
+              title: const Text('Push-to-talk with screenshot'),
+            );
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
+                .any((element) => element == key);
+            if (key != null && key != pttScreenshotKey) {
+              setState(() {
+                pttScreenshotKey = key;
+              });
+              if (wasRegistered) {
+                await HotKeyManager.instance.unregister(key);
+              }
+              await AppCache.pttScreenshotKey.set(jsonEncode(key.toJson()));
+              initShortcuts();
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Push-to-talk with screenshot'),
+              const SizedBox(width: 10.0),
+              if (pttScreenshotKey != null)
+                HotKeyVirtualView(hotKey: pttScreenshotKey!)
+              else
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
+                  child: Text('[Not set]'),
+                ),
+            ],
+          ),
+        ),
+        spacer,
+        Button(
+          onPressed: () async {
+            final key = await KeybindingDialog.show(
+              context,
+              initHotkey: pttKey,
+              title: const Text('Push-to-talk'),
+            );
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
+                .any((element) => element == key);
+            if (key != null && key != pttKey) {
+              setState(() {
+                pttKey = key;
+              });
+              if (wasRegistered) {
+                await HotKeyManager.instance.unregister(key);
+              }
+              await AppCache.pttKey.set(jsonEncode(key.toJson()));
+              initShortcuts();
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Push-to-talk'),
+              const SizedBox(width: 10.0),
+              if (pttKey != null)
+                HotKeyVirtualView(hotKey: pttKey!)
+              else
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
+                  child: Text('[Not set]'),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Divider(),
+        ),
+        Button(
+            child: const Text('Show all keybindings'),
+            onPressed: () {
+              Navigator.of(context).push(FluentPageRoute(
+                  builder: (context) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            alignment: AlignmentDirectional.centerStart,
+                            padding: const EdgeInsets.all(4.0),
+                            color: context.theme.cardColor,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const SmallIconButton(
+                                child: Icon(FluentIcons.arrow_left_20_filled),
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: WelcomeShortcutsHelper()),
+                        ],
+                      )));
+            }),
+      ]),
+    );
+  }
+}
+
+class StorageSettingsPage extends StatelessWidget {
+  const StorageSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Button(
+            child: Text('Application storage location'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const StorageAppDirConfigureDialog(),
+              );
+            }),
+        spacer,
+        Button(
+            child: const Text('Delete all chat rooms'),
+            onPressed: () => ConfirmationDialog(
+                  isDelete: true,
+                  onAcceptPressed: () {
+                    context.read<ChatProvider>().deleteAllChatRooms();
+                  },
+                )),
+        spacer,
+        Button(
+            child: const Text('Delete temp cache'),
+            onPressed: () async {
+              final sizeBytes = await FileUtils.calculateSizeRecursive(
+                  FileUtils.appTemporaryDirectoryPath!);
+              final sizeMb = sizeBytes == 0 ? 0 : sizeBytes / 1024 / 1024;
+              ConfirmationDialog.show(
+                // ignore: use_build_context_synchronously
+                context: context,
+                isDelete: true,
+                message:
+                    'Delete temp cache? Size: ${sizeMb.toStringAsFixed(2)} MB',
+                onAcceptPressed: () async {
+                  ShellDriver.deleteAllTempFiles();
+                  AppCache.costTotal.value = 0.0;
+                  AppCache.tokensUsedTotal.value = 0;
+                  final dir = Directory(FileUtils.appTemporaryDirectoryPath!);
+                  if (dir.existsSync()) {
+                    await dir.delete(recursive: true);
+                    log('${dir.path} deleted');
+                  }
+                },
+              );
+            }),
+        spacer,
+        spacer,
+        FilledRedButton(
+            child: const Text('Clear all data'),
+            onPressed: () async {
+              final navProvider = context.read<NavigationProvider>();
+              final res = await ConfirmationDialog.show(context: context);
+              if (!res) return;
+
+              prefs = await SharedPreferences.getInstance();
+              await ShellDriver.deleteAllTempFiles();
+              await prefs!.clear();
+              // ignore: use_build_context_synchronously
+              navProvider.welcomeScreenPageController =
+                  PageController(keepPage: false);
+              navProvider.updateUI();
+              // ignore: use_build_context_synchronously
+              final navigator = Navigator.of(context);
+              if (navigator.canPop()) {
+                navigator.pop();
+              }
+            }),
+      ]),
+    );
+  }
+}
+
+class OverlaySettingsPage extends StatefulWidget {
+  const OverlaySettingsPage({super.key});
+
+  @override
+  State<OverlaySettingsPage> createState() => _OverlaySettingsPageState();
+}
+
+class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Text('Overlay settings',
+            style: FluentTheme.of(context).typography.subtitle),
+        CheckBoxTile(
+          isChecked: AppCache.enableOverlay.value!,
+          onChanged: (value) {
+            setState(() {
+              AppCache.enableOverlay.value = value;
+            });
+            Provider.of<AppTheme>(context, listen: false).updateUI();
+          },
+          child: const Text('Enable overlay'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.showSettingsInOverlay.value!,
+          onChanged: (value) {
+            setState(() {
+              AppCache.showSettingsInOverlay.value = value;
+            });
+          },
+          child: const Text('Show settings icon in overlay'),
+        ),
+        spacer,
+        NumberBox(
+          value: AppCache.overlayVisibleElements.value == -1
+              ? null
+              : AppCache.overlayVisibleElements.value,
+          placeholder:
+              AppCache.overlayVisibleElements.value == -1 ? 'Adaptive' : null,
+          onChanged: (value) {
+            AppCache.overlayVisibleElements.value = value ?? -1;
+          },
+          min: 4,
+          mode: SpinButtonPlacementMode.inline,
+        ),
+      ]),
+    );
+  }
+}
+
+class QuickPromptsSettingsPage extends StatefulWidget {
+  const QuickPromptsSettingsPage({super.key});
+
+  @override
+  State<QuickPromptsSettingsPage> createState() =>
+      _QuickPromptsSettingsPageState();
+}
+
+class _QuickPromptsSettingsPageState extends State<QuickPromptsSettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        color: FluentTheme.of(context).inactiveBackgroundColor,
+        child: ScaffoldPage(
+          content: CustomPromptsSettingsContainer(),
+        ));
+  }
+}
+
+class OnResponseEndSettingsPage extends StatefulWidget {
+  const OnResponseEndSettingsPage({super.key});
+
+  @override
+  State<OnResponseEndSettingsPage> createState() =>
+      _OnResponseEndSettingsPageState();
+}
+
+class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Card(
+          padding: EdgeInsets.zero,
+          child: BasicListTile(
+            padding: const EdgeInsets.all(8.0),
+            title: const Text('Show suggestions after ai response'),
+            leading: Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Checkbox(
+                checked: AppCache.enableQuestionHelpers.value == true,
+                onChanged: (v) {
+                  setState(() {
+                    AppCache.enableQuestionHelpers.value = v;
+                  });
+                },
+              ),
+            ),
+            trailing: Tooltip(
+              richMessage: WidgetSpan(
+                child: SizedBox(
+                  width: 400,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'),
+                      const SizedBox(height: 10),
+                      Image.asset('assets/im_suggestions_tip.png', width: 400),
+                    ],
+                  ),
+                ),
+              ),
+              child: Icon(FluentIcons.question_circle_20_regular),
+            ),
+            onTap: () {
+              setState(() {
+                AppCache.enableQuestionHelpers.value =
+                    !(AppCache.enableQuestionHelpers.value ?? false);
+              });
+            },
+          ),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: 200.0),
+          child: StreamBuilder(
+            stream: onMessageActions.stream,
+            builder: (ctx, list) => ListView.builder(
+              itemCount: list.data?.length ?? 0,
+              itemBuilder: (ctx, index) {
+                final action = onMessageActions.value[index];
+                return Card(
+                  padding: EdgeInsets.zero,
+                  child: BasicListTile(
+                    leading: Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Checkbox(
+                          checked: action.isEnabled,
+                          onChanged: (v) {
+                            final edited = action.copyWith(isEnabled: v);
+                            final actions = onMessageActions.value;
+                            actions[index] = edited;
+                            onMessageActions.add(actions);
+                            final json =
+                                actions.map((e) => e.toJson()).toList();
+                            AppCache.customActions.set(jsonEncode(json));
+                          }),
+                    ),
+                    title: Text(action.actionName),
+                    padding: const EdgeInsets.all(8.0),
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (ctx) => CustomActionDialog(action: action),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(FluentIcons.delete_20_filled),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => ConfirmationDialog(
+                            isDelete: true,
+                            onAcceptPressed: () {
+                              final actions = onMessageActions.value;
+                              actions.removeAt(index);
+                              onMessageActions.add(actions);
+                              final json =
+                                  actions.map((e) => e.toJson()).toList();
+                              AppCache.customActions.set(jsonEncode(json));
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        Button(
+          child: const Text('Add custom action'),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => const CustomActionDialog(),
+            );
+          },
+        ),
+      ]),
+    );
+  }
+}
+
+class APIandUrlsSettingsPage extends StatefulWidget {
+  const APIandUrlsSettingsPage({super.key});
+
+  @override
+  State<APIandUrlsSettingsPage> createState() => _APIandUrlsSettingsPageState();
+}
+
+class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
+  bool obscureBraveText = true;
+  bool obscureOpenAiText = true;
+  @override
+  Widget build(BuildContext context) {
+    return ScaffoldPage.scrollable(children: [
+      Text(
+        'Brave API key (search engine) \$',
+        style: FluentTheme.of(context).typography.subtitle,
+      ),
+      TextFormBox(
+        initialValue: AppCache.braveSearchApiKey.value,
+        placeholder: AppCache.braveSearchApiKey.value,
+        obscureText: obscureBraveText,
+        suffix: IconButton(
+          icon: const Icon(FluentIcons.eye_20_regular),
+          onPressed: () {
+            setState(() {
+              obscureBraveText = !obscureBraveText;
+            });
+          },
+        ),
+        onChanged: (value) {
+          AppCache.braveSearchApiKey.value = value;
+        },
+      ),
+      const Align(
+        alignment: Alignment.centerLeft,
+        child: LinkTextButton(
+          'https://api.search.brave.com/app/keys',
+          url: 'https://api.search.brave.com/app/keys',
+        ),
+      ),
+      spacer,
+      DropDownButton(
+        items: [
+          for (var serv in TextToSpeechServiceEnum.values)
+            MenuFlyoutItem(
+              selected: AppCache.textToSpeechService.value == serv.name,
+              onPressed: () {
+                AppCache.textToSpeechService.value = serv.name;
+                setState(() {});
+              },
+              text: Text(serv.name),
+            ),
+        ],
+        title: Text(
+            'Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
+      ),
+      if (AppCache.textToSpeechService.value ==
+          TextToSpeechServiceEnum.deepgram.name)
+        _DeepgramSettings()
+      else if (AppCache.textToSpeechService.value ==
+          TextToSpeechServiceEnum.azure.name)
+        _AzureSettings()
+      else if (AppCache.textToSpeechService.value ==
+          TextToSpeechServiceEnum.elevenlabs.name)
+        _ElevenLabsSettings(),
+    ]);
+  }
+}
+
+class GeneralSettingsPage extends StatefulWidget {
+  const GeneralSettingsPage({super.key});
+
+  @override
+  State<GeneralSettingsPage> createState() => _GeneralSettingsPageState();
+}
+
+class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
+  final systemPromptController = TextEditingController();
+  final cities = CitiesList.getAllCitiesList();
+  @override
+  void initState() {
+    super.initState();
+    systemPromptController.text = AppCache.globalSystemPrompt.value!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appTheme = context.read<AppTheme>();
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        const LabelText('Global system prompt'),
+        TextFormBox(
+          placeholder: 'Global system prompt',
+          controller: systemPromptController,
+          minLines: 1,
+          maxLines: 50,
+          suffix: AiLibraryButton(onPressed: () async {
+            final prompt = await showDialog<CustomPrompt?>(
+              context: context,
+              builder: (ctx) => const AiPromptsLibraryDialog(),
+              barrierDismissible: true,
+            );
+            if (prompt != null) {
+              AppCache.globalSystemPrompt.value = prompt.prompt;
+              systemPromptController.text = prompt.prompt;
+              defaultGlobalSystemMessage = prompt.prompt;
+            }
+          }),
+          onChanged: (value) {
+            AppCache.globalSystemPrompt.value = value;
+            defaultGlobalSystemMessage = value;
+          },
+        ),
+        const CaptionText(
+          'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below',
+        ),
+        spacer,
+        Button(
+          child: const Text('Click here to check the whole system prompt'),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => const GlobalSystemPromptSampleDialog(),
+              barrierDismissible: true,
+            );
+          },
+        ),
+        spacer,
+        CheckBoxTooltip(
+          content: const Text('Use ai to name chat'),
+          tooltip: 'Can cause additional charges!',
+          checked: AppCache.useAiToNameChat.value,
+          onChanged: (value) {
+            AppCache.useAiToNameChat.value = value;
+            setState(() {});
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Divider(),
+        ),
+        Card(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text('OS: ${SysInfo.operatingSystemName}'),
+            Text('Cores: ${SysInfo.cores.length}'),
+            Text('Architecture: ${SysInfo.rawKernelArchitecture}'),
+            Text('KernelName: ${SysInfo.kernelName}'),
+            Text('OS version: ${SysInfo.kernelVersion}'),
+            Text('User directory: ${SysInfo.userDirectory}'),
+            Text('User system id: ${SysInfo.userId}'),
+            Text('User name in OS: ${SysInfo.userName}'),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Divider(),
+        ),
+        // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
+        if (!Platform.isMacOS)
+          Checkbox(
+            content: const Text('Launch at startup'),
+            checked: isLaunchAtStartupEnabled,
+            onChanged: (value) async {
+              if (value == true) {
+                await launchAtStartup.enable();
+              } else {
+                await launchAtStartup.disable();
+              }
+              isLaunchAtStartupEnabled = value!;
+              setState(() {});
+            },
+          ),
+        Button(
+            child: Text('Audio and Microphone'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const MicrophoneSettingsDialog(),
+              );
+            }),
+        CheckBoxTile(
+          isChecked: appTheme.preventClose,
+          expanded: true,
+          onChanged: (value) {
+            appTheme.togglePreventClose();
+            setState(() {});
+          },
+          child: const Text('Prevent close app'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.showAppInDock.value == true,
+          onChanged: (value) => appTheme.toggleShowInDock(),
+          child: const Text('Show app in dock'),
+        ),
+        CheckBoxTile(
+            isChecked: AppCache.hideTitleBar.value == true,
+            child: const Text('Hide window title'),
+            onChanged: (value) {
+              appTheme.toggleHideTitleBar();
+            }),
+      ]),
+    );
+  }
+}
+
+class UserSettignsInfoPage extends StatefulWidget {
+  const UserSettignsInfoPage({super.key});
+
+  @override
+  State<UserSettignsInfoPage> createState() => _UserSettignsInfoPageState();
+}
+
+class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
+  final systemPromptController = TextEditingController();
+  final cities = CitiesList.getAllCitiesList();
+  @override
+  void initState() {
+    super.initState();
+    systemPromptController.text = AppCache.globalSystemPrompt.value!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        const LabelText('Info about User'),
+        TextFormBox(
+          prefix: const BadgePrefix(Text('User name')),
+          initialValue: AppCache.userName.value,
+          minLines: 1,
+          maxLines: 1,
+          onChanged: (value) {
+            AppCache.userName.value = value;
+          },
+        ),
+        const CaptionText('Your name that will be used in the chat'),
+        spacer,
+        AutoSuggestBox(
+          leadingIcon: const BadgePrefix(Text('User city')),
+          placeholder: AppCache.userCityName.value,
+          onChanged: (value, reason) {
+            AppCache.userCityName.value = value;
+          },
+          clearButtonEnabled: false,
+          trailingIcon: IconButton(
+            icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
+            onPressed: () {
+              AppCache.userCityName.value = '';
+              setState(() {});
+            },
+          ),
+          items: [
+            for (var city in cities)
+              AutoSuggestBoxItem(label: city, value: city)
+          ],
+        ),
+        const CaptionText(
+            'Your city name that will be used in the chat and to get weather'),
+        CheckBoxTile(
+          isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
+          },
+          child: const Text('Include knowledge about user'),
+        ),
+        const Spacer(),
+        Button(
+            child: const Text('Open info about User'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const InfoAboutUserDialog(),
+                barrierDismissible: true,
+              );
+            }),
+        CheckBoxTile(
+          isChecked: AppCache.includeUserCityNamePrompt.value!,
+          onChanged: (value) {
+            AppCache.includeUserCityNamePrompt.value = value;
+          },
+          child: const Text('Include user city name in system prompt'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.includeWeatherPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeWeatherPrompt.value = value;
+          },
+          child: const Text('Include weather in system prompt'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.includeUserNameToSysPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeUserNameToSysPrompt.value = value;
+          },
+          child: const Text('Include user name in system prompt'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.includeTimeToSystemPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeTimeToSystemPrompt.value = value;
+          },
+          child: const Text('Include current date and time in system prompt'),
+        ),
+        CheckBoxTile(
+          isChecked: AppCache.includeSysInfoToSysPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeSysInfoToSysPrompt.value = value;
+          },
+          child: const Text('Include system info in system prompt'),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Divider(),
+        ),
+        Tooltip(
+          message:
+              'If enabled will summarize chat conversation and append the most'
+              ' important information about the user to a file.'
+              '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
+          child: CheckBoxTile(
+            isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+            onChanged: (value) {
+              AppCache.learnAboutUserAfterCreateNewChat.value = value;
+            },
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                const Text('Learn about the user after creating new chat \$\$'),
+                const Icon(FluentIcons.brain_circuit_24_filled),
+                SizedBox(width: 10.0),
+                SizedBox(
+                  width: 120,
+                  height: 32,
+                  child: NumberBox(
+                      value: AppCache.maxTokensUserInfo.value!,
+                      clearButton: false,
+                      smallChange: 64,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        if (value < 64) value = 64;
+                        AppCache.maxTokensUserInfo.value = value;
+                      },
+                      mode: SpinButtonPlacementMode.inline),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class PermissionsSettingsPage extends StatefulWidget {
+  const PermissionsSettingsPage({super.key});
+
+  @override
+  State<PermissionsSettingsPage> createState() =>
+      _PermissionsSettingsPageState();
+}
+
+class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(
+        children: [
+          AccessebilityStatus(),
+        ],
+      ),
+    );
+  }
+}
+
+class DebugPage extends StatelessWidget {
+  const DebugPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaffoldPage.scrollable(children: [
+      Text('Debug', style: FluentTheme.of(context).typography.subtitle),
+      Wrap(
+        children: [
+          Button(
+              child: Text('PN'),
+              onPressed: () {
+                NotificationService.showNotification('title', 'body');
+              }),
+          FilledRedButton(
+              child: const Text('test native hello world'),
+              onPressed: () {
+                NativeChannelUtils.testChannel();
+              }),
+          FilledRedButton(
+              child: const Text('get selected text'),
+              onPressed: () async {
+                final text = await NativeChannelUtils.getSelectedText();
+                log('Selected text: $text');
+              }),
+          FilledRedButton(
+              child: const Text('show overlay'),
+              onPressed: () {
+                NativeChannelUtils.showOverlay();
+              }),
+          FilledRedButton(
+              child: const Text('request native permissions'),
+              onPressed: () {
+                NativeChannelUtils.requestNativePermissions();
+              }),
+          FilledRedButton(
+              child: const Text('init accessibility'),
+              onPressed: () {
+                NativeChannelUtils.initAccessibility();
+              }),
+          FilledRedButton(
+              child: const Text('is accessibility granted'),
+              onPressed: () async {
+                final isGranted =
+                    await NativeChannelUtils.isAccessibilityGranted();
+                log('isAccessibilityGranted: $isGranted');
+              }),
+          FilledRedButton(
+              child: const Text('get screen size'),
+              onPressed: () async {
+                final screenSize = await NativeChannelUtils.getScreenSize();
+                log('screenSize: $screenSize');
+              }),
+          FilledRedButton(
+              child: const Text('get mouse position'),
+              onPressed: () async {
+                final mousePosition =
+                    await NativeChannelUtils.getMousePosition();
+                log('mousePosition: $mousePosition');
+              }),
+        ],
+      )
+    ]);
+  }
+}
+
+class ToolsSettings extends StatefulWidget {
+  const ToolsSettings({super.key});
+
+  @override
+  State<ToolsSettings> createState() => _ToolsSettingsState();
+}
+
+class _ToolsSettingsState extends State<ToolsSettings> {
+  bool obscureBraveText = true;
+  bool obscureOpenAiText = true;
+  final allValues = [
+    AppCache.gptToolCopyToClipboardEnabled,
+    AppCache.gptToolAutoOpenUrls,
+    AppCache.gptToolGenerateImage,
+  ];
+  @override
+  Widget build(BuildContext context) {
+    // final gptProvider = context.watch<ChatProvider>();
+
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(
+        children: [
+          Text('Function tools',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Wrap(
+            spacing: 15.0,
+            children: [
+              Button(
+                onPressed: () {
+                  bool allChecked = true;
+                  for (var cache in allValues) {
+                    if (cache.value == false) {
+                      allChecked = false;
+                      break;
+                    }
+                  }
+                  setState(() {
+                    AppCache.gptToolCopyToClipboardEnabled.value = !allChecked;
+                    AppCache.gptToolAutoOpenUrls.value = !allChecked;
+                    AppCache.gptToolGenerateImage.value = !allChecked;
+                  });
+                },
+                child: const Text('Toggle All'),
+              ),
+              CheckBoxTile(
+                key: Key(
+                    'gptToolCopyToClipboardEnabled ${AppCache.gptToolCopyToClipboardEnabled.value}'),
+                isChecked: AppCache.gptToolCopyToClipboardEnabled.value!,
+                expanded: false,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolCopyToClipboardEnabled.value = value;
+                  });
+                },
+                child: const Text('Auto copy to clipboard'),
+              ),
+              CheckBoxTile(
+                key: Key('autoOpenUrls ${AppCache.gptToolAutoOpenUrls.value}'),
+                isChecked: AppCache.gptToolAutoOpenUrls.value!,
+                expanded: false,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolAutoOpenUrls.value = value;
+                  });
+                },
+                child: const Text('Auto open url'),
+              ),
+              CheckBoxTile(
+                key: Key(
+                    'gptToolGenerateImage ${AppCache.gptToolGenerateImage.value}'),
+                isChecked: AppCache.gptToolGenerateImage.value!,
+                expanded: false,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolGenerateImage.value = value;
+                  });
+                },
+                child: const Text('Generate images'),
+              ),
+            ],
+          ),
+          biggerSpacer,
+          Text('Additional tools',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Checkbox(
+            content: Expanded(
+              child: const Text(
+                  'Imgur (Used to upload your image to your private Imgur account and get image link)'),
+            ),
+            checked: AppCache.useImgurApi.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useImgurApi.value = value;
+              });
+            },
+          ),
+          if (AppCache.useImgurApi.value == true) ...[
+            TextFormBox(
+              placeholder: 'Imgur client ID',
+              initialValue: AppCache.imgurClientId.value,
+              obscureText: true,
+              suffix: const Tooltip(
+                message: """1. Go to Imgur and create an account.
+      2. Navigate to the Imgur API and register your application to get a clientId.
+      3. Fill "Application Name" with anything you want. (e.g. "Fluent GPT")
+      4. Authorization type: "OAuth 2 authorization without a callback URL
+      5. Email: Your email
+      6. Paste clientId here""",
+                child: Icon(FluentIcons.info_20_filled),
+              ),
+              onChanged: (value) {
+                AppCache.imgurClientId.value = value;
+                ImgurIntegration.authenticate(value);
+              },
+            ),
+            const LinkTextButton(
+              'Get Imgur clientID',
+              url: 'https://api.imgur.com/oauth2/addclient',
+            ),
+          ],
+          spacer,
+          Text('Image Search engines',
+              style: FluentTheme.of(context).typography.subtitle),
+          Checkbox(
+            content: const Text('SouceNao'),
+            checked: AppCache.useSouceNao.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useSouceNao.value = value;
+              });
+            },
+          ),
+          Checkbox(
+            content: const Text('Yandex Image search'),
+            checked: AppCache.useYandexImageSearch.value,
+            onChanged: (value) async {
+              setState(() {
+                AppCache.useYandexImageSearch.value = value;
+              });
+            },
+          ),
+          CheckBoxTooltip(
+            content: const Text('Enable annoy mode'),
+            tooltip:
+                'Use timer and allow AI to write you. Can cause additional charges!',
+            checked: AppCache.enableAutonomousMode.value,
+            onChanged: (value) async {
+              if (value!) {
+                await AnnoyFeature.showConfigureDialog();
+              } else {
+                AnnoyFeature.stop();
+                AppCache.enableAutonomousMode.value = false;
+              }
+              setState(() {});
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class AppearanceSettings extends StatelessWidget {
+  const AppearanceSettings({super.key});
+  Widget _buildColorBlock(AppTheme appTheme, AccentColor color) {
+    return Padding(
+      padding: const EdgeInsets.all(2.0),
+      child: Button(
+        onPressed: () {
+          appTheme.color = color;
+          appTheme.setWindowEffectColor(color);
+        },
+        style: ButtonStyle(
+          padding: WidgetStateProperty.all(EdgeInsets.zero),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.isPressed) {
+              return color.light;
+            } else if (states.isHovered) {
+              return color.lighter;
+            }
+            return color;
+          }),
+        ),
+        child: Container(
+          height: 40,
+          width: 40,
+          alignment: AlignmentDirectional.center,
+          child: appTheme.color == color
+              ? Icon(
+                  FluentIcons.radio_button_16_filled,
+                  color: color.basedOnLuminance(),
+                  size: 24.0,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gptProvider = context.watch<ChatProvider>();
+    final appTheme = context.watch<AppTheme>();
+    return Container(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(
+        children: [
+          Text('Accent Color',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Wrap(children: [
+            Tooltip(
+              message: accentColorNames[0],
+              child: _buildColorBlock(appTheme, systemAccentColor),
+            ),
+            ...List.generate(Colors.accentColors.length, (index) {
+              final color = Colors.accentColors[index];
+              return Tooltip(
+                message: accentColorNames[index + 1],
+                child: _buildColorBlock(appTheme, color),
+              );
+            }),
+          ]),
+          Text('Theme mode',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Padding(
+            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+            child: RadioButton(
+              checked: appTheme.mode == ThemeMode.light,
+              onChanged: (value) {
+                if (value) {
+                  appTheme.mode = ThemeMode.light;
+                  appTheme.setEffect(appTheme.windowEffect);
+                }
+              },
+              content: const Text('Light'),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
+            child: RadioButton(
+              checked: appTheme.mode == ThemeMode.dark,
+              onChanged: (value) {
+                if (value) {
+                  appTheme.mode = ThemeMode.dark;
+                  appTheme.setEffect(appTheme.windowEffect);
+                }
+              },
+              content: const Text('Dark'),
+            ),
+          ),
+          Text('Background',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Wrap(
+            spacing: 8.0,
+            children: [
+              if (!Platform.isLinux)
+                Checkbox(
+                  content: const Text('Use aero'),
+                  checked: appTheme.windowEffect == WindowEffect.aero,
+                  onChanged: (value) {
+                    if (value == true) {
+                      appTheme.windowEffectOpacity = 0.0;
+                      appTheme.windowEffectColor = Colors.blue;
+                      appTheme.setEffect(WindowEffect.aero);
+                    } else {
+                      appTheme.windowEffectOpacity = 0.0;
+                      appTheme.setEffect(WindowEffect.disabled);
+                    }
+                  },
+                ),
+              if (!Platform.isLinux)
+                Checkbox(
+                  content: const Text('Use acrylic'),
+                  checked: appTheme.windowEffect == WindowEffect.acrylic,
+                  onChanged: (value) {
+                    if (value == true) {
+                      appTheme.windowEffectOpacity = 0.0;
+                      appTheme.windowEffectColor = appTheme.color;
+                      appTheme.setEffect(WindowEffect.acrylic);
+                    } else {
+                      appTheme.windowEffectOpacity = 0.0;
+                      appTheme.setEffect(WindowEffect.disabled);
+                    }
+                  },
+                ),
+              Checkbox(
+                content: const Text('Use transparent'),
+                checked: appTheme.windowEffect == WindowEffect.transparent,
+                onChanged: (value) {
+                  if (value == true) {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.windowEffectColor = Colors.transparent;
+                    appTheme.setEffect(WindowEffect.transparent);
+                  } else {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.setEffect(WindowEffect.disabled);
+                  }
+                },
+              ),
+              Checkbox(
+                content: const Text('Use mica'),
+                checked: appTheme.windowEffect == WindowEffect.mica,
+                onChanged: (value) {
+                  if (value == true) {
+                    appTheme.windowEffectOpacity = 0.7;
+                    appTheme.windowEffectColor = Colors.blue;
+                    appTheme.setEffect(WindowEffect.mica);
+                  } else {
+                    appTheme.windowEffectOpacity = 0.0;
+                    appTheme.setEffect(WindowEffect.disabled);
+                  }
+                },
+              ),
+            ],
+          ),
+          spacer,
+          if (appTheme.windowEffect != WindowEffect.disabled) ...[
+            Text('Transparency',
+                style: FluentTheme.of(context).typography.subtitle),
+            spacer,
+            SliderStatefull(
+              initValue: appTheme.windowEffectOpacity,
+              onChangeEnd: (value) {
+                appTheme.windowEffectOpacity = value;
+                appTheme.setEffect(appTheme.windowEffect);
+              },
+              label: 'Opacity',
+              min: 0.0,
+              max: 1.0,
+              divisions: 100,
+              onChanged: (_) {},
+            ),
+            spacer,
+          ],
+          Checkbox(
+            content: const Text('Set window as frameless'),
+            checked: AppCache.frameless.value,
+            onChanged: (value) {
+              appTheme.setAsFrameless(value);
+              if (value == false) {
+                displayInfoBar(context,
+                    builder: (context, _) => const InfoBar(
+                          title: Text('Restart the app to apply changes'),
+                          severity: InfoBarSeverity.warning,
+                        ));
+              }
+            },
+          ),
+          DensityModeDropdown(),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Divider(),
+          ),
+          Text('Message Text size',
+              style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Basic Message Text Size',
+                        style: FluentTheme.of(context).typography.subtitle),
+                    SizedBox(
+                      width: 200.0,
+                      child: NumberBox(
+                        value: gptProvider.textSize,
+                        onChanged: (value) {
+                          gptProvider.textSize = value ?? 14;
+                        },
+                        mode: SpinButtonPlacementMode.inline,
+                      ),
+                    ),
+                    const MessageSamplePreviewCard(isCompact: false),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text('Compact Message Text Size',
+                        style: FluentTheme.of(context).typography.subtitle),
+                    SizedBox(
+                      width: 200.0,
+                      child: NumberBox(
+                        value: AppCache.compactMessageTextSize.value,
+                        onChanged: (value) {
+                          AppCache.compactMessageTextSize.value = value ?? 10;
+                          Provider.of<ChatProvider>(context, listen: false)
+                              .updateUI();
+                        },
+                        mode: SpinButtonPlacementMode.inline,
+                      ),
+                    ),
+                    const MessageSamplePreviewCard(isCompact: true),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ElevenLabsSettings extends StatelessWidget {
+  const _ElevenLabsSettings({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ElevenLabs API key (speech) \$\$\$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        ElevenLabsConfigContainer(),
+        // Button(
+        //   child: const Text('Configure ElevenLabs'),
+        //   onPressed: () => ElevenlabsSpeech.showConfigureDialog(context),
+        // ),
+      ],
+    );
+  }
+}
+
+class _AzureSettings extends StatefulWidget {
+  const _AzureSettings({super.key});
+
+  @override
+  State<_AzureSettings> createState() => _AzureSettingsState();
+}
+
+class _AzureSettingsState extends State<_AzureSettings> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Azure API key (speech) \$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.azureSpeechApiKey.value,
+          placeholder: AppCache.azureSpeechApiKey.value,
+          obscureText: true,
+          suffix: DropDownButton(
+              leading: Text('Voice: ${AppCache.azureVoiceModel.value}'),
+              items: [
+                for (var model in AzureSpeech.listModels)
+                  MenuFlyoutItem(
+                    selected: AppCache.azureVoiceModel.value == model,
+                    trailing: SqueareIconButton(
+                      onTap: () {
+                        final previousModel = AppCache.azureVoiceModel.value;
+                        if (AzureSpeech.isValid()) {
+                          AppCache.azureVoiceModel.value = model;
+                          AzureSpeech.readAloud(
+                            'This is a sample text to read aloud',
+                            onCompleteReadingAloud: () {
+                              AppCache.azureVoiceModel.value = previousModel;
+                            },
+                          );
+                        }
+                      },
+                      icon: const Icon(FluentIcons.play_circle_24_filled),
+                      tooltip: 'Read sample',
+                    ),
+                    onPressed: () {
+                      AppCache.azureVoiceModel.value = model;
+                      DeepgramSpeech.init();
+                      setState(() {});
+                    },
+                    text: Text(model),
+                  ),
+              ]),
+          onChanged: (value) {
+            AppCache.azureSpeechApiKey.value = value.trim();
+            AzureSpeech.init();
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _DeepgramSettings extends StatefulWidget {
+  const _DeepgramSettings({super.key});
+
+  @override
+  State<_DeepgramSettings> createState() => _DeepgramSettingsState();
+}
+
+class _DeepgramSettingsState extends State<_DeepgramSettings> {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Deepgram API key (speech) \$\$',
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.deepgramApiKey.value,
+          placeholder: AppCache.deepgramApiKey.value,
+          obscureText: true,
+          suffix: DropDownButton(
+              leading: Text('Voice: ${AppCache.deepgramVoiceModel.value}'),
+              items: [
+                for (var model in DeepgramSpeech.listModels)
+                  MenuFlyoutItem(
+                    selected: AppCache.deepgramVoiceModel.value == model,
+                    trailing: SqueareIconButton(
+                      onTap: () {
+                        if (DeepgramSpeech.isValid()) {
+                          DeepgramSpeech.readAloud(
+                              'This is a sample text to read aloud');
+                        }
+                      },
+                      icon: const Icon(FluentIcons.play_circle_24_filled),
+                      tooltip: 'Read sample',
+                    ),
+                    onPressed: () {
+                      AppCache.deepgramVoiceModel.value = model;
+                      DeepgramSpeech.init();
+                      setState(() {});
+                    },
+                    text: Text(model),
+                  ),
+              ]),
+          onChanged: (value) {
+            AppCache.deepgramApiKey.value = value.trim();
+            DeepgramSpeech.init();
+          },
+        ),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://console.deepgram.com',
+            url: 'https://console.deepgram.com',
+          ),
+        ),
+      ],
+    );
+  }
+}

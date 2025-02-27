@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 WeatherDay? weatherTodayMax;
 WeatherDay? weatherTodayMin;
 WeatherDay? weatherTomorrowMax;
+WeatherDay? weatherNow;
 
 /// Timer to fetch weather data every 4 hours
 Timer? fetchTimer;
@@ -64,7 +65,8 @@ class WeatherProvider extends ChangeNotifier {
   List<WeatherDay> getFilteredWeather() {
     final list = <WeatherDay>[];
     final allWeatherHourly = weatherData?.getWeatherDays();
-    final currentDateTime = DateTime.now();
+    // subtract 1 so we can get current time. Otherwise it will start from +1 hour
+    final currentDateTime = DateTime.now().subtract(Duration(hours: 1));
     for (WeatherDay weatherDay in allWeatherHourly ?? []) {
       final date = (weatherDay.date ?? DateTime(1970));
       if (date.isAfter(currentDateTime)) list.add(weatherDay);
@@ -77,12 +79,12 @@ class WeatherProvider extends ChangeNotifier {
     weatherTodayMin = null;
     weatherTomorrowMax = null;
     if (filteredWeather.isNotEmpty) {
-      final today = DateTime.now();
-      final tomorrow = today.add(Duration(days: 1));
+      final todayNow = DateTime.now();
+      final tomorrow = todayNow.add(Duration(days: 1));
 
       final todayWeather = filteredWeather
           .where(
-            (element) => element.date!.day == today.day,
+            (element) => element.date!.day == todayNow.day,
           )
           .toList();
       final tomorrowWeather = filteredWeather
@@ -90,6 +92,13 @@ class WeatherProvider extends ChangeNotifier {
             (element) => element.date!.day == tomorrow.day,
           )
           .toList();
+      for (var i = 0; i < todayWeather.length; i++) {
+        final weath = todayWeather[i];
+        if (weath.date?.hour == todayNow.hour) {
+          weatherNow = weath;
+          break;
+        }
+      }
 
       todayWeather.sort(
           (a, b) => (a.temperature ?? '0').compareTo(b.temperature ?? '0'));

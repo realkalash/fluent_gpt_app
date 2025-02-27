@@ -29,140 +29,151 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
           child: const Text('Close'),
         ),
       ],
-      content: StreamBuilder(
-          stream: customPrompts,
-          initialData: customPrompts.valueOrNull,
-          builder: (context, snap) {
-            final customPromptsValue = snap.data ?? [];
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox(
-                    width: 200,
-                    child: FilledRedButton(
-                      child: const Text('Reset to default template'),
-                      onPressed: () async {
-                        final accept = await ConfirmationDialog.show(
-                            context: context, isDelete: true);
-                        if (accept) {
-                          const customTemplate = basePromptsTemplate;
-                          const archivedTemplate = baseArchivedPromptsTemplate;
-                          customPrompts.add(customTemplate);
-                          archivedPrompts.add(archivedTemplate);
-                        }
-                      },
-                    ),
+      content: CustomPromptsSettingsContainer(),
+    );
+  }
+}
+
+class CustomPromptsSettingsContainer extends StatelessWidget {
+  const CustomPromptsSettingsContainer({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+        stream: customPrompts,
+        initialData: customPrompts.valueOrNull,
+        builder: (context, snap) {
+          final customPromptsValue = snap.data ?? [];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 200,
+                  child: FilledRedButton(
+                    child: const Text('Reset to default template'),
+                    onPressed: () async {
+                      final accept = await ConfirmationDialog.show(
+                          context: context, isDelete: true);
+                      if (accept) {
+                        const customTemplate = basePromptsTemplate;
+                        const archivedTemplate = baseArchivedPromptsTemplate;
+                        customPrompts.add(customTemplate);
+                        archivedPrompts.add(archivedTemplate);
+                      }
+                    },
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Divider(),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Divider(),
+              ),
+              Expanded(
+                child: ImplicitlyAnimatedReorderableList<CustomPrompt>(
+                  items: customPromptsValue,
+                  areItemsTheSame: (oldItem, newItem) =>
+                      oldItem.index == newItem.index,
+                  itemBuilder: (context, anim, item, index) {
+                    item = customPromptsValue.length <= index
+                        ? item
+                        : customPromptsValue[index];
+                    return Reorderable(
+                      key: ValueKey('${item.id}-reorderable'),
+                      child: SizeFadeTransition(
+                        animation: anim,
+                        curve: Curves.easeInOut,
+                        child: Card(
+                          backgroundColor:
+                              context.theme.inactiveBackgroundColor,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Handle(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: context.theme.accentColor,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text('${item.index}'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _PromptListTile(
+                                  prompt: item,
+                                  isArchived: false,
+                                  isSubprompt: false,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  onReorderFinished: (CustomPrompt item, int from, int to,
+                      List<CustomPrompt> newItems) async {
+                    for (var i = 0; i < newItems.length; i++) {
+                      newItems[i] = newItems[i].copyWith(index: i);
+                    }
+                    customPrompts.add(newItems);
+                  },
                 ),
-                Expanded(
-                  child: ImplicitlyAnimatedReorderableList<CustomPrompt>(
-                    items: customPromptsValue,
-                    areItemsTheSame: (oldItem, newItem) =>
-                        oldItem.index == newItem.index,
-                    itemBuilder: (context, anim, item, index) {
-                      item = customPromptsValue.length <= index
-                          ? item
-                          : customPromptsValue[index];
-                      return Reorderable(
-                        key: ValueKey('${item.id}-reorderable'),
-                        child: SizeFadeTransition(
-                          animation: anim,
-                          curve: Curves.easeInOut,
-                          child: Card(
-                            backgroundColor:
-                                context.theme.inactiveBackgroundColor,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Handle(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: context.theme.accentColor,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text('${item.index}'),
-                                  ),
+              ),
+              ListTile(
+                leading: const Icon(FluentIcons.add_24_filled),
+                title: const Text('Add new prompt'),
+                onPressed: () {
+                  final lenght = calcAllPromptsLenght();
+                  final newPrompt = CustomPrompt(
+                    id: lenght,
+                    iconCodePoint: FluentIcons.info_24_filled.codePoint,
+                    title: 'New prompt $lenght',
+                    prompt: 'Prompt',
+                    index: lenght,
+                  );
+                  final list = customPromptsValue.toList();
+                  list.add(newPrompt);
+                  customPrompts.add(list);
+                },
+              ),
+              Expander(
+                header: const Text('Archived prompts'),
+                content: StreamBuilder(
+                    stream: archivedPrompts,
+                    builder: (context, snapshot) {
+                      return SizedBox(
+                        height: 400,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var prompt in archivedPrompts.value)
+                                _PromptListTile(
+                                  prompt: prompt,
+                                  isArchived: true,
+                                  isSubprompt: false,
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _PromptListTile(
-                                    prompt: item,
-                                    isArchived: false,
-                                    isSubprompt: false,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
                         ),
                       );
-                    },
-                    onReorderFinished: (CustomPrompt item, int from, int to,
-                        List<CustomPrompt> newItems) async {
-                      for (var i = 0; i < newItems.length; i++) {
-                        newItems[i] = newItems[i].copyWith(index: i);
-                      }
-                      customPrompts.add(newItems);
-                    },
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(FluentIcons.add_24_filled),
-                  title: const Text('Add new prompt'),
-                  onPressed: () {
-                    final lenght = calcAllPromptsLenght();
-                    final newPrompt = CustomPrompt(
-                      id: lenght,
-                      iconCodePoint: FluentIcons.info_24_filled.codePoint,
-                      title: 'New prompt $lenght',
-                      prompt: 'Prompt',
-                      index: lenght,
-                    );
-                    final list = customPromptsValue.toList();
-                    list.add(newPrompt);
-                    customPrompts.add(list);
-                  },
-                ),
-                Expander(
-                  header: const Text('Archived prompts'),
-                  content: StreamBuilder(
-                      stream: archivedPrompts,
-                      builder: (context, snapshot) {
-                        return SizedBox(
-                          height: 400,
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                for (var prompt in archivedPrompts.value)
-                                  _PromptListTile(
-                                    prompt: prompt,
-                                    isArchived: true,
-                                    isSubprompt: false,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                ),
-              ],
-            );
-          }),
-    );
+                    }),
+              ),
+            ],
+          );
+        });
   }
 }
 

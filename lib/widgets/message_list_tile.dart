@@ -14,7 +14,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
@@ -475,7 +475,7 @@ class _MessageCardState extends State<MessageCard> {
               child: tileWidget,
             ),
           ),
-          if (overlayVisibility.value.isShowingOverlay)
+          if (widget.isCompactMode)
             Positioned(
               right: 16,
               top: 8,
@@ -577,7 +577,7 @@ class _MessageCardState extends State<MessageCard> {
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         FluentPageRoute(builder: (context) {
-                                          return const SettingsPage();
+                                          return const NewSettingsPage();
                                         }),
                                       );
                                     }),

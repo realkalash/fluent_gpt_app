@@ -34,6 +34,7 @@ import 'overlay/overlay_ui.dart';
 import 'overlay/sidebar_overlay_ui.dart';
 import 'providers/chat_provider.dart';
 import 'providers/server_provider.dart';
+import 'providers/weather_provider.dart';
 
 SharedPreferences? prefs;
 
@@ -222,52 +223,60 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
             value: _appTheme,
             builder: (ctx, child) {
               final appTheme = ctx.watch<AppTheme>();
-              return Listener(
-                onPointerDown: (event) => mouseLocalPosition = event.position,
-                child: FluentApp(
-                  title: '',
-                  navigatorKey: navigatorKey,
-                  onGenerateTitle: (context) => 'ChatGPT',
-                  themeMode: appTheme.mode,
-                  debugShowCheckedModeBanner: false,
-                  home: const GlobalPage(),
-                  color: appTheme.color,
-                  supportedLocales: const [Locale('en')],
-                  darkTheme: FluentThemeData(
-                    brightness: Brightness.dark,
-                    visualDensity: appTheme.visualDensity,
-                    scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
-                    infoBarTheme: InfoBarThemeData(
-                        decoration: (severity) =>
-                            appTheme.buildInfoBarDecoration(severity)),
-                    accentColor: appTheme.color,
-                    iconTheme:
-                        const IconThemeData(size: 20, color: Colors.white),
-                    cardColor: _appTheme.darkCardColor,
-                  ),
-                  theme: FluentThemeData(
-                    accentColor: appTheme.color,
-                    visualDensity: appTheme.visualDensity,
-                    scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
-                    infoBarTheme: InfoBarThemeData(
-                        decoration: (severity) =>
-                            appTheme.buildInfoBarDecoration(severity)),
-                    iconTheme: const IconThemeData(size: 20),
-                    cardColor: _appTheme.lightCardColor,
-                  ),
-                  locale: appTheme.locale,
-                  builder: (ctx, child) {
-                    return NavigationPaneTheme(
-                      data: NavigationPaneThemeData(
-                        backgroundColor: appTheme.isDark
-                            ? _appTheme.darkBackgroundColor
-                            : _appTheme.lightBackgroundColor,
+              return ChangeNotifierProvider(
+                  create: (ctx) => WeatherProvider(context),
+                  lazy: true,
+                  builder: (context, snapshot) {
+                    return Listener(
+                      onPointerDown: (event) =>
+                          mouseLocalPosition = event.position,
+                      child: FluentApp(
+                        title: '',
+                        navigatorKey: navigatorKey,
+                        onGenerateTitle: (context) => 'ChatGPT',
+                        themeMode: appTheme.mode,
+                        debugShowCheckedModeBanner: false,
+                        home: const GlobalPage(),
+                        color: appTheme.color,
+                        supportedLocales: const [Locale('en')],
+                        darkTheme: FluentThemeData(
+                          brightness: Brightness.dark,
+                          visualDensity: appTheme.visualDensity,
+                          scaffoldBackgroundColor:
+                              _appTheme.darkBackgroundColor,
+                          infoBarTheme: InfoBarThemeData(
+                              decoration: (severity) =>
+                                  appTheme.buildInfoBarDecoration(severity)),
+                          accentColor: appTheme.color,
+                          iconTheme: const IconThemeData(
+                              size: 20, color: Colors.white),
+                          cardColor: _appTheme.darkCardColor,
+                        ),
+                        theme: FluentThemeData(
+                          accentColor: appTheme.color,
+                          visualDensity: appTheme.visualDensity,
+                          scaffoldBackgroundColor:
+                              _appTheme.lightBackgroundColor,
+                          infoBarTheme: InfoBarThemeData(
+                              decoration: (severity) =>
+                                  appTheme.buildInfoBarDecoration(severity)),
+                          iconTheme: const IconThemeData(size: 20),
+                          cardColor: _appTheme.lightCardColor,
+                        ),
+                        locale: appTheme.locale,
+                        builder: (ctx, child) {
+                          return NavigationPaneTheme(
+                            data: NavigationPaneThemeData(
+                              backgroundColor: appTheme.isDark
+                                  ? _appTheme.darkBackgroundColor
+                                  : _appTheme.lightBackgroundColor,
+                            ),
+                            child: child!,
+                          );
+                        },
                       ),
-                      child: child!,
                     );
-                  },
-                ),
-              );
+                  });
             },
           ),
         ),

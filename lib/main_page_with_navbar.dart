@@ -6,6 +6,7 @@ import 'package:fluent_gpt/dialogs/storage_usage.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -15,7 +16,6 @@ import 'package:window_manager/window_manager.dart';
 
 import 'pages/about_page.dart';
 import 'pages/log_page.dart';
-import 'pages/settings_page.dart';
 import 'widgets/main_app_header_buttons.dart';
 
 class MainPageWithNavigation extends StatefulWidget {
@@ -147,9 +147,10 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   key: const ValueKey('/settings'),
                   icon: const Icon(FluentIcons.settings_24_regular),
                   title: const Text('Settings'),
-                  body: const SettingsPage(),
+                  body: const NewSettingsPage(),
                   onTap: () => Navigator.of(context).push(
-                    FluentPageRoute(builder: (context) => const SettingsPage()),
+                    FluentPageRoute(
+                        builder: (context) => const NewSettingsPage()),
                   ),
                 ),
                 PaneItem(
