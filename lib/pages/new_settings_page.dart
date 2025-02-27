@@ -112,11 +112,13 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
             icon: Icon(FluentIcons.book_toolbox_24_filled,
                 color: Color.fromARGB(255, 55, 43, 226)),
           ),
-          PaneItem(
-            title: Text('Permissions'),
-            body: PermissionsSettingsPage(),
-            icon: Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
-          ),
+          if (Platform.isMacOS)
+            PaneItem(
+              title: Text('Permissions'),
+              body: PermissionsSettingsPage(),
+              icon:
+                  Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
+            ),
           PaneItem(
             title: Text('Overlay'),
             body: OverlaySettingsPage(),
@@ -764,6 +766,16 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           padding: const EdgeInsets.all(8.0),
           child: Divider(),
         ),
+
+        Button(
+            child: Text('Audio and Microphone'),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const MicrophoneSettingsDialog(),
+              );
+            }),
+        spacer,
         // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
         if (!Platform.isMacOS)
           Checkbox(
@@ -779,14 +791,6 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
               setState(() {});
             },
           ),
-        Button(
-            child: Text('Audio and Microphone'),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => const MicrophoneSettingsDialog(),
-              );
-            }),
         CheckBoxTile(
           isChecked: appTheme.preventClose,
           expanded: true,
@@ -873,7 +877,6 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
           },
           child: const Text('Include knowledge about user'),
         ),
-        const Spacer(),
         Button(
             child: const Text('Open info about User'),
             onPressed: () {
@@ -975,6 +978,7 @@ class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
     return Container(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
+        header: PageHeader(title: const Text('Permissions')),
         children: [
           AccessebilityStatus(),
         ],
