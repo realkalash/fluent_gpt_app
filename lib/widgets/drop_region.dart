@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/attachment.dart';
-import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -10,18 +9,21 @@ import 'package:provider/provider.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
 class HomeDropRegion extends StatelessWidget {
-  const HomeDropRegion({super.key});
-  static const allowedFormats = [
-    'text/plain',
-    'text/csv',
+  const HomeDropRegion({super.key, this.onDrop});
+  final VoidCallback? onDrop;
+  static const allowedFormats = {
+    'text/plain': true,
+    'text/csv': true,
+    'PNG': true,
     // TODO: we need to add support for .doc, .xls files
-    // 'application/msword',
-    // 'application/vnd.ms-excel',
+    // 'application/msword': true,
+    // 'application/vnd.ms-excel': true,
     // word
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        true,
     // excel
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  ];
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': true,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +48,7 @@ class HomeDropRegion extends StatelessWidget {
         if (event.session.items.first.platformFormats.first.contains('image')) {
           isDropOverlayVisible.add(DropOverlayState.dropOver);
         } else if (allowedFormats
-            .contains(event.session.items.first.platformFormats.first)) {
+            .containsKey(event.session.items.first.platformFormats.first)) {
           isDropOverlayVisible.add(DropOverlayState.dropOver);
         } else {
           isDropOverlayVisible.add(DropOverlayState.dropInvalidFormat);
@@ -73,8 +75,10 @@ class HomeDropRegion extends StatelessWidget {
         final item = event.session.items.first;
         // data reader is available now
         final reader = item.dataReader!;
+        final canProvidePng = reader.canProvide(Formats.png);
 
-        if (reader.canProvide(Formats.png)) {
+        if (canProvidePng) {
+          onDrop?.call();
           reader.getFile(Formats.png, (file) async {
             final data = await file.readAll();
             final xfile = XFile.fromData(
@@ -95,11 +99,12 @@ class HomeDropRegion extends StatelessWidget {
               return;
             }
             log('File dropped: ${xfile.mimeType} ${data.length} bytes');
-            provider.addAttachemntAiLens(await xfile.imageToBase64());
+            provider.addAttachmentAiLens(data);
           }, onError: (error) {
             log('Error reading value $error');
           });
         } else if (reader.platformFormats.first == 'text/csv') {
+          onDrop?.call();
           reader.getFile(Formats.csv, (value) async {
             final fileContentBytes = await value.readAll();
             final mimeType = mime(value.fileName);
@@ -117,6 +122,7 @@ class HomeDropRegion extends StatelessWidget {
             log('Error reading value $error');
           });
         } else {
+          onDrop?.call();
           reader.getFile(null, (value) async {
             final fileContentBytes = await value.readAll();
             final mimeType = mime(value.fileName);

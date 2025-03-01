@@ -165,9 +165,9 @@ class _InputFieldState extends State<InputField> {
     if (image == null) return;
 
     final chatProvider = context.read<ChatProvider>();
-    final imageFilePng = await image.toPNG();
-    final base64 = await imageFilePng.imageToBase64();
-    chatProvider.addAttachemntAiLens(base64);
+    // final imageFilePng = await image.toPNG();
+    // final base64 = await imageFilePng.imageToBase64();
+    chatProvider.addAttachmentAiLens(image);
   }
 
   Future<void> onShortcutPasteToField() async {

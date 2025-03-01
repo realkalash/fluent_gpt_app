@@ -20,6 +20,7 @@ import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/dalle_api_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
@@ -557,7 +558,8 @@ class ChatProvider with ChangeNotifier {
         );
       } else if (command == TrayCommand.paste_attachment_ai_lens.name) {
         final base64String = text;
-        addAttachemntAiLens(base64String);
+        final bytes =  base64Decode(base64String);
+        addAttachmentAiLens(bytes);
       } else if (command == TrayCommand.generate_dalle_image.name) {
         final imagePrompt = text;
         if (imagePrompt.trim().isEmpty) {
@@ -635,16 +637,15 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addAttachemntAiLens(String base64String) async {
-    final attachment = Attachment.fromInternalScreenshot(base64String);
+  Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
+    final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput(attachment);
-    final isSent = await showDialog(
-      context: context!,
-      barrierDismissible: true,
-      builder: (ctx) => AiLensDialog(base64String: base64String),
-    );
-    if (isSent != true) {
-      removeFileFromInput();
+    if (showDialog) {
+    final isSent = 
+    await AiLensDialog.show<bool>(context!, bytes);
+      if (isSent != true) {
+        removeFileFromInput();
+      }
     }
   }
 
@@ -972,10 +973,9 @@ class ChatProvider with ChangeNotifier {
     final isExcelFileAttached = fileInput != null &&
         (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
     if (isImageAttached) {
-      /// beacuse timestamp is very sensetive
-      await Future.delayed(const Duration(milliseconds: 10));
       final bytes = await fileInput!.readAsBytes();
-      final base64 = base64Encode(bytes);
+      final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
+      final base64 = base64Encode(newBytes);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       addCustomMessageToList(
         FluentChatMessage.image(
@@ -1173,7 +1173,7 @@ class ChatProvider with ChangeNotifier {
         isAnswering = false;
         return;
       }
-      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
+      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name || selectedChatRoom.model.ownedBy == OwnedByEnum.deepinfra.name) {
         responseStream =
             openAI!.stream(PromptValue.chat(messagesToSend), options: options);
       } else {
@@ -2384,7 +2384,7 @@ class ChatProvider with ChangeNotifier {
 
   void removeFileFromInput() {
     if (fileInput?.isInternalScreenshot == true) {
-      FileUtils.deleteFile(fileInput!.path);
+      // FileUtils.deleteFile(fileInput!.path);
     }
     fileInput = null;
     notifyListeners();

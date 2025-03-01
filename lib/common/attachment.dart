@@ -24,7 +24,18 @@ class Attachment {
   }
 
   factory Attachment.fromInternalScreenshot(String stringBase64) {
-    final uintList = base64Decode(stringBase64);
+    final Uint8List uintList = base64Decode(stringBase64);
+    return Attachment(
+      file: XFile.fromData(
+        uintList,
+        mimeType: 'image/jpeg',
+        length: uintList.length,
+        name: 'screenshot.jpg',
+      ),
+      isInternalScreenshot: true,
+    );
+  }
+  factory Attachment.fromInternalScreenshotBytes(Uint8List uintList) {
     return Attachment(
       file: XFile.fromData(
         uintList,

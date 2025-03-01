@@ -183,6 +183,7 @@ class FileUtils {
   /// Delete file
   static Future<bool> deleteFile(String path, {bool recursive = false}) async {
     try {
+      if (path.isEmpty) return false;
       final file = File(path);
       if (file.existsSync()) {
         await file.delete(recursive: recursive);
@@ -341,5 +342,27 @@ class FileUtils {
       return '${(value / (1024 * 1024)).toStringAsFixed(2)} MB';
     }
     return '${value.toStringAsFixed(2)} bytes';
+  }
+
+  /// Shows OS prompt to choose where to save a file
+  static Future<String?> saveFileOsPrompt(Uint8List bytes,
+      {List<String>? allowedExtensions,
+      FileType type = FileType.any,
+      String? fileName}) async {
+    final path = await FilePicker.platform.saveFile(
+      allowedExtensions: allowedExtensions,
+      type: type,
+      bytes: bytes,
+      fileName: fileName,
+    );
+    if (Platform.isMacOS) return path;
+    /// for everything else we need to save the file manually
+    if (path == null) return null;
+    final resultError = await saveFileBytes(path, bytes);
+    if (resultError != null) {
+      log('saveFileOsPrompt error: $resultError');
+      return null;
+    }
+    return path;
   }
 }

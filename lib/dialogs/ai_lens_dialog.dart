@@ -1,14 +1,17 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/annotation_point.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/language_list.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/features/yandex_image_finder.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -16,10 +19,12 @@ import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/annotated_image.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
+import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:shimmer_animation/shimmer_animation.dart';
@@ -27,8 +32,24 @@ import 'package:shimmer_animation/shimmer_animation.dart';
 enum AiLensSelectedFeature { translate, scan }
 
 class AiLensDialog extends StatefulWidget {
-  const AiLensDialog({super.key, required this.base64String});
-  final String base64String;
+  const AiLensDialog({super.key, required this.bytes});
+  final Uint8List bytes;
+
+  static Future<T?> show<T>(BuildContext context, Uint8List bytes) async {
+    // if image is not supported, show error
+    if (!selectedChatRoom.model.imageSupported) {
+      displayErrorInfoBar(
+        title: 'Image not supported',
+        message: 'This chat room does not support images',
+      );
+      return null as T;
+    }
+    return showDialog<T>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AiLensDialog(bytes: bytes),
+    );
+  }
 
   @override
   State<AiLensDialog> createState() => _AiLensDialogState();
@@ -44,8 +65,11 @@ class _AiLensDialogState extends State<AiLensDialog> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (selectedChatRoom.model.imageSupported) {
-        imageBytes = base64Decode(widget.base64String);
+        imageBytes = widget.bytes;
         imageDimensions = await ImageDimensions.fromBytes(imageBytes!);
+        if (kDebugMode) {
+          print('Image info: $imageDimensions. Bytes: ${imageBytes?.length}');
+        }
         if (mounted) setState(() {});
       }
     });
@@ -55,8 +79,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
 
   @override
   void dispose() {
-    super.dispose();
     textContr.dispose();
+    super.dispose();
   }
 
   AiLensSelectedFeature? selectedFeature;
@@ -174,6 +198,36 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (kDebugMode)
+                            GestureDetector(
+                              onTap: () async {
+                                final newBytes =
+                                    await ImageUtil.resizeAndCompressImage(
+                                        imageBytes!);
+
+                                // choose path
+                                final res = await FileUtils.saveFileOsPrompt(
+                                  newBytes,
+                                  type: FileType.image,
+                                  allowedExtensions: ['png', 'jpg', 'jpeg'],
+                                  fileName: 'image.png',
+                                );
+                                if (res == null) return;
+                                displaySuccessInfoBar(
+                                  title: 'Image saved. $res',
+                                );
+                              },
+                              child: Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 4),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                    FluentIcons.arrow_download_32_filled,
+                                    size: 24),
+                              ),
+                            ),
                           GestureDetector(
                             onTap: () => _selectedFeature(
                                 AiLensSelectedFeature.translate),
@@ -300,21 +354,46 @@ class _AiLensDialogState extends State<AiLensDialog> {
                 ),
               ),
             if (imageBytes != null)
-              Shimmer(
-                enabled: isLoading,
-                duration: const Duration(seconds: 1),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: screenSize.width,
-                    maxHeight: screenSize.height * 0.7,
-                    minHeight: 200,
-                  ),
-                  child: AnnotatedImageOverlay(
-                    image: Image.memory(imageBytes!),
-                    annotations: points,
-                    originalHeight: imageDimensions!.height,
-                    originalWidth: imageDimensions!.width,
-                  ),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: screenSize.width,
+                  maxHeight: screenSize.height * 0.7,
+                  minHeight: 200,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned(
+                      top: 0,
+                      bottom: 0,
+                      right: 0,
+                      left: 0,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: screenSize.width,
+                          maxHeight: screenSize.height * 0.7,
+                          minHeight: 200,
+                        ),
+                        child: Shimmer(
+                          enabled: isLoading,
+                          duration: const Duration(seconds: 1),
+                          child: AnnotatedImageOverlay(
+                            image: Image.memory(imageBytes!,
+                                filterQuality: FilterQuality.high),
+                            annotations: points,
+                            originalHeight: imageDimensions!.height,
+                            originalWidth: imageDimensions!.width,
+                          ),
+                        ),
+                      ),
+                    ),
+                    HomeDropOverlay(),
+                    HomeDropRegion(
+                      onDrop: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
                 ),
               ),
             biggerSpacer,
@@ -374,7 +453,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                     return;
                   }
                   SauceNaoImageFinder.uploadToImgurAndFindImageBytes(
-                    base64Decode(widget.base64String),
+                    widget.bytes,
                   );
                 },
               ),
@@ -391,7 +470,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                     return;
                   }
                   YandexImageFinder.uploadToImgurAndFindImageBytes(
-                    base64Decode(widget.base64String),
+                    widget.bytes,
                   );
                 },
               ),
@@ -412,7 +491,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                               final provider = context.read<ChatProvider>();
                               provider.sendSingleMessage(
                                 'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
-                                imageBase64: widget.base64String,
+                                imageBase64: base64Encode(widget.bytes),
                                 showImageInChat: true,
                                 sendAsStream: false,
                               );
@@ -431,7 +510,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                             final provider = context.read<ChatProvider>();
                             provider.sendSingleMessage(
                               'Extract text from this image. Copy the main part to the clipboard using this format:\n\n```Clipboard\nYour text here\n```',
-                              imageBase64: widget.base64String,
+                              imageBase64: base64Encode(widget.bytes),
                               showImageInChat: true,
                             );
                             Navigator.of(context).pop();
@@ -446,7 +525,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
       ),
       actions: [
         FilledRedButton(
-          onPressed: () => Navigator.of(ctx).pop(),
+          onPressed: () => Navigator.of(ctx).maybePop(),
           child: const Text('Dismiss'),
         )
       ],
@@ -511,7 +590,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
         .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
       FluentChatMessage.image(
         id: "0",
-        content: widget.base64String,
+        content: base64Encode(widget.bytes),
         creator: "user",
         timestamp: DateTime.now().millisecondsSinceEpoch,
       ),
@@ -557,7 +636,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
         .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
       FluentChatMessage.image(
         id: "0",
-        content: widget.base64String,
+        content: base64Encode(widget.bytes),
         creator: "user",
         timestamp: DateTime.now().millisecondsSinceEpoch,
       ),

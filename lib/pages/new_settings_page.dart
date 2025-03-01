@@ -778,9 +778,8 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
         spacer,
         // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
         if (!Platform.isMacOS)
-          Checkbox(
-            content: const Text('Launch at startup'),
-            checked: isLaunchAtStartupEnabled,
+          CheckBoxTile(
+            isChecked: isLaunchAtStartupEnabled,
             onChanged: (value) async {
               if (value == true) {
                 await launchAtStartup.enable();
@@ -790,6 +789,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
               isLaunchAtStartupEnabled = value!;
               setState(() {});
             },
+            child: const Text('Launch at startup'),
           ),
         CheckBoxTile(
           isChecked: appTheme.preventClose,

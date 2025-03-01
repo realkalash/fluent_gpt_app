@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -9,7 +10,6 @@ import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
-import 'package:fluent_gpt/common/weather_data.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
@@ -19,14 +19,12 @@ import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
-import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/home_widgets/src.dart';
-import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/shell_driver.dart';
@@ -36,13 +34,11 @@ import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import '../providers/chat_provider.dart';
@@ -961,7 +957,6 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
   }
 }
 
-
 class ChatGPTContent extends StatefulWidget {
   const ChatGPTContent({super.key});
 
@@ -1048,8 +1043,10 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           base64Result = await ScreenshotTool
                               .takeScreenshotReturnBase64Native();
 
-                          if (base64Result != null && base64Result.isNotEmpty)
-                            chatProvider.addAttachemntAiLens(base64Result);
+                          if (base64Result != null && base64Result.isNotEmpty) {
+                            final bytes = base64Decode(base64Result);
+                            chatProvider.addAttachmentAiLens(bytes);
+                          }
                         },
                         tooltip: 'Capture screenshot',
                       ),

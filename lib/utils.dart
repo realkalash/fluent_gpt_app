@@ -269,7 +269,7 @@ class ImageDimensions {
   });
 
   @override
-  String toString() => 'ImageDimensions(width: $width, height: $height)';
+  String toString() => '(width: $width, height: $height)';
 
   static Future<ImageDimensions> fromBytes(Uint8List bytes) async {
     return getImageDimensionsFromBytes(bytes);
