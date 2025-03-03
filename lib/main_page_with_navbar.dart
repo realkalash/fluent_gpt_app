@@ -3,6 +3,7 @@ import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_all_messages_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
@@ -68,7 +69,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 PaneItemHeader(
                     header: Row(
                   children: [
-                    const Expanded(child: Text('Chat rooms')),
+                    Expanded(child: Text('Chat rooms'.tr)),
                     Tooltip(
                       message: 'Create new chat',
                       child: IconButton(
@@ -146,7 +147,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 PaneItem(
                   key: const ValueKey('/settings'),
                   icon: const Icon(FluentIcons.settings_24_regular),
-                  title: const Text('Settings'),
+                  title: Text('Settings'.tr),
                   body: const NewSettingsPage(),
                   onTap: () => Navigator.of(context).push(
                     FluentPageRoute(
@@ -156,7 +157,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 PaneItem(
                   key: const ValueKey('/about'),
                   icon: const Icon(FluentIcons.info_24_regular),
-                  title: const Text('About'),
+                  title:  Text('About'.tr),
                   body: const AboutPage(),
                   onTap: () => Navigator.of(context).push(
                     FluentPageRoute(builder: (context) => const AboutPage()),
@@ -165,7 +166,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 PaneItem(
                   key: const ValueKey('/log'),
                   icon: const Icon(FluentIcons.bug_24_regular),
-                  title: const Text('Log'),
+                  title: Text('Log'.tr),
                   body: const LogPage(),
                   onTap: () => Navigator.of(context).push(
                     FluentPageRoute(builder: (context) => const LogPage()),

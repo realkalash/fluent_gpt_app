@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -270,11 +271,11 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       actions: [
         Button(
           onPressed: () => addNewPrompt(context),
-          child: const Text('Add new'),
+          child: Text('Add new'.tr),
         ),
         Button(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text('Dismiss'),
+          child: Text('Dismiss'.tr),
         ),
       ],
     );
@@ -431,7 +432,7 @@ class _ReplaceAllPlaceHoldersDialogState
           onPressed: () {
             Navigator.of(context).pop(null);
           },
-          child: const Text('Dismiss'),
+          child: Text('Dismiss'.tr),
         ),
       ],
     );

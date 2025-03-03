@@ -27,21 +27,18 @@ class MainAppHeaderButtons extends StatelessWidget {
           const PinAppButton(),
           if (AppCache.enableOverlay.value == true)
             const ToggleOverlaySqueareButton(),
-          Tooltip(
-            message: 'Settings',
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: ToggleButton(
-                checked: false,
-                onChanged: (_) {
-                  Navigator.of(context).push(
-                    FluentPageRoute(builder: (context) => const NewSettingsPage()),
-                  );
-                },
-                child: const Icon(
-                  icons.FluentIcons.settings_24_regular,
-                  size: 20,
-                ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: ToggleButton(
+              checked: false,
+              onChanged: (_) {
+                Navigator.of(context).push(
+                  FluentPageRoute(builder: (context) => const NewSettingsPage()),
+                );
+              },
+              child: const Icon(
+                icons.FluentIcons.settings_24_regular,
+                size: 20,
               ),
             ),
           ),

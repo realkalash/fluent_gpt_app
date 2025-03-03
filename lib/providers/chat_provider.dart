@@ -25,6 +25,7 @@ import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:fluent_gpt/common/chat_room.dart';
@@ -686,8 +687,7 @@ class ChatProvider with ChangeNotifier {
         // }
       }
     }
-    notifyRoomsStream();
-    saveToDisk([selectedChatRoom]);
+    selectedChatRoomIdStream.add(selectedChatRoomId);
   }
 
   /// returns generated info about user
@@ -883,7 +883,7 @@ class ChatProvider with ChangeNotifier {
       String lastMessages = await getLastFewMessagesForContextAsString();
       lastMessages += ' Human: $messageContent';
       retrieveResponseFromPrompt(
-        '$nameTopicPrompt "$lastMessages"',
+        '${nameTopicPrompt.replaceAll('{lang}', I18n.currentLocale.languageCode)} "$lastMessages"',
       ).then(renameCurrentChatRoom);
     }
     if (isWebSearchEnabled) {
@@ -1173,7 +1173,7 @@ class ChatProvider with ChangeNotifier {
         isAnswering = false;
         return;
       }
-      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name || selectedChatRoom.model.ownedBy == OwnedByEnum.deepinfra.name) {
+      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
         responseStream =
             openAI!.stream(PromptValue.chat(messagesToSend), options: options);
       } else {
@@ -2603,7 +2603,7 @@ class ChatProvider with ChangeNotifier {
       if (!DeepgramSpeech.isValid()) {
         displayInfoBar(context!, builder: (ctx, close) {
           return InfoBar(
-            title: const Text('Deepgram API key is not set'),
+            title: Text('Deepgram API key is not set'.tr),
             severity: InfoBarSeverity.warning,
             action: Button(
               onPressed: () async {
@@ -2614,7 +2614,7 @@ class ChatProvider with ChangeNotifier {
                   FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
                 );
               },
-              child: const Text('Settings'),
+              child: Text('Settings'.tr),
             ),
           );
         });

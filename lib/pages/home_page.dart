@@ -17,6 +17,7 @@ import 'package:fluent_gpt/dialogs/edit_chat_drawer.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/theme.dart';
@@ -218,8 +219,8 @@ class ConversationStyleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expander(
       contentPadding: EdgeInsets.zero,
-      header: const Text(
-        'Conversation style',
+      header: Text(
+        'Conversation style'.tr,
         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
       ),
       content: StreamBuilder(
@@ -250,7 +251,7 @@ class ConversationStyleRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Conversation length',
+                    'Conversation length'.tr,
                     style: FluentTheme.of(context).typography.subtitle,
                   ),
                   SingleChildScrollView(
@@ -342,7 +343,7 @@ class PageHeaderText extends StatelessWidget {
                     )),
                     if (selectedModel.apiKey.isEmpty)
                       Tooltip(
-                        message: 'API token is empty!',
+                        message: 'API token is empty!'.tr,
                         child: Icon(ic.FluentIcons.lock_open_20_regular,
                             color: Colors.red, size: 24),
                       ),
@@ -356,7 +357,8 @@ class PageHeaderText extends StatelessWidget {
             children: [
               Tooltip(
                 message:
-                    'When you send a message, the app will use the system message along with your prompt. This value may differ from your own calculations because some additional information can be sent with each of your prompts.\nTotal is the total tokens that exists in current chat\nSent is the total tokens that you have sent\nReceived is the total tokens that you have received',
+                    'When you send a message, the app will use the system message along with your prompt. This value may differ from your own calculations because some additional information can be sent with each of your prompts.\nTotal is the total tokens that exists in current chat\nSent is the total tokens that you have sent\nReceived is the total tokens that you have received'
+                        .tr,
                 style: TooltipThemeData(maxWidth: 400),
                 child: HyperlinkButton(
                   style: ButtonStyle(
@@ -371,7 +373,8 @@ class PageHeaderText extends StatelessWidget {
                               chatProvider.totalTokensForCurrentChatByMessages,
                           builder: (context, snapshot) {
                             return Text(
-                              'Tokens total: ${(chatProvider.totalTokensByMessages)} ',
+                              'Tokens total: ${(chatProvider.totalTokensByMessages)} '
+                                  .tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -380,7 +383,7 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalSentForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              'sent: ${(chatProvider.totalSentTokens)} ',
+                              'sent: ${(chatProvider.totalSentTokens)} '.tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -388,7 +391,8 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalReceivedForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              'received: ${(chatProvider.totalReceivedTokens)}',
+                              'received: ${(chatProvider.totalReceivedTokens)}'
+                                  .tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -416,14 +420,14 @@ class PageHeaderText extends StatelessWidget {
               ),
               FlyoutButton(
                 icon: ic.FluentIcons.text_font_size_24_regular,
-                tooltip: 'Text size',
+                tooltip: 'Text size'.tr,
                 shrinkWrapActions: true,
                 contextItems: [
                   Consumer<ChatProvider>(builder: (context, value, child) {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Text size'),
+                        Text('Text size'.tr),
                         NumberBox(
                           value: chatProvider.textSize,
                           min: 8,
@@ -513,7 +517,7 @@ class IncludeConversationSwitcher extends StatelessWidget {
     return FlyoutListTile(
       text: const Icon(FluentIcons.full_history),
       tooltip:
-          'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
+          '${'Include conversation'.tr} ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
       trailing: Checkbox(
         checked: chatProvider.includeConversationGlobal,
         onChanged: (value) {
@@ -647,8 +651,8 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
           alignment: Alignment.center,
           child: BasicListTile(
             color: Colors.transparent,
-            title: const Center(
-                child: Text('Add system message',
+            title: Center(
+                child: Text('Add system message'.tr,
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
             trailing: const PromptLibraryButton(),
@@ -831,7 +835,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                                   padding: const EdgeInsets.only(
                                       left: 6, right: 0, top: 4, bottom: 0),
                                   child: Text(
-                                    item.title,
+                                    item.title.tr,
                                     maxLines: 2,
                                     overflow: TextOverflow.clip,
                                     style: const TextStyle(
@@ -1048,7 +1052,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             chatProvider.addAttachmentAiLens(bytes);
                           }
                         },
-                        tooltip: 'Capture screenshot',
+                        tooltip: 'Capture screenshot'.tr,
                       ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
@@ -1060,8 +1064,9 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           } else {
                             displayInfoBar(context, builder: (context, close) {
                               return InfoBar(
-                                title: const Text(
-                                    'You need to obtain Brave API key to use web search'),
+                                title: Text(
+                                    'You need to obtain Brave API key to use web search'
+                                        .tr),
                                 severity: InfoBarSeverity.warning,
                                 action: Button(
                                   onPressed: () {
@@ -1072,38 +1077,38 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                                               const NewSettingsPage()),
                                     );
                                   },
-                                  child: const Text('Settings->API and URLs'),
+                                  child: Text('Settings->API and URLs'.tr),
                                 ),
                               );
                             });
                           }
                         },
                         tooltip: chatProvider.isWebSearchEnabled
-                            ? 'Disable web search'
-                            : 'Enable web search',
+                            ? 'Disable web search'.tr
+                            : 'Enable web search'.tr,
                       ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.includeConversationGlobal,
                         icon: ic.FluentIcons.history_20_filled,
                         onChanged: chatProvider.setIncludeWholeConversation,
-                        tooltip:
-                            'Include conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
+                        tooltip: 'Include conversation'.tr +
+                            ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
                         maxWidthContextMenu: 350,
                         maxHeightContextMenu: 100,
                         contextItems: [
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Tooltip(
+                              Tooltip(
                                 message:
-                                    'To prevent token overflows unnecessary cost we propose to limit the conversation length',
+                                    'To prevent token overflows unnecessary cost we propose to limit the conversation length'
+                                        .tr,
                                 child: Icon(
                                     ic.FluentIcons.question_circle_24_filled,
                                     size: 24),
                               ),
                               const SizedBox(width: 8),
-                              const Expanded(
-                                  child: Text('Max tokens to include')),
+                              Expanded(child: Text('Max tokens to include'.tr)),
                               Expanded(
                                 child: Consumer<ChatProvider>(
                                   builder: (context, watch, child) {
@@ -1126,7 +1131,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             children: [
                               Expanded(
                                 child: Button(
-                                  child: Text('Min'),
+                                  child: Text('Min'.tr),
                                   onPressed: () {
                                     chatProvider.setMaxTokensForChat(800);
                                   },
@@ -1134,21 +1139,21 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                               Expanded(
                                 child: Button(
-                                    child: Text('Med'),
+                                    child: Text('Med'.tr),
                                     onPressed: () {
                                       chatProvider.setMaxTokensForChat(2048);
                                     }),
                               ),
                               Expanded(
                                 child: Button(
-                                    child: Text('Hight'),
+                                    child: Text('Hight'.tr),
                                     onPressed: () {
                                       chatProvider.setMaxTokensForChat(4096);
                                     }),
                               ),
                               Expanded(
                                 child: Button(
-                                    child: Text('Max'),
+                                    child: Text('Max'.tr),
                                     onPressed: () {
                                       chatProvider.setMaxTokensForChat(8000);
                                     }),
@@ -1164,7 +1169,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         shrinkWrapActions: true,
                         maxWidthContextMenu: 300,
                         contextItems: [
-                          Text('Select items to include in system prompt'),
+                          Text('Select items to include in system prompt'.tr),
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Divider(),
@@ -1172,7 +1177,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           CheckBoxTile(
                             isChecked: AppCache
                                 .includeKnowledgeAboutUserToSysPrompt.value!,
-                            child: Text('Knowledge about user'),
+                            child: Text('Knowledge about user'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.learnAboutUserAfterCreateNewChat
@@ -1183,7 +1188,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           CheckBoxTile(
                             isChecked:
                                 AppCache.includeUserCityNamePrompt.value!,
-                            child: Text('City name'),
+                            child: Text('City name'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.includeUserCityNamePrompt.value = p0;
@@ -1192,7 +1197,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           ),
                           CheckBoxTile(
                             isChecked: AppCache.includeWeatherPrompt.value!,
-                            child: Text('Weather'),
+                            child: Text('Weather'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.includeWeatherPrompt.value = p0;
@@ -1202,7 +1207,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           CheckBoxTile(
                             isChecked:
                                 AppCache.includeUserNameToSysPrompt.value!,
-                            child: Text('User name'),
+                            child: Text('User name'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.includeUserNameToSysPrompt.value = p0;
@@ -1212,7 +1217,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           CheckBoxTile(
                             isChecked:
                                 AppCache.includeTimeToSystemPrompt.value!,
-                            child: Text('Current timestamp'),
+                            child: Text('Current timestamp'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.includeUserNameToSysPrompt.value = p0;
@@ -1222,7 +1227,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           CheckBoxTile(
                             isChecked:
                                 AppCache.includeSysInfoToSysPrompt.value!,
-                            child: Text('OS info'),
+                            child: Text('OS info'.tr),
                             onChanged: (p0) {
                               setState(() {
                                 AppCache.includeSysInfoToSysPrompt.value = p0;
@@ -1236,7 +1241,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           });
                         },
                         tooltip:
-                            'Summarize conversation and populate the knowlade about the user',
+                            'Summarize conversation and populate the knowledge about the user'
+                                .tr,
                       ),
                       ToggleButtonAdvenced(
                         checked: AppCache
@@ -1260,7 +1266,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                           chatRooms[selectedChatRoomId] = editedChatRoom;
                           chatProvider.notifyRoomsStream();
                         },
-                        tooltip: 'Use memory about the user',
+                        tooltip: 'Use memory about the user'.tr,
                       ),
                       ToggleButtonAdvenced(
                         checked: AppCache.autoPlayMessagesFromAi.value!,
@@ -1270,7 +1276,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             AppCache.autoPlayMessagesFromAi.value = v;
                           });
                         },
-                        tooltip: 'Auto play messages from ai',
+                        tooltip: 'Auto play messages from ai'.tr,
                       ),
                     ],
                   ),
@@ -1372,7 +1378,8 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'),
+                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'
+                              .tr),
                       spacer,
                       Image.asset('assets/im_suggestions_tip.png'),
                     ],
@@ -1385,20 +1392,21 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                       children: [
                         Expanded(
                             child: Text(
-                                'Do you want to enable suggestion helpers?')),
+                                'Do you want to enable suggestion helpers?'
+                                    .tr)),
                         FilledButton(
                           onPressed: () {
                             AppCache.enableQuestionHelpers.value = true;
                             provider.updateUI();
                           },
-                          child: const Text('Enable'),
+                          child: Text('Enable'.tr),
                         ),
                         Button(
                           onPressed: () {
                             AppCache.enableQuestionHelpers.value = false;
                             provider.updateUI();
                           },
-                          child: const Text('No. Don\'t show again'),
+                          child: Text('No. Don\'t show again'.tr),
                         )
                       ],
                     ),
@@ -1420,7 +1428,7 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                         await Clipboard.getData(Clipboard.kTextPlain);
                     provider.sendMessage(item.getPromptText(clipboard?.text));
                   },
-                  child: Text(item.title,
+                  child: Text(item.title.tr,
                       style:
                           TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
@@ -1500,7 +1508,7 @@ void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
   showDialog(
     context: context,
     builder: (ctx) => ContentDialog(
-      title: const Text('Choose code block'),
+      title: Text('Choose code block'.tr),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -1535,7 +1543,7 @@ void chooseCodeBlockDialog(BuildContext context, List<String> blocks) {
       actions: [
         Button(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Dismiss'),
+          child: Text('Dismiss'.tr.tr),
         ),
       ],
     ),

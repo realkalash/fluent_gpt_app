@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -15,7 +16,6 @@ import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
-import 'package:rxdart/subjects.dart';
 
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:flutter/foundation.dart';
@@ -25,7 +25,6 @@ import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
 
-BehaviorSubject<String> defaultGPTLanguage = BehaviorSubject.seeded('english');
 bool isLaunchAtStartupEnabled = false;
 
 class SettingsPage extends StatefulWidget {
@@ -46,7 +45,7 @@ class _SettingsPageState extends State<SettingsPage> with PageMixin {
         header: GestureDetector(
           onPanStart: (v) => WindowManager.instance.startDragging(),
           child: PageHeader(
-              title: const Text('Settings'),
+              title: Text('Settings'.tr),
               leading: canGoBack
                   ? IconButton(
                       icon: const Icon(FluentIcons.arrow_left_24_filled,
@@ -468,6 +467,7 @@ class MessageSamplePreviewCard extends StatelessWidget {
 // const supportedLocales = FluentLocalizations.supportedLocales;
 const supportedLocales = [
   Locale('en'),
+  Locale('ru'),
 ];
 const gptLocales = [
   Locale('en'),
@@ -490,8 +490,7 @@ class _LocaleSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final appTheme = context.watch<AppTheme>();
 
-    final currentLocale =
-        appTheme.locale ?? Localizations.maybeLocaleOf(context);
+    final currentLocale = appTheme.locale;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -520,19 +519,6 @@ class _LocaleSection extends StatelessWidget {
         Text('GPT Locale', style: FluentTheme.of(context).typography.subtitle),
         const CaptionText('Language LLM will use to generate answers'),
         spacer,
-        DropDownButton(
-          leading: Text(defaultGPTLanguage.value),
-          items: gptLocales.map((locale) {
-            return MenuFlyoutItem(
-              selected: defaultGPTLanguage.value == locale.languageCode,
-              onPressed: () {
-                defaultGPTLanguage.add(locale.languageCode);
-                appTheme.updateUI();
-              },
-              text: Text('$locale'),
-            );
-          }).toList(),
-        ),
         Text('Speech Language',
             style: FluentTheme.of(context).typography.subtitle),
         const CaptionText(

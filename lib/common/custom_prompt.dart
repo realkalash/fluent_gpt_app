@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -76,7 +76,7 @@ class CustomPrompt {
   /// The prompt also use the language from the lang BehaviorSubject
   String getPromptText([String? selectedText]) {
     final replacements = <String, String Function()>{
-      '\${lang}': () => defaultGPTLanguage.value,
+      '\${lang}': () => I18n.currentLocale.languageCode,
       '\${userInfo}': () => AppCache.userInfo.valueSync(),
       '\${timestamp}': () {
         final formatter = DateFormat('EEE d hh:mm a');

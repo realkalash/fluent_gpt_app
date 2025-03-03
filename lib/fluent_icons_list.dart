@@ -11,7 +11,7 @@ const Map<String, IconData> tagToIconMap = {
   'archive': FluentIcons.archive_24_filled,
   'arrow_routing': FluentIcons.arrow_routing_24_filled,
   'book_question_mark': FluentIcons.book_question_mark_24_filled,
-  'edit': FluentIcons.edit_24_filled,
+  'Edit': FluentIcons.edit_24_filled,
   'text_grammar_wand': FluentIcons.text_grammar_wand_24_filled,
   'translate': FluentIcons.translate_24_filled,
   'local_language': FluentIcons.local_language_24_filled,

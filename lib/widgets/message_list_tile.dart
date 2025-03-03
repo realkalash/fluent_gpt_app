@@ -10,6 +10,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -573,7 +574,7 @@ class _MessageCardState extends State<MessageCard> {
                                 title: Text(
                                     '${TextToSpeechService.serviceName} API key is not set'),
                                 action: Button(
-                                    child: const Text('Settings'),
+                                    child: Text('Settings'.tr),
                                     onPressed: () {
                                       Navigator.of(context).push(
                                         FluentPageRoute(builder: (context) {
@@ -1003,7 +1004,7 @@ class _MessageCardState extends State<MessageCard> {
             },
           ),
           MenuFlyoutItem(
-            text: const Text('Edit'),
+            text: Text('Edit'.tr),
             leading: const Icon(FluentIcons.edit_16_regular),
             onPressed: () async {
               await Navigator.of(context).maybePop();

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/features/additional_features.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
@@ -127,6 +128,7 @@ void main(List<String> args) async {
       log('onSecondWindow. args: $args');
     });
   prefs = await SharedPreferences.getInstance();
+  I18n.init();
   if (AppCache.isWelcomeShown.value == true) {
     await FileUtils.init();
   }

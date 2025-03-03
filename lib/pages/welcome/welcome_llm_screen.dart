@@ -59,7 +59,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                     ),
                     const SizedBox(height: 16),
                     TextAnimator(
-                      'Configure your AI to work as you want.',
+                      'Configure your AI to work as you want',
                       initialDelay: const Duration(milliseconds: 1500),
                       characterDelay: const Duration(milliseconds: 5),
                       style: TextStyle(

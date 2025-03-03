@@ -1,6 +1,7 @@
 import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/weather_data.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -86,7 +87,7 @@ class WeatherCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('Weather in',
+                        Text('Weather in'.tr,
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
                         Text(' ${AppCache.userCityName.value}',
@@ -138,7 +139,7 @@ class WeatherCard extends StatelessWidget {
                         Button(
                           onPressed: () =>
                               launchUrlString('https://weatherian.com/'),
-                          child: const Text('More'),
+                          child: Text('More'.tr),
                         ),
                       ],
                     ),
@@ -160,7 +161,7 @@ class WeatherNowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weatherProvider = context.watch<WeatherProvider>();
+    context.watch<WeatherProvider>();
     final weatherStatus = weatherNow!.weatherStatus;
     final date = weatherNow!.date ?? DateTime(1970);
 

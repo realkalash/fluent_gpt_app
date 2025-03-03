@@ -10,9 +10,9 @@ import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/features/yandex_image_finder.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -95,7 +95,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
   final flyoutTargetTranslateTo = FlyoutController();
 
   String languageFrom = 'Auto';
-  String languageTo = defaultGPTLanguage.value;
+  String languageTo = I18n.currentLocale.languageCode;
 
   Future selectTranslateFrom() async {
     flyoutTargetTranslateFrom.showFlyout(builder: (ctx) {
@@ -526,7 +526,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
       actions: [
         FilledRedButton(
           onPressed: () => Navigator.of(ctx).maybePop(),
-          child: const Text('Dismiss'),
+          child:  Text('Dismiss'.tr),
         )
       ],
     );

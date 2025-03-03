@@ -15,6 +15,7 @@ import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/push_to_talk_tool.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
@@ -397,7 +398,8 @@ class _InputFieldState extends State<InputField> {
                   suffix: const _MicrophoneButton(),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) => onSubmit(value, chatProvider),
-                  placeholder: 'Use "/" for commands or type your message here',
+                  placeholder:
+                      'Use "/" for commands or type your message here'.tr,
                 ),
               )
             ],
@@ -493,7 +495,8 @@ class _InputFieldState extends State<InputField> {
                           textInputAction: TextInputAction.done,
                           onSubmitted: (value) => onSubmit(value, chatProvider),
                           placeholder:
-                              'Use "/" for commands or type your message here',
+                              'Use "/" for commands or type your message here'
+                                  .tr,
                         ),
                       ),
                     ),
@@ -1160,7 +1163,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                         }
                       },
                       icon: Icon(ic.FluentIcons.edit_16_regular),
-                      tooltip: 'Edit',
+                      tooltip: 'Edit'.tr,
                     ),
                     const SizedBox(width: 4),
                     if (i != 0)
@@ -1187,7 +1190,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
             const MenuFlyoutSeparator(),
             MenuFlyoutItem(
               leading: const Icon(ic.FluentIcons.edit_16_regular),
-              text: const Text('Edit'),
+              text: Text('Edit'.tr),
               onPressed: () {
                 Navigator.of(ctx).pop();
                 showDialog(
@@ -1379,7 +1382,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                     if (prompt.showInChatField)
                       PromptChipWidget(prompt: prompt),
                   Button(
-                      child: const Text('Answer with tags'),
+                      child: Text('Answer with tags'.tr),
                       onPressed: () async {
                         final textFromClipboard =
                             (await Clipboard.getData('text/plain'))?.text ?? '';
@@ -1399,7 +1402,7 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                       context: context,
                       builder: (ctx) => const CustomPromptsSettingsDialog(),
                     ),
-                    tooltip: 'Customize custom promtps',
+                    tooltip: 'Quick prompts'.tr,
                   ),
                 ],
               ),
@@ -1453,7 +1456,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
             children: [
               Icon(widget.prompt.icon, size: 18),
               const SizedBox(width: 4),
-              Text(widget.prompt.title),
+              Text(widget.prompt.title.tr),
               if (widget.prompt.children.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
@@ -1462,7 +1465,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
                       for (final child in widget.prompt.children)
                         MenuFlyoutItem(
                           leading: Icon(child.icon),
-                          text: Text(child.title),
+                          text: Text(child.title.tr),
                           onPressed: () => _onTap(context, child),
                         )
                     ],
@@ -1493,7 +1496,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
             if (item.children.isNotEmpty) const Divider(),
             FlyoutListTile(
               icon: const Icon(ic.FluentIcons.settings_20_regular),
-              text: const Text('Edit'),
+              text: Text('Edit'.tr),
               onPressed: () async {
                 final prompt = await showDialog<CustomPrompt?>(
                   context: context,

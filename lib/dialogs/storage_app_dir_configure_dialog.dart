@@ -8,6 +8,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
 import 'package:fluent_gpt/dialogs/prompt_restart_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
@@ -46,7 +47,7 @@ class _StorageAppDirConfigureDialogState
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Dismiss'),
+          child:  Text('Dismiss'.tr),
         ),
         FilledButton(
           onPressed: () async {

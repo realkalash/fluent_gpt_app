@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,7 @@ import 'package:fluent_gpt/features/elevenlabs_speech.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
@@ -59,10 +61,23 @@ class NewSettingsPage extends StatefulWidget {
 
 class _NewSettingsPageState extends State<NewSettingsPage> {
   int selectedIndex = 0;
+  late final StreamSubscription<Map<String, String?>> suscr;
+  @override
+  void initState() {
+    super.initState();
+    suscr = I18n.currentLocalizationStream.listen((event) {
+      setState(() {});
+    });
+  }
+  @override
+  void dispose() {
+    suscr.cancel();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return NavigationView(
-      appBar: NavigationAppBar(title: Text('Settings')),
+      appBar: NavigationAppBar(title: Text('Settings'.tr)),
       pane: NavigationPane(
         displayMode: PaneDisplayMode.open,
         size: NavigationPaneSize(openMaxWidth: 200),
@@ -74,32 +89,32 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
         },
         items: [
           PaneItem(
-            title: Text('General'),
+            title: Text('General'.tr),
             body: GeneralSettingsPage(),
             icon: Icon(FluentIcons.settings_32_filled, color: Colors.blue),
           ),
           PaneItem(
-            title: Text('Appearance'),
+            title: Text('Appearance'.tr),
             body: AppearanceSettings(),
             icon: Icon(FluentIcons.paint_bucket_24_filled, color: Colors.teal),
           ),
           PaneItem(
-            title: Text('Tools'),
+            title: Text('Tools'.tr),
             body: ToolsSettings(),
             icon: Icon(FluentIcons.toolbox_24_filled, color: Colors.green),
           ),
           PaneItem(
-            title: Text('User info'),
+            title: Text('User info'.tr),
             body: UserSettignsInfoPage(),
             icon: Icon(FluentIcons.person_32_filled, color: Colors.magenta),
           ),
           PaneItem(
-            title: Text('API and URLs'),
+            title: Text('API and URLs'.tr),
             body: APIandUrlsSettingsPage(),
             icon: Icon(FluentIcons.apps_add_in_24_filled, color: Colors.yellow),
           ),
           PaneItem(
-            title: Text('On response'),
+            title: Text('On response'.tr),
             body: OnResponseEndSettingsPage(),
             icon: Icon(
               FluentIcons.chat_32_filled,
@@ -107,30 +122,30 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
             ),
           ),
           PaneItem(
-            title: Text('Quick prompts'),
+            title: Text('Quick prompts'.tr),
             body: QuickPromptsSettingsPage(),
             icon: Icon(FluentIcons.book_toolbox_24_filled,
                 color: Color.fromARGB(255, 55, 43, 226)),
           ),
           if (Platform.isMacOS)
             PaneItem(
-              title: Text('Permissions'),
+              title: Text('Permissions'.tr),
               body: PermissionsSettingsPage(),
               icon:
                   Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
             ),
           PaneItem(
-            title: Text('Overlay'),
+            title: Text('Overlay'.tr),
             body: OverlaySettingsPage(),
             icon: Icon(FluentIcons.oven_32_filled, color: Colors.orange),
           ),
           PaneItem(
-            title: Text('Storage'),
+            title: Text('Storage'.tr),
             body: StorageSettingsPage(),
             icon: Icon(FluentIcons.storage_32_filled, color: Color(0xFF8A2BE2)),
           ),
           PaneItem(
-            title: Text('Hotkeys'),
+            title: Text('Hotkeys'.tr),
             body: HotkeysSettingsPage(),
             icon: Icon(
               FluentIcons.key_command_24_filled,
@@ -145,7 +160,7 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
                   color: Colors.green),
             ),
           PaneItem(
-            title: Text('About'),
+            title: Text('About'.tr),
             body: AboutPage(),
             icon: Icon(FluentIcons.info_32_filled, color: Colors.white),
           ),
@@ -173,7 +188,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
             final key = await KeybindingDialog.show(
               context,
               initHotkey: openWindowHotkey,
-              title: const Text('Open the window keybinding'),
+              title: Text('Open the window keybinding'.tr),
             );
             if (key != null && key != openWindowHotkey) {
               setState(() {
@@ -186,7 +201,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Open the window'),
+              Text('Open the window'.tr),
               const SizedBox(width: 10.0),
               HotKeyVirtualView(hotKey: openWindowHotkey),
             ],
@@ -198,7 +213,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
             final key = await KeybindingDialog.show(
               context,
               initHotkey: takeScreenshot,
-              title: const Text('Take a screenshot keybinding'),
+              title: Text('Take a screenshot keybinding'.tr),
             );
             final wasRegistered = HotKeyManager.instance.registeredHotKeyList
                 .any((element) => element == key);
@@ -216,14 +231,14 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Use visual AI'),
+              Text('Use visual AI'.tr),
               const SizedBox(width: 10.0),
               if (takeScreenshot != null)
                 HotKeyVirtualView(hotKey: takeScreenshot!)
               else
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'),
+                  child: Text('[Not set]'.tr),
                 ),
             ],
           ),
@@ -234,7 +249,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
             final key = await KeybindingDialog.show(
               context,
               initHotkey: pttScreenshotKey,
-              title: const Text('Push-to-talk with screenshot'),
+              title: Text('Push-to-talk with screenshot'.tr),
             );
             final wasRegistered = HotKeyManager.instance.registeredHotKeyList
                 .any((element) => element == key);
@@ -252,14 +267,14 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Push-to-talk with screenshot'),
+              Text('Push-to-talk with screenshot'.tr),
               const SizedBox(width: 10.0),
               if (pttScreenshotKey != null)
                 HotKeyVirtualView(hotKey: pttScreenshotKey!)
               else
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'),
+                  child: Text('[Not set]'.tr),
                 ),
             ],
           ),
@@ -270,7 +285,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
             final key = await KeybindingDialog.show(
               context,
               initHotkey: pttKey,
-              title: const Text('Push-to-talk'),
+              title: Text('Push-to-talk'.tr),
             );
             final wasRegistered = HotKeyManager.instance.registeredHotKeyList
                 .any((element) => element == key);
@@ -288,14 +303,14 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Push-to-talk'),
+              Text('Push-to-talk'.tr),
               const SizedBox(width: 10.0),
               if (pttKey != null)
                 HotKeyVirtualView(hotKey: pttKey!)
               else
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'),
+                  child: Text('[Not set]'.tr),
                 ),
             ],
           ),
@@ -305,7 +320,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
           child: Divider(),
         ),
         Button(
-            child: const Text('Show all keybindings'),
+            child: Text('Show all keybindings'.tr),
             onPressed: () {
               Navigator.of(context).push(FluentPageRoute(
                   builder: (context) => Column(
@@ -343,7 +358,7 @@ class StorageSettingsPage extends StatelessWidget {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         Button(
-            child: Text('Application storage location'),
+            child: Text('Application storage location'.tr),
             onPressed: () {
               showDialog(
                 context: context,
@@ -352,7 +367,7 @@ class StorageSettingsPage extends StatelessWidget {
             }),
         spacer,
         Button(
-            child: const Text('Delete all chat rooms'),
+            child: Text('Delete all chat rooms'.tr),
             onPressed: () => ConfirmationDialog(
                   isDelete: true,
                   onAcceptPressed: () {
@@ -361,7 +376,7 @@ class StorageSettingsPage extends StatelessWidget {
                 )),
         spacer,
         Button(
-            child: const Text('Delete temp cache'),
+            child: Text('Delete temp cache'.tr),
             onPressed: () async {
               final sizeBytes = await FileUtils.calculateSizeRecursive(
                   FileUtils.appTemporaryDirectoryPath!);
@@ -371,7 +386,7 @@ class StorageSettingsPage extends StatelessWidget {
                 context: context,
                 isDelete: true,
                 message:
-                    'Delete temp cache? Size: ${sizeMb.toStringAsFixed(2)} MB',
+                    '${'Delete temp cache? Size:'.tr} ${sizeMb.toStringAsFixed(2)} MB',
                 onAcceptPressed: () async {
                   ShellDriver.deleteAllTempFiles();
                   AppCache.costTotal.value = 0.0;
@@ -387,7 +402,7 @@ class StorageSettingsPage extends StatelessWidget {
         spacer,
         spacer,
         FilledRedButton(
-            child: const Text('Clear all data'),
+            child: Text('Clear all data'.tr),
             onPressed: () async {
               final navProvider = context.read<NavigationProvider>();
               final res = await ConfirmationDialog.show(context: context);
@@ -424,7 +439,7 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
     return Container(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
-        Text('Overlay settings',
+        Text('Overlay settings'.tr,
             style: FluentTheme.of(context).typography.subtitle),
         CheckBoxTile(
           isChecked: AppCache.enableOverlay.value!,
@@ -434,7 +449,7 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
             });
             Provider.of<AppTheme>(context, listen: false).updateUI();
           },
-          child: const Text('Enable overlay'),
+          child: Text('Enable overlay'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.showSettingsInOverlay.value!,
@@ -443,15 +458,16 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
               AppCache.showSettingsInOverlay.value = value;
             });
           },
-          child: const Text('Show settings icon in overlay'),
+          child: Text('Show settings icon in overlay'.tr),
         ),
         spacer,
         NumberBox(
           value: AppCache.overlayVisibleElements.value == -1
               ? null
               : AppCache.overlayVisibleElements.value,
-          placeholder:
-              AppCache.overlayVisibleElements.value == -1 ? 'Adaptive' : null,
+          placeholder: AppCache.overlayVisibleElements.value == -1
+              ? 'Adaptive'.tr
+              : null,
           onChanged: (value) {
             AppCache.overlayVisibleElements.value = value ?? -1;
           },
@@ -500,7 +516,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
           padding: EdgeInsets.zero,
           child: BasicListTile(
             padding: const EdgeInsets.all(8.0),
-            title: const Text('Show suggestions after ai response'),
+            title: Text('Show suggestions after ai response'.tr),
             leading: Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: Checkbox(
@@ -520,7 +536,8 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'),
+                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'
+                              .tr),
                       const SizedBox(height: 10),
                       Image.asset('assets/im_suggestions_tip.png', width: 400),
                     ],
@@ -594,7 +611,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
           ),
         ),
         Button(
-          child: const Text('Add custom action'),
+          child: Text('Add custom action'.tr),
           onPressed: () {
             showDialog(
               context: context,
@@ -621,7 +638,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   Widget build(BuildContext context) {
     return ScaffoldPage.scrollable(children: [
       Text(
-        'Brave API key (search engine) \$',
+        'Brave API key (search engine) \$'.tr,
         style: FluentTheme.of(context).typography.subtitle,
       ),
       TextFormBox(
@@ -661,7 +678,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
             ),
         ],
         title: Text(
-            'Text-to-Speech service: ${AppCache.textToSpeechService.value}'),
+            '${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
       ),
       if (AppCache.textToSpeechService.value ==
           TextToSpeechServiceEnum.deepgram.name)
@@ -695,12 +712,13 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.read<AppTheme>();
+    final currentLocale = appTheme.locale;
     return Container(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
-        const LabelText('Global system prompt'),
+        LabelText('Global system prompt'.tr),
         TextFormBox(
-          placeholder: 'Global system prompt',
+          placeholder: 'Global system prompt'.tr,
           controller: systemPromptController,
           minLines: 1,
           maxLines: 50,
@@ -721,12 +739,13 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             defaultGlobalSystemMessage = value;
           },
         ),
-        const CaptionText(
-          'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below',
+        CaptionText(
+          'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below'
+              .tr,
         ),
         spacer,
         Button(
-          child: const Text('Click here to check the whole system prompt'),
+          child: Text('Click here to check the whole system prompt'.tr),
           onPressed: () {
             showDialog(
               context: context,
@@ -737,8 +756,8 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
         ),
         spacer,
         CheckBoxTooltip(
-          content: const Text('Use ai to name chat'),
-          tooltip: 'Can cause additional charges!',
+          content: Text('Use ai to name chat'.tr),
+          tooltip: 'Can cause additional charges!'.tr,
           checked: AppCache.useAiToNameChat.value,
           onChanged: (value) {
             AppCache.useAiToNameChat.value = value;
@@ -766,15 +785,38 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           padding: const EdgeInsets.all(8.0),
           child: Divider(),
         ),
-
         Button(
-            child: Text('Audio and Microphone'),
+            child: Text('Audio and Microphone'.tr),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (ctx) => const MicrophoneSettingsDialog(),
               );
             }),
+
+        /// dropdown to switch languages
+        Text('Locale'.tr, style: FluentTheme.of(context).typography.subtitle),
+        spacer,
+        Wrap(
+          spacing: 15.0,
+          runSpacing: 10.0,
+          children: List.generate(
+            supportedLocales.length,
+            (index) {
+              final locale = supportedLocales[index];
+              return RadioButton(
+                checked: currentLocale == locale,
+                onChanged: (value) {
+                  if (value) {
+                    appTheme.locale = locale;
+                    // setState(() {});
+                  }
+                },
+                content: Text('$locale'),
+              );
+            },
+          ),
+        ),
         spacer,
         // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
         if (!Platform.isMacOS)
@@ -789,7 +831,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
               isLaunchAtStartupEnabled = value!;
               setState(() {});
             },
-            child: const Text('Launch at startup'),
+            child: Text('Launch at startup'.tr),
           ),
         CheckBoxTile(
           isChecked: appTheme.preventClose,
@@ -798,16 +840,16 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             appTheme.togglePreventClose();
             setState(() {});
           },
-          child: const Text('Prevent close app'),
+          child: Text('Prevent close app'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.showAppInDock.value == true,
           onChanged: (value) => appTheme.toggleShowInDock(),
-          child: const Text('Show app in dock'),
+          child: Text('Show app in dock'.tr),
         ),
         CheckBoxTile(
             isChecked: AppCache.hideTitleBar.value == true,
-            child: const Text('Hide window title'),
+            child: Text('Hide window title'.tr),
             onChanged: (value) {
               appTheme.toggleHideTitleBar();
             }),
@@ -837,9 +879,9 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
     return Container(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
-        const LabelText('Info about User'),
+        LabelText('Info about User'.tr),
         TextFormBox(
-          prefix: const BadgePrefix(Text('User name')),
+          prefix: BadgePrefix(Text('User name'.tr)),
           initialValue: AppCache.userName.value,
           minLines: 1,
           maxLines: 1,
@@ -847,10 +889,10 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
             AppCache.userName.value = value;
           },
         ),
-        const CaptionText('Your name that will be used in the chat'),
+        CaptionText('Your name that will be used in the chat'.tr),
         spacer,
         AutoSuggestBox(
-          leadingIcon: const BadgePrefix(Text('User city')),
+          leadingIcon: BadgePrefix(Text('User city'.tr)),
           placeholder: AppCache.userCityName.value,
           onChanged: (value, reason) {
             AppCache.userCityName.value = value;
@@ -868,17 +910,18 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
               AutoSuggestBoxItem(label: city, value: city)
           ],
         ),
-        const CaptionText(
-            'Your city name that will be used in the chat and to get weather'),
+        CaptionText(
+            'Your city name that will be used in the chat and to get weather'
+                .tr),
         CheckBoxTile(
           isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
           onChanged: (value) {
             AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
           },
-          child: const Text('Include knowledge about user'),
+          child: Text('Include knowledge about user'.tr),
         ),
         Button(
-            child: const Text('Open info about User'),
+            child: Text('Open info about User'.tr),
             onPressed: () {
               showDialog(
                 context: context,
@@ -891,35 +934,35 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
           onChanged: (value) {
             AppCache.includeUserCityNamePrompt.value = value;
           },
-          child: const Text('Include user city name in system prompt'),
+          child: Text('Include user city name in system prompt'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.includeWeatherPrompt.value!,
           onChanged: (value) {
             AppCache.includeWeatherPrompt.value = value;
           },
-          child: const Text('Include weather in system prompt'),
+          child: Text('Include weather in system prompt'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.includeUserNameToSysPrompt.value!,
           onChanged: (value) {
             AppCache.includeUserNameToSysPrompt.value = value;
           },
-          child: const Text('Include user name in system prompt'),
+          child: Text('Include user name in system prompt'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.includeTimeToSystemPrompt.value!,
           onChanged: (value) {
             AppCache.includeTimeToSystemPrompt.value = value;
           },
-          child: const Text('Include current date and time in system prompt'),
+          child: Text('Include current date and time in system prompt'.tr),
         ),
         CheckBoxTile(
           isChecked: AppCache.includeSysInfoToSysPrompt.value!,
           onChanged: (value) {
             AppCache.includeSysInfoToSysPrompt.value = value;
           },
-          child: const Text('Include system info in system prompt'),
+          child: Text('Include system info in system prompt'.tr),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -928,8 +971,9 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
         Tooltip(
           message:
               'If enabled will summarize chat conversation and append the most'
-              ' important information about the user to a file.'
-              '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!',
+                      ' important information about the user to a file.'
+                      '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!'
+                  .tr,
           child: CheckBoxTile(
             isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
             onChanged: (value) {
@@ -938,7 +982,7 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                const Text('Learn about the user after creating new chat \$\$'),
+                Text('Learn about the user after creating new chat \$\$'.tr),
                 const Icon(FluentIcons.brain_circuit_24_filled),
                 SizedBox(width: 10.0),
                 SizedBox(
@@ -978,7 +1022,7 @@ class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
     return Container(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
-        header: PageHeader(title: const Text('Permissions')),
+        header: PageHeader(title: Text('Permissions'.tr)),
         children: [
           AccessebilityStatus(),
         ],
@@ -1076,7 +1120,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
-          Text('Function tools',
+          Text('Function tools'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
@@ -1097,7 +1141,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                     AppCache.gptToolGenerateImage.value = !allChecked;
                   });
                 },
-                child: const Text('Toggle All'),
+                child: Text('Toggle All'.tr),
               ),
               CheckBoxTile(
                 key: Key(
@@ -1109,7 +1153,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                     AppCache.gptToolCopyToClipboardEnabled.value = value;
                   });
                 },
-                child: const Text('Auto copy to clipboard'),
+                child: Text('Auto copy to clipboard'.tr),
               ),
               CheckBoxTile(
                 key: Key('autoOpenUrls ${AppCache.gptToolAutoOpenUrls.value}'),
@@ -1120,7 +1164,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                     AppCache.gptToolAutoOpenUrls.value = value;
                   });
                 },
-                child: const Text('Auto open url'),
+                child: Text('Auto open url'.tr),
               ),
               CheckBoxTile(
                 key: Key(
@@ -1132,18 +1176,19 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                     AppCache.gptToolGenerateImage.value = value;
                   });
                 },
-                child: const Text('Generate images'),
+                child: Text('Generate images'.tr),
               ),
             ],
           ),
           biggerSpacer,
-          Text('Additional tools',
+          Text('Additional tools'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Checkbox(
             content: Expanded(
-              child: const Text(
-                  'Imgur (Used to upload your image to your private Imgur account and get image link)'),
+              child: Text(
+                  'Imgur (Used to upload your image to your private Imgur account and get image link)'
+                      .tr),
             ),
             checked: AppCache.useImgurApi.value,
             onChanged: (value) async {
@@ -1157,13 +1202,14 @@ class _ToolsSettingsState extends State<ToolsSettings> {
               placeholder: 'Imgur client ID',
               initialValue: AppCache.imgurClientId.value,
               obscureText: true,
-              suffix: const Tooltip(
+              suffix: Tooltip(
                 message: """1. Go to Imgur and create an account.
       2. Navigate to the Imgur API and register your application to get a clientId.
       3. Fill "Application Name" with anything you want. (e.g. "Fluent GPT")
       4. Authorization type: "OAuth 2 authorization without a callback URL
       5. Email: Your email
-      6. Paste clientId here""",
+      6. Paste clientId here"""
+                    .tr,
                 child: Icon(FluentIcons.info_20_filled),
               ),
               onChanged: (value) {
@@ -1177,7 +1223,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ),
           ],
           spacer,
-          Text('Image Search engines',
+          Text('Image Search engines'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           Checkbox(
             content: const Text('SouceNao'),
@@ -1198,9 +1244,10 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             },
           ),
           CheckBoxTooltip(
-            content: const Text('Enable annoy mode'),
+            content: Text('Enable annoy mode'.tr),
             tooltip:
-                'Use timer and allow AI to write you. Can cause additional charges!',
+                'Use timer and allow AI to write you. Can cause additional charges!'
+                    .tr,
             checked: AppCache.enableAutonomousMode.value,
             onChanged: (value) async {
               if (value!) {
@@ -1263,7 +1310,7 @@ class AppearanceSettings extends StatelessWidget {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
-          Text('Accent Color',
+          Text('Accent Color'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(children: [
@@ -1279,7 +1326,7 @@ class AppearanceSettings extends StatelessWidget {
               );
             }),
           ]),
-          Text('Theme mode',
+          Text('Theme mode'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Padding(
@@ -1292,7 +1339,7 @@ class AppearanceSettings extends StatelessWidget {
                   appTheme.setEffect(appTheme.windowEffect);
                 }
               },
-              content: const Text('Light'),
+              content: Text('Light'.tr),
             ),
           ),
           Padding(
@@ -1305,10 +1352,10 @@ class AppearanceSettings extends StatelessWidget {
                   appTheme.setEffect(appTheme.windowEffect);
                 }
               },
-              content: const Text('Dark'),
+              content: Text('Dark'.tr),
             ),
           ),
-          Text('Background',
+          Text('Background'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
@@ -1316,7 +1363,7 @@ class AppearanceSettings extends StatelessWidget {
             children: [
               if (!Platform.isLinux)
                 Checkbox(
-                  content: const Text('Use aero'),
+                  content: Text('Use aero'.tr),
                   checked: appTheme.windowEffect == WindowEffect.aero,
                   onChanged: (value) {
                     if (value == true) {
@@ -1331,7 +1378,7 @@ class AppearanceSettings extends StatelessWidget {
                 ),
               if (!Platform.isLinux)
                 Checkbox(
-                  content: const Text('Use acrylic'),
+                  content: Text('Use acrylic'.tr),
                   checked: appTheme.windowEffect == WindowEffect.acrylic,
                   onChanged: (value) {
                     if (value == true) {
@@ -1345,7 +1392,7 @@ class AppearanceSettings extends StatelessWidget {
                   },
                 ),
               Checkbox(
-                content: const Text('Use transparent'),
+                content: Text('Use transparent'.tr),
                 checked: appTheme.windowEffect == WindowEffect.transparent,
                 onChanged: (value) {
                   if (value == true) {
@@ -1359,7 +1406,7 @@ class AppearanceSettings extends StatelessWidget {
                 },
               ),
               Checkbox(
-                content: const Text('Use mica'),
+                content: Text('Use mica'.tr),
                 checked: appTheme.windowEffect == WindowEffect.mica,
                 onChanged: (value) {
                   if (value == true) {
@@ -1376,7 +1423,7 @@ class AppearanceSettings extends StatelessWidget {
           ),
           spacer,
           if (appTheme.windowEffect != WindowEffect.disabled) ...[
-            Text('Transparency',
+            Text('Transparency'.tr,
                 style: FluentTheme.of(context).typography.subtitle),
             spacer,
             SliderStatefull(
@@ -1385,7 +1432,7 @@ class AppearanceSettings extends StatelessWidget {
                 appTheme.windowEffectOpacity = value;
                 appTheme.setEffect(appTheme.windowEffect);
               },
-              label: 'Opacity',
+              label: 'Transparency'.tr,
               min: 0.0,
               max: 1.0,
               divisions: 100,
@@ -1394,14 +1441,14 @@ class AppearanceSettings extends StatelessWidget {
             spacer,
           ],
           Checkbox(
-            content: const Text('Set window as frameless'),
+            content: Text('Set window as frameless'.tr),
             checked: AppCache.frameless.value,
             onChanged: (value) {
               appTheme.setAsFrameless(value);
               if (value == false) {
                 displayInfoBar(context,
-                    builder: (context, _) => const InfoBar(
-                          title: Text('Restart the app to apply changes'),
+                    builder: (context, _) => InfoBar(
+                          title: Text('Restart the app to apply changes'.tr),
                           severity: InfoBarSeverity.warning,
                         ));
               }
@@ -1412,7 +1459,7 @@ class AppearanceSettings extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: Divider(),
           ),
-          Text('Message Text size',
+          Text('Message Text size'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Row(
@@ -1422,7 +1469,7 @@ class AppearanceSettings extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Basic Message Text Size',
+                    Text('Basic Message Text Size'.tr,
                         style: FluentTheme.of(context).typography.subtitle),
                     SizedBox(
                       width: 200.0,
@@ -1441,7 +1488,7 @@ class AppearanceSettings extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Compact Message Text Size',
+                    Text('Compact Message Text Size'.tr,
                         style: FluentTheme.of(context).typography.subtitle),
                     SizedBox(
                       width: 200.0,
@@ -1510,7 +1557,7 @@ class _AzureSettingsState extends State<_AzureSettings> {
           placeholder: AppCache.azureSpeechApiKey.value,
           obscureText: true,
           suffix: DropDownButton(
-              leading: Text('Voice: ${AppCache.azureVoiceModel.value}'),
+              leading: Text('${'Voice:'.tr} ${AppCache.azureVoiceModel.value}'),
               items: [
                 for (var model in AzureSpeech.listModels)
                   MenuFlyoutItem(
@@ -1529,7 +1576,7 @@ class _AzureSettingsState extends State<_AzureSettings> {
                         }
                       },
                       icon: const Icon(FluentIcons.play_circle_24_filled),
-                      tooltip: 'Read sample',
+                      tooltip: 'Read sample'.tr,
                     ),
                     onPressed: () {
                       AppCache.azureVoiceModel.value = model;
@@ -1570,7 +1617,8 @@ class _DeepgramSettingsState extends State<_DeepgramSettings> {
           placeholder: AppCache.deepgramApiKey.value,
           obscureText: true,
           suffix: DropDownButton(
-              leading: Text('Voice: ${AppCache.deepgramVoiceModel.value}'),
+              leading:
+                  Text('${'Voice:'.tr} ${AppCache.deepgramVoiceModel.value}'),
               items: [
                 for (var model in DeepgramSpeech.listModels)
                   MenuFlyoutItem(
@@ -1583,7 +1631,7 @@ class _DeepgramSettingsState extends State<_DeepgramSettings> {
                         }
                       },
                       icon: const Icon(FluentIcons.play_circle_24_filled),
-                      tooltip: 'Read sample',
+                      tooltip: 'Read sample'.tr,
                     ),
                     onPressed: () {
                       AppCache.deepgramVoiceModel.value = model;

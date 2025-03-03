@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/log.dart';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -10,6 +11,7 @@ import 'package:system_theme/system_theme.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'i18n/i18n.dart';
 import 'main.dart';
 
 enum NavigationIndicators { sticky, end }
@@ -102,7 +104,7 @@ class AppTheme extends ChangeNotifier {
     }
     await Window.setEffect(
       effect: effect,
-      color: windowEffectColor.withAlpha((255*windowEffectOpacity).round()),
+      color: windowEffectColor.withAlpha((255 * windowEffectOpacity).round()),
       dark: isDark,
     );
     if (effect == WindowEffect.disabled) {
@@ -114,11 +116,11 @@ class AppTheme extends ChangeNotifier {
     } else {
       /// if the effect is transperent or blur
       if (isDark) {
-        darkBackgroundColor =
-            defaultDarkBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
+        darkBackgroundColor = defaultDarkBackgroundColor
+            .withAlpha((255 * windowEffectOpacity).round());
       } else {
-        lightBackgroundColor =
-            defaultLightBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
+        lightBackgroundColor = defaultLightBackgroundColor
+            .withAlpha((255 * windowEffectOpacity).round());
       }
     }
     _windowEffect = effect;
@@ -146,7 +148,6 @@ class AppTheme extends ChangeNotifier {
     notifyListeners();
   }
 
-  Locale? _locale;
   final defaultLightBackgroundColor = const Color(0xffF3F2F1);
   final defaultDarkBackgroundColor = const Color(0xff201f1e);
 
@@ -156,17 +157,24 @@ class AppTheme extends ChangeNotifier {
   Color darkCardColor = const Color.fromARGB(255, 25, 24, 23);
 
   bool hideSuggestionsOnHomePage = false;
-  Locale? get locale => _locale;
-  set locale(Locale? locale) {
-    _locale = locale;
+  Locale get locale => localeSubject.value;
+
+  final localeDebouncer = Debouncer(milliseconds: 100);
+
+  set locale(Locale locale) {
+    localeDebouncer.run(() {
+      localeSubject.add(locale);
+      notifyListeners();
+      AppCache.locale.value = locale.languageCode;
+      log('Setting locale to ${locale.languageCode}');
+    });
+  }
+
+  void updateUI() {
     notifyListeners();
   }
 
-  updateUI() {
-    notifyListeners();
-  }
-
-  buildInfoBarDecoration(InfoBarSeverity severity) {
+  BoxDecoration buildInfoBarDecoration(InfoBarSeverity severity) {
     if (severity == InfoBarSeverity.warning) {
       return BoxDecoration(
         color: Colors.orange.dark,

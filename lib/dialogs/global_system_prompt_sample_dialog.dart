@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -42,7 +43,7 @@ class _GlobalSystemPromptSampleDialogState
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Global System Prompt'),
+      title: Text('Global System Prompt'.tr),
       constraints: const BoxConstraints(maxWidth: 800),
       content: SingleChildScrollView(
         child: Column(

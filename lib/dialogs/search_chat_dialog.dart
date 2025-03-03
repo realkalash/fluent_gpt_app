@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:langchain/langchain.dart';
@@ -116,7 +117,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Dismiss'),
+          child:  Text('Dismiss'.tr),
         ),
       ],
     );

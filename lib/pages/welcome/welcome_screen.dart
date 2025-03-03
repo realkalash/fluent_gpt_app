@@ -1,7 +1,11 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/theme.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_moving_background/enums/animation_types.dart';
+import 'package:provider/provider.dart';
 import 'package:simple_animations/simple_animations.dart';
 import 'package:flutter_moving_background/flutter_moving_background.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
@@ -33,6 +37,10 @@ class _WelcomePageState extends State<WelcomePage> {
         );
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appTheme = context.read<AppTheme>();
+      appTheme.locale = PlatformDispatcher.instance.locale;
+    });
   }
 
   @override
@@ -57,8 +65,8 @@ class _WelcomePageState extends State<WelcomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 16),
-                      const TextAnimator(
-                        'WELCOME!',
+                      TextAnimator(
+                        'WELCOME!'.tr,
                         initialDelay: Duration(milliseconds: 500),
                         style: TextStyle(
                             color: Colors.white,
@@ -67,7 +75,7 @@ class _WelcomePageState extends State<WelcomePage> {
                       ),
                       const SizedBox(height: 16),
                       TextAnimator(
-                        'We will ask for some permissions to make sure you have the best experience.',
+                        'We will ask for some permissions to make sure you have the best experience'.tr,
                         initialDelay: const Duration(milliseconds: 1000),
                         characterDelay: const Duration(milliseconds: 15),
                         style: TextStyle(

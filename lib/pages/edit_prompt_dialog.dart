@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -48,17 +49,14 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Edit prompt'),
+      title: Text('Edit prompt'.tr),
       constraints: const BoxConstraints(maxWidth: 600),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '''Helpers:
-\${lang} - the language of the selected text
-\${clipboardAccess} - if you want to enable the clipboard access for LLM
-\${input} - the selected text''',
+            '''edit_prompt_dialog_helper'''.tr,
             style: TextStyle(fontSize: 12, color: Colors.blue),
           ),
           const SizedBox(height: 8),
@@ -75,10 +73,10 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               }
             },
           ),
-          const Text('Title:'),
+          Text('Title:'.tr),
           TextBox(
             controller: titleCtr,
-            placeholder: 'Title',
+            placeholder: 'Title:'.tr,
             suffix: ImproveTextSparkleButton(
               onTextImproved: (newText) {
                 final clearText = newText.removeWrappedQuotes;
@@ -96,10 +94,10 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
             },
           ),
           const SizedBox(height: 8),
-          const Text('Prompt:'),
+          Text('Prompt:'.tr),
           TextBox(
             controller: promptCtr,
-            placeholder: 'Prompt',
+            placeholder: 'Prompt:'.tr,
             suffix: ImproveTextSparkleButton(
               input: () => promptCtr.text,
               onTextImproved: (improvedText) {
@@ -115,47 +113,47 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               updateItem(newItem, context);
             },
           ),
-          const Text('Add data to prompt:'),
+          Text('Add data to prompt:'.tr),
           Wrap(
             spacing: 4,
             children: [
               Button(
-                child: const Text('User input'),
+                child: Text('User input'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${input} ''';
                 },
               ),
               Button(
-                child: const Text('Current language'),
+                child: Text('Current language'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${lang} ''';
                 },
               ),
               Button(
-                child: const Text('Clipboard access'),
+                child: Text('Clipboard access'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${clipboardAccess} ''';
                 },
               ),
               Button(
-                child: const Text('Info about user'),
+                child: Text('Info about user'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${userInfo} ''';
                 },
               ),
               Button(
-                child: const Text('Timestamp'),
+                child: Text('Timestamp'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${timestamp} ''';
                 },
               ),
               Button(
-                child: const Text('System info'),
+                child: Text('System info'.tr),
                 onPressed: () {
                   final textCntr = promptCtr.text;
                   promptCtr.text = '''$textCntr\${systemInfo} ''';
@@ -164,10 +162,10 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
             ],
           ),
           spacer,
-          Text('Tags (Use ; to separate tags)'),
+          Text('Tags (Use ; to separate tags)'.tr),
           TextBox(
             controller: tagsCtr,
-            placeholder: 'Tags',
+            placeholder: 'Tags'.tr,
             onChanged: (value) {
               final newTags = value.split(';');
               final newItem = item.copyWith(tags: newTags);
@@ -197,7 +195,8 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
             children: [
               Tooltip(
                 message:
-                    'Do not show the main window after the prompt is run. The result will be shown in a push notification.\nUseful when you just want to copy the result to clipboard',
+                    'Do not show the main window after the prompt is run. The result will be shown in a push notification.\nUseful when you just want to copy the result to clipboard'
+                        .tr,
                 child: CheckBoxTile(
                   isChecked: item.silentHideWindowsAfterRun,
                   onChanged: (p0) {
@@ -209,7 +208,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Silent'),
+                      Text('Silent'.tr),
                       const SizedBox(width: 8),
                       const Icon(FluentIcons.info_24_filled),
                     ],
@@ -218,7 +217,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
               Tooltip(
                 message:
-                    'If checked, the prompt will include system prompt with each activation',
+                    'If checked, the prompt will include system prompt with each activation'.tr,
                 child: CheckBoxTile(
                   isChecked: item.includeSystemPrompt,
                   onChanged: (p0) {
@@ -230,7 +229,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Include System Prompt'),
+                      Text('Include System Prompt'.tr),
                       const SizedBox(width: 8),
                       const Icon(FluentIcons.info_24_filled),
                     ],
@@ -239,7 +238,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
               Tooltip(
                 message:
-                    'If checked, the prompt will include ALL messages from the conversation with each activation',
+                    'If checked, the prompt will include ALL messages from the conversation with each activation'.tr,
                 child: CheckBoxTile(
                   isChecked: item.includeConversation,
                   onChanged: (p0) {
@@ -251,7 +250,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Include Conversation'),
+                      Text('Include conversation'.tr),
                       const SizedBox(width: 8),
                       const Icon(FluentIcons.info_24_filled),
                     ],
@@ -266,7 +265,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   );
                   updateItem(newItem, context);
                 },
-                child: Text('Show in chat field'),
+                child: Text('Show in chat field'.tr),
               ),
               CheckBoxTile(
                 isChecked: item.showInContextMenu,
@@ -276,7 +275,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   );
                   updateItem(newItem, context);
                 },
-                child: Text('Show in context menu'),
+                child: Text('Show in context menu'.tr),
               ),
               CheckBoxTile(
                 isChecked: item.showInHomePage,
@@ -286,7 +285,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   );
                   updateItem(newItem, context);
                 },
-                child: Text('Show in home page'),
+                child: Text('Show in home page'.tr),
               ),
               CheckBoxTile(
                 isChecked: item.showInOverlay,
@@ -296,7 +295,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                   );
                   updateItem(newItem, context);
                 },
-                child: Text('Show in overlay'),
+                child: Text('Show in overlay'.tr),
               ),
             ],
           ),
@@ -304,7 +303,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           if (widget.allowKeybinding)
             Row(
               children: [
-                const Text('Keybinding:'),
+                Text('Keybinding:'.tr),
                 const SizedBox(width: 8),
                 Button(
                   onPressed: () async {
@@ -314,7 +313,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                     updateItem(newItem, context);
                   },
                   child: item.hotkey == null
-                      ? const Text('Set keybinding')
+                      ? Text('Set keybinding'.tr)
                       : HotKeyVirtualView(hotKey: item.hotkey!),
                 ),
                 IconButton(
@@ -339,7 +338,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
           onPressed: () {
             Navigator.of(context).pop(item);
           },
-          child: const Text('Apply'),
+          child: Text('Apply'.tr),
         ),
         if (widget.allowSubPrompts)
           Button(
@@ -359,13 +358,13 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               );
               Navigator.of(context).pop(item);
             },
-            child: const Text('Add sub-prompt list'),
+            child: Text('Add sub-prompt list'.tr),
           ),
         Button(
           onPressed: () {
             Navigator.of(context).pop(widget.prompt);
           },
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
     );
