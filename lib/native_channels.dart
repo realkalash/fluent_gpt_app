@@ -76,6 +76,10 @@ class NativeChannelUtils {
     }
   }
 
+  /// To parse use
+  /// ```
+  /// final screenSize = Size(result['width']!.toDouble(), result['height']!.toDouble());
+  /// ```
   static Future<Map<String, num>?> getScreenSize() async {
     if (Platform.isLinux) return null;
     try {

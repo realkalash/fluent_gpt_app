@@ -20,6 +20,7 @@ class AppCache {
   static const StringPref backgroundEffect =
       StringPref("backgroundEffect", 'disabled');
   static const speechLanguage = StringPref("speechLanguage", 'en');
+  static const appThemeStyle = StringPref("appThemeStyle", 'dark');
   static const textToSpeechService =
       StringPref("textToSpeechService", 'deepgram');
   static const deepgramVoiceModel =

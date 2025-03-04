@@ -24,6 +24,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
+import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/about_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
@@ -40,6 +41,7 @@ import 'package:fluent_gpt/widgets/keybinding_dialog.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
+import 'package:fluent_gpt/widgets/zoom_hover.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
@@ -49,6 +51,7 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_info2/system_info2.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'settings_page.dart';
 
@@ -69,15 +72,23 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
       setState(() {});
     });
   }
+
   @override
   void dispose() {
     suscr.cancel();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return NavigationView(
-      appBar: NavigationAppBar(title: Text('Settings'.tr)),
+      appBar: NavigationAppBar(
+        title: GestureDetector(
+            onPanUpdate: (details) {
+              windowManager.startDragging();
+            },
+            child: Text('Settings'.tr)),
+      ),
       pane: NavigationPane(
         displayMode: PaneDisplayMode.open,
         size: NavigationPaneSize(openMaxWidth: 200),
@@ -693,6 +704,12 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   }
 }
 
+const supportedLocales = [
+  Locale('en'),
+  Locale('ru'),
+  Locale('es'),
+];
+
 class GeneralSettingsPage extends StatefulWidget {
   const GeneralSettingsPage({super.key});
 
@@ -809,6 +826,8 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
                 onChanged: (value) {
                   if (value) {
                     appTheme.locale = locale;
+                    // update hotshortcuts on the homepage
+                    customPrompts.add(customPrompts.value);
                     // setState(() {});
                   }
                 },
@@ -1326,120 +1345,125 @@ class AppearanceSettings extends StatelessWidget {
               );
             }),
           ]),
-          Text('Theme mode'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
-          spacer,
-          Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: appTheme.mode == ThemeMode.light,
-              onChanged: (value) {
-                if (value) {
-                  appTheme.mode = ThemeMode.light;
-                  appTheme.setEffect(appTheme.windowEffect);
-                }
-              },
-              content: Text('Light'.tr),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(bottom: 8.0),
-            child: RadioButton(
-              checked: appTheme.mode == ThemeMode.dark,
-              onChanged: (value) {
-                if (value) {
-                  appTheme.mode = ThemeMode.dark;
-                  appTheme.setEffect(appTheme.windowEffect);
-                }
-              },
-              content: Text('Dark'.tr),
-            ),
-          ),
-          Text('Background'.tr,
+          Text('Theme'.tr,
               style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
-            spacing: 8.0,
+            spacing: 4.0,
+            runSpacing: 8.0,
             children: [
-              if (!Platform.isLinux)
-                Checkbox(
-                  content: Text('Use aero'.tr),
-                  checked: appTheme.windowEffect == WindowEffect.aero,
-                  onChanged: (value) {
-                    if (value == true) {
-                      appTheme.windowEffectOpacity = 0.0;
-                      appTheme.windowEffectColor = Colors.blue;
-                      appTheme.setEffect(WindowEffect.aero);
-                    } else {
-                      appTheme.windowEffectOpacity = 0.0;
-                      appTheme.setEffect(WindowEffect.disabled);
-                    }
-                  },
+              GestureDetector(
+                onTap: appTheme.applyLightTheme,
+                child: ZoomHover(
+                  hoverScale: 0.95,
+                  child: Card(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.white
+                        ? Colors.blue
+                        : null,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: SizedBox.square(
+                            dimension: 200.0,
+                            child: Image.asset('assets/theme_white.png'),
+                          ),
+                        ),
+                        Text(
+                          'Light'.tr,
+                          style: FluentTheme.of(context).typography.bodyStrong,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              if (!Platform.isLinux)
-                Checkbox(
-                  content: Text('Use acrylic'.tr),
-                  checked: appTheme.windowEffect == WindowEffect.acrylic,
-                  onChanged: (value) {
-                    if (value == true) {
-                      appTheme.windowEffectOpacity = 0.0;
-                      appTheme.windowEffectColor = appTheme.color;
-                      appTheme.setEffect(WindowEffect.acrylic);
-                    } else {
-                      appTheme.windowEffectOpacity = 0.0;
-                      appTheme.setEffect(WindowEffect.disabled);
-                    }
-                  },
-                ),
-              Checkbox(
-                content: Text('Use transparent'.tr),
-                checked: appTheme.windowEffect == WindowEffect.transparent,
-                onChanged: (value) {
-                  if (value == true) {
-                    appTheme.windowEffectOpacity = 0.0;
-                    appTheme.windowEffectColor = Colors.transparent;
-                    appTheme.setEffect(WindowEffect.transparent);
-                  } else {
-                    appTheme.windowEffectOpacity = 0.0;
-                    appTheme.setEffect(WindowEffect.disabled);
-                  }
-                },
               ),
-              Checkbox(
-                content: Text('Use mica'.tr),
-                checked: appTheme.windowEffect == WindowEffect.mica,
-                onChanged: (value) {
-                  if (value == true) {
-                    appTheme.windowEffectOpacity = 0.7;
-                    appTheme.windowEffectColor = Colors.blue;
-                    appTheme.setEffect(WindowEffect.mica);
-                  } else {
-                    appTheme.windowEffectOpacity = 0.0;
-                    appTheme.setEffect(WindowEffect.disabled);
-                  }
-                },
+              GestureDetector(
+                onTap: appTheme.applyDarkTheme,
+                child: ZoomHover(
+                  hoverScale: 0.95,
+                  child: Card(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.dark
+                        ? Colors.blue
+                        : null,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: SizedBox.square(
+                            dimension: 200.0,
+                            child: Image.asset('assets/theme_dark.png'),
+                          ),
+                        ),
+                        Text(
+                          'Dark'.tr,
+                          style: FluentTheme.of(context).typography.bodyStrong,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: appTheme.applyMicaTheme,
+                child: ZoomHover(
+                  hoverScale: 0.95,
+                  child: Card(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.mica
+                        ? Colors.blue
+                        : null,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: SizedBox.square(
+                            dimension: 200.0,
+                            child: Image.asset('assets/theme_mica.png'),
+                          ),
+                        ),
+                        Text(
+                          'Mica'.tr,
+                          style: FluentTheme.of(context).typography.bodyStrong,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: appTheme.applyAcrylicTheme,
+                child: ZoomHover(
+                  hoverScale: 0.95,
+                  child: Card(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderColor:
+                        appTheme.currentThemeStyle == ThemeStyle.acrylic
+                            ? Colors.blue
+                            : null,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: SizedBox.square(
+                            dimension: 200.0,
+                            child: Image.asset('assets/theme_acrylic.png'),
+                          ),
+                        ),
+                        Text(
+                          'Acrilic'.tr,
+                          style: FluentTheme.of(context).typography.bodyStrong,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
           spacer,
-          if (appTheme.windowEffect != WindowEffect.disabled) ...[
-            Text('Transparency'.tr,
-                style: FluentTheme.of(context).typography.subtitle),
-            spacer,
-            SliderStatefull(
-              initValue: appTheme.windowEffectOpacity,
-              onChangeEnd: (value) {
-                appTheme.windowEffectOpacity = value;
-                appTheme.setEffect(appTheme.windowEffect);
-              },
-              label: 'Transparency'.tr,
-              min: 0.0,
-              max: 1.0,
-              divisions: 100,
-              onChanged: (_) {},
-            ),
-            spacer,
-          ],
           Checkbox(
             content: Text('Set window as frameless'.tr),
             checked: AppCache.frameless.value,
@@ -1454,6 +1478,7 @@ class AppearanceSettings extends StatelessWidget {
               }
             },
           ),
+          spacer,
           DensityModeDropdown(),
           Padding(
             padding: const EdgeInsets.all(8.0),

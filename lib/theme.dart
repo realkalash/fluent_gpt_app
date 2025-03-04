@@ -16,6 +16,8 @@ import 'main.dart';
 
 enum NavigationIndicators { sticky, end }
 
+enum ThemeStyle { white, dark, acrylic, mica }
+
 class AppTheme extends ChangeNotifier {
   AppTheme();
 
@@ -42,6 +44,10 @@ class AppTheme extends ChangeNotifier {
       resolution =
           Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
     }
+    currentThemeStyle = ThemeStyle.values.firstWhere(
+      (element) => element.name == AppCache.appThemeStyle.value,
+      orElse: () => ThemeStyle.dark,
+    ) ;
   }
 
   Future postInit() async {
@@ -139,6 +145,45 @@ class AppTheme extends ChangeNotifier {
     windowEffectOpacity = opacity;
     log('Setting window effect opacity to $opacity');
     await setEffect(windowEffect);
+  }
+
+  ThemeStyle currentThemeStyle = ThemeStyle.white;
+
+  void applyMicaTheme() {
+    currentThemeStyle = ThemeStyle.mica;
+    mode = ThemeMode.dark;
+    windowEffectOpacity = 0.05;
+    if (Platform.isMacOS) {
+      // transparent only for macos
+      setEffect(WindowEffect.transparent);
+    } else {
+      setEffect(WindowEffect.acrylic);
+    }
+    AppCache.appThemeStyle.set(currentThemeStyle.name);
+  }
+
+  void applyAcrylicTheme() {
+    currentThemeStyle = ThemeStyle.acrylic;
+    mode = ThemeMode.dark;
+    windowEffectOpacity = 0.05;
+    setEffect(WindowEffect.acrylic);
+    AppCache.appThemeStyle.set(currentThemeStyle.name);
+  }
+
+  void applyDarkTheme() {
+    currentThemeStyle = ThemeStyle.dark;
+    mode = ThemeMode.dark;
+    windowEffectOpacity = 1;
+    setEffect(WindowEffect.disabled);
+    AppCache.appThemeStyle.set(currentThemeStyle.name);
+  }
+
+  void applyLightTheme() {
+    currentThemeStyle = ThemeStyle.white;
+    mode = ThemeMode.light;
+    windowEffectOpacity = 1;
+    setEffect(WindowEffect.disabled);
+    AppCache.appThemeStyle.set(currentThemeStyle.name);
   }
 
   TextDirection _textDirection = TextDirection.ltr;

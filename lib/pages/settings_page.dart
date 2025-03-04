@@ -24,6 +24,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
+import 'new_settings_page.dart';
 
 bool isLaunchAtStartupEnabled = false;
 
@@ -465,10 +466,6 @@ class MessageSamplePreviewCard extends StatelessWidget {
 }
 
 // const supportedLocales = FluentLocalizations.supportedLocales;
-const supportedLocales = [
-  Locale('en'),
-  Locale('ru'),
-];
 const gptLocales = [
   Locale('en'),
   Locale('ru'),

@@ -33,7 +33,8 @@ class MainAppHeaderButtons extends StatelessWidget {
               checked: false,
               onChanged: (_) {
                 Navigator.of(context).push(
-                  FluentPageRoute(builder: (context) => const NewSettingsPage()),
+                  FluentPageRoute(
+                      builder: (context) => const NewSettingsPage()),
                 );
               },
               child: const Icon(
@@ -47,11 +48,10 @@ class MainAppHeaderButtons extends StatelessWidget {
             checked: isDark,
             onChanged: (v) {
               if (isDark) {
-                appTheme.mode = ThemeMode.light;
+                appTheme.applyLightTheme();
               } else {
-                appTheme.mode = ThemeMode.dark;
+                appTheme.applyDarkTheme();
               }
-              appTheme.setEffect(appTheme.windowEffect);
             },
             child: const Icon(
               icons.FluentIcons.weather_sunny_24_regular,

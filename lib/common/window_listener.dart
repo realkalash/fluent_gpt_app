@@ -24,6 +24,9 @@ class AppWindowListener extends WindowListener {
     if (overlayVisibility.value.isEnabled) {
       return;
     }
+    if (windowVisibilityStream.value == false) {
+      return;
+    }
     final offset = await windowManager.getPosition();
     log('Window moved. Position: $offset');
     AppCache.windowX.set(offset.dx.toInt());
@@ -33,6 +36,9 @@ class AppWindowListener extends WindowListener {
   @override
   Future<void> onWindowResized() async {
     if (overlayVisibility.value.isEnabled) {
+      return;
+    }
+    if (windowVisibilityStream.value == false) {
       return;
     }
     final size = await windowManager.getSize();

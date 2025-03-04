@@ -33,7 +33,7 @@ class OverlayUI extends StatefulWidget {
     if (AppCache.overlayVisibleElements.value != -1) {
       elementsLength = AppCache.overlayVisibleElements.value!;
     } else {
-      customPrompts.value
+      elementsLength = customPrompts.value
           .where(
             (element) => element.showInOverlay,
           )
@@ -42,7 +42,7 @@ class OverlayUI extends StatefulWidget {
 
     // each element width is 50 + padding 8 + main button 36. Max 6 elements
     // we need to choose minimal width for the window
-    final width = elementsLength * (50 + 8 + 8);
+    final width = elementsLength * (50 + 8 + 8 + 6);
     final minWidth = min(width, _maxWidth).toDouble();
     return Size(minWidth, 64);
   }
