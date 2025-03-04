@@ -373,7 +373,7 @@ class PageHeaderText extends StatelessWidget {
                               chatProvider.totalTokensForCurrentChatByMessages,
                           builder: (context, snapshot) {
                             return Text(
-                              'Tokens total: ${(chatProvider.totalTokensByMessages)} '
+                              '${'Tokens total:'.tr} ${(chatProvider.totalTokensByMessages)} '
                                   .tr,
                               style: const TextStyle(fontSize: 12),
                             );
@@ -383,7 +383,8 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalSentForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              'sent: ${(chatProvider.totalSentTokens)} '.tr,
+                              '${'sent:'.tr} ${(chatProvider.totalSentTokens)} '
+                                  .tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -391,7 +392,7 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalReceivedForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              'received: ${(chatProvider.totalReceivedTokens)}'
+                              '${'received:'.tr} ${(chatProvider.totalReceivedTokens)}'
                                   .tr,
                               style: const TextStyle(fontSize: 12),
                             );
