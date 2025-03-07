@@ -1130,6 +1130,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
     AppCache.gptToolCopyToClipboardEnabled,
     AppCache.gptToolAutoOpenUrls,
     AppCache.gptToolGenerateImage,
+    AppCache.gptToolRememberInfo,
   ];
   @override
   Widget build(BuildContext context) {
@@ -1155,9 +1156,9 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                     }
                   }
                   setState(() {
-                    AppCache.gptToolCopyToClipboardEnabled.value = !allChecked;
-                    AppCache.gptToolAutoOpenUrls.value = !allChecked;
-                    AppCache.gptToolGenerateImage.value = !allChecked;
+                    for (var cache in allValues) {
+                      cache.value = !allChecked;
+                    }
                   });
                 },
                 child: Text('Toggle All'.tr),
@@ -1196,6 +1197,18 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                   });
                 },
                 child: Text('Generate images'.tr),
+              ),
+              CheckBoxTile(
+                key: Key(
+                    'gptToolRememberInfo ${AppCache.gptToolRememberInfo.value}'),
+                isChecked: AppCache.gptToolRememberInfo.value!,
+                expanded: false,
+                onChanged: (value) {
+                  setState(() {
+                    AppCache.gptToolRememberInfo.value = value;
+                  });
+                },
+                child: Text('Remember info'.tr),
               ),
             ],
           ),

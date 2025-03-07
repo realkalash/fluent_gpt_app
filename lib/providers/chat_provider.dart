@@ -1124,7 +1124,7 @@ class ChatProvider with ChangeNotifier {
               if (AppCache.gptToolCopyToClipboardEnabled.value!)
                 ToolSpec(
                   name: 'copy_to_clipboard_tool',
-                  description: 'Tool to copy text to users clipboard',
+                  description: 'Tool to copy text to user clipboard',
                   inputJsonSchema: copyToClipboardFunctionParameters,
                 ),
               if (AppCache.gptToolAutoOpenUrls.value!)
@@ -1138,6 +1138,12 @@ class ChatProvider with ChangeNotifier {
                   name: 'generate_image_tool',
                   description: 'Tool to generate image',
                   inputJsonSchema: generateImageParameters,
+                ),
+              if (AppCache.gptToolRememberInfo.value!)
+                ToolSpec(
+                  name: 'remember_info_tool',
+                  description: 'Tool to remember info. Use it to store info about user or important notes',
+                  inputJsonSchema: rememberInfoParameters,
                 ),
             ]
           : null,

@@ -125,3 +125,17 @@ const generateImageParameters = {
   },
   "required": ["prompt"]
 };
+const rememberInfoParameters = {
+  "type": "object",
+  "properties": {
+    "info": {
+      "type": "string",
+      "description": "A one line summary of the information you want to remember. E.g '{user} likes cats'"
+    },
+    "responseMessage": {
+      "type": "string",
+      "description": "Your answer to the user"
+    }
+  },
+  "required": ["info", "responseMessage"]
+};
