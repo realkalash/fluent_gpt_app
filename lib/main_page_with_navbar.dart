@@ -4,7 +4,6 @@ import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_all_messages_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_usage.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
-import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
@@ -157,7 +156,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 PaneItem(
                   key: const ValueKey('/about'),
                   icon: const Icon(FluentIcons.info_24_regular),
-                  title:  Text('About'.tr),
+                  title: Text('About'.tr),
                   body: const AboutPage(),
                   onTap: () => Navigator.of(context).push(
                     FluentPageRoute(builder: (context) => const AboutPage()),
@@ -478,10 +477,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               onPressed: () {
                                 final provider = context.read<ChatProvider>();
                                 Navigator.of(context).pop();
-                                if (shiftPressedStream.value)
-                                  provider.deleteChatRoomHard(chatRoom.id);
-                                else
-                                  provider.archiveChatRoom(chatRoom);
+                                provider.archiveChatRoom(chatRoom);
                                 _updateUI();
                               },
                             ),

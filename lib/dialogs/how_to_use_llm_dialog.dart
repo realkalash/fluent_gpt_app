@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
@@ -27,7 +28,7 @@ pip install flask transformers torch
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
       content: ListView(

@@ -77,6 +77,32 @@ class ShellDriver {
     return message;
   }
 
+  static Future<void> openExplorer(String path) async {
+    var shell = Shell();
+    var password = Platform.environment['PASSWORD'];
+    log('Password from env: $password');
+    final command = path;
+    if (Platform.isWindows) {
+      log('Command:\nexplorer $command');
+      var python = await shell.start('explorer', arguments: [command]);
+      final output = await python.stdout.readAsString();
+      log('Explorer output: $output');
+      await python.stderr.drain();
+    } else if (Platform.isMacOS) {
+      log('Command:\nopen $command');
+      var python = await shell.start('open', arguments: [command]);
+      final output = await python.stdout.readAsString();
+      log('Explorer output: $output');
+      await python.stderr.drain();
+    } else if (Platform.isLinux) {
+      log('Command:\nxdg-open $command');
+      var python = await shell.start('xdg-open', arguments: [command]);
+      final output = await python.stdout.readAsString();
+      log('Explorer output: $output');
+      await python.stderr.drain();
+    }
+  }
+
   static Future<String> runShellCommand(String command) async {
     var fs = const LocalFileSystem();
     var shell = Shell();

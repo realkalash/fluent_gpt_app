@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
@@ -37,7 +38,7 @@ class _MicrophoneSettingsDialogState extends State<MicrophoneSettingsDialog> {
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
       content: ListView(

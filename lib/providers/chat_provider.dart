@@ -298,12 +298,26 @@ class ChatProvider with ChangeNotifier {
   Future<void> initChatsFromDisk() async {
     final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
+    final currentDate = DateTime.now();
+    final deleteChatsAfterXDays = AppCache.deleteOldChatsAfter.value;
+    
     for (var file in files) {
       try {
         final fileContent = await file.readAsString();
         final chatRoomRaw = jsonDecode(fileContent) as Map<String, dynamic>;
         final chatRoom = ChatRoom.fromMap(chatRoomRaw);
         chatRooms[chatRoom.id] = chatRoom;
+        // delete chat if it's old enough
+        if (deleteChatsAfterXDays != null) {
+          final date = DateTime.fromMillisecondsSinceEpoch(
+              chatRoom.dateModifiedMilliseconds);
+          final difference = currentDate.difference(date).inDays;
+          if (difference >= deleteChatsAfterXDays) {
+            log('Deleting chat room ${chatRoom.id} because it\'s old enough');
+            await deleteChatRoom(chatRoom.id);
+            continue;
+          }
+        }
         // root level check to load mesages
         if (chatRoom.id == selectedChatRoomId) {
           _loadMessagesFromDisk(selectedChatRoomId);
@@ -523,7 +537,7 @@ class ChatProvider with ChangeNotifier {
                   actions: [
                     Button(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Close'),
+                      child: Text('Close'.tr),
                     )
                   ],
                 ));
@@ -2243,11 +2257,6 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  /// Will remove all chat rooms with selected name
-  void deleteChatRoomHard(String chatRoomName) {
-    chatRooms.removeWhere((key, value) => value.chatRoomName == chatRoomName);
-    notifyListeners();
-  }
 
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
@@ -2495,7 +2504,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> archiveChatRoom(ChatRoom room) async {
-    deleteChatRoom(room.id);
+    return deleteChatRoom(room.id);
   }
 
   void shortenMessage(String id) {

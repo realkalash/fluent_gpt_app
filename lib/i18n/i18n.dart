@@ -242,8 +242,12 @@ class I18n {
       'Refresh from disk': null,
       'Add new': null,
       'AI will be able to remember things about you': null,
+      'Archive chats after (days)': null,
+      'Delete chats after (days)': null,
+      'Delete all chat rooms': null,
     },
     'ru': {
+      'Delete all chat rooms': 'Удалить все чаты',
       'WELCOME!': 'ДОБРО ПОЖАЛОВАТЬ!',
       'Access Granted': 'Доступ предоставлен',
       'Grant Access': 'Предоставить доступ',
@@ -484,8 +488,13 @@ class I18n {
       'Add new': 'Добавить',
       'AI will be able to remember things about you':
           'ИИ сможет запоминать вещи о вас',
+      'Archive chats after (days)': 'Архивировать чаты после (дней)',
+      'Delete chats after (days)': 'Удалить чаты после (дней)',
     },
     'es': {
+      'Delete all chat rooms': 'Eliminar todas las salas de chat',
+      'Archive chats after (days)': 'Archivar chats después de (días)',
+      'Delete chats after (days)': 'Eliminar chats después de (días)',
       'WELCOME!': '¡BIENVENIDO!',
       'Access Granted': 'Acceso concedido',
       'Grant Access': 'Conceder acceso',

@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -365,7 +366,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                 leading: const Icon(FluentIcons.dismiss_16_filled),
                 tileColor:
                     fluent.WidgetStateProperty.all(Colors.red.withAlpha(127)),
-                title: const Text('CLOSE'),
+                title: Text('Close'.tr),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },

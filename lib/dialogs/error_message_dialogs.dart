@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 
@@ -28,7 +29,7 @@ class ToolCallingNotSupportedDialog extends StatelessWidget {
             }),
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         )
       ],
     );
@@ -53,7 +54,7 @@ class MultimodalNotSupportedDialog extends StatelessWidget {
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         )
       ],
     );

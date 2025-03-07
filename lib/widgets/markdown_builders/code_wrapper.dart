@@ -1,6 +1,5 @@
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
-import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;

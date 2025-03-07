@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -143,7 +144,7 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
     );

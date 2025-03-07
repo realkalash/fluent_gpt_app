@@ -351,7 +351,7 @@ class _MessageCardState extends State<MessageCard> {
                                 actions: [
                                   Button(
                                     onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Close'),
+                                    child: Text('Close'.tr),
                                   ),
                                 ],
                                 content: SizedBox(

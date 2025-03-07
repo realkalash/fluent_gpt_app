@@ -45,7 +45,6 @@ import 'package:fluent_gpt/widgets/zoom_hover.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_acrylic/window_effect.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:provider/provider.dart';
@@ -204,7 +203,7 @@ class HotkeysSettingsPage extends StatefulWidget {
 class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         Button(
@@ -378,7 +377,7 @@ class StorageSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         Button(
@@ -460,7 +459,7 @@ class OverlaySettingsPage extends StatefulWidget {
 class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         Text('Overlay settings'.tr,
@@ -514,7 +513,7 @@ class QuickPromptsSettingsPage extends StatefulWidget {
 class _QuickPromptsSettingsPageState extends State<QuickPromptsSettingsPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
         color: FluentTheme.of(context).inactiveBackgroundColor,
         child: ScaffoldPage(
           content: CustomPromptsSettingsContainer(),
@@ -533,7 +532,7 @@ class OnResponseEndSettingsPage extends StatefulWidget {
 class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         Card(
@@ -660,60 +659,63 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   bool obscureOpenAiText = true;
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(children: [
-      Text(
-        'Brave API key (search engine) \$'.tr,
-        style: FluentTheme.of(context).typography.subtitle,
-      ),
-      TextFormBox(
-        initialValue: AppCache.braveSearchApiKey.value,
-        placeholder: AppCache.braveSearchApiKey.value,
-        obscureText: obscureBraveText,
-        suffix: IconButton(
-          icon: const Icon(FluentIcons.eye_20_regular),
-          onPressed: () {
-            setState(() {
-              obscureBraveText = !obscureBraveText;
-            });
+    return ColoredBox(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Text(
+          'Brave API key (search engine) \$'.tr,
+          style: FluentTheme.of(context).typography.subtitle,
+        ),
+        TextFormBox(
+          initialValue: AppCache.braveSearchApiKey.value,
+          placeholder: AppCache.braveSearchApiKey.value,
+          obscureText: obscureBraveText,
+          suffix: IconButton(
+            icon: const Icon(FluentIcons.eye_20_regular),
+            onPressed: () {
+              setState(() {
+                obscureBraveText = !obscureBraveText;
+              });
+            },
+          ),
+          onChanged: (value) {
+            AppCache.braveSearchApiKey.value = value;
           },
         ),
-        onChanged: (value) {
-          AppCache.braveSearchApiKey.value = value;
-        },
-      ),
-      const Align(
-        alignment: Alignment.centerLeft,
-        child: LinkTextButton(
-          'https://api.search.brave.com/app/keys',
-          url: 'https://api.search.brave.com/app/keys',
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: LinkTextButton(
+            'https://api.search.brave.com/app/keys',
+            url: 'https://api.search.brave.com/app/keys',
+          ),
         ),
-      ),
-      spacer,
-      DropDownButton(
-        items: [
-          for (var serv in TextToSpeechServiceEnum.values)
-            MenuFlyoutItem(
-              selected: AppCache.textToSpeechService.value == serv.name,
-              onPressed: () {
-                AppCache.textToSpeechService.value = serv.name;
-                setState(() {});
-              },
-              text: Text(serv.name),
-            ),
-        ],
-        title: Text(
-            '${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
-      ),
-      if (AppCache.textToSpeechService.value ==
-          TextToSpeechServiceEnum.deepgram.name)
-        _DeepgramSettings()
-      else if (AppCache.textToSpeechService.value ==
-          TextToSpeechServiceEnum.azure.name)
-        _AzureSettings()
-      else if (AppCache.textToSpeechService.value ==
-          TextToSpeechServiceEnum.elevenlabs.name)
-        _ElevenLabsSettings(),
-    ]);
+        spacer,
+        DropDownButton(
+          items: [
+            for (var serv in TextToSpeechServiceEnum.values)
+              MenuFlyoutItem(
+                selected: AppCache.textToSpeechService.value == serv.name,
+                onPressed: () {
+                  AppCache.textToSpeechService.value = serv.name;
+                  setState(() {});
+                },
+                text: Text(serv.name),
+              ),
+          ],
+          title: Text(
+              '${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
+        ),
+        if (AppCache.textToSpeechService.value ==
+            TextToSpeechServiceEnum.deepgram.name)
+          _DeepgramSettings()
+        else if (AppCache.textToSpeechService.value ==
+            TextToSpeechServiceEnum.azure.name)
+          _AzureSettings()
+        else if (AppCache.textToSpeechService.value ==
+            TextToSpeechServiceEnum.elevenlabs.name)
+          _ElevenLabsSettings(),
+      ]),
+    );
   }
 }
 
@@ -743,7 +745,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
   Widget build(BuildContext context) {
     final appTheme = context.read<AppTheme>();
     final currentLocale = appTheme.locale;
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         LabelText('Global system prompt'.tr),
@@ -908,7 +910,7 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
         LabelText('Info about User'.tr),
@@ -946,22 +948,6 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
             'Your city name that will be used in the chat and to get weather'
                 .tr),
         CheckBoxTile(
-          isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
-          },
-          child: Text('Include knowledge about user'.tr),
-        ),
-        Button(
-            child: Text('Open info about User'.tr),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => const InfoAboutUserDialog(),
-                barrierDismissible: true,
-              );
-            }),
-        CheckBoxTile(
           isChecked: AppCache.includeUserCityNamePrompt.value!,
           onChanged: (value) {
             AppCache.includeUserCityNamePrompt.value = value;
@@ -996,45 +982,61 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
           },
           child: Text('Include system info in system prompt'.tr),
         ),
+        CheckBoxTile(
+          isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+          onChanged: (value) {
+            AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
+          },
+          child: Text('Include knowledge about user'.tr),
+        ),
+        Button(
+            child: Text('Open info about User'.tr),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const InfoAboutUserDialog(),
+                barrierDismissible: true,
+              );
+            }),
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Divider(),
         ),
-        Tooltip(
-          message:
-              'If enabled will summarize chat conversation and append the most'
-                      ' important information about the user to a file.'
-                      '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!'
-                  .tr,
-          child: CheckBoxTile(
-            isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
-            onChanged: (value) {
-              AppCache.learnAboutUserAfterCreateNewChat.value = value;
-            },
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text('Learn about the user after creating new chat \$\$'.tr),
-                const Icon(FluentIcons.brain_circuit_24_filled),
-                SizedBox(width: 10.0),
-                SizedBox(
-                  width: 120,
-                  height: 32,
-                  child: NumberBox(
-                      value: AppCache.maxTokensUserInfo.value!,
-                      clearButton: false,
-                      smallChange: 64,
-                      onChanged: (value) {
-                        if (value == null) return;
-                        if (value < 64) value = 64;
-                        AppCache.maxTokensUserInfo.value = value;
-                      },
-                      mode: SpinButtonPlacementMode.inline),
-                ),
-              ],
-            ),
-          ),
-        ),
+        // Tooltip(
+        //   message:
+        //       'If enabled will summarize chat conversation and append the most'
+        //               ' important information about the user to a file.'
+        //               '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!'
+        //           .tr,
+        //   child: CheckBoxTile(
+        //     isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+        //     onChanged: (value) {
+        //       AppCache.learnAboutUserAfterCreateNewChat.value = value;
+        //     },
+        //     child: Wrap(
+        //       crossAxisAlignment: WrapCrossAlignment.center,
+        //       children: [
+        //         Text('Learn about the user after creating new chat \$\$'.tr),
+        //         const Icon(FluentIcons.brain_circuit_24_filled),
+        //         SizedBox(width: 10.0),
+        //         SizedBox(
+        //           width: 120,
+        //           height: 32,
+        //           child: NumberBox(
+        //               value: AppCache.maxTokensUserInfo.value!,
+        //               clearButton: false,
+        //               smallChange: 64,
+        //               onChanged: (value) {
+        //                 if (value == null) return;
+        //                 if (value < 64) value = 64;
+        //                 AppCache.maxTokensUserInfo.value = value;
+        //               },
+        //               mode: SpinButtonPlacementMode.inline),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
       ]),
     );
   }
@@ -1051,7 +1053,7 @@ class PermissionsSettingsPage extends StatefulWidget {
 class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         header: PageHeader(title: Text('Permissions'.tr)),
@@ -1068,64 +1070,67 @@ class DebugPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage.scrollable(children: [
-      Text('Debug', style: FluentTheme.of(context).typography.subtitle),
-      Wrap(
-        children: [
-          Button(
-              child: Text('PN'),
-              onPressed: () {
-                NotificationService.showNotification('title', 'body');
-              }),
-          FilledRedButton(
-              child: const Text('test native hello world'),
-              onPressed: () {
-                NativeChannelUtils.testChannel();
-              }),
-          FilledRedButton(
-              child: const Text('get selected text'),
-              onPressed: () async {
-                final text = await NativeChannelUtils.getSelectedText();
-                log('Selected text: $text');
-              }),
-          FilledRedButton(
-              child: const Text('show overlay'),
-              onPressed: () {
-                NativeChannelUtils.showOverlay();
-              }),
-          FilledRedButton(
-              child: const Text('request native permissions'),
-              onPressed: () {
-                NativeChannelUtils.requestNativePermissions();
-              }),
-          FilledRedButton(
-              child: const Text('init accessibility'),
-              onPressed: () {
-                NativeChannelUtils.initAccessibility();
-              }),
-          FilledRedButton(
-              child: const Text('is accessibility granted'),
-              onPressed: () async {
-                final isGranted =
-                    await NativeChannelUtils.isAccessibilityGranted();
-                log('isAccessibilityGranted: $isGranted');
-              }),
-          FilledRedButton(
-              child: const Text('get screen size'),
-              onPressed: () async {
-                final screenSize = await NativeChannelUtils.getScreenSize();
-                log('screenSize: $screenSize');
-              }),
-          FilledRedButton(
-              child: const Text('get mouse position'),
-              onPressed: () async {
-                final mousePosition =
-                    await NativeChannelUtils.getMousePosition();
-                log('mousePosition: $mousePosition');
-              }),
-        ],
-      )
-    ]);
+    return ColoredBox(
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: ScaffoldPage.scrollable(children: [
+        Text('Debug', style: FluentTheme.of(context).typography.subtitle),
+        Wrap(
+          children: [
+            Button(
+                child: Text('PN'),
+                onPressed: () {
+                  NotificationService.showNotification('title', 'body');
+                }),
+            FilledRedButton(
+                child: const Text('test native hello world'),
+                onPressed: () {
+                  NativeChannelUtils.testChannel();
+                }),
+            FilledRedButton(
+                child: const Text('get selected text'),
+                onPressed: () async {
+                  final text = await NativeChannelUtils.getSelectedText();
+                  log('Selected text: $text');
+                }),
+            FilledRedButton(
+                child: const Text('show overlay'),
+                onPressed: () {
+                  NativeChannelUtils.showOverlay();
+                }),
+            FilledRedButton(
+                child: const Text('request native permissions'),
+                onPressed: () {
+                  NativeChannelUtils.requestNativePermissions();
+                }),
+            FilledRedButton(
+                child: const Text('init accessibility'),
+                onPressed: () {
+                  NativeChannelUtils.initAccessibility();
+                }),
+            FilledRedButton(
+                child: const Text('is accessibility granted'),
+                onPressed: () async {
+                  final isGranted =
+                      await NativeChannelUtils.isAccessibilityGranted();
+                  log('isAccessibilityGranted: $isGranted');
+                }),
+            FilledRedButton(
+                child: const Text('get screen size'),
+                onPressed: () async {
+                  final screenSize = await NativeChannelUtils.getScreenSize();
+                  log('screenSize: $screenSize');
+                }),
+            FilledRedButton(
+                child: const Text('get mouse position'),
+                onPressed: () async {
+                  final mousePosition =
+                      await NativeChannelUtils.getMousePosition();
+                  log('mousePosition: $mousePosition');
+                }),
+          ],
+        )
+      ]),
+    );
   }
 }
 
@@ -1149,7 +1154,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
   Widget build(BuildContext context) {
     // final gptProvider = context.watch<ChatProvider>();
 
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
@@ -1351,7 +1356,7 @@ class AppearanceSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     final gptProvider = context.watch<ChatProvider>();
     final appTheme = context.watch<AppTheme>();
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
@@ -1371,8 +1376,7 @@ class AppearanceSettings extends StatelessWidget {
               );
             }),
           ]),
-          Text('Theme'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Theme'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
             spacing: 4.0,

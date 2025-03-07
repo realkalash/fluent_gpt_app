@@ -1,4 +1,7 @@
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class StorageUsage extends StatefulWidget {
@@ -59,19 +62,53 @@ class _CostDialogState extends State<StorageUsage> {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Storage usage'),
+      title: Text('Storage usage'.tr),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Chats ${getBytesChatsString(bytesChats)}'),
-          Text('Archived chats ${getBytesChatsString(bytesArchivedChats)}'),
+          Text('${'Chats'.tr} ${getBytesChatsString(bytesChats)}'),
+          Text(
+              '${'Archived chats'.tr} ${getBytesChatsString(bytesArchivedChats)}'),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CaptionText('Archive chats after (days)'.tr),
+                    NumberBox(
+                      value: AppCache.deleteOldChatsAfter.value,
+                      onChanged: (int? value) {
+                        AppCache.deleteOldChatsAfter.value = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CaptionText('Delete chats after (days)'.tr),
+                    NumberBox(
+                      value: AppCache.deleteOldArchivedChatsAfter.value,
+                      onChanged: (int? value) {
+                        AppCache.deleteOldChatsAfter.value = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
     );

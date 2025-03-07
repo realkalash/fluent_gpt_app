@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
@@ -117,6 +118,27 @@ class FileUtils {
     log('temporaryDirectoryPath: $temporaryDirectoryPath');
     log('temporaryAudioDirectoryPath: $temporaryAudioDirectoryPath');
     log('externalToolsPath: $externalToolsPath');
+    // we don't wait because init is running in main class in main thread
+    unawaited(optimizeFiles());
+  }
+
+  static Future<void> optimizeFiles() async {
+// delete archived files if they old enough
+    final now = DateTime.now();
+    final archivedPath = await getArchivedChatRoomPath();
+    final deleteAfterXDays = AppCache.deleteOldArchivedChatsAfter.value;
+    if (deleteAfterXDays != null && deleteAfterXDays > 0) {
+      final files = getFilesRecursive(archivedPath);
+      for (final file in files) {
+        final stat = file.statSync();
+        final lastModified = stat.modified;
+        final diff = now.difference(lastModified);
+        if (diff.inDays >= deleteAfterXDays) {
+          await file.delete();
+          log('Deleted archived file: ${file.path} due to age ${diff.inDays} days');
+        }
+      }
+    }
   }
 
   static Future<String> getDebugAppDirectory() async {
@@ -356,6 +378,7 @@ class FileUtils {
       fileName: fileName,
     );
     if (Platform.isMacOS) return path;
+
     /// for everything else we need to save the file manually
     if (path == null) return null;
     final resultError = await saveFileBytes(path, bytes);

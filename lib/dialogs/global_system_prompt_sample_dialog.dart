@@ -65,7 +65,7 @@ class _GlobalSystemPromptSampleDialogState
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
     );

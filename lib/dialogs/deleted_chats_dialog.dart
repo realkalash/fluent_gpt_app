@@ -1,12 +1,17 @@
 import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_room.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 class DeletedChatsDialog extends StatefulWidget {
@@ -48,12 +53,19 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
           final String json = await file.readAsString();
           final room = ChatRoom.fromJson(json);
           chatRooms[file] = room;
-          if (mounted) {
-            setState(() {});
-          }
         } catch (e) {
           logError('Error reading chat room from file: $e');
         }
+      }
+      // sort chatRooms by last message date
+      chatRooms = Map.fromEntries(chatRooms.entries.toList()
+        ..sort((e1, e2) {
+          final date1 = e1.value.dateModifiedMilliseconds;
+          final date2 = e2.value.dateModifiedMilliseconds;
+          return date2.compareTo(date1);
+        }));
+      if (mounted) {
+        setState(() {});
       }
     });
   }
@@ -73,13 +85,50 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Storage usage'),
+      title: Text('Storage usage'.tr),
+      constraints: BoxConstraints(
+        maxWidth: 600,
+        maxHeight: 1200,
+      ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
               'Archived chats size: ${getBytesChatsString(bytesArchivedChats)}'),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CaptionText('Archive chats after (days)'.tr),
+                    NumberBox(
+                      value: AppCache.deleteOldChatsAfter.value,
+                      onChanged: (int? value) {
+                        AppCache.deleteOldChatsAfter.value = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CaptionText('Delete chats after (days)'.tr),
+                    NumberBox(
+                      value: AppCache.deleteOldArchivedChatsAfter.value,
+                      onChanged: (int? value) {
+                        AppCache.deleteOldChatsAfter.value = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           Expanded(
             child: ListView.builder(
               itemCount: chatRooms.length,
@@ -89,14 +138,20 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                 final fileSize = file.lengthSync().toDouble();
                 return ListTile(
                   title: Text(room.chatRoomName),
+                  subtitle: Text(
+                      '${DateTime.fromMillisecondsSinceEpoch(room.dateModifiedMilliseconds).toIso8601String()} - ${getBytesChatsString(fileSize)}'),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Button(
                         onPressed: () async {
                           final path = await FileUtils.getChatRoomsPath();
-                          await FileUtils.moveFile(
-                              file.path, '$path/${file.path.split('/').last}');
+                          final fileName =
+                              file.path.split(FileUtils.separatior!).last;
+                          final newFilePath =
+                              '$path${FileUtils.separatior!}$fileName';
+                          await FileUtils.moveFile(file.path, newFilePath);
+
                           final size =
                               await FileUtils.calculateSizeRecursive(path);
                           if (mounted) {
@@ -172,11 +227,19 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
               }
             }
           },
-          child: const Text('Delete all'),
+          child: Text('Delete all chat rooms'.tr),
         ),
+        if (kDebugMode)
+          Button(
+            onPressed: () async {
+              final path = await FileUtils.getArchivedChatRoomPath();
+              ShellDriver.openExplorer(path);
+            },
+            child: const Text('Open folder'),
+          ),
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text('Close'.tr),
         ),
       ],
     );

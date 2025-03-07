@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
@@ -123,7 +124,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
                       actions: [
                         Button(
                           onPressed: () => Navigator.of(ctx).pop(),
-                          child: const Text('Close'),
+                          child: Text('Close'.tr),
                         ),
                       ],
                     );
