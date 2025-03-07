@@ -37,6 +37,19 @@ class StringPref extends Pref<String> {
   }
 }
 
+class UserInfoFilePref extends FileStringPref {
+  const UserInfoFilePref(super.fileName);
+
+  Future<void> saveInfoToFile(String info) async {
+    final currentInfo = await value();
+    if (currentInfo.isEmpty) {
+      return set(info);
+    }
+    final newInfo = '$currentInfo\n$info';
+    return set(newInfo);
+  }
+}
+
 // File String pref for saving a file into a app folder
 class FileStringPref {
   /// FileName can be a path+filename

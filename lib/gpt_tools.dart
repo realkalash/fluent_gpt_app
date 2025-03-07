@@ -134,7 +134,7 @@ const rememberInfoParameters = {
     },
     "responseMessage": {
       "type": "string",
-      "description": "Your answer to the user"
+      "description": "Your answer to the user. E.g 'Noted' or your own message"
     }
   },
   "required": ["info", "responseMessage"]

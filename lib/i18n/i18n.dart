@@ -241,6 +241,7 @@ class I18n {
       'Storage usage': null,
       'Refresh from disk': null,
       'Add new': null,
+      'AI will be able to remember things about you': null,
     },
     'ru': {
       'WELCOME!': 'ДОБРО ПОЖАЛОВАТЬ!',
@@ -481,6 +482,8 @@ class I18n {
       'Storage usage': 'Использование хранилища',
       'Refresh from disk': 'Обновить с диска',
       'Add new': 'Добавить',
+      'AI will be able to remember things about you':
+          'ИИ сможет запоминать вещи о вас',
     },
     'es': {
       'WELCOME!': '¡BIENVENIDO!',
@@ -726,6 +729,8 @@ class I18n {
       'Storage usage': 'Uso del almacenamiento',
       'Refresh from disk': 'Actualizar desde el disco',
       'Add new': 'Añadir nuevo',
+      'AI will be able to remember things about you':
+          'La IA podrá recordar cosas sobre ti',
     },
   };
 }

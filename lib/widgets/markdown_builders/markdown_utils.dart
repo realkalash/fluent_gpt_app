@@ -6,13 +6,13 @@ import 'package:markdown_widget/widget/all.dart';
 
 import 'code_wrapper.dart';
 
-
 ///Tag: [MarkdownTag.em]
 ///
 /// emphasis, Markdown treats asterisks (*) and underscores (_) as indicators of emphasis
 class EmCustomNode extends ElementNode {
   @override
-  TextStyle get style => parentStyle!.merge(TextStyle(fontStyle: FontStyle.italic, color: Colors.amber));
+  TextStyle get style => parentStyle!
+      .merge(TextStyle(fontStyle: FontStyle.italic, color: Colors.amber));
 }
 
 Widget buildMarkdown(

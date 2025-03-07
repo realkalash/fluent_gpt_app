@@ -95,7 +95,7 @@ class AppCache {
       FileStringPref("fluent_gpt/promptsLibrary.json");
   static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
-  static const userInfo = FileStringPref("fluent_gpt/userInfo.json");
+  static const userInfo = UserInfoFilePref("fluent_gpt/userInfo.json");
   static const maxTokensUserInfo = IntPref("maxTokensUserInfo", 1024);
   static const userName = StringPref("userName", 'User');
   static const userCityName = StringPref("userCityName", '');
@@ -139,6 +139,7 @@ class AppCache {
       BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
   static const includeTimeToSystemPrompt =
       BoolPref("includeTimeToSystemPrompt", false);
+  @Deprecated('Use gptToolRememberInfo')
   static const learnAboutUserAfterCreateNewChat =
       BoolPref("learnAboutUserAfterCreateNewChat", false);
   static const autoPlayMessagesFromAi =

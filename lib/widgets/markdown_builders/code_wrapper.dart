@@ -1,7 +1,10 @@
+import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
+import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markdown_widget/widget/blocks/leaf/code_block.dart';
@@ -57,6 +60,40 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
         expandedAlignment: Alignment.centerLeft,
         children: [
           Text(widget.content),
+        ],
+      );
+    }
+    if (widget.language == 'remember') {
+      return ExpansionTile(
+        title: Text('Saved new info'),
+        leading: Icon(FluentIcons.book_32_filled),
+        dense: true,
+        minTileHeight: 10,
+        showTrailingIcon: false,
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        visualDensity: VisualDensity.compact,
+        tilePadding: const EdgeInsets.all(0),
+        childrenPadding: const EdgeInsets.all(0),
+        expandedAlignment: Alignment.centerLeft,
+        children: [
+          fluent.Row(
+            children: [
+              Expanded(child: Text(widget.content)),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: fluent.Button(
+                  onPressed: () {
+                    fluent.showDialog(
+                      context: context,
+                      builder: (ctx) => const InfoAboutUserDialog(),
+                      barrierDismissible: true,
+                    );
+                  },
+                  child: const Text('Open memory'),
+                ),
+              )
+            ],
+          ),
         ],
       );
     }
@@ -124,7 +161,8 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             fluent.Tooltip(
-              message: 'Run python/shell code (only for python and shell commands!)',
+              message:
+                  'Run python/shell code (only for python and shell commands!)',
               child: RunCodeButton(
                 code: widget.content,
                 language: widget.language,

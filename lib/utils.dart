@@ -236,10 +236,10 @@ Future<void> displaySuccessInfoBar({String? title}) {
   );
 }
 
-Future<void> displayTextInfoBar(title) {
+Future<void> displayTextInfoBar(String title, {Alignment alignment = const Alignment(0.0, 0.9)}) {
   return displayInfoBar(
     appContext!,
-    alignment: Alignment(0.0, 0.9),
+    alignment: alignment,
     builder: (context, close) => InfoBar(
       title: Text(title),
       severity: InfoBarSeverity.info,

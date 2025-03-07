@@ -56,7 +56,19 @@ import 'package:window_manager/window_manager.dart';
 import 'settings_page.dart';
 
 class NewSettingsPage extends StatefulWidget {
-  const NewSettingsPage({super.key});
+  const NewSettingsPage({super.key, this.initialIndex});
+  final int? initialIndex;
+  static int generalIndex = 0;
+  static int appearanceIndex = 1;
+  static int toolsIndex = 2;
+  static int userInfoIndex = 3;
+  static int apiUrlsIndex = 4;
+  static int onResponseEndIndex = 5;
+  static int quickPromptsIndex = 6;
+  static int permissionsIndex = 7;
+  static int overlayIndex = 8;
+  static int storageIndex = 9;
+  static int hotkeysIndex = 10;
 
   @override
   State<NewSettingsPage> createState() => _NewSettingsPageState();
@@ -68,6 +80,7 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
   @override
   void initState() {
     super.initState();
+    selectedIndex = widget.initialIndex ?? NewSettingsPage.generalIndex;
     suscr = I18n.currentLocalizationStream.listen((event) {
       setState(() {});
     });

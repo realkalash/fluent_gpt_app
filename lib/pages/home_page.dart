@@ -1164,8 +1164,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         ],
                       ),
                       ToggleButtonAdvenced(
-                        checked:
-                            AppCache.learnAboutUserAfterCreateNewChat.value!,
+                        checked: AppCache.gptToolRememberInfo.value!,
                         icon: ic.FluentIcons.brain_circuit_20_regular,
                         shrinkWrapActions: true,
                         maxWidthContextMenu: 300,
@@ -1181,8 +1180,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             child: Text('Knowledge about user'.tr),
                             onChanged: (p0) {
                               setState(() {
-                                AppCache.learnAboutUserAfterCreateNewChat
-                                    .value = p0;
+                                AppCache.gptToolRememberInfo.value = p0;
                               });
                             },
                           ),
@@ -1238,12 +1236,17 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         ],
                         onChanged: (v) {
                           setState(() {
-                            AppCache.learnAboutUserAfterCreateNewChat.value = v;
+                            AppCache.gptToolRememberInfo.value = v;
                           });
+                          if (v) {
+                            displayTextInfoBar(
+                              'AI will be able to remember things about you'.tr,
+                              alignment: Alignment.topCenter,
+                            );
+                          }
                         },
                         tooltip:
-                            'Summarize conversation and populate the knowledge about the user'
-                                .tr,
+                            'AI will be able to remember things about you'.tr,
                       ),
                       ToggleButtonAdvenced(
                         checked: AppCache

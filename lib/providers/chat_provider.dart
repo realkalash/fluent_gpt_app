@@ -1942,7 +1942,7 @@ class ChatProvider with ChangeNotifier {
         AppCache.gptToolAutoOpenUrls.value!) {
       final url = toolArgs['url'];
       final text = toolArgs['responseMessage'];
-      final appendedText = text + '\n```func\n$url\n```';
+      final appendedText = text + '```func\n$url\n```';
       final time = DateTime.now().millisecondsSinceEpoch;
       addBotMessageToList(
         FluentChatMessage.ai(
@@ -1989,6 +1989,21 @@ class ChatProvider with ChangeNotifier {
         );
         addBotMessageToList(botResponse);
       }
+    } else if (toolName == 'remember_info_tool' && AppCache.gptToolRememberInfo.value == true) {
+      final info = toolArgs['info'];
+      final responseMessage = toolArgs['responseMessage'];
+      final time = DateTime.now().millisecondsSinceEpoch;
+      final funcText = '```remember\n$info\n```';
+      AppCache.userInfo.saveInfoToFile(info);
+      addBotMessageToList(
+        FluentChatMessage.ai(
+          id: time.toString(),
+          content: '$funcText\n$responseMessage',
+          timestamp: time,
+          creator: selectedChatRoom.characterName,
+          tokens: await countTokensString('$funcText\n$responseMessage'),
+        ),
+      );
     } else {
       logError('Unknown tool: $toolName');
       final time = DateTime.now().millisecondsSinceEpoch;
