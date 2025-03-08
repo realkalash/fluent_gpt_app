@@ -313,17 +313,17 @@ class ChatProvider with ChangeNotifier {
           final date = DateTime.fromMillisecondsSinceEpoch(
               chatRoom.dateModifiedMilliseconds);
           final difference = currentDate.difference(date).inDays;
-          if (difference >= deleteChatsAfterXDays) {
+          if (difference >= deleteChatsAfterXDays && !chatRoom.isPinned && !chatRoom.isFolder) {
             log('Deleting chat room ${chatRoom.id} because it\'s old enough');
             await deleteChatRoom(chatRoom.id);
             continue;
           }
         }
-        // root level check to load mesages
+        // root level check to load messages
         if (chatRoom.id == selectedChatRoomId) {
           _loadMessagesFromDisk(selectedChatRoomId);
         } else if (chatRoom.children != null) {
-          // TODO: this can fix init selection only for first 2 levels deep
+          // We allow only 2 levels deep
           for (var subItem in chatRoom.children!) {
             if (subItem.children != null) {
               // 2 deep level check level check to load mesages
