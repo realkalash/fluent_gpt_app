@@ -749,7 +749,7 @@ class AliasesOverlay extends StatefulWidget {
   const AliasesOverlay({super.key});
   static List<String> quickInputDefaultCommands = [
     '/settings',
-    '/${TrayCommand.generate_dalle_image.name}',
+    '/${TrayCommand.generate_image.name}',
   ];
   @override
   State<AliasesOverlay> createState() => _AliasesOverlayState();
@@ -977,7 +977,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
 }
 
 class _MicrophoneButton extends StatefulWidget {
-  const _MicrophoneButton({super.key});
+  const _MicrophoneButton();
 
   @override
   State<_MicrophoneButton> createState() => __MicrophoneButtonState();
@@ -1063,7 +1063,7 @@ class __MicrophoneButtonState extends State<_MicrophoneButton> {
 }
 
 class _ChooseModelButton extends StatefulWidget {
-  const _ChooseModelButton({super.key});
+  const _ChooseModelButton();
 
   @override
   State<_ChooseModelButton> createState() => _ChooseModelButtonState();
@@ -1206,7 +1206,6 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
 
 class _AddFileButton extends StatelessWidget {
   const _AddFileButton({
-    super.key,
     required this.chatProvider,
     this.isMini = false,
   });
@@ -1251,7 +1250,6 @@ class _AddFileButton extends StatelessWidget {
 
 class _FileThumbnail extends StatelessWidget {
   const _FileThumbnail({
-    super.key,
     required this.chatProvider,
   });
 

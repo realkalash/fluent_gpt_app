@@ -180,7 +180,6 @@ class CustomPromptsSettingsContainer extends StatelessWidget {
 
 class _PromptListTile extends StatelessWidget {
   const _PromptListTile({
-    super.key,
     required this.prompt,
     required this.isArchived,
     required this.isSubprompt,

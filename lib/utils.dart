@@ -236,7 +236,8 @@ Future<void> displaySuccessInfoBar({String? title}) {
   );
 }
 
-Future<void> displayTextInfoBar(String title, {Alignment alignment = const Alignment(0.0, 0.9)}) {
+Future<void> displayTextInfoBar(String title,
+    {Alignment alignment = const Alignment(0.0, 0.9)}) {
   return displayInfoBar(
     appContext!,
     alignment: alignment,
@@ -247,7 +248,8 @@ Future<void> displayTextInfoBar(String title, {Alignment alignment = const Align
   );
 }
 
-Future<void> displayErrorInfoBar({String? title, String? message}) {
+Future<void> displayErrorInfoBar(
+    {String? title, String? message, Widget? action}) {
   return displayInfoBar(
     appContext!,
     alignment: Alignment(0.0, 0.9),
@@ -255,6 +257,7 @@ Future<void> displayErrorInfoBar({String? title, String? message}) {
       title: Text(title ?? 'Error'),
       content: message != null ? Text(message) : null,
       severity: InfoBarSeverity.error,
+      action: action,
     ),
   );
 }

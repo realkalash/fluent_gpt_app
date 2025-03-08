@@ -16,6 +16,7 @@ import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/azure_speech.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
+import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/file_utils.dart';
@@ -657,6 +658,18 @@ class APIandUrlsSettingsPage extends StatefulWidget {
 class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   bool obscureBraveText = true;
   bool obscureOpenAiText = true;
+  bool obscureimageApi = true;
+  final apiKeyTextController =
+      TextEditingController(text: AppCache.imageGeneratorApiKey.value);
+  final imageModelTextController =
+      TextEditingController(text: AppCache.imageGeneratorModel.value);
+  @override
+  void dispose() {
+    apiKeyTextController.dispose();
+    imageModelTextController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -714,6 +727,102 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
         else if (AppCache.textToSpeechService.value ==
             TextToSpeechServiceEnum.elevenlabs.name)
           _ElevenLabsSettings(),
+        spacer,
+        LabelText('Image generator'.tr),
+        DropDownButton(
+          items: [
+            for (var gen in ImageGeneratorEnum.values)
+              MenuFlyoutItem(
+                selected: ImageGeneratorFeature.selectedGenerator == gen,
+                onPressed: () async {
+                  await ImageGeneratorFeature.setGenerator(gen);
+                  setState(() {});
+                },
+                text: Text(gen.name.tr),
+              ),
+          ],
+          title: Text(ImageGeneratorFeature.selectedGenerator.name.tr),
+        ),
+        if (ImageGeneratorFeature.selectedGenerator ==
+            ImageGeneratorEnum.deepinfraGenerator)
+          LinkTextButton('https://deepinfra.com/dash/deployments'),
+        spacer,
+        TextBox(
+          controller: apiKeyTextController,
+          placeholder: 'API key for image generator'.tr,
+          minLines: 1,
+          maxLines: 1,
+          obscureText: obscureimageApi,
+          suffix: IconButton(
+            icon: const Icon(FluentIcons.eye_20_regular),
+            onPressed: () {
+              setState(() {
+                obscureimageApi = !obscureimageApi;
+              });
+            },
+          ),
+          onChanged: (value) {
+            if (value.isEmpty) return;
+            AppCache.imageGeneratorApiKey.value = value;
+           },
+        ),
+        TextBox(
+          controller: imageModelTextController,
+          placeholder: 'Model'.tr,
+          minLines: 1,
+          maxLines: 1,
+          onChanged: (value) {
+            if (value.isEmpty) return;
+            AppCache.imageGeneratorModel.value = value;
+          },
+        ),
+        spacer,
+        CaptionText('Resolution'.tr),
+        DropDownButton(
+          items: [
+            MenuFlyoutItem(
+              selected: AppCache.imageGeneratorSize.value == '768x1366',
+              onPressed: () async {
+                AppCache.imageGeneratorSize.value = '768x1366';
+                setState(() {});
+              },
+              text: Text('768x1366'),
+            ),
+            MenuFlyoutItem(
+              selected: AppCache.imageGeneratorSize.value == '1366x768',
+              onPressed: () async {
+                AppCache.imageGeneratorSize.value = '1366x768';
+                setState(() {});
+              },
+              text: Text('1366x768'),
+            ),
+            MenuFlyoutItem(
+              selected: AppCache.imageGeneratorSize.value == '1024x1024',
+              onPressed: () async {
+                AppCache.imageGeneratorSize.value = '1024x1024';
+                setState(() {});
+              },
+              text: Text('1024x1024'),
+            ),
+            MenuFlyoutItem(
+              selected: AppCache.imageGeneratorSize.value == '512x512',
+              onPressed: () async {
+                AppCache.imageGeneratorSize.value = '512x512';
+                setState(() {});
+              },
+              text: Text('512x512'),
+            ),
+            MenuFlyoutItem(
+              selected: AppCache.imageGeneratorSize.value == '768x768',
+              onPressed: () async {
+                AppCache.imageGeneratorSize.value = '768x768';
+                setState(() {});
+              },
+              text: Text('768x768'),
+            ),
+          ],
+          title: Text(AppCache.imageGeneratorSize.value ?? '-'),
+        ),
       ]),
     );
   }
@@ -1570,7 +1679,7 @@ class AppearanceSettings extends StatelessWidget {
 }
 
 class _ElevenLabsSettings extends StatelessWidget {
-  const _ElevenLabsSettings({super.key});
+  const _ElevenLabsSettings();
 
   @override
   Widget build(BuildContext context) {
@@ -1592,7 +1701,7 @@ class _ElevenLabsSettings extends StatelessWidget {
 }
 
 class _AzureSettings extends StatefulWidget {
-  const _AzureSettings({super.key});
+  const _AzureSettings();
 
   @override
   State<_AzureSettings> createState() => _AzureSettingsState();
@@ -1602,6 +1711,7 @@ class _AzureSettingsState extends State<_AzureSettings> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Azure API key (speech) \$',
@@ -1652,7 +1762,7 @@ class _AzureSettingsState extends State<_AzureSettings> {
 }
 
 class _DeepgramSettings extends StatefulWidget {
-  const _DeepgramSettings({super.key});
+  const _DeepgramSettings();
 
   @override
   State<_DeepgramSettings> createState() => _DeepgramSettingsState();

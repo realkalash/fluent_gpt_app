@@ -45,9 +45,19 @@ class AppCache {
   static const costCalcNotes = StringPref("costCalcNotes", '');
   static const locale = StringPref("locale", 'en');
   static const deleteOldChatsAfter = IntPref("deleteOldChatsAfter", 45);
-  static const deleteOldArchivedChatsAfter = IntPref("deleteOldArchivedChatsAfter", 60);
+  static const deleteOldArchivedChatsAfter =
+      IntPref("deleteOldArchivedChatsAfter", 60);
+  static const imageGenerator = IntPref("imageGenerator", 0);
+  static const imageGeneratorApiKey = StringPref("imageGeneratorApiKey", null);
+  static const imageGeneratorSize =
+      StringPref("imageGeneratorSize", '1024x1024');
+  static const imageGeneratorQuality =
+      StringPref("imageGeneratorQuality", "hd");
+  static const imageGeneratorStyle =
+      StringPref("imageGeneratorStyle", "natural");
+  static const imageGeneratorModel = StringPref("imageGeneratorModel", null);
 
-  /// Contains Strings that we can't migrate beacuse they are used by StringPref, IntPref etc.
+  /// Contains Strings that we can't migrate because they are used by StringPref, IntPref etc.
   /// the format is:
   ///
   /// ```json
