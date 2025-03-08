@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
@@ -88,7 +89,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                       barrierDismissible: true,
                     );
                   },
-                  child: const Text('Open memory'),
+                  child: Text('Open memory'.tr),
                 ),
               )
             ],

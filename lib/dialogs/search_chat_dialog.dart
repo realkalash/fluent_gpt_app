@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/widgets/message_list_tile.dart';
+import 'package:fluent_gpt/widgets/zoom_hover.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:langchain/langchain.dart';
 
@@ -117,7 +122,89 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
       actions: [
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child:  Text('Dismiss'.tr),
+          child: Text('Dismiss'.tr),
+        ),
+      ],
+    );
+  }
+}
+
+// ImagesDialog class to display images from a chat in a dialog
+class ImagesDialog extends StatelessWidget {
+  const ImagesDialog({super.key});
+  static show(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => const ImagesDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageMessages = messages.value.values.where((element) {
+      if (element.type == FluentChatMessageType.image ||
+          element.type == FluentChatMessageType.imageAi) {
+        return true;
+      }
+      return false;
+    }).toList();
+    return ContentDialog(
+      title: Text('Images in chat'.tr),
+      constraints: const BoxConstraints(maxWidth: 1200),
+      content: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: imageMessages.length,
+        itemBuilder: (context, index) {
+          final message = imageMessages[index];
+          if (message is CustomChatMessage) {
+            return const SizedBox.shrink();
+          }
+          if (message is HumanChatMessage &&
+              message.content is ChatMessageContentImage) {
+            return const SizedBox.shrink();
+          }
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                final image = decodeImage(message.content);
+                final provider = Image.memory(
+                  image,
+                  filterQuality: FilterQuality.high,
+                ).image;
+
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.black,
+                  barrierDismissible: true,
+                  builder: (context) {
+                    return ImageViewerDialog(
+                        provider: provider, description: message.imagePrompt);
+                  },
+                );
+              },
+              child: ZoomHover(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(
+                    base64Decode((message.content)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+      actions: [
+        Button(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Dismiss'.tr),
         ),
       ],
     );

@@ -419,6 +419,12 @@ class PageHeaderText extends StatelessWidget {
                   provider.scrollToMessage(elementkey);
                 },
               ),
+              IconButton(
+                icon: const Icon(ic.FluentIcons.image_20_regular, size: 20),
+                onPressed: () {
+                  ImagesDialog.show(context);
+                },
+              ),
               FlyoutButton(
                 icon: ic.FluentIcons.text_font_size_24_regular,
                 tooltip: 'Text size'.tr,
@@ -1473,7 +1479,7 @@ class GeneratingImagesCard extends StatelessWidget {
 }
 
 class _ScrollToBottomButton extends StatelessWidget {
-  const _ScrollToBottomButton({super.key});
+  const _ScrollToBottomButton();
 
   @override
   Widget build(BuildContext context) {

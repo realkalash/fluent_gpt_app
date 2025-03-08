@@ -18,8 +18,9 @@ import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
-import 'package:fluent_gpt/features/dalle_api_generator.dart';
+import 'package:fluent_gpt/features/dalle_image_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
@@ -300,7 +301,7 @@ class ChatProvider with ChangeNotifier {
     final files = FileUtils.getFilesRecursive(path);
     final currentDate = DateTime.now();
     final deleteChatsAfterXDays = AppCache.deleteOldChatsAfter.value;
-    
+
     for (var file in files) {
       try {
         final fileContent = await file.readAsString();
@@ -573,9 +574,9 @@ class ChatProvider with ChangeNotifier {
         );
       } else if (command == TrayCommand.paste_attachment_ai_lens.name) {
         final base64String = text;
-        final bytes =  base64Decode(base64String);
+        final bytes = base64Decode(base64String);
         addAttachmentAiLens(bytes);
-      } else if (command == TrayCommand.generate_dalle_image.name) {
+      } else if (command == TrayCommand.generate_image.name) {
         final imagePrompt = text;
         if (imagePrompt.trim().isEmpty) {
           return;
@@ -590,21 +591,40 @@ class ChatProvider with ChangeNotifier {
         );
         isGeneratingImage = true;
         notifyListeners();
-        final openAiModel = allModels.value
-            .firstWhereOrNull((element) => element.ownedBy == 'openai');
-        if (openAiModel == null) {
-          displayErrorInfoBar(
-            title: 'OpenAI model not found',
-            message: 'Please add at least one OpenAI model to use this feature',
-          );
-          throw Exception(
-              'OpenAI model not found. Please add at least one OpenAI model to use this feature');
+        String? apiKey;
+        if (AppCache.imageGeneratorApiKey.value != null) {
+          apiKey = AppCache.imageGeneratorApiKey.value;
+        } else {
+          final openAiModel = allModels.value
+              .firstWhereOrNull((element) => element.ownedBy == 'openai');
+          apiKey = openAiModel?.apiKey;
+        }
+        if (apiKey == null) {
+          return displayErrorInfoBar(
+              title: 'API key error',
+              message:
+                  'No API key found for image generation. Please add an API key in the settings page',
+              action: Button(
+                child: Text('Settings'.tr),
+                onPressed: () {
+                  Navigator.of(context!).push(
+                    FluentPageRoute(
+                      builder: (context) => NewSettingsPage(
+                          initialIndex: NewSettingsPage.apiUrlsIndex),
+                    ),
+                  );
+                },
+              ));
         }
         try {
-          final imageChatMessage = await DalleApiGenerator.generateImage(
+          final imageChatMessage = await ImageGeneratorFeature.generateImage(
             prompt: imagePrompt,
-            model: 'dall-e-3',
-            apiKey: openAiModel.apiKey,
+            model: AppCache.imageGeneratorModel.value,
+            apiKey: apiKey,
+            n: 1,
+            quality: AppCache.imageGeneratorQuality.value!,
+            size: AppCache.imageGeneratorSize.value!,
+            style: AppCache.imageGeneratorStyle.value ?? 'natural',
           );
           final newTimestamp = DateTime.now().millisecondsSinceEpoch;
           addCustomMessageToList(
@@ -627,6 +647,22 @@ class ChatProvider with ChangeNotifier {
               creator: 'openai error',
             ),
           );
+          if (e.toString().contains('401')) {
+            displayErrorInfoBar(
+                title: 'API key error',
+                message: 'Please check your api key',
+                action: Button(
+                  child: Text('Settings'.tr),
+                  onPressed: () {
+                    Navigator.of(context!).push(
+                      FluentPageRoute(
+                        builder: (context) => NewSettingsPage(
+                            initialIndex: NewSettingsPage.apiUrlsIndex),
+                      ),
+                    );
+                  },
+                ));
+          }
         }
 
         isGeneratingImage = false;
@@ -652,12 +688,12 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
+  Future<void> addAttachmentAiLens(Uint8List bytes,
+      {bool showDialog = true}) async {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput(attachment);
     if (showDialog) {
-    final isSent = 
-    await AiLensDialog.show<bool>(context!, bytes);
+      final isSent = await AiLensDialog.show<bool>(context!, bytes);
       if (isSent != true) {
         removeFileFromInput();
       }
@@ -763,7 +799,7 @@ class ChatProvider with ChangeNotifier {
         context!,
         builder: (ctx, close) {
           return InfoBar(
-            title: Text('Memory updated'),
+            title: Text('Memory updated'.tr),
             content: Text(newKnowladge.content,
                 maxLines: 2, overflow: TextOverflow.ellipsis),
             severity: InfoBarSeverity.info,
@@ -778,7 +814,7 @@ class ChatProvider with ChangeNotifier {
                   barrierDismissible: true,
                 );
               },
-              child: Text('Open memory'),
+              child: Text('Open memory'.tr),
             ),
           );
         },
@@ -886,10 +922,10 @@ class ChatProvider with ChangeNotifier {
         renameCurrentChatRoom(first50CharsIfPossible);
       }
     }
-    if (messageContent.contains(TrayCommand.generate_dalle_image.name)) {
+    if (messageContent.contains(TrayCommand.generate_image.name)) {
       onTrayButtonTapCommand(
         messageContent,
-        TrayCommand.generate_dalle_image.name,
+        TrayCommand.generate_image.name,
       );
       return;
     }
@@ -1071,9 +1107,8 @@ class ChatProvider with ChangeNotifier {
         final lastMessagesLangChain =
             lastMessages.map((e) => e.toLangChainChatMessage());
         messagesToSend.addAll(lastMessagesLangChain);
-      }
-      else {
-         messagesToSend.add(
+      } else {
+        messagesToSend.add(
           sendAsUser
               ? HumanChatMessage(
                   content: ChatMessageContent.text(messageContent),
@@ -1156,7 +1191,8 @@ class ChatProvider with ChangeNotifier {
               if (AppCache.gptToolRememberInfo.value!)
                 ToolSpec(
                   name: 'remember_info_tool',
-                  description: 'Tool to remember info. Use it to store info about user or important notes',
+                  description:
+                      'Tool to remember info. Use it to store info about user or important notes',
                   inputJsonSchema: rememberInfoParameters,
                 ),
             ]
@@ -1973,6 +2009,7 @@ class ChatProvider with ChangeNotifier {
     } else if (toolName == 'generate_image_tool' &&
         AppCache.gptToolGenerateImage.value!) {
       final String prompt = toolArgs['prompt'];
+      final String? size = toolArgs['size'];
       final String? responseMessage = toolArgs['responseMessage'];
       final appendedText = '\n```func\n$prompt\n```';
       final time = DateTime.now().millisecondsSinceEpoch;
@@ -1991,6 +2028,7 @@ class ChatProvider with ChangeNotifier {
           regExp: RegExp(''),
           actionEnum: OnMessageActionEnum.generateImage,
         ),
+        size: size,
       );
       if (responseMessage != null) {
         final newTime = DateTime.now().millisecondsSinceEpoch;
@@ -2003,7 +2041,8 @@ class ChatProvider with ChangeNotifier {
         );
         addBotMessageToList(botResponse);
       }
-    } else if (toolName == 'remember_info_tool' && AppCache.gptToolRememberInfo.value == true) {
+    } else if (toolName == 'remember_info_tool' &&
+        AppCache.gptToolRememberInfo.value == true) {
       final info = toolArgs['info'];
       final responseMessage = toolArgs['responseMessage'];
       final time = DateTime.now().millisecondsSinceEpoch;
@@ -2256,7 +2295,6 @@ class ChatProvider with ChangeNotifier {
       await _loadMessagesFromDisk(selectedChatRoomId);
     }
   }
-
 
   void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
       {switchToForeground = false}) {
@@ -2804,33 +2842,49 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future<void> _onResponseEndGenerateImage(
-      FluentChatMessage response, OnMessageAction action) async {
+    FluentChatMessage response,
+    OnMessageAction action, {
+    String? size,
+  }) async {
     try {
       final promptMessage = messages.value.entries.last.value.copyWith();
       // deleteMessage(messagesReversedList.first.id);
       final prompt = response.content.replaceAll(action.regExp, '');
 
-      final openAiModel = allModels.value.firstWhereOrNull(
-        (element) => element.ownedBy == 'openai' && element.apiKey.isNotEmpty,
-      );
-      if (openAiModel == null) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addBotErrorMessageToList(
-          FluentChatMessage.ai(
-            id: timestamp.toString(),
-            content:
-                'OpenAI model with valid API token not found. Please add at least one openai model with API key.',
-            creator: 'error',
-            timestamp: timestamp,
+      String? apiKey = AppCache.imageGeneratorApiKey.value;
+      if (AppCache.imageGeneratorApiKey.value == null) {
+        final openAiModel = allModels.value.firstWhereOrNull(
+          (element) => element.ownedBy == 'openai' && element.apiKey.isNotEmpty,
+        );
+        if (openAiModel != null) {
+          apiKey = openAiModel.apiKey;
+        }
+      }
+      if (apiKey == null) {
+        return displayErrorInfoBar(
+          title: 'Error while generating image'.tr,
+          message:
+              'No API key found for image generation. Please add an API key in the settings page',
+          action: Button(
+            child: Text('Settings'.tr),
+            onPressed: () {
+              Navigator.of(context!).push(FluentPageRoute(
+                  builder: (ctx) => NewSettingsPage(
+                      initialIndex: NewSettingsPage.apiUrlsIndex)));
+            },
           ),
         );
-        return;
       }
+
       isGeneratingImage = true;
       notifyListeners();
-      final imageChatMessage = await DalleApiGenerator.generateImage(
+      final imageChatMessage = await ImageGeneratorFeature.generateImage(
         prompt: prompt,
-        apiKey: openAiModel.apiKey,
+        apiKey: apiKey,
+        size: size ?? AppCache.imageGeneratorSize.value!,
+        quality: AppCache.imageGeneratorQuality.value!,
+        style: AppCache.imageGeneratorStyle.value!,
+        n: 1,
       );
       final newTimestamp = DateTime.now().millisecondsSinceEpoch;
       addCustomMessageToList(
@@ -2843,7 +2897,8 @@ class ChatProvider with ChangeNotifier {
         ),
       );
       final questionAboutImage = await retrieveResponseFromPrompt(
-        'Ask user how they feel about your drawing',
+        'You just generated an image. Ask user how they feel about your drawing in "{lang}" language using short 1 sentence'
+            .replaceAll('{lang}', I18n.currentLocale.languageCode),
         systemMessage: selectedChatRoom.systemMessage,
         additionalPreMessages: [
           messagesReversedList[0],
@@ -2861,6 +2916,7 @@ class ChatProvider with ChangeNotifier {
           tokens: countTokens,
         ),
       );
+      saveToDisk([selectedChatRoom]);
     } catch (e) {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       addBotErrorMessageToList(

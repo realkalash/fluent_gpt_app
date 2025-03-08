@@ -380,7 +380,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
 }
 
 class _GridChildRow extends StatelessWidget {
-  const _GridChildRow({super.key, required this.first, required this.second});
+  const _GridChildRow({required this.first, required this.second});
   final Widget first;
   final Widget second;
 

@@ -103,7 +103,7 @@ class DensityModeDropdown extends StatelessWidget {
 }
 
 class _DebugSection extends StatelessWidget {
-  const _DebugSection({super.key});
+  const _DebugSection();
 
   @override
   Widget build(BuildContext context) {
@@ -481,7 +481,7 @@ const gptLocales = [
 ];
 
 class _LocaleSection extends StatelessWidget {
-  const _LocaleSection({super.key});
+  const _LocaleSection();
 
   @override
   Widget build(BuildContext context) {

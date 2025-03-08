@@ -121,7 +121,11 @@ const generateImageParameters = {
     "responseMessage": {
       "type": "string",
       "description": "Your short response summary message"
-    }
+    },
+    "size": {
+      "type": "string",
+      "description": "The size of the image. E.g '1024x1024'. Ensure values are less than 1440. default is 1024x1024"
+    },
   },
   "required": ["prompt"]
 };
@@ -130,7 +134,8 @@ const rememberInfoParameters = {
   "properties": {
     "info": {
       "type": "string",
-      "description": "A one line summary of the information you want to remember. E.g '{user} likes cats'"
+      "description":
+          "A one line summary of the information you want to remember. E.g '{user} likes cats'"
     },
     "responseMessage": {
       "type": "string",

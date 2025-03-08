@@ -269,34 +269,37 @@ class _MessageCardState extends State<MessageCard> {
                     context,
                     widget.message.content,
                     textSize: widget.textSize.toDouble(),
-                    contextMenuBuilder: (ctx, state) => ContextMenuBuilders
-                        .markdownChatMessageContextMenuBuilder(
-                      context,
-                      state,
-                      onShowCommandsPressed: (text) {
-                        flyoutController.showFlyout(
-                          builder: (context) => _showCommandsFlyout(text),
-                          position: mouseLocalPosition,
-                        );
-                      },
-                      onMorePressed: () {
-                        flyoutController.showFlyout(
-                          builder: (context) => _showOptionsFlyout(context),
-                          position: mouseLocalPosition,
-                        );
-                      },
-                      onQuoteSelectedText: (text) {
-                        final provider = context.read<ChatProvider>();
-                        provider.messageController.text =
-                            provider.messageController.text += '"$text" ';
-                        promptTextFocusNode.requestFocus();
-                      },
-                      onImproveSelectedText: (text) {
-                        final provider = context.read<ChatProvider>();
-                        provider.sendMessage('Improve writing: "$text"',
-                            hidePrompt: true);
-                      },
-                    ),
+                    contextMenuBuilder: (ctx, state) {
+                      return ContextMenuBuilders
+                          .markdownChatMessageContextMenuBuilder(
+                        context,
+                        flyoutController,
+                        state,
+                        onShowCommandsPressed: (text) {
+                          flyoutController.showFlyout(
+                            builder: (context) => _showCommandsFlyout(text),
+                            position: mouseLocalPosition,
+                          );
+                        },
+                        onMorePressed: () {
+                          flyoutController.showFlyout(
+                            builder: (context) => _showOptionsFlyout(context),
+                            position: mouseLocalPosition,
+                          );
+                        },
+                        onQuoteSelectedText: (text) {
+                          final provider = context.read<ChatProvider>();
+                          provider.messageController.text =
+                              provider.messageController.text += '"$text" ';
+                          promptTextFocusNode.requestFocus();
+                        },
+                        onImproveSelectedText: (text) {
+                          final provider = context.read<ChatProvider>();
+                          provider.sendMessage('Improve writing: "$text"',
+                              hidePrompt: true);
+                        },
+                      );
+                    },
                   )
                 else if (isContentText)
                   SelectableText(
@@ -936,14 +939,14 @@ class _MessageCardState extends State<MessageCard> {
     return MenuFlyout(
       items: [
         MenuFlyoutItem(
-            text: const Text('Shorter'),
+            text: Text('Shorter'.tr),
             leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
               provider.shortenMessage(widget.message.id);
             }),
         MenuFlyoutItem(
-            text: const Text('Longer'),
+            text: Text('Longer'.tr),
             leading: const Icon(FluentIcons.text_description_16_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
@@ -951,7 +954,7 @@ class _MessageCardState extends State<MessageCard> {
             }),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-            text: const Text('Continue'),
+            text: Text('Continue'.tr),
             leading: const Icon(FluentIcons.arrow_forward_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
@@ -959,7 +962,7 @@ class _MessageCardState extends State<MessageCard> {
             }),
         if (message.isTextMessage) ...[
           MenuFlyoutItem(
-            text: const Text('Remember this'),
+            text: Text('Remember this'.tr),
             leading: const Icon(FluentIcons.brain_circuit_20_regular),
             onPressed: () async {
               final provider = context.read<ChatProvider>();
@@ -982,7 +985,7 @@ class _MessageCardState extends State<MessageCard> {
               );
               displayInfoBar(provider.context!, builder: (ctx, close) {
                 return InfoBar(
-                  title: const Text('Memory updated'),
+                  title: Text('Memory updated'.tr),
                   content: Text(information),
                   severity: InfoBarSeverity.success,
                   isLong: true,
@@ -997,7 +1000,7 @@ class _MessageCardState extends State<MessageCard> {
                         barrierDismissible: true,
                       );
                     },
-                    child: Text('Open memory'),
+                    child: Text('Open memory'.tr),
                   ),
                 );
               });
@@ -1044,7 +1047,7 @@ class _MessageCardState extends State<MessageCard> {
         ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-          text: Text('Delete', style: TextStyle(color: Colors.red)),
+          text: Text('Delete'.tr, style: TextStyle(color: Colors.red)),
           leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
           onPressed: () {
             final provider = context.read<ChatProvider>();

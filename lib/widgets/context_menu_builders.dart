@@ -31,85 +31,83 @@ class ContextMenuBuilders {
         Positioned(
           top: anchor.dy,
           left: anchor.dx,
-          child: Flyout(
-            builder: (_) => FlyoutContent(
-              useAcrylic: false,
-              constraints: BoxConstraints(maxWidth: 200),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (selectedText.isNotEmpty)
-                    FlyoutListTile(
-                      text: Text('Copy'),
-                      icon: Icon(FluentIcons.copy_16_regular),
-                      autofocus: true,
-                      onPressed: () {
-                        editableTextState
-                            .copySelection(SelectionChangedCause.tap);
-                        editableTextState.hideToolbar();
-                      },
-                    ),
+          child: FlyoutContent(
+            useAcrylic: false,
+            constraints: BoxConstraints(maxWidth: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (selectedText.isNotEmpty)
                   FlyoutListTile(
-                    text: Text('Select all'),
-                    icon: Icon(FluentIcons.select_object_skew_20_regular),
+                    text: Text('Copy'),
+                    icon: Icon(FluentIcons.copy_16_regular),
+                    autofocus: true,
                     onPressed: () {
-                      editableTextState.selectAll(SelectionChangedCause.tap);
+                      editableTextState
+                          .copySelection(SelectionChangedCause.tap);
                       editableTextState.hideToolbar();
                     },
                   ),
-                  if (selectedText.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Divider(),
-                    ),
-                    FlyoutListTile(
-                      text: Text('Improve "$selectedText"',
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      icon: Icon(FluentIcons.sparkle_16_regular),
-                      onPressed: () {
-                        onImproveSelectedText(selectedText);
-                        _updateSelectedText(editableTextState, fullText);
-                        editableTextState.hideToolbar();
-                      },
-                    ),
-                    FlyoutListTile(
-                      text: Text('Quote "$selectedText"',
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      icon: Icon(FluentIcons.arrow_reply_16_regular),
-                      onPressed: () {
-                        onQuoteSelectedText(selectedText);
-                        _updateSelectedText(editableTextState, fullText);
-                        editableTextState.hideToolbar();
-                      },
-                    ),
-                  ],
+                FlyoutListTile(
+                  text: Text('Select all'),
+                  icon: Icon(FluentIcons.select_object_skew_20_regular),
+                  onPressed: () {
+                    editableTextState.selectAll(SelectionChangedCause.tap);
+                    editableTextState.hideToolbar();
+                  },
+                ),
+                if (selectedText.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('Commands'),
-                    trailing: Icon(FluentIcons.more_vertical_20_regular),
+                    text: Text('Improve "$selectedText"',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
-                      onShowCommandsPressed(selectedText);
+                      onImproveSelectedText(selectedText);
+                      _updateSelectedText(editableTextState, fullText);
                       editableTextState.hideToolbar();
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('More'),
-                    trailing: Icon(FluentIcons.more_vertical_20_regular),
+                    text: Text('Quote "$selectedText"',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
-                      onMorePressed();
+                      onQuoteSelectedText(selectedText);
+                      _updateSelectedText(editableTextState, fullText);
                       editableTextState.hideToolbar();
                     },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Divider(),
                   ),
                 ],
-              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Divider(),
+                ),
+                FlyoutListTile(
+                  text: Text('Commands'),
+                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  onPressed: () {
+                    onShowCommandsPressed(selectedText);
+                    editableTextState.hideToolbar();
+                  },
+                ),
+                FlyoutListTile(
+                  text: Text('More'),
+                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  onPressed: () {
+                    onMorePressed();
+                    editableTextState.hideToolbar();
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Divider(),
+                ),
+              ],
             ),
           ),
         ),
@@ -125,6 +123,7 @@ class ContextMenuBuilders {
 
   static Widget markdownChatMessageContextMenuBuilder(
     BuildContext context,
+    FlyoutController flyoutController,
     CustomSelectableRegionState editableTextState, {
     required void Function() onMorePressed,
     required void Function(String text) onShowCommandsPressed,
@@ -133,93 +132,158 @@ class ContextMenuBuilders {
   }) {
     final anchor = editableTextState.contextMenuAnchors.primaryAnchor;
     selectedText =
-        editableTextState.currentSelectable?.getSelectedContent()?.plainText ??
-            '';
-
+        editableTextState.currentLastSelectedContent?.plainText ?? '';
     return Stack(
       fit: StackFit.passthrough,
       children: [
         Positioned(
           top: anchor.dy,
           left: anchor.dx,
-          child: Flyout(
-            builder: (_) => FlyoutContent(
-              useAcrylic: false,
-              constraints: BoxConstraints(maxWidth: 200),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (editableTextState.copyEnabled)
-                    FlyoutListTile(
-                      text: Text('Copy'),
-                      icon: Icon(FluentIcons.copy_16_regular),
-                      autofocus: true,
-                      onPressed: () {
-                        editableTextState
-                            .copySelection(SelectionChangedCause.tap);
-                        editableTextState.hideToolbar();
-                      },
-                    ),
+          child: FlyoutContent(
+            useAcrylic: false,
+            constraints: BoxConstraints(maxWidth: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (editableTextState.copyEnabled)
                   FlyoutListTile(
-                    text: Text('Select all'),
-                    icon: Icon(FluentIcons.select_object_skew_20_regular),
+                    text: Text('Copy'),
+                    icon: Icon(FluentIcons.copy_16_regular),
+                    autofocus: true,
                     onPressed: () {
-                      editableTextState.selectAll(SelectionChangedCause.tap);
+                      editableTextState
+                          .copySelection(SelectionChangedCause.tap);
                       editableTextState.hideToolbar();
                     },
                   ),
-                  if (selectedText.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Divider(),
-                    ),
-                    FlyoutListTile(
-                      text: Text('Improve "$selectedText"',
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      icon: Icon(FluentIcons.sparkle_16_regular),
-                      onPressed: () {
-                        onImproveSelectedText(selectedText);
-
-                        editableTextState.hideToolbar();
-                      },
-                    ),
-                    FlyoutListTile(
-                      text: Text('Quote "$selectedText"',
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                      icon: Icon(FluentIcons.arrow_reply_16_regular),
-                      onPressed: () {
-                        onQuoteSelectedText(selectedText);
-                        editableTextState.hideToolbar();
-                      },
-                    ),
-                  ],
+                FlyoutListTile(
+                  text: Text('Select all'),
+                  icon: Icon(FluentIcons.select_object_skew_20_regular),
+                  onPressed: () {
+                    editableTextState.selectAll(SelectionChangedCause.tap);
+                    editableTextState.hideToolbar();
+                  },
+                ),
+                if (selectedText.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('Commands'),
-                    trailing: Icon(FluentIcons.chevron_right_20_regular),
+                    text: Text('Improve "$selectedText"',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
-                      onShowCommandsPressed(selectedText);
+                      onImproveSelectedText(selectedText);
+
                       editableTextState.hideToolbar();
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('More'),
-                    trailing: Icon(FluentIcons.more_vertical_20_regular),
+                    text: Text('Quote "$selectedText"',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
-                      onMorePressed();
+                      onQuoteSelectedText(selectedText);
                       editableTextState.hideToolbar();
                     },
                   ),
                 ],
-              ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Divider(),
+                ),
+                FlyoutListTile(
+                  text: Text('Commands'),
+                  trailing: Icon(FluentIcons.chevron_right_20_regular),
+                  onPressed: () {
+                    onShowCommandsPressed(selectedText);
+                    editableTextState.hideToolbar();
+                  },
+                ),
+                FlyoutListTile(
+                  text: Text('More'),
+                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  onPressed: () {
+                    onMorePressed();
+                    editableTextState.hideToolbar();
+                  },
+                ),
+              ],
             ),
           ),
         ),
       ],
     );
+    // return flyoutController.showFlyout(
+    //   dismissOnPointerMoveAway: true,
+    //   dismissWithEsc: true,
+    //   barrierDismissible: true,
+    //   navigatorKey: navigatorKey.currentState,
+    //   position: anchor,
+    //   builder: (ctx) {
+    //     return MenuFlyout(constraints: BoxConstraints(maxWidth: 200), items: [
+    //       if (editableTextState.copyEnabled)
+    //         MenuFlyoutItem(
+    //           text: Text('Copy'),
+    //           leading: Icon(FluentIcons.copy_16_regular),
+    //           onPressed: () {
+    //             editableTextState.copySelection(SelectionChangedCause.tap);
+    //             editableTextState.hideToolbar();
+    //           },
+    //         ),
+    //       MenuFlyoutItem(
+    //         text: Text('Select all'),
+    //         leading: Icon(FluentIcons.select_object_skew_20_regular),
+    //         onPressed: () {
+    //           editableTextState.selectAll(SelectionChangedCause.tap);
+    //           editableTextState.hideToolbar();
+    //         },
+    //       ),
+    //       if (selectedText.isNotEmpty) ...[
+    //         MenuFlyoutSeparator(),
+    //         MenuFlyoutItem(
+    //           text: Text('Improve "$selectedText"',
+    //               maxLines: 1, overflow: TextOverflow.ellipsis),
+    //           leading: Icon(FluentIcons.sparkle_16_regular),
+    //           onPressed: () {
+    //             onImproveSelectedText(selectedText);
+
+    //             editableTextState.hideToolbar();
+    //           },
+    //         ),
+    //         MenuFlyoutItem(
+    //           text: Text('Quote "$selectedText"',
+    //               maxLines: 1, overflow: TextOverflow.ellipsis),
+    //           leading: Icon(FluentIcons.arrow_reply_16_regular),
+    //           onPressed: () {
+    //             onQuoteSelectedText(selectedText);
+    //             editableTextState.hideToolbar();
+    //           },
+    //         ),
+    //       ],
+    //       MenuFlyoutSeparator(),
+    //       MenuFlyoutItem(
+    //         text: Text('Commands'),
+    //         trailing: Icon(FluentIcons.chevron_right_20_regular),
+    //         onPressed: () {
+    //           onShowCommandsPressed(selectedText);
+    //           editableTextState.hideToolbar();
+    //         },
+    //       ),
+    //       MenuFlyoutItem(
+    //         text: Text('More'),
+    //         trailing: Icon(FluentIcons.more_vertical_20_regular),
+    //         onPressed: () {
+    //           onMorePressed();
+    //           editableTextState.hideToolbar();
+    //         },
+    //       ),
+    //     ]);
+    //   },
+    // );
+
+    
   }
 }

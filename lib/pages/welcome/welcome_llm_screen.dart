@@ -109,7 +109,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
 }
 
 class _ChooseModelButton extends StatefulWidget {
-  const _ChooseModelButton({super.key});
+  const _ChooseModelButton();
 
   @override
   State<_ChooseModelButton> createState() => _ChooseModelButtonState();
