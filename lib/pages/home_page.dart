@@ -1101,7 +1101,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                         tooltip: 'Include conversation'.tr +
                             ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
                         maxWidthContextMenu: 350,
-                        maxHeightContextMenu: 100,
+                        maxHeightContextMenu: 96,
                         contextItems: [
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -1134,39 +1134,23 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                               ),
                             ],
                           ),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Button(
-                                  child: Text('Min'.tr),
-                                  onPressed: () {
-                                    chatProvider.setMaxTokensForChat(800);
-                                  },
-                                ),
-                              ),
-                              Expanded(
-                                child: Button(
-                                    child: Text('Med'.tr),
-                                    onPressed: () {
-                                      chatProvider.setMaxTokensForChat(2048);
-                                    }),
-                              ),
-                              Expanded(
-                                child: Button(
-                                    child: Text('Hight'.tr),
-                                    onPressed: () {
-                                      chatProvider.setMaxTokensForChat(4096);
-                                    }),
-                              ),
-                              Expanded(
-                                child: Button(
-                                    child: Text('Max'.tr),
-                                    onPressed: () {
-                                      chatProvider.setMaxTokensForChat(8000);
-                                    }),
-                              ),
-                            ],
-                          )
+                          spacer,
+                          StatefulBuilder(builder: (context, updateSlider) {
+                            return Slider(
+                              value: selectedChatRoom.maxTokenLength < 0.0
+                                  ? 0.0
+                                  : selectedChatRoom.maxTokenLength.toDouble(),
+                              onChanged: (value) {
+                                updateSlider(() {
+                                  chatProvider
+                                      .setMaxTokensForChat(value.toInt());
+                                });
+                              },
+                              min: 0.0,
+                              max: 16384,
+                              divisions: 16,
+                            );
+                          }),
                         ],
                       ),
                       ToggleButtonAdvenced(

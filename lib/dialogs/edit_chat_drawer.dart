@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
@@ -257,13 +258,13 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
               ]),
               spacer,
               _GridChildRow(
-                first: Tooltip(
-                  message:
-                      "The maximum length of tokens to be sent to the model",
-                  child: Column(
-                    children: [
-                      const Text('Max token length for sending'),
-                      TextBox(
+                first: Column(
+                  children: [
+                    Text('Max tokens to include'.tr),
+                    Tooltip(
+                      message:
+                          "The maximum length of tokens to be sent to the model",
+                      child: TextBox(
                         controller: TextEditingController(
                             text: '${selectedChatRoom.maxTokenLength}'),
                         onChanged: (value) {
@@ -271,16 +272,32 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                               int.tryParse(value) ??
                                   selectedChatRoom.maxTokenLength;
                         },
+                        onEditingComplete: () => setState(() {}),
+                        onTapOutside: (event) => setState(() {}),
                       ),
-                    ],
-                  ),
+                    ),
+                    Slider(
+                      value: selectedChatRoom.maxTokenLength < 0.0
+                          ? 0.0
+                          : selectedChatRoom.maxTokenLength.toDouble(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedChatRoom.maxTokenLength =
+                              int.parse(value.toStringAsFixed(0));
+                        });
+                      },
+                      min: 0.0,
+                      max: 16384,
+                      divisions: 32,
+                    ),
+                  ],
                 ),
                 second: Tooltip(
                   message:
-                      "Try to limit model response lenght. Set to 0 or remove for no limit",
+                      "Try to limit model response length. Set to 0 or remove for no limit",
                   child: Column(
                     children: [
-                      const Text('Response lenght in tokens'),
+                      const Text('Response length in tokens'),
                       TextBox(
                         controller: TextEditingController(
                             text:
@@ -335,22 +352,43 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                 ),
               ),
               _GridChildRow(
-                first: Tooltip(
-                  message:
-                      "How much randomness to introduce. 0 will yield the same result every time, while higher values will increase creativity and variance. Recommended 0.7",
-                  child: Column(
-                    children: [
-                      const Text('Temperature'),
-                      TextBox(
+                first: Column(
+                  children: [
+                    const Text('Temperature'),
+                    Tooltip(
+                      message:
+                          "How much randomness to introduce. 0 will yield the same result every time, while higher values will increase creativity and variance. Recommended 0.7",
+                      child: TextBox(
                         controller: TextEditingController(
                             text: '${selectedChatRoom.temp ?? ''}'),
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
                           selectedChatRoom.temp = double.tryParse(value);
                         },
+                        onEditingComplete: () {
+                          setState(() {});
+                        },
+                        onTapOutside: (event) {
+                          setState(() {});
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                    if (selectedChatRoom.temp != null)
+                      Slider(
+                        value: selectedChatRoom.temp! < 0.0
+                            ? 0.0
+                            : selectedChatRoom.temp!,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedChatRoom.temp =
+                                double.parse(value.toStringAsFixed(2));
+                          });
+                        },
+                        min: 0.0,
+                        max: 2.0,
+                        divisions: 20,
+                      ),
+                  ],
                 ),
                 second: Tooltip(
                   message:
@@ -387,6 +425,7 @@ class _GridChildRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: first),
         SizedBox(width: 10),
