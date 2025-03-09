@@ -18,7 +18,6 @@ import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
-import 'package:fluent_gpt/features/dalle_image_generator.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/image_util.dart';
