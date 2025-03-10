@@ -454,7 +454,6 @@ class MessageSamplePreviewCard extends StatelessWidget {
             tokens: 1234,
           ),
           selectionMode: false,
-          isError: false,
           textSize: isCompact
               ? AppCache.compactMessageTextSize.value!
               : provider.textSize,

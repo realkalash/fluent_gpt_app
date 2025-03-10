@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -312,7 +314,9 @@ class ChatProvider with ChangeNotifier {
           final date = DateTime.fromMillisecondsSinceEpoch(
               chatRoom.dateModifiedMilliseconds);
           final difference = currentDate.difference(date).inDays;
-          if (difference >= deleteChatsAfterXDays && !chatRoom.isPinned && !chatRoom.isFolder) {
+          if (difference >= deleteChatsAfterXDays &&
+              !chatRoom.isPinned &&
+              !chatRoom.isFolder) {
             log('Deleting chat room ${chatRoom.id} because it\'s old enough');
             await deleteChatRoom(chatRoom.id);
             continue;
@@ -361,7 +365,11 @@ class ChatProvider with ChangeNotifier {
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
-
+    // safety check if does not contain selected chat room
+    if (!chatRooms.containsKey(selectedChatRoomId)) {
+      selectedChatRoomId = chatRooms.entries.first.key;
+      _loadMessagesFromDisk(selectedChatRoomId);
+    }
     selectedChatRoomId = selectedChatRoomId;
     if (openAI == null &&
         localModel == null &&
@@ -1334,11 +1342,13 @@ class ChatProvider with ChangeNotifier {
               final time = DateTime.now().millisecondsSinceEpoch;
               addBotErrorMessageToList(
                 FluentChatMessage.ai(
-                  id: time.toString(),
-                  content: 'Empty response. Try disabling tools',
-                  creator: 'error',
-                  timestamp: time,
-                ),
+                    id: time.toString(),
+                    content: 'Empty response. Try disabling tools',
+                    creator: 'error',
+                    timestamp: time,
+                    buttons: [
+                      MesssageListTileButtons.disable_tools_btn.name,
+                    ]),
               );
               return;
             }
@@ -3214,6 +3224,26 @@ class ChatProvider with ChangeNotifier {
     notifyRoomsStream();
     saveToDisk([newChatRoom]);
   }
+
+  void onMessageButtonTap(String button) {
+    if (button == MesssageListTileButtons.disable_tools_btn.name) {
+      final allValues = [
+        AppCache.gptToolCopyToClipboardEnabled,
+        AppCache.gptToolAutoOpenUrls,
+        AppCache.gptToolGenerateImage,
+        AppCache.gptToolRememberInfo,
+      ];
+      for (var value in allValues) {
+        value.value = false;
+      }
+      displayTextInfoBar('Tools disabled'.tr);
+      notifyListeners();
+    }
+  }
+}
+
+enum MesssageListTileButtons {
+  disable_tools_btn,
 }
 
 List<ChatRoom> getChatRoomsFoldersRecursive(List<ChatRoom> chatRooms) {

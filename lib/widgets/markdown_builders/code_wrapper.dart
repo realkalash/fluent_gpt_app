@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
@@ -186,15 +190,29 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                     await Clipboard.setData(
                         ClipboardData(text: widget.content));
                     displayCopiedToClipboard();
-                    _switchWidget = Icon(Icons.check, key: UniqueKey());
+                    _switchWidget = Icon(Icons.check);
                     refresh();
                     Future.delayed(const Duration(seconds: 2), () {
                       hasCopied = false;
-                      _switchWidget =
-                          Icon(Icons.copy_rounded, key: UniqueKey());
+                      _switchWidget = Icon(Icons.copy_rounded);
                       refresh();
                     });
                   },
+                ),
+              ),
+            ),
+            // open in vscode
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: fluent.SizedBox.square(
+                dimension: 30,
+                child: fluent.Button(
+                  style: fluent.ButtonStyle(
+                    padding:
+                        fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
+                  ),
+                  child: Icon(FluentIcons.open_20_filled),
+                  onPressed: () => openInVsCode(widget.content),
                 ),
               ),
             ),
@@ -217,6 +235,80 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
 
   void refresh() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> openInVsCode(String content) async {
+    // Generate a temporary file path with appropriate extension
+    final extension = _getFileExtension(widget.language);
+    final fileName = "code_${DateTime.now().millisecondsSinceEpoch}$extension";
+    final filePath = "${FileUtils.appTemporaryDirectoryPath}/$fileName";
+
+    // Save the content to the temporary file
+    await FileUtils.saveFile(filePath, content);
+    bool containsVSCode = ShellDriver.containsVScodeInstalled();
+
+    // Open VS Code with the file
+    if (containsVSCode) {
+      await ShellDriver.runShellCommand("code \"$filePath\"");
+    } else {
+      // Open in native app based on platform
+      if (Platform.isWindows) {
+        await ShellDriver.runShellCommand("start \"$filePath\"");
+      } else if (Platform.isMacOS) {
+        await ShellDriver.runShellCommand("open \"$filePath\"");
+      } else if (Platform.isLinux) {
+        await ShellDriver.runShellCommand("xdg-open \"$filePath\"");
+      }
+    }
+  }
+
+  // Helper method to determine file extension based on language
+  String _getFileExtension(String language) {
+    switch (language.toLowerCase()) {
+      case 'python':
+        return '.py';
+      case 'javascript':
+      case 'js':
+        return '.js';
+      case 'typescript':
+      case 'ts':
+        return '.ts';
+      case 'html':
+        return '.html';
+      case 'css':
+        return '.css';
+      case 'dart':
+        return '.dart';
+      case 'java':
+        return '.java';
+      case 'c':
+        return '.c';
+      case 'cpp':
+      case 'c++':
+        return '.cpp';
+      case 'csharp':
+      case 'c#':
+        return '.cs';
+      case 'json':
+        return '.json';
+      case 'xml':
+        return '.xml';
+      case 'markdown':
+      case 'md':
+        return '.md';
+      case 'shell':
+      case 'bash':
+      case 'sh':
+        return '.sh';
+      case 'batch':
+      case 'cmd':
+        return '.bat';
+      case 'powershell':
+      case 'ps1':
+        return '.ps1';
+      default:
+        return '.txt';
+    }
   }
 }
 

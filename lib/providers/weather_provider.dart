@@ -36,9 +36,9 @@ class WeatherProvider extends ChangeNotifier {
       final lastTime =
           DateTime.fromMillisecondsSinceEpoch(lastTimeWeatherFetched);
       final now = DateTime.now();
-      final difference = now.difference(lastTime).inHours;
-      if (difference > 3 && AppCache.userCityName.value != null) {
-        fetchWeather(AppCache.userCityName.value!);
+      final difference = now.difference(lastTime).inMinutes;
+      if (difference > 59 && AppCache.userCityName.value != null) {
+        fetchWeather(AppCache.userCityName.value!, true);
       }
     }
   }
