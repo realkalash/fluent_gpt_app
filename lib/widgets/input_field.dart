@@ -57,13 +57,28 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-  void onSubmit(String text, ChatProvider chatProvider) {
-    if (_isShiftPressed) {
-      chatProvider.messageController.text =
-          '${chatProvider.messageController.text}\n';
+    void onSubmit(String text, ChatProvider chatProvider) {
+    if (shiftPressedStream.valueOrNull == true) {
+      final currentText = chatProvider.messageController.text;
+      final selection = chatProvider.messageController.selection;
+      final cursorPosition = selection.baseOffset;
+      
+      if (cursorPosition >= 0 && cursorPosition <= currentText.length) {
+        // Insert newline at cursor position
+        final newText = '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
+        chatProvider.messageController.text = newText;
+        // Place cursor after the inserted newline
+        chatProvider.messageController.selection = 
+            TextSelection.collapsed(offset: cursorPosition + 1);
+      } else {
+        // Fallback if cursor position is invalid
+        chatProvider.messageController.text = '$currentText\n';
+      }
+      
       promptTextFocusNode.requestFocus();
       return;
     }
+    
     if (altPressedStream.value) {
       chatProvider.addMessageSystem(text).then((_) {
         chatProvider.updateUI();
@@ -71,9 +86,11 @@ class _InputFieldState extends State<InputField> {
       clearFieldAndFocus();
       return;
     }
+    
     if (text.trim().isEmpty && chatProvider.fileInput == null) {
       return;
     }
+    
     chatProvider.sendMessage(text.trim());
     clearFieldAndFocus();
   }
@@ -91,10 +108,6 @@ class _InputFieldState extends State<InputField> {
   @override
   void initState() {
     super.initState();
-    shiftPressedStream.listen((isShiftPressed) {
-      _isShiftPressed = isShiftPressed;
-      if (mounted) setState(() {});
-    });
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       ChatProvider.messageControllerGlobal.addListener(onTextChangedListener);
@@ -243,7 +256,6 @@ class _InputFieldState extends State<InputField> {
     promptTextFocusNode.requestFocus();
   }
 
-  bool _isShiftPressed = false;
   bool _useShimmer = false;
 
   final debouncer = Debouncer(milliseconds: 500);
@@ -398,8 +410,7 @@ class _InputFieldState extends State<InputField> {
                   suffix: const _MicrophoneButton(),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) => onSubmit(value, chatProvider),
-                  placeholder:
-                      'Use "/" for commands or type your message here'.tr,
+                  placeholder: 'Use "/" or type your message here'.tr,
                 ),
               )
             ],
@@ -494,15 +505,10 @@ class _InputFieldState extends State<InputField> {
                           ),
                           textInputAction: TextInputAction.done,
                           onSubmitted: (value) => onSubmit(value, chatProvider),
-                          placeholder:
-                              'Use "/" for commands or type your message here'
-                                  .tr,
+                          placeholder: 'Use "/" or type your message here'.tr,
                         ),
                       ),
                     ),
-                  const SizedBox(width: 4),
-                  if (_isShiftPressed)
-                    const Icon(ic.FluentIcons.arrow_up_12_filled),
                   const SizedBox(width: 4),
                   if (chatProvider.isAnswering)
                     SizedBox.square(
@@ -1092,7 +1098,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                 if (index < models.length - 1) {
                   final model = models[index + 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar('Model changed to ${model.customName}');
+                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
                 }
               } else {
                 final models = allModels.value;
@@ -1101,7 +1107,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                 if (index > 0) {
                   final model = models[index - 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar('Model changed to ${model.customName}');
+                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
                 }
               }
             }
@@ -1175,10 +1181,11 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                           models[index - 1] = e;
                           models[index] = previous;
                           allModels.value = models;
+                          provider.saveModelsToDisk();
                           setState(() {});
                         },
                         icon: Icon(ic.FluentIcons.arrow_up_12_regular),
-                        tooltip: 'Move up',
+                        tooltip: 'Move up'.tr,
                       ),
                   ],
                 ),
@@ -1318,11 +1325,6 @@ class _FileThumbnail extends StatelessWidget {
                 ),
               ),
             ),
-
-          // if (chatProvider.isSendingFile)
-          //   const Positioned.fill(
-          //     child: Center(child: ProgressRing()),
-          //   ),
           Positioned(
             top: 0,
             right: 0,

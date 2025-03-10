@@ -1023,7 +1023,6 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             child: MessageCard(
                               message: message,
                               selectionMode: false,
-                              isError: false,
                               textSize: chatProvider.textSize,
                               isCompactMode: false,
                               shouldBlink:

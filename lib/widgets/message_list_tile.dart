@@ -96,7 +96,6 @@ class MessageCard extends StatefulWidget {
     super.key,
     required this.message,
     required this.selectionMode,
-    required this.isError,
     required this.textSize,
     required this.isCompactMode,
     this.shouldBlink = false,
@@ -107,7 +106,6 @@ class MessageCard extends StatefulWidget {
   final FluentChatMessage message;
 
   final bool selectionMode;
-  final bool isError;
   final bool isCompactMode;
   final bool shouldBlink;
   final int textSize;
@@ -440,6 +438,21 @@ class _MessageCardState extends State<MessageCard> {
                         )
                     ],
                   ),
+                if (widget.message.buttons != null)
+                  Wrap(
+                    children: [
+                      for (final button in widget.message.buttons!)
+                        Button(
+                          onPressed: () {
+                            final provider = context.read<ChatProvider>();
+                            provider.onMessageButtonTap(button);
+                          },
+                          child: Text(button.tr),
+                        )
+                    ],
+                  ),
+
+                /// BOTTOM
                 FluentTheme(
                   data: FluentThemeData(
                     typography: Typography.raw(

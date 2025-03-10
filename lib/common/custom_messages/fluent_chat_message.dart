@@ -18,6 +18,7 @@ class FluentChatMessage {
   final int tokens;
   final FluentChatMessageType type;
   final bool useLowResImage = false;
+  final List<String>? buttons;
 
   bool get isTextMessage =>
       type == FluentChatMessageType.textHuman ||
@@ -35,13 +36,15 @@ class FluentChatMessage {
     this.path,
     this.fileName,
     this.webResults,
+    this.buttons,
   });
 
   factory FluentChatMessage.system({
     required String id,
     required String content,
     int? timestamp,
-    tokens = 0,
+    int tokens = 0,
+    List<String>? buttons,
   }) {
     return FluentChatMessage(
       id: id,
@@ -58,7 +61,8 @@ class FluentChatMessage {
     required String content,
     String creator = 'ai',
     int? timestamp,
-    tokens = 0,
+    int tokens = 0,
+    List<String>? buttons,
   }) {
     return FluentChatMessage(
       id: id,
@@ -67,6 +71,7 @@ class FluentChatMessage {
       timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
       type: FluentChatMessageType.textAi,
       tokens: tokens,
+      buttons: buttons,
     );
   }
 
@@ -133,6 +138,8 @@ class FluentChatMessage {
     String? path,
     String? fileName,
     List<SearchResult>? webResults,
+    String? imagePrompt,
+    List<String>? buttons,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
@@ -144,6 +151,8 @@ class FluentChatMessage {
       fileName: fileName ?? this.fileName,
       path: path ?? this.path,
       webResults: webResults ?? this.webResults,
+      buttons: buttons ?? this.buttons,
+      imagePrompt: imagePrompt ?? this.imagePrompt,
     );
   }
 
@@ -160,6 +169,7 @@ class FluentChatMessage {
       if (fileName != null) 'fileName': fileName!,
       if (webResults != null)
         'webResults': webResults!.map((e) => e.toJson()).toList(),
+      if (buttons != null) 'buttons': buttons!,
     };
   }
 
@@ -178,6 +188,7 @@ class FluentChatMessage {
           ?.map((e) => SearchResult.fromJson(e as Map<String, dynamic>))
           .toList(),
       imagePrompt: json['imagePrompt'] as String?,
+      buttons: (json['buttons'] as List?)?.map((e) => e as String).toList(),
     );
   }
 
@@ -301,6 +312,8 @@ class FluentChatMessage {
       path: path,
       fileName: fileName,
       webResults: webResults,
+      buttons: buttons,
+      imagePrompt: imagePrompt,
     );
   }
 }

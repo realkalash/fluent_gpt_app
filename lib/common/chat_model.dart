@@ -12,6 +12,7 @@ class ChatModelAi {
   /// Can be path or Url
   final String? uri;
   final bool imageSupported;
+  final int index;
 
   const ChatModelAi({
     this.apiKey = '',
@@ -20,6 +21,7 @@ class ChatModelAi {
     this.uri,
     this.customName = '',
     this.imageSupported = false,
+    this.index = 0,
   });
 
   @override
@@ -35,7 +37,10 @@ class ChatModelAi {
 
   @override
   int get hashCode {
-    return apiKey.hashCode ^ modelName.hashCode ^ ownedBy.hashCode ^ uri.hashCode;
+    return apiKey.hashCode ^
+        modelName.hashCode ^
+        ownedBy.hashCode ^
+        uri.hashCode;
   }
 
   Widget get modelIcon {
@@ -92,6 +97,7 @@ class ChatModelAi {
       uri: url,
       customName: json['customName'],
       imageSupported: json['imageSupported'] ?? false,
+      index: json['i'] ?? 0,
     );
   }
 
@@ -103,6 +109,7 @@ class ChatModelAi {
       'uri': uri,
       'customName': customName,
       'imageSupported': imageSupported,
+      'i': index,
     };
   }
 
@@ -118,6 +125,7 @@ class ChatModelAi {
     String? uri,
     String? customName,
     bool? imageSupported,
+    int? index,
   }) {
     return ChatModelAi(
       apiKey: apiKey ?? this.apiKey,
@@ -126,6 +134,7 @@ class ChatModelAi {
       uri: uri ?? this.uri,
       customName: customName ?? this.customName,
       imageSupported: imageSupported ?? this.imageSupported,
+      index: index ?? this.index,
     );
   }
 

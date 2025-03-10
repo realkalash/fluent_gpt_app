@@ -37,8 +37,11 @@ class I18n {
       'generate_image': 'Generate image',
       'dalleGenerator': 'DALL-E 3',
       'deepinfraGenerator': 'DeepInfra',
+      'disable_tools_btn': 'Disable tools',
     },
     'ru': {
+      'disable_tools_btn': 'Отключить инструменты',
+      'Tools disabled': 'Инструменты отключены',
       'Images in chat': 'Изображения в чате',
       'generate_image': 'Сгенерировать изображение',
       'Memory updated': 'Память обновлена',
@@ -174,8 +177,8 @@ class I18n {
       'No. Don\'t show again': 'Нет. Больше не показывать',
       'Choose code block': 'Выберите блок кода',
       'Dismiss': 'Закрыть',
-      'Use "/" for commands or type your message here':
-          'Используйте "/" для команд или введите ваше сообщение здесь',
+      'Use "/" or type your message here':
+          'Используйте "/" введите ваше сообщение здесь',
       'Settings': 'Настройки',
       'General': 'Общие',
       'Appearance': 'Внешний вид',
@@ -292,8 +295,14 @@ class I18n {
           'ИИ сможет запоминать вещи о вас',
       'Archive chats after (days)': 'Архивировать чаты после (дней)',
       'Delete chats after (days)': 'Удалить чаты после (дней)',
+      'Move up': 'Вверх',
+      'Model changed to': 'Модель изменена на',
     },
     'es': {
+      'disable_tools_btn': 'Desactivar herramientas',
+      'Tools disabled': 'Herramientas desactivadas',
+      'Model changed to': 'Modelo cambiado a',
+      'Move up': 'Mover arriba',
       'Images in chat': 'Imágenes en el chat',
       'generate_image': 'Generar imagen',
       'Memory updated': 'Memoria actualizada',
@@ -431,7 +440,7 @@ class I18n {
       'No. Don\'t show again': 'No. No mostrar de nuevo',
       'Choose code block': 'Elegir bloque de código',
       'Dismiss': 'Cerrar',
-      'Use "/" for commands or type your message here':
+      'Use "/" or type your message here':
           'Usa "/" para comandos o escribe tu mensaje aquí',
       'Settings': 'Ajustes',
       'General': 'General',

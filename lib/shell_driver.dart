@@ -222,7 +222,16 @@ class ShellDriver {
     return message;
   }
 
-  static Future openResultsFolder() async {
+  static bool containsVScodeInstalled() {
+    final env = Platform.environment;
+    final containsPid = env["VSCODE_PID"] != null;
+    if (containsPid) return true;
+    final path = env["PATH"];
+    final containsCode = path?.contains("VS Code") ?? false;
+    return containsCode;
+  }
+
+  static Future<void> openResultsFolder() async {
     var shell = Shell();
     var fs = const LocalFileSystem();
     var password = Platform.environment['PASSWORD'];

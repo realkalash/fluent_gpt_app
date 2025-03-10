@@ -496,7 +496,6 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                       return MessageCard(
                         message: message,
                         selectionMode: false,
-                        isError: false,
                         textSize: AppCache.compactMessageTextSize.value!,
                         isCompactMode: true,
                       );
