@@ -20,15 +20,18 @@ class FilledRedButton extends StatelessWidget {
     required this.child,
     this.onLongPressed,
     this.autofocus = false,
+    this.focusNode,
   });
   final void Function()? onPressed;
   final void Function()? onLongPressed;
   final Widget child;
   final bool autofocus;
+  final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) {
     return FilledButton(
       onPressed: onPressed,
+      focusNode: focusNode,
       autofocus: autofocus,
       onLongPress: onLongPressed,
       style: ButtonStyle(

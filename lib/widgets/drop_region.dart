@@ -14,6 +14,7 @@ class HomeDropRegion extends StatelessWidget {
   static const allowedFormats = {
     'text/plain': true,
     'text/csv': true,
+    'text/html': true,
     'PNG': true,
     // TODO: we need to add support for .doc, .xls files
     // 'application/msword': true,
@@ -23,6 +24,9 @@ class HomeDropRegion extends StatelessWidget {
         true,
     // excel
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': true,
+    'text/_moz_htmlcontext': true,
+    'text/_moz_htmlinfo': true,
+    'application/octet-stream;extension=url': true,
   };
 
   @override
@@ -120,6 +124,22 @@ class HomeDropRegion extends StatelessWidget {
                 Attachment(file: xfile, isInternalScreenshot: false));
           }, onError: (error) {
             log('Error reading value $error');
+          });
+        } else if (reader.canProvide(Formats.plainText)) {
+          onDrop?.call();
+          reader.getValue(Formats.plainText, (value) {
+            if (value != null && value.isNotEmpty) {
+              final selection = provider.messageController.selection;
+              final newText = provider.messageController.text.replaceRange(
+                selection.start,
+                selection.end,
+                value,
+              );
+              provider.messageController.text = newText;
+              provider.messageController.selection = TextSelection.collapsed(
+                offset: selection.start + value.length,
+              );
+            }
           });
         } else {
           onDrop?.call();

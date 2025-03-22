@@ -12,6 +12,7 @@ analyzer:
     curly_braces_in_flow_control_structures: ignore
     library_private_types_in_public_api: ignore
     no_leading_underscores_for_local_identifiers: ignore
+    unintended_html_in_doc_comment: ignore
     unused_element: ignore
 include: package:flutter_lints/flutter.yaml
 

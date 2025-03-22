@@ -2,7 +2,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 
 import 'custom_buttons.dart';
 
-class ConfirmationDialog extends StatelessWidget {
+class ConfirmationDialog extends StatefulWidget {
   const ConfirmationDialog({
     super.key,
     required this.onAcceptPressed,
@@ -25,6 +25,7 @@ class ConfirmationDialog extends StatelessWidget {
     final result = await showDialog<bool?>(
       context: context,
       barrierDismissible: true,
+      useRootNavigator: true,
       builder: (context) {
         return ConfirmationDialog(
           onAcceptPressed: onAcceptPressed,
@@ -37,31 +38,54 @@ class ConfirmationDialog extends StatelessWidget {
   }
 
   @override
+  State<ConfirmationDialog> createState() => _ConfirmationDialogState();
+}
+
+class _ConfirmationDialogState extends State<ConfirmationDialog> {
+  final focus = FocusNode();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      // get main focus and unfocus it
+      FocusManager.instance.primaryFocus?.unfocus();
+      // wait for unfocus
+      await Future.delayed(const Duration(milliseconds: 50));
+      focus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    focus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ContentDialog(
       title: const Text('Are you sure?'),
-      content: message != null
-          ? Text(message!)
+      content: widget.message != null
+          ? Text(widget.message!)
           : const Text('This action cannot be undone.'),
       actions: [
         Button(
+          focusNode: focus,
           onPressed: () {
             Navigator.of(context).pop(false);
           },
           child: const Text('Cancel'),
         ),
-        isDelete
+        widget.isDelete
             ? FilledRedButton(
-                autofocus: true,
                 onPressed: () {
-                  onAcceptPressed?.call();
+                  widget.onAcceptPressed?.call();
                   Navigator.of(context).pop(true);
                 },
                 child: const Text('Delete'))
             : FilledButton(
-                autofocus: true,
                 onPressed: () {
-                  onAcceptPressed?.call();
+                  widget.onAcceptPressed?.call();
                   Navigator.of(context).pop(true);
                 },
                 child: const Text('Accept')),

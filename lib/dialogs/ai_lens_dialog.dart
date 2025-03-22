@@ -28,6 +28,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:shimmer_animation/shimmer_animation.dart';
+import 'package:window_manager/window_manager.dart';
 
 enum AiLensSelectedFeature { translate, scan }
 
@@ -171,12 +172,18 @@ class _AiLensDialogState extends State<AiLensDialog> {
 
   @override
   Widget build(BuildContext ctx) {
-    final screenSize = MediaQuery.sizeOf(context);
+    final windowSize = MediaQuery.sizeOf(context);
     return ContentDialog(
-      title: const Text('Ai Lens'),
+      title: GestureDetector(
+        onPanUpdate: (details) => windowManager.startDragging(),
+        child: SizedBox(
+          width: windowSize.width,
+          child: const Text('Ai Lens'),
+        ),
+      ),
       constraints: BoxConstraints(
-        maxWidth: screenSize.width,
-        maxHeight: screenSize.height,
+        maxWidth: windowSize.width,
+        maxHeight: windowSize.height,
       ),
       content: SingleChildScrollView(
         child: Column(
@@ -356,8 +363,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
             if (imageBytes != null)
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: screenSize.width,
-                  maxHeight: screenSize.height * 0.7,
+                  maxWidth: windowSize.width,
+                  maxHeight: windowSize.height * 0.7,
                   minHeight: 200,
                 ),
                 child: Stack(
@@ -370,8 +377,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       left: 0,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: screenSize.width,
-                          maxHeight: screenSize.height * 0.7,
+                          maxWidth: windowSize.width,
+                          maxHeight: windowSize.height * 0.7,
                           minHeight: 200,
                         ),
                         child: Shimmer(
@@ -526,7 +533,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
       actions: [
         FilledRedButton(
           onPressed: () => Navigator.of(ctx).maybePop(),
-          child:  Text('Dismiss'.tr),
+          child: Text('Dismiss'.tr),
         )
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -8,7 +9,7 @@ import 'package:html/dom.dart';
 class WebScraper {
   WebScraper();
 
-  Future<List<SearchResult>> search(String query) async {
+  Future<List<WebSearchResult>> search(String query) async {
     final url = Uri.parse(
         'https://api.search.brave.com/res/v1/web/search?q=${Uri.encodeComponent(query)}&format=json');
     log('searching for $query');
@@ -24,7 +25,7 @@ class WebScraper {
     if (response.statusCode == 200) {
       final jsonResponse = json.decode(response.body);
       final results = jsonResponse['web']['results'] as List;
-      return results.map((result) => SearchResult.fromJson(result)).toList();
+      return results.map((result) => WebSearchResult.fromJson(result)).toList();
     } else {
       throw Exception('Code:${response.statusCode}; Error:${response.body}');
     }
@@ -118,36 +119,3 @@ class WebScraper {
   }
 }
 
-class SearchResult {
-  final String title;
-  final String url;
-  final String description;
-  final String? favicon;
-
-  SearchResult({
-    required this.title,
-    required this.url,
-    required this.description,
-    this.favicon,
-  });
-
-  factory SearchResult.fromJson(Map<String, dynamic> json) {
-    final favicon = json['favicon'] as String? ?? json['thumbnail']?['src'];
-    return SearchResult(
-      title: json['title'] ?? '',
-      url: json['url'] ?? '',
-      description: json['description'] ?? '',
-      favicon: favicon,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'type': 'scrapper_result',
-      'title': title,
-      'url': url,
-      'description': description,
-      'favicon': favicon,
-    };
-  }
-}

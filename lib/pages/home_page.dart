@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:animate_do/animate_do.dart';
 import 'package:entry/entry.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -978,7 +979,7 @@ class ChatGPTContent extends StatefulWidget {
 class _ChatGPTContentState extends State<ChatGPTContent> {
   @override
   Widget build(BuildContext context) {
-    var chatProvider = context.watch<ChatProvider>();
+    final chatProvider = context.watch<ChatProvider>();
     chatProvider.context = context;
 
     return GestureDetector(
@@ -1035,6 +1036,23 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     },
                   ),
                 ),
+              SizedBox(
+                width: double.infinity,
+                child: AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+                  firstChild: const SizedBox.shrink(),
+                  secondChild: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: const ProgressBar(strokeWidth: 8),
+                    ),
+                  ),
+                  crossFadeState: !chatProvider.isAnswering
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                ),
+              ),
               GeneratingImagesCard(),
               QuickHelperButtonsFromLLMRow(),
               SizedBox(
@@ -1062,7 +1080,9 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                       ),
                       ToggleButtonAdvenced(
                         checked: chatProvider.isWebSearchEnabled,
-                        icon: ic.FluentIcons.globe_search_20_filled,
+                        icon: selectedModel.ownedBy == OwnedByEnum.openai.name
+                            ? ic.FluentIcons.search_sparkle_20_filled
+                            : ic.FluentIcons.globe_search_20_filled,
                         onChanged: (_) {
                           if (AppCache.braveSearchApiKey.value?.isNotEmpty ==
                               true) {

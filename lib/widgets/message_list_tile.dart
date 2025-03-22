@@ -7,6 +7,7 @@ import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
@@ -391,7 +392,13 @@ class _MessageCardState extends State<MessageCard> {
                 if (widget.message.type == FluentChatMessageType.webResult)
                   Wrap(
                     children: [
-                      for (final result in (widget.message.webResults!))
+                      if (widget.message.content.isNotEmpty)
+                        SelectableText(
+                          widget.message.content,
+                          style: TextStyle(fontSize: widget.textSize.toDouble()),
+                        ),
+                      for (final result
+                          in (widget.message.webResults ?? <WebSearchResult>[]))
                         SizedBox(
                           width: 200,
                           child: Button(

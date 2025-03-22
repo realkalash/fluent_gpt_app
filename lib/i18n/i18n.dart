@@ -297,8 +297,13 @@ class I18n {
       'Delete chats after (days)': 'Удалить чаты после (дней)',
       'Move up': 'Вверх',
       'Model changed to': 'Модель изменена на',
+      'Clear current chat?': 'Очистить текущий чат?',
+      'No results found for your query': 'Нет результатов для вашего запроса',
     },
     'es': {
+      'No results found for your query':
+          'No se encontraron resultados para tu consulta',
+      'Clear current chat?': '¿Borrar chat actual?',
       'disable_tools_btn': 'Desactivar herramientas',
       'Tools disabled': 'Herramientas desactivadas',
       'Model changed to': 'Modelo cambiado a',

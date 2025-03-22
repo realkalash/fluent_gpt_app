@@ -13,6 +13,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:fluent_gpt/common/stop_reason_enum.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
@@ -24,6 +25,7 @@ import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
+import 'package:fluent_gpt/features/open_ai_features.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
@@ -707,7 +709,7 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  void addWebResultsToMessages(List<SearchResult> webpage) {
+  void addWebResultsToMessages(List<WebSearchResult> webpage) {
     final values = messages.value;
     final dateTime = DateTime.now();
     final id = dateTime.toIso8601String();
@@ -944,54 +946,7 @@ class ChatProvider with ChangeNotifier {
       ).then(renameCurrentChatRoom);
     }
     if (isWebSearchEnabled) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      await addHumanMessageToList(
-        FluentChatMessage.humanText(
-          id: '$timestamp',
-          content: messageContent,
-          creator: AppCache.userName.value!,
-          timestamp: timestamp,
-          tokens: await countTokensString(messageContent),
-        ),
-      );
-      final lastMessages = await getLastFewMessagesForContextAsString();
-      String searchPrompt = await retrieveResponseFromPrompt(
-        '$webSearchPrompt """$lastMessages"""\n GIVE ME RESULT ONLY IN THIS FORMAT. DON\'T ADD ANYTHING ELSE'
-        '{"query":"<your response>"}',
-      );
-      isAnswering = true;
-      notifyListeners();
-      final scrapper = WebScraper();
-      try {
-        final decoded = jsonDecode(searchPrompt);
-        searchPrompt = decoded['query'];
-      } catch (e) {
-        // do nothing
-      }
-      try {
-        final results = await scrapper.search(searchPrompt);
-        if (AppCache.scrapOnlyDecription.value!) {
-          final shortResults = results.take(15).map((e) => e).toList();
-          addWebResultsToMessages(shortResults);
-          await _answerBasedOnWebResults(shortResults,
-              'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
-        } else {
-          final threeRessults = results.take(3).map((e) => e).toList();
-          addWebResultsToMessages(threeRessults);
-          await _answerBasedOnWebResults(threeRessults, messageContent);
-        }
-      } catch (e) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addBotErrorMessageToList(FluentChatMessage.ai(
-          id: '$timestamp',
-          content: 'Error while searching: $e',
-          creator: 'system',
-          timestamp: timestamp,
-        ));
-      }
-
-      isAnswering = false;
-      notifyListeners();
+      await _sendMessageWebSearch(messageContent);
       return;
     }
 
@@ -1389,6 +1344,80 @@ class ChatProvider with ChangeNotifier {
       isAnswering = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _sendMessageWebSearch(String messageContent) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    await addHumanMessageToList(
+      FluentChatMessage.humanText(
+        id: '$timestamp',
+        content: messageContent,
+        creator: AppCache.userName.value!,
+        timestamp: timestamp,
+        tokens: await countTokensString(messageContent),
+      ),
+    );
+    if (selectedModel.ownedBy == OwnedByEnum.openai.name) {
+      isAnswering = true;
+      notifyListeners();
+      try {
+        final messageResult = await OpenAiFeatures.webSearch(
+          messageContent,
+          apiKey: selectedChatRoom.model.apiKey,
+          city: AppCache.userCityName.value,
+        );
+        addCustomMessageToList(messageResult);
+      } catch (e) {
+        displayErrorInfoBar(
+          title: 'Error while searching',
+          message: '$e',
+        );
+        logError('Error while searching: $e');
+      } finally {
+        isAnswering = false;
+        notifyListeners();
+      }
+      return;
+    }
+    final lastMessages = await getLastFewMessagesForContextAsString();
+    String searchPrompt = await retrieveResponseFromPrompt(
+      '$webSearchPrompt """$lastMessages"""\n GIVE ME RESULT ONLY IN THIS FORMAT. DON\'T ADD ANYTHING ELSE'
+      '{"query":"<your response>"}',
+    );
+    isAnswering = true;
+    notifyListeners();
+    final scrapper = WebScraper();
+    try {
+      final decoded = jsonDecode(searchPrompt);
+      searchPrompt = decoded['query'];
+    } catch (e) {
+      // do nothing
+    }
+    try {
+      final results = await scrapper.search(searchPrompt);
+      if (AppCache.scrapOnlyDecription.value!) {
+        final List<WebSearchResult> shortResults =
+            results.take(15).map((e) => e).toList();
+        addWebResultsToMessages(shortResults);
+        await _answerBasedOnWebResults(shortResults,
+            'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+      } else {
+        final threeRessults = results.take(3).map((e) => e).toList();
+        addWebResultsToMessages(threeRessults);
+        await _answerBasedOnWebResults(threeRessults, messageContent);
+      }
+    } catch (e) {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addBotErrorMessageToList(FluentChatMessage.ai(
+        id: '$timestamp',
+        content: 'Error while searching: $e',
+        creator: 'system',
+        timestamp: timestamp,
+      ));
+    }
+
+    isAnswering = false;
+    notifyListeners();
   }
 
   bool isGeneratingQuestionHelpers = false;
@@ -2102,7 +2131,10 @@ class ChatProvider with ChangeNotifier {
     // }
   }
 
-  void clearChatMessages() {
+  Future<void> clearChatMessages() async {
+    final confirmed = await ConfirmationDialog.show(
+        context: context!, message: 'Clear current chat?');
+    if (!confirmed) return;
     messages.add({});
     questionHelpers.clear();
     saveToDisk([selectedChatRoom]);
@@ -2370,19 +2402,18 @@ class ChatProvider with ChangeNotifier {
       messages.add(_messages);
       saveToDisk([selectedChatRoom]);
       notifyListeners();
-      if (showInfo)
-        displayInfoBar(context!, builder: (context, close) {
-          return InfoBar(
-            title: Text('Message deleted'),
-            action: Button(
-              onPressed: () {
-                revertDeletedMessage();
-                close();
-              },
-              child: Text('Undo'),
-            ),
-          );
-        });
+      if (showInfo) {
+        displayTextInfoBar(
+          "Message deleted".tr,
+          action: (close) => Button(
+            onPressed: () {
+              revertDeletedMessage();
+              close();
+            },
+            child: Text('Undo'),
+          ),
+        );
+      }
     } else {
       if (showInfo) displayErrorInfoBar(title: 'Message not found');
     }
@@ -2605,7 +2636,7 @@ class ChatProvider with ChangeNotifier {
   }
 
   Future _answerBasedOnWebResults(
-    List<SearchResult> results,
+    List<WebSearchResult> results,
     String userMessage,
   ) async {
     String urlContent = '';

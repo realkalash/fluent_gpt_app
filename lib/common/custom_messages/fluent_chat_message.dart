@@ -1,6 +1,7 @@
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/web_result_custom_message.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
+import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:langchain/langchain.dart';
 
 class FluentChatMessage {
@@ -13,7 +14,7 @@ class FluentChatMessage {
   final String creator;
   final String? path;
   final String? fileName;
-  final List<SearchResult>? webResults;
+  final List<WebSearchResult>? webResults;
   final int timestamp;
   final int tokens;
   final FluentChatMessageType type;
@@ -137,7 +138,7 @@ class FluentChatMessage {
     int? tokens,
     String? path,
     String? fileName,
-    List<SearchResult>? webResults,
+    List<WebSearchResult>? webResults,
     String? imagePrompt,
     List<String>? buttons,
   }) {
@@ -185,7 +186,7 @@ class FluentChatMessage {
       path: json['path'] as String?,
       fileName: json['fileName'] as String?,
       webResults: (json['webResults'] as List?)
-          ?.map((e) => SearchResult.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>))
           .toList(),
       imagePrompt: json['imagePrompt'] as String?,
       buttons: (json['buttons'] as List?)?.map((e) => e as String).toList(),
