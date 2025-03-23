@@ -40,6 +40,8 @@ class I18n {
       'disable_tools_btn': 'Disable tools',
     },
     'ru': {
+      'Style': 'Стиль',
+      'Scroll to bottom on new message': 'Прокручивать вниз при новом сообщении',
       'disable_tools_btn': 'Отключить инструменты',
       'Tools disabled': 'Инструменты отключены',
       'Images in chat': 'Изображения в чате',
@@ -301,6 +303,7 @@ class I18n {
       'No results found for your query': 'Нет результатов для вашего запроса',
     },
     'es': {
+      'Scroll to bottom on new message': 'Desplazarse hacia abajo en un nuevo mensaje',
       'No results found for your query':
           'No se encontraron resultados para tu consulta',
       'Clear current chat?': '¿Borrar chat actual?',
@@ -401,6 +404,7 @@ class I18n {
       'Add sub-prompt list': 'Añadir lista de sub-prompts',
       'Close': 'Cerrar',
       'Conversation style': 'Estilo de conversación',
+      'Style': 'Estilo',
       'Conversation length': 'Duración de la conversación',
       'API token is empty!': '¡El token de la API está vacío!',
       'When you send a message, the app will use the system message along with your prompt. This value may differ from your own calculations because some additional information can be sent with each of your prompts.\nTotal is the total tokens that exists in current chat\nSent is the total tokens that you have sent\nReceived is the total tokens that you have received':

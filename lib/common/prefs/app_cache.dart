@@ -56,6 +56,8 @@ class AppCache {
   static const imageGeneratorStyle =
       StringPref("imageGeneratorStyle", "natural");
   static const imageGeneratorModel = StringPref("imageGeneratorModel", null);
+  static const useRAG = BoolPref("useRag", false);
+  static const ragThreshold = DoublePref("ragThreshold", 0.5);
 
   /// Contains Strings that we can't migrate because they are used by StringPref, IntPref etc.
   /// the format is:
@@ -154,8 +156,7 @@ class AppCache {
   @Deprecated('Use gptToolRememberInfo')
   static const learnAboutUserAfterCreateNewChat =
       BoolPref("learnAboutUserAfterCreateNewChat", false);
-  static const autoPlayMessagesFromAi =
-      BoolPref("autoPlayMessagesFromAi", false);
+  static const autoPlayMessagesFromAi = BoolPref("autoPlayMessagesFromAi", false);
   static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
   static const enableQuestionHelpers = BoolPref("enableQuestionHelpers");
 

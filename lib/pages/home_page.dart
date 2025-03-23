@@ -35,6 +35,7 @@ import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:fluent_gpt/widgets/selectable_color_container.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
@@ -213,52 +214,41 @@ class HomeDropOverlay extends StatelessWidget {
   }
 }
 
-class ConversationStyleRow extends StatelessWidget {
+class ConversationStyleRow extends StatefulWidget {
   const ConversationStyleRow({super.key});
 
   @override
+  State<ConversationStyleRow> createState() => _ConversationStyleRowState();
+}
+
+class _ConversationStyleRowState extends State<ConversationStyleRow> {
+  final scrollContr = ScrollController();
+  @override
   Widget build(BuildContext context) {
-    return Expander(
-      contentPadding: EdgeInsets.zero,
-      header: Text(
-        'Conversation style'.tr,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-      content: StreamBuilder(
-        stream: conversationLenghtStyleStream,
-        builder: (_, __) => StreamBuilder<Object>(
-            stream: conversationStyleStream,
-            builder: (context, snapshot) {
-              final lenghtStyle = conversationLenghtStyleStream.value;
-              final style = conversationStyleStream.value;
-              return Column(
-                children: [
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ConversationStyleEnum.values
-                          .map((e) => SelectableColorContainer(
-                                selectedColor:
-                                    FluentTheme.of(context).accentColor,
-                                unselectedColor: FluentTheme.of(context)
-                                    .accentColor
-                                    .withAlpha(128),
-                                isSelected: style == e,
-                                onTap: () => conversationStyleStream.add(e),
-                                child: Text(e.name,
-                                    style: const TextStyle(fontSize: 12)),
-                              ))
-                          .toList(),
-                    ),
-                  ),
-                  Text(
-                    'Conversation length'.tr,
-                    style: FluentTheme.of(context).typography.subtitle,
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ConversationLengthStyleEnum.values.map((e) {
+    return StreamBuilder(
+      stream: conversationLenghtStyleStream,
+      builder: (_, __) => StreamBuilder<Object>(
+          stream: conversationStyleStream,
+          builder: (context, snapshot) {
+            final lenghtStyle = conversationLenghtStyleStream.value;
+            final style = conversationStyleStream.value;
+            return Stack(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  controller: scrollContr,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Row(
+                    spacing: 8,
+                    // runSpacing: 8,
+                    // crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Conversation length'.tr,
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      ...ConversationLengthStyleEnum.values.map((e) {
                         return SelectableColorContainer(
                           selectedColor: FluentTheme.of(context).accentColor,
                           unselectedColor: FluentTheme.of(context)
@@ -287,13 +277,78 @@ class ConversationStyleRow extends StatelessWidget {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
+                      Text(
+                        'Style'.tr,
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      ...ConversationStyleEnum.values
+                          .map((e) => SelectableColorContainer(
+                                selectedColor:
+                                    FluentTheme.of(context).accentColor,
+                                unselectedColor: FluentTheme.of(context)
+                                    .accentColor
+                                    .withAlpha(128),
+                                isSelected: style == e,
+                                onTap: () => conversationStyleStream.add(e),
+                                child: Text(e.name,
+                                    style: const TextStyle(fontSize: 12)),
+                              )),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  top: 4,
+                  child: GestureDetector(
+                    onTap: () {
+                      scrollContr.animateTo(
+                        scrollContr.position.minScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: ColoredBox(
+                        color: Colors.black.withAlpha(191),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(ic.FluentIcons.arrow_left_24_filled,
+                              size: 24),
+                        ),
+                      ),
                     ),
                   ),
-                ],
-              );
-            }),
-      ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 4,
+                  child: GestureDetector(
+                    onTap: () {
+                      scrollContr.animateTo(
+                        scrollContr.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: ColoredBox(
+                        color: Colors.black.withAlpha(191),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(ic.FluentIcons.arrow_right_24_filled,
+                              size: 24),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }),
     );
   }
 
@@ -986,327 +1041,331 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
       onTap: promptTextFocusNode.requestFocus,
       behavior: HitTestBehavior.translucent,
       excludeFromSemantics: true,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Column(
-            children: <Widget>[
-              if (messages.value.entries.isEmpty)
-                Expanded(
-                  child: ListView(
-                    children: [
-                      AddSystemMessageField(),
-                      HomePagePlaceholdersCards(),
-                      WeatherCard(),
-                    ],
-                  ),
-                )
-              else
-                Expanded(
-                  child: StreamBuilder(
-                    stream: messages,
-                    builder: (context, snapshot) {
-                      final reverseList = messagesReversedList;
-                      return ListView.builder(
-                        controller: chatProvider.listItemsScrollController,
-                        itemCount: messages.value.entries.length,
-                        addAutomaticKeepAlives: false,
-                        addRepaintBoundaries: true,
-                        reverse: true,
-                        itemBuilder: (context, index) {
-                          final FluentChatMessage message =
-                              reverseList.elementAt(index);
+      child: Column(
+        children: <Widget>[
+          if (messages.value.entries.isEmpty)
+            Expanded(
+              child: ListView(
+                children: const [
+                  AddSystemMessageField(),
+                  HomePagePlaceholdersCards(),
+                  WeatherCard(),
+                ],
+              ),
+            )
+          else
+            Expanded(
+              child: StreamBuilder(
+                stream: messages,
+                builder: (context, snapshot) {
+                  final reverseList = messagesReversedList;
+                  return ListView.builder(
+                    controller: chatProvider.listItemsScrollController,
+                    itemCount: messages.value.entries.length,
+                    addAutomaticKeepAlives: false,
+                    addRepaintBoundaries: true,
+                    reverse: true,
+                    itemBuilder: (context, index) {
+                      final FluentChatMessage message =
+                          reverseList.elementAt(index);
 
-                          return AutoScrollTag(
-                            controller: chatProvider.listItemsScrollController,
-                            key: ValueKey('message_$index'),
-                            index: index,
-                            child: MessageCard(
-                              message: message,
-                              selectionMode: false,
-                              textSize: chatProvider.textSize,
-                              isCompactMode: false,
-                              shouldBlink:
-                                  chatProvider.blinkMessageId == message.id,
-                              indexMessage: index,
-                            ),
-                          );
-                        },
+                      return AutoScrollTag(
+                        controller: chatProvider.listItemsScrollController,
+                        key: ValueKey('message_$index'),
+                        index: index,
+                        child: MessageCard(
+                          message: message,
+                          selectionMode: false,
+                          textSize: chatProvider.textSize,
+                          isCompactMode: false,
+                          shouldBlink:
+                              chatProvider.blinkMessageId == message.id,
+                          indexMessage: index,
+                        ),
                       );
                     },
-                  ),
-                ),
-              SizedBox(
-                width: double.infinity,
-                child: AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 200),
-                  firstChild: const SizedBox.shrink(),
-                  secondChild: SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: const ProgressBar(strokeWidth: 8),
-                    ),
-                  ),
-                  crossFadeState: !chatProvider.isAnswering
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
-                ),
+                  );
+                },
               ),
-              GeneratingImagesCard(),
-              QuickHelperButtonsFromLLMRow(),
-              SizedBox(
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: AnimatedCrossFade(
+              duration: const Duration(milliseconds: 200),
+              firstChild: const SizedBox.shrink(),
+              secondChild: const SizedBox(
                 width: double.infinity,
                 child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Wrap(
-                    alignment: WrapAlignment.start,
-                    spacing: 4,
-                    children: [
-                      ToggleButtonAdvenced(
-                        checked: false,
-                        icon: ic.FluentIcons.eye_tracking_24_filled,
-                        onChanged: (_) async {
-                          String? base64Result;
-                          base64Result = await ScreenshotTool
-                              .takeScreenshotReturnBase64Native();
-
-                          if (base64Result != null && base64Result.isNotEmpty) {
-                            final bytes = base64Decode(base64Result);
-                            chatProvider.addAttachmentAiLens(bytes);
-                          }
-                        },
-                        tooltip: 'Capture screenshot'.tr,
-                      ),
-                      ToggleButtonAdvenced(
-                        checked: chatProvider.isWebSearchEnabled,
-                        icon: selectedModel.ownedBy == OwnedByEnum.openai.name
-                            ? ic.FluentIcons.search_sparkle_20_filled
-                            : ic.FluentIcons.globe_search_20_filled,
-                        onChanged: (_) {
-                          if (AppCache.braveSearchApiKey.value?.isNotEmpty ==
-                              true) {
-                            chatProvider.toggleWebSearch();
-                          } else {
-                            displayInfoBar(context, builder: (context, close) {
-                              return InfoBar(
-                                title: Text(
-                                    'You need to obtain Brave API key to use web search'
-                                        .tr),
-                                severity: InfoBarSeverity.warning,
-                                action: Button(
-                                  onPressed: () {
-                                    close();
-                                    Navigator.of(context).push(
-                                      FluentPageRoute(
-                                          builder: (context) =>
-                                              const NewSettingsPage()),
-                                    );
-                                  },
-                                  child: Text('Settings->API and URLs'.tr),
-                                ),
-                              );
-                            });
-                          }
-                        },
-                        tooltip: chatProvider.isWebSearchEnabled
-                            ? 'Disable web search'.tr
-                            : 'Enable web search'.tr,
-                      ),
-                      ToggleButtonAdvenced(
-                        checked: chatProvider.includeConversationGlobal,
-                        icon: ic.FluentIcons.history_20_filled,
-                        onChanged: chatProvider.setIncludeWholeConversation,
-                        tooltip: 'Include conversation'.tr +
-                            ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
-                        maxWidthContextMenu: 350,
-                        maxHeightContextMenu: 96,
-                        contextItems: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Tooltip(
-                                message:
-                                    'To prevent token overflows unnecessary cost we propose to limit the conversation length'
-                                        .tr,
-                                child: Icon(
-                                    ic.FluentIcons.question_circle_24_filled,
-                                    size: 24),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text('Max tokens to include'.tr)),
-                              Expanded(
-                                child: Consumer<ChatProvider>(
-                                  builder: (context, watch, child) {
-                                    return NumberBox(
-                                      value: selectedChatRoom.maxTokenLength,
-                                      min: 1,
-                                      smallChange: 64,
-                                      clearButton: false,
-                                      mode: SpinButtonPlacementMode.inline,
-                                      onChanged: (v) {
-                                        chatProvider.setMaxTokensForChat(v);
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          spacer,
-                          StatefulBuilder(builder: (context, updateSlider) {
-                            return Slider(
-                              value: selectedChatRoom.maxTokenLength < 0.0
-                                  ? 0.0
-                                  : selectedChatRoom.maxTokenLength.toDouble(),
-                              onChanged: (value) {
-                                updateSlider(() {
-                                  chatProvider
-                                      .setMaxTokensForChat(value.toInt());
-                                });
-                              },
-                              min: 0.0,
-                              max: 16384,
-                              divisions: 16,
-                            );
-                          }),
-                        ],
-                      ),
-                      ToggleButtonAdvenced(
-                        checked: AppCache.gptToolRememberInfo.value!,
-                        icon: ic.FluentIcons.brain_circuit_20_regular,
-                        shrinkWrapActions: true,
-                        maxWidthContextMenu: 300,
-                        contextItems: [
-                          Text('Select items to include in system prompt'.tr),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Divider(),
-                          ),
-                          CheckBoxTile(
-                            isChecked: AppCache
-                                .includeKnowledgeAboutUserToSysPrompt.value!,
-                            child: Text('Knowledge about user'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.gptToolRememberInfo.value = p0;
-                              });
-                            },
-                          ),
-                          CheckBoxTile(
-                            isChecked:
-                                AppCache.includeUserCityNamePrompt.value!,
-                            child: Text('City name'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.includeUserCityNamePrompt.value = p0;
-                              });
-                            },
-                          ),
-                          CheckBoxTile(
-                            isChecked: AppCache.includeWeatherPrompt.value!,
-                            child: Text('Weather'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.includeWeatherPrompt.value = p0;
-                              });
-                            },
-                          ),
-                          CheckBoxTile(
-                            isChecked:
-                                AppCache.includeUserNameToSysPrompt.value!,
-                            child: Text('User name'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.includeUserNameToSysPrompt.value = p0;
-                              });
-                            },
-                          ),
-                          CheckBoxTile(
-                            isChecked:
-                                AppCache.includeTimeToSystemPrompt.value!,
-                            child: Text('Current timestamp'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.includeUserNameToSysPrompt.value = p0;
-                              });
-                            },
-                          ),
-                          CheckBoxTile(
-                            isChecked:
-                                AppCache.includeSysInfoToSysPrompt.value!,
-                            child: Text('OS info'.tr),
-                            onChanged: (p0) {
-                              setState(() {
-                                AppCache.includeSysInfoToSysPrompt.value = p0;
-                              });
-                            },
-                          ),
-                        ],
-                        onChanged: (v) {
-                          setState(() {
-                            AppCache.gptToolRememberInfo.value = v;
-                          });
-                          if (v) {
-                            displayTextInfoBar(
-                              'AI will be able to remember things about you'.tr,
-                              alignment: Alignment.topCenter,
-                            );
-                          }
-                        },
-                        tooltip:
-                            'AI will be able to remember things about you'.tr,
-                      ),
-                      ToggleButtonAdvenced(
-                        checked: AppCache
-                            .includeKnowledgeAboutUserToSysPrompt.value!,
-                        icon: ic.FluentIcons.book_24_regular,
-                        onChanged: (v) async {
-                          setState(() {
-                            AppCache
-                                .includeKnowledgeAboutUserToSysPrompt.value = v;
-                          });
-                          final editedChatRoom = selectedChatRoom;
-                          editedChatRoom.systemMessage =
-                              await getFormattedSystemPrompt(
-                            basicPrompt:
-                                (editedChatRoom.systemMessage ?? '').isEmpty
-                                    ? defaultGlobalSystemMessage
-                                    : editedChatRoom.systemMessage!
-                                        .split(contextualInfoDelimeter)
-                                        .first,
-                          );
-                          chatRooms[selectedChatRoomId] = editedChatRoom;
-                          chatProvider.notifyRoomsStream();
-                        },
-                        tooltip: 'Use memory about the user'.tr,
-                      ),
-                      ToggleButtonAdvenced(
-                        checked: AppCache.autoPlayMessagesFromAi.value!,
-                        icon: ic.FluentIcons.play_circle_16_filled,
-                        onChanged: (v) {
-                          setState(() {
-                            AppCache.autoPlayMessagesFromAi.value = v;
-                          });
-                        },
-                        tooltip: 'Auto play messages from ai'.tr,
-                      ),
-                    ],
-                  ),
+                  padding: EdgeInsets.all(4.0),
+                  child: ProgressBar(strokeWidth: 8),
                 ),
               ),
-              const HotShurtcutsWidget(),
-              const InputField()
-            ],
+              crossFadeState: !chatProvider.isAnswering
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+            ),
           ),
-          const Positioned(
-            bottom: 128,
-            right: 16,
-            width: 32,
-            height: 32,
-            child: _ScrollToBottomButton(),
-          ),
+          const GeneratingImagesCard(),
+          const QuickHelperButtonsFromLLMRow(),
+          const _ToggleButtons(),
+          const HotShurtcutsWidget(),
+          const InputField()
         ],
+      ),
+    );
+  }
+}
+
+class _ToggleButtons extends StatefulWidget {
+  const _ToggleButtons({super.key});
+
+  @override
+  State<_ToggleButtons> createState() => _ToggleButtonsState();
+}
+
+class _ToggleButtonsState extends State<_ToggleButtons> {
+  @override
+  Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Row(
+          // alignment: WrapAlignment.start,
+          spacing: 4,
+          children: [
+            if (selectedModel.imageSupported)
+              ToggleButtonAdvenced(
+                checked: false,
+                icon: ic.FluentIcons.eye_tracking_24_filled,
+                onChanged: (_) async {
+                  String? base64Result;
+                  base64Result =
+                      await ScreenshotTool.takeScreenshotReturnBase64Native();
+
+                  if (base64Result != null && base64Result.isNotEmpty) {
+                    final bytes = base64Decode(base64Result);
+                    chatProvider.addAttachmentAiLens(bytes);
+                  }
+                },
+                tooltip: 'Capture screenshot'.tr,
+              ),
+            ToggleButtonAdvenced(
+              checked: chatProvider.isWebSearchEnabled,
+              icon: selectedModel.ownedBy == OwnedByEnum.openai.name
+                  ? ic.FluentIcons.search_sparkle_20_filled
+                  : ic.FluentIcons.globe_search_20_filled,
+              onChanged: (_) {
+                if (AppCache.braveSearchApiKey.value?.isNotEmpty == true) {
+                  chatProvider.toggleWebSearch();
+                } else {
+                  displayInfoBar(context, builder: (context, close) {
+                    return InfoBar(
+                      title: Text(
+                          'You need to obtain Brave API key to use web search'
+                              .tr),
+                      severity: InfoBarSeverity.warning,
+                      action: Button(
+                        onPressed: () {
+                          close();
+                          Navigator.of(context).push(
+                            FluentPageRoute(
+                                builder: (context) => const NewSettingsPage()),
+                          );
+                        },
+                        child: Text('Settings->API and URLs'.tr),
+                      ),
+                    );
+                  });
+                }
+              },
+              tooltip: chatProvider.isWebSearchEnabled
+                  ? 'Disable web search'.tr
+                  : 'Enable web search'.tr,
+            ),
+            ToggleButtonAdvenced(
+              checked: chatProvider.includeConversationGlobal,
+              icon: ic.FluentIcons.history_20_filled,
+              onChanged: chatProvider.setIncludeWholeConversation,
+              tooltip: 'Include conversation'.tr +
+                  ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
+              maxWidthContextMenu: 350,
+              maxHeightContextMenu: 96,
+              contextItems: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Tooltip(
+                      message:
+                          'To prevent token overflows unnecessary cost we propose to limit the conversation length'
+                              .tr,
+                      child: Icon(ic.FluentIcons.question_circle_24_filled,
+                          size: 24),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Max tokens to include'.tr)),
+                    Expanded(
+                      child: Consumer<ChatProvider>(
+                        builder: (context, watch, child) {
+                          return NumberBox(
+                            value: selectedChatRoom.maxTokenLength,
+                            min: 1,
+                            smallChange: 64,
+                            clearButton: false,
+                            mode: SpinButtonPlacementMode.inline,
+                            onChanged: (v) {
+                              chatProvider.setMaxTokensForChat(v);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                spacer,
+                StatefulBuilder(builder: (context, updateSlider) {
+                  return Slider(
+                    value: selectedChatRoom.maxTokenLength < 0.0
+                        ? 0.0
+                        : selectedChatRoom.maxTokenLength.toDouble(),
+                    onChanged: (value) {
+                      updateSlider(() {
+                        chatProvider.setMaxTokensForChat(value.toInt());
+                      });
+                    },
+                    min: 0.0,
+                    max: 16384,
+                    divisions: 16,
+                  );
+                }),
+              ],
+            ),
+            ToggleButtonAdvenced(
+              checked: AppCache.gptToolRememberInfo.value!,
+              icon: ic.FluentIcons.brain_circuit_20_regular,
+              onChanged: (v) {
+                setState(() {
+                  AppCache.gptToolRememberInfo.value = v;
+                });
+                if (v) {
+                  displayTextInfoBar(
+                    'AI will be able to remember things about you'.tr,
+                    alignment: Alignment.topCenter,
+                  );
+                }
+              },
+              tooltip: 'AI will be able to remember things about you'.tr,
+            ),
+            ToggleButtonAdvenced(
+              checked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+              shrinkWrapActions: true,
+              maxWidthContextMenu: 300,
+              contextItems: [
+                Text('Select items to include in system prompt'.tr),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Divider(),
+                ),
+                CheckBoxTile(
+                  isChecked:
+                      AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+                  child: Text('Knowledge about user'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeKnowledgeAboutUserToSysPrompt.value = p0;
+                    });
+                  },
+                ),
+                CheckBoxTile(
+                  isChecked: AppCache.includeUserCityNamePrompt.value!,
+                  child: Text('City name'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeUserCityNamePrompt.value = p0;
+                    });
+                  },
+                ),
+                CheckBoxTile(
+                  isChecked: AppCache.includeWeatherPrompt.value!,
+                  child: Text('Weather'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeWeatherPrompt.value = p0;
+                    });
+                  },
+                ),
+                CheckBoxTile(
+                  isChecked: AppCache.includeUserNameToSysPrompt.value!,
+                  child: Text('User name'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeUserNameToSysPrompt.value = p0;
+                    });
+                  },
+                ),
+                CheckBoxTile(
+                  isChecked: AppCache.includeTimeToSystemPrompt.value!,
+                  child: Text('Current timestamp'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeUserNameToSysPrompt.value = p0;
+                    });
+                  },
+                ),
+                CheckBoxTile(
+                  isChecked: AppCache.includeSysInfoToSysPrompt.value!,
+                  child: Text('OS info'.tr),
+                  onChanged: (p0) {
+                    setState(() {
+                      AppCache.includeSysInfoToSysPrompt.value = p0;
+                    });
+                  },
+                ),
+              ],
+              icon: ic.FluentIcons.person_info_20_regular,
+              onChanged: (v) async {
+                setState(() {
+                  AppCache.includeKnowledgeAboutUserToSysPrompt.value = v;
+                });
+                final editedChatRoom = selectedChatRoom;
+                editedChatRoom.systemMessage = await getFormattedSystemPrompt(
+                  basicPrompt: (editedChatRoom.systemMessage ?? '').isEmpty
+                      ? defaultGlobalSystemMessage
+                      : editedChatRoom.systemMessage!
+                          .split(contextualInfoDelimeter)
+                          .first,
+                );
+                chatRooms[selectedChatRoomId] = editedChatRoom;
+                chatProvider.notifyRoomsStream();
+              },
+              tooltip: 'Use memory about the user'.tr,
+            ),
+            if (kDebugMode)
+              ToggleButtonAdvenced(
+                checked: AppCache.useRAG.value!,
+                icon: ic.FluentIcons.book_24_regular,
+                onChanged: (v) {
+                  setState(() {
+                    AppCache.useRAG.value = v;
+                  });
+                },
+                tooltip: 'Use RAG'.tr,
+              ),
+            ToggleButtonAdvenced(
+              checked: AppCache.autoPlayMessagesFromAi.value!,
+              icon: ic.FluentIcons.play_circle_16_filled,
+              onChanged: (v) {
+                setState(() {
+                  AppCache.autoPlayMessagesFromAi.value = v;
+                });
+              },
+              tooltip: 'Auto play messages from ai'.tr,
+            ),
+            Spacer(),
+            _ScrollToBottomButton(),
+          ],
+        ),
       ),
     );
   }
@@ -1481,38 +1540,46 @@ class GeneratingImagesCard extends StatelessWidget {
   }
 }
 
-class _ScrollToBottomButton extends StatelessWidget {
+class _ScrollToBottomButton extends StatefulWidget {
   const _ScrollToBottomButton();
 
   @override
+  State<_ScrollToBottomButton> createState() => _ScrollToBottomButtonState();
+}
+
+class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
+  @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ChatProvider>();
-    return ToggleButton(
-      checked: provider.scrollToBottomOnAnswer,
-      style: ToggleButtonThemeData(
-        checkedButtonStyle: ButtonStyle(
-          padding: WidgetStateProperty.all(EdgeInsets.zero),
-          backgroundColor:
-              WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
+    final provider = context.read<ChatProvider>();
+    return Tooltip(
+      message: 'Scroll to bottom on new message'.tr,
+      child: ToggleButton(
+        checked: provider.scrollToBottomOnAnswer,
+        style: ToggleButtonThemeData(
+          checkedButtonStyle: ButtonStyle(
+            backgroundColor:
+                WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
+          ),
+          uncheckedButtonStyle: ButtonStyle(
+              // padding: WidgetStateProperty.all(EdgeInsets.zero),
+              ),
         ),
-        uncheckedButtonStyle: ButtonStyle(
-          padding: WidgetStateProperty.all(EdgeInsets.zero),
-        ),
+        onChanged: (value) {
+          // if not at the bottom we should just scroll to the bottom
+          // The list is reversed so the bottom is the top
+          if (provider.listItemsScrollController.position.pixels !=
+              provider.listItemsScrollController.position.minScrollExtent) {
+            provider.scrollToEnd();
+            return;
+          }
+          provider.toggleScrollToBottomOnAnswer();
+          if (value) {
+            provider.scrollToEnd();
+          }
+          setState(() {});
+        },
+        child: const Icon(FluentIcons.down, size: 16),
       ),
-      onChanged: (value) {
-        // if not at the bottom we should just scroll to the bottom
-        // The list is reversed so the bottom is the top
-        if (provider.listItemsScrollController.position.pixels !=
-            provider.listItemsScrollController.position.minScrollExtent) {
-          provider.scrollToEnd();
-          return;
-        }
-        provider.toggleScrollToBottomOnAnswer();
-        if (value) {
-          provider.scrollToEnd();
-        }
-      },
-      child: const Icon(FluentIcons.down, size: 16),
     );
   }
 }

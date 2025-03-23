@@ -22,6 +22,7 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/rag_openai.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
@@ -274,7 +275,6 @@ class ChatProvider with ChangeNotifier {
 
   void toggleScrollToBottomOnAnswer() {
     scrollToBottomOnAnswer = !scrollToBottomOnAnswer;
-    notifyListeners();
   }
 
   /// if [rooms] list is 1 element and it's current chat room, it will save messages to disk
@@ -911,6 +911,7 @@ class ChatProvider with ChangeNotifier {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final isToolsEnabled = AppCache.gptToolCopyToClipboardEnabled.value == true;
+    String? ragPart;
     if (isFirstMessage && useSystemPrompt) {
       // regenerate system message to update time/weather etc
       // This is a first message, so it will regenerate the system message from the global prompt
@@ -945,8 +946,33 @@ class ChatProvider with ChangeNotifier {
         '${nameTopicPrompt.replaceAll('{lang}', I18n.currentLocale.languageCode)} "$lastMessages"',
       ).then(renameCurrentChatRoom);
     }
+    // Stops.
     if (isWebSearchEnabled) {
       await _sendMessageWebSearch(messageContent);
+      return;
+    }
+    if (AppCache.useRAG.value == true) {
+      final String? openAiKey = allModels.valueOrNull
+          ?.firstWhereOrNull(
+              (element) => element.ownedBy == OwnedByEnum.openai.name)
+          ?.apiKey;
+      final enhancedPrompt = await RAGOpenAi.getEnhancedPromptWithDocs(
+        query: messageContent,
+        apiKey: openAiKey!,
+        scoreThreshold: AppCache.ragThreshold.value ?? 0.5,
+        documents: [
+          // test to see if model will answer based ONLY on this
+          Document(
+            id: 'Flutter docs',
+            pageContent: 'Flutter is a game engine builder for mobile apps',
+          ),
+          Document(
+            id: 'Personal knowledge base',
+            pageContent: 'Donald likes apples',
+          ),
+        ],
+      );
+      ragPart = enhancedPrompt;
       return;
     }
 
@@ -1160,6 +1186,13 @@ class ChatProvider with ChangeNotifier {
             ]
           : null,
     );
+    if (ragPart != null) {
+      // insert message above the last message
+      messagesToSend.insert(
+        messagesToSend.length - 1,
+        SystemChatMessage(content: ragPart),
+      );
+    }
     try {
       initModelsApi();
 
