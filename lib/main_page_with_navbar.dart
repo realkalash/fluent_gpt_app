@@ -10,6 +10,7 @@ import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
@@ -162,6 +163,16 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     FluentPageRoute(builder: (context) => const AboutPage()),
                   ),
                 ),
+                if (kDebugMode)
+                  PaneItem(
+                    key: const ValueKey('/local'),
+                    icon: const Icon(FluentIcons.info_24_regular),
+                    title: Text('Local'.tr),
+                    body: const AboutPage(),
+                    onTap: () => Navigator.of(context).push(
+                      FluentPageRoute(builder: (context) => const AboutPage()),
+                    ),
+                  ),
                 PaneItem(
                   key: const ValueKey('/log'),
                   icon: const Icon(FluentIcons.bug_24_regular),

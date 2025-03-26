@@ -121,7 +121,7 @@ class AppCache {
   static const archivedPrompts = StringPref("archivedPrompts");
 
   /* APIs/Keys */
-  static const localApiModelPaths = StringPref("localApiModels", '{}');
+  static const localApiModelPath = StringPref("localApiModels", '');
   static const braveSearchApiKey = StringPref("braveSearchApiKey", '');
   static const imgurClientId = StringPref("imgurClientId", '');
   static const deepgramApiKey = StringPref("deepgramApiKey", '');

@@ -1,72 +1,25 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/dialogs/how_to_use_llm_dialog.dart';
-import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
-import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
-import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
-import 'package:fluent_gpt/widgets/page.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../theme.dart';
 import 'new_settings_page.dart';
 
 bool isLaunchAtStartupEnabled = false;
 
-class SettingsPage extends StatefulWidget {
-  @Deprecated('Use NewSettingsPage instead')
-  const SettingsPage({super.key});
-
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> with PageMixin {
-  @override
-  Widget build(BuildContext context) {
-    final canGoBack = Navigator.of(context).canPop();
-    return Container(
-      color: Colors.transparent,
-      child: ScaffoldPage.scrollable(
-        header: GestureDetector(
-          onPanStart: (v) => WindowManager.instance.startDragging(),
-          child: PageHeader(
-              title: Text('Settings'.tr),
-              leading: canGoBack
-                  ? IconButton(
-                      icon: const Icon(FluentIcons.arrow_left_24_filled,
-                          size: 24),
-                      onPressed: () => Navigator.of(context).pop(),
-                    )
-                  : null),
-        ),
-        children: [
-          spacer,
-          const DensityModeDropdown(),
-          spacer,
-          const _LocaleSection(),
-          spacer,
-          const ServerSettings(),
-        ],
-      ),
-    );
-  }
-}
 
 class DensityModeDropdown extends StatelessWidget {
   const DensityModeDropdown({super.key});
@@ -207,81 +160,6 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
         }
         return const Text('Checking accessibility status...');
       },
-    );
-  }
-}
-
-class ServerSettings extends StatelessWidget {
-  const ServerSettings({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    if (kReleaseMode) return const SizedBox.shrink();
-    final server = context.watch<ServerProvider>();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Server settings',
-            style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        Expander(
-          header: Row(
-            children: [
-              const Text('Models List'),
-              const Spacer(),
-              Button(
-                child: const Text('Add model'),
-                onPressed: () async {
-                  String? result = await FilePicker.platform.getDirectoryPath(
-                      // allowMultiple: false,
-                      // dialogTitle: 'Select a gguf model',
-                      // type: FileType.custom,
-                      // allowedExtensions: ['gguf'],
-                      );
-                  if (result != null && result.isNotEmpty) {
-                    server.addLocalModelPath(result);
-                  }
-                },
-              ),
-              SqueareIconButton(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      builder: (ctx) => const HowToRunLocalModelsDialog());
-                },
-                icon: const Icon(FluentIcons.chat_help_20_filled),
-                tooltip: 'How to use local models',
-              )
-            ],
-          ),
-          content: ListView.builder(
-            shrinkWrap: true,
-            itemCount: server.localModelsPaths.length,
-            itemBuilder: (context, index) {
-              final element = server.localModelsPaths.entries.elementAt(index);
-              return ListTile(
-                title: SelectableText(element.key),
-                leading: IconButton(
-                  icon: Icon(element.value
-                      ? FluentIcons.pause_20_filled
-                      : FluentIcons.play_20_filled),
-                  onPressed: () {
-                    if (element.value) {
-                      server.stopModel(element.key);
-                    } else {
-                      server.loadModel(element.key);
-                    }
-                  },
-                ),
-                trailing: IconButton(
-                  icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
-                  onPressed: () => server.removeLocalModelPath(element.key),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }

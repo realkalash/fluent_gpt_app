@@ -1186,6 +1186,7 @@ class ChatProvider with ChangeNotifier {
             ]
           : null,
     );
+    // ignore: unnecessary_null_comparison
     if (ragPart != null) {
       // insert message above the last message
       messagesToSend.insert(

@@ -1,6 +1,5 @@
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/web_result_custom_message.dart';
-import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:langchain/langchain.dart';
 

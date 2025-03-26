@@ -1,4 +1,3 @@
-import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:langchain/langchain.dart';
 

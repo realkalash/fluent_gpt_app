@@ -1,80 +1,57 @@
-import 'dart:convert';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 
 class ServerProvider extends ChangeNotifier {
-  /// <Path, isRunning>
-  Map<String, bool> localModelsPaths = {};
-
-  final String serverUrl = 'http://localhost:5000'; // Update with your server URL
+  String modelPath = 'http://localhost:5000'; // Update with your server URL
+  bool isRunning = false;
 
   ServerProvider() {
     init();
   }
 
   void init() {
-    final modelsJson = AppCache.localApiModelPaths.value!;
-    final paths = jsonDecode(modelsJson) as Map;
-    for (var el in paths.entries) {
-      localModelsPaths[el.key] = false;
-    }
+    modelPath = AppCache.localApiModelPath.value ?? '';
   }
 
   Future<void> addLocalModelPath(String? path) async {
     if (path == null || path.isEmpty == true) return;
-    localModelsPaths[path] = false;
-    AppCache.localApiModelPaths.set(jsonEncode(localModelsPaths));
+    modelPath = path;
+    AppCache.localApiModelPath.value = path;
     notifyListeners();
   }
 
   Future<void> removeLocalModelPath(String path) async {
-    localModelsPaths.remove(path);
-    AppCache.localApiModelPaths.set(jsonEncode(localModelsPaths));
+    if (modelPath == path) {
+      modelPath = '';
+      AppCache.localApiModelPath.value = '';
+    }
     notifyListeners();
   }
 
   Future<void> loadModel(String path) async {
-    final response = await http.post(
-      Uri.parse('$serverUrl/load_model'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'model_path': path}),
-    );
 
-    if (response.statusCode == 200) {
-      localModelsPaths[path] = true;
-      notifyListeners();
-    } else {
-      throw Exception('Failed to load model');
-    }
+
   }
 
   Future<void> stopModel(String path) async {
-    final response = await http.post(
-      Uri.parse('$serverUrl/stop_model'),
-      headers: {'Content-Type': 'application/json'},
-    );
 
-    if (response.statusCode == 200) {
-      localModelsPaths[path] = false;
-      notifyListeners();
-    } else {
-      throw Exception('Failed to stop model');
-    }
   }
 
   Future<bool> isModelRunning(String path) async {
-    final response = await http.post(
-      Uri.parse('$serverUrl/is_model_running'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'model_path': path}),
-    );
+    return false;
+  }
 
-    if (response.statusCode == 200) {
-      final result = jsonDecode(response.body);
-      return result['is_running'];
-    } else {
-      throw Exception('Failed to check if model is running');
+  Future<bool> toggleLocalFirstModel(bool value) async {
+    if (modelPath.isEmpty == true) {
+      return false;
     }
+    if (value == true) {
+      await loadModel(modelPath);
+    } else {
+      await stopModel(modelPath);
+    }
+    isRunning = value;
+    notifyListeners();
+    return true;
   }
 }

@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.57+1
+version: 1.0.58+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -80,6 +80,8 @@ dependencies:
   windows_notification: ^1.3.0
   animate_do: ^4.2.0
   image: ^4.3.0
+  # llama_library_flutter: ^0.0.3
+  # ggml_library_flutter: ^0.0.10
   
 
 dev_dependencies:
