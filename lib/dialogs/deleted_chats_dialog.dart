@@ -104,9 +104,9 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                   children: [
                     CaptionText('Archive chats after (days)'.tr),
                     NumberBox(
-                      value: AppCache.deleteOldChatsAfter.value,
+                      value: AppCache.archiveOldChatsAfter.value,
                       onChanged: (int? value) {
-                        AppCache.deleteOldChatsAfter.value = value;
+                        AppCache.archiveOldChatsAfter.value = value;
                       },
                     ),
                   ],
@@ -120,8 +120,9 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                     CaptionText('Delete chats after (days)'.tr),
                     NumberBox(
                       value: AppCache.deleteOldArchivedChatsAfter.value,
+                      clearButton: true,
                       onChanged: (int? value) {
-                        AppCache.deleteOldChatsAfter.value = value;
+                        AppCache.deleteOldArchivedChatsAfter.value = value;
                       },
                     ),
                   ],

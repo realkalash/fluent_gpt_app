@@ -78,9 +78,9 @@ class _CostDialogState extends State<StorageUsage> {
                   children: [
                     CaptionText('Archive chats after (days)'.tr),
                     NumberBox(
-                      value: AppCache.deleteOldChatsAfter.value,
+                      value: AppCache.archiveOldChatsAfter.value,
                       onChanged: (int? value) {
-                        AppCache.deleteOldChatsAfter.value = value;
+                        AppCache.archiveOldChatsAfter.value = value;
                       },
                     ),
                   ],
@@ -95,7 +95,7 @@ class _CostDialogState extends State<StorageUsage> {
                     NumberBox(
                       value: AppCache.deleteOldArchivedChatsAfter.value,
                       onChanged: (int? value) {
-                        AppCache.deleteOldChatsAfter.value = value;
+                        AppCache.deleteOldArchivedChatsAfter.value = value;
                       },
                     ),
                   ],

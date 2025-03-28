@@ -44,7 +44,7 @@ class AppCache {
   static const pricePer1MReceived = StringPref("pricePer1MReceived", '1.0');
   static const costCalcNotes = StringPref("costCalcNotes", '');
   static const locale = StringPref("locale", 'en');
-  static const deleteOldChatsAfter = IntPref("deleteOldChatsAfter", 45);
+  static const archiveOldChatsAfter = IntPref("deleteOldChatsAfter", 45);
   static const deleteOldArchivedChatsAfter =
       IntPref("deleteOldArchivedChatsAfter", 60);
   static const imageGenerator = IntPref("imageGenerator", 0);

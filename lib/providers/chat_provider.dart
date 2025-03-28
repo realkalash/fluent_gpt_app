@@ -303,7 +303,7 @@ class ChatProvider with ChangeNotifier {
     final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
     final currentDate = DateTime.now();
-    final deleteChatsAfterXDays = AppCache.deleteOldChatsAfter.value;
+    final deleteChatsAfterXDays = AppCache.archiveOldChatsAfter.value;
 
     for (var file in files) {
       try {
