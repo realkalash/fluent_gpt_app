@@ -18,6 +18,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../providers/chat_provider.dart';
 import '../widgets/input_field.dart';
+import '../widgets/markdown_builders/code_wrapper.dart';
 import '../widgets/message_list_tile.dart';
 
 class OverlayUI extends StatefulWidget {
@@ -70,6 +71,7 @@ class _OverlayUIState extends State<OverlayUI> {
     final backgroundColor = appTheme.isDark
         ? appTheme.darkBackgroundColor
         : appTheme.lightBackgroundColor;
+    final openWindowIconSize = isSuperCompact ? 20.0 : 30.0;
     return StreamBuilder(
         stream: OverlayUI.isChatVisible,
         builder: (context, snapshot) {
@@ -131,25 +133,13 @@ class _OverlayUIState extends State<OverlayUI> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            IconButton.filled(
-                                visualDensity: isSuperCompact
-                                    ? VisualDensity.compact
-                                    : VisualDensity.standard,
-                                onPressed: () =>
-                                    OverlayManager.switchToMainWindow(),
-                                icon: Image.asset(
-                                  'assets/transparent_app_icon.png',
-                                  fit: BoxFit.contain,
-                                  cacheHeight: 60,
-                                  cacheWidth: 60,
-                                ),
-                                tooltip: 'Show App',
-                                padding: const EdgeInsets.all(0),
-                                constraints: isSuperCompact
-                                    ? const BoxConstraints(
-                                        maxHeight: 20, maxWidth: 20)
-                                    : const BoxConstraints(
-                                        maxHeight: 36, maxWidth: 36)),
+                            SqueareIconButtonSized(
+                              height: openWindowIconSize,
+                              width: openWindowIconSize,
+                              onTap: () => OverlayManager.switchToMainWindow(),
+                              icon: const Icon(FluentIcons.open_20_filled),
+                              tooltip: 'Open main app',
+                            ),
                             if (isSuperCompact == false) ...[
                               ...customPrompts.value
                                   .where((element) => element.showInOverlay)
@@ -388,7 +378,6 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
     super.initState();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -402,7 +391,8 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                   final reverseList = messagesReversedList;
                   if (reverseList.isEmpty) {
                     final randWelcome = OverlayManager.welcomesForEmptyList[
-                        Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
+                        Random().nextInt(
+                            OverlayManager.welcomesForEmptyList.length)];
                     return Center(
                       child: TextAnimator(
                         randWelcome,

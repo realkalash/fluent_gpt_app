@@ -12,6 +12,7 @@ import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +80,8 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
     final backgroundColor = appTheme.isDark
         ? appTheme.darkBackgroundColor
         : appTheme.lightBackgroundColor;
+    final openWindowIconSize = 30.0;
+
     return fluent.StreamBuilder<Object>(
         stream: SidebarOverlayUI.isChatVisible,
         builder: (context, snapshot) {
@@ -110,22 +113,14 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  InkWell(
-                                    onTap: OverlayManager.switchToMainWindow,
-                                    child: Container(
-                                      decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.blue),
-                                      padding: const EdgeInsets.all(2),
-                                      width: 40,
-                                      height: 30,
-                                      child: Image.asset(
-                                        'assets/transparent_app_icon.png',
-                                        fit: BoxFit.contain,
-                                        cacheHeight: 50,
-                                        cacheWidth: 50,
-                                      ),
-                                    ),
+                                  SqueareIconButtonSized(
+                                    height: openWindowIconSize,
+                                    width: openWindowIconSize,
+                                    onTap: () =>
+                                        OverlayManager.switchToMainWindow(),
+                                    icon:
+                                        const Icon(FluentIcons.open_20_filled),
+                                    tooltip: 'Open main app',
                                   ),
                                   ...customPrompts.value
                                       .where((element) => element.showInOverlay)
