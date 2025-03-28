@@ -74,8 +74,13 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
 
   final _rightKeybindings = <Widget>[
     KeyBindingText(
-      title: 'Open/Focus/Hide window',
+      title: 'Open/Hide window',
       hotKey: openWindowHotkey,
+      textColor: Colors.white,
+    ),
+    KeyBindingText(
+      title: 'Open/Hide overlay',
+      hotKey: openSearchOverlayHotkey,
       textColor: Colors.white,
     ),
     KeyBindingText(
@@ -200,11 +205,12 @@ class KeyBindingText extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: TextStyle(color: textColor),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(color: textColor),
+            ),
           ),
-          const SizedBox(width: 16),
           HotKeyVirtualView(hotKey: hotKey),
         ],
       ),
