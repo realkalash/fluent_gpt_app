@@ -1,14 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -50,19 +54,25 @@ int calcAllPromptsLenght() {
 class OverlayStatus {
   final bool isShowingOverlay;
   final bool isShowingSidebarOverlay;
+  final bool isShowingSearchOverlay;
   const OverlayStatus({
     this.isShowingOverlay = false,
     this.isShowingSidebarOverlay = false,
+    this.isShowingSearchOverlay = false,
   });
 
-  bool get isEnabled => isShowingOverlay || isShowingSidebarOverlay;
+  bool get isEnabled =>
+      isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay;
 
-  static OverlayStatus enabled = OverlayStatus(isShowingOverlay: true);
-  static OverlayStatus disabled = OverlayStatus(isShowingOverlay: false);
-  static OverlayStatus sidebarEnabled =
+  static const OverlayStatus enabled = OverlayStatus(isShowingOverlay: true);
+  static const OverlayStatus disabled = OverlayStatus(isShowingOverlay: false);
+  static const OverlayStatus sidebarEnabled =
       OverlayStatus(isShowingSidebarOverlay: true);
-  static OverlayStatus sidebarDisabled =
+  static const OverlayStatus sidebarDisabled =
       OverlayStatus(isShowingSidebarOverlay: false);
+  static const OverlayStatus searchEnabled =
+      OverlayStatus(isShowingSearchOverlay: true);
+
 
   //equality
   @override
@@ -71,12 +81,15 @@ class OverlayStatus {
 
     return other is OverlayStatus &&
         other.isShowingOverlay == isShowingOverlay &&
-        other.isShowingSidebarOverlay == isShowingSidebarOverlay;
+        other.isShowingSidebarOverlay == isShowingSidebarOverlay &&
+        other.isShowingSearchOverlay == isShowingSearchOverlay;
   }
 
   @override
   int get hashCode =>
-      isShowingOverlay.hashCode ^ isShowingSidebarOverlay.hashCode;
+      isShowingOverlay.hashCode ^
+      isShowingSidebarOverlay.hashCode ^
+      isShowingSearchOverlay.hashCode;
 }
 
 class OverlayManager {
@@ -102,6 +115,78 @@ class OverlayManager {
       );
     });
   }
+  
+  static const List<String> welcomesForEmptyList = [
+    'Ask me anything',
+    'What can I do for you?',
+    'How can I help you?',
+    'What do you need?',
+    'Hey {user}',
+    '👋 Hi there!',
+    '✨ Ready when you are',
+    '🤔 Got a question?',
+    '💬 Chat with me',
+    '🚀 Let\'s get started',
+    '💡 Need some ideas?',
+    '🔍 Looking for something?',
+    '📝 Need help with writing?',
+    '👨‍💻 Coding assistance?',
+    '🎯 What\'s your goal today?',
+    '✌️ At your service',
+    '🌈 Let\'s create something',
+    '🧠 Pick my brain',
+    '🎨 Need creative help?',
+    '🛠️ Tool time!',
+    '💪 Let\'s solve problems',
+    '🌟 What shall we explore?',
+    '🔮 Tell me your thoughts',
+    '🌱 Growing ideas together',
+    '🧩 Puzzle-solving time',
+    '⚡ Ready for anything',
+    '🎭 How can I assist?',
+    '🎬 Action!',
+    '📊 Need data analysis?',
+    '🚦 Where to next?',
+    '🎵 What\'s your tune today?',
+    '🧪 Let\'s experiment',
+    '📱 App help needed?',
+    '🔧 Technical questions?',
+    '🌐 Web development?',
+    '✏️ Drafting together',
+    '👾 Debugging help?',
+    '🤝 Let\'s collaborate',
+    '📚 Research assistance?',
+    '🏗️ Building something?',
+    '🧮 Math problems?',
+    '💻 Code review needed?',
+    '🧵 Threading thoughts...',
+    '🔥 What\'s hot on your mind?',
+    '🦄 Magical solutions await',
+    '🎪 Welcome to the show',
+    '🚢 Let\'s navigate together',
+    '🧐 Curious minds unite',
+    '🌞 Brightening your day',
+    '🎁 Got a surprise question?',
+    '🔠 Language help needed?',
+    '🧗 Tackling challenges',
+    '🏆 Aiming for excellence',
+    '🎲 Let\'s take a chance',
+    '🪄 Working magic here',
+    '🔋 Fully charged to help',
+    '🌊 Dive into questions',
+    '🧘 How can I bring clarity?',
+    '🏎️ Speed-solving ready',
+    '🔍 Investigating together',
+    '👁️ Looking for insights?',
+    '🎮 Game development help?',
+    '🧬 Complex problem to solve?',
+    '📡 Broadcasting assistance',
+    '🎯 Targeting solutions',
+    '🌎 Global questions welcome',
+    '🧠 Brain.exe is running',
+    '🎧 I\'m listening...',
+    '🌈 Inspiration needed?'
+  ];
 
   static Future<void> showOverlay(
     BuildContext rootContext, {
@@ -180,6 +265,25 @@ class OverlayManager {
         );
       }
     }
+  }
+
+  static Future<void> showSearchOverlay({String? command}) async {
+    if (overlayVisibility.value.isShowingSearchOverlay) {
+      return;
+    }
+    promptTextFocusNode.unfocus();
+    final haveMessages = messages.valueOrNull?.isNotEmpty == true;
+    await windowManager.setAlwaysOnTop(true);
+    // final compactOverlaySize = ;
+    await windowManager.setMinimumSize(SearchOverlayUI.defaultWindowSize());
+    await windowManager.setSize(haveMessages
+        ? SearchOverlayUI.defaultWindowSize() + Offset(0, 470)
+        : SearchOverlayUI.defaultWindowSize());
+    overlayVisibility.add(OverlayStatus.searchEnabled);
+    Size windowSize = await windowManager.getSize();
+    Offset position = await calcWindowPosition(windowSize, Alignment.topCenter);
+    await Future.delayed(Duration(milliseconds: 100));
+    await windowManager.setPosition(position + Offset(0, 200), animate: false);
   }
 
   static Future<void> hideOverlay() async {

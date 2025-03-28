@@ -702,7 +702,7 @@ class ChatProvider with ChangeNotifier {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput(attachment);
     if (showDialog) {
-      final isSent = await AiLensDialog.show<bool>(context!, bytes);
+      final isSent = await AiLensDialog.show<bool?>(context!, bytes);
       if (isSent != true) {
         removeFileFromInput();
       }
@@ -2167,7 +2167,7 @@ class ChatProvider with ChangeNotifier {
 
   Future<void> clearChatMessages() async {
     final confirmed = await ConfirmationDialog.show(
-        context: context!, message: 'Clear current chat?');
+        context: appContext!, message: 'Clear current chat?');
     if (!confirmed) return;
     messages.add({});
     questionHelpers.clear();
@@ -2763,6 +2763,13 @@ class ChatProvider with ChangeNotifier {
         return false;
       }
       recorder = AudioRecorder();
+      final devices = await recorder!.listInputDevices();
+      if (devices.isEmpty) {
+        displayErrorInfoBar(
+          title: 'No microphone found'.tr,
+        );
+        return false;
+      }
       micStream = await recorder!.startStream(
         RecordConfig(
           encoder: AudioEncoder.pcm16bits,
@@ -2772,7 +2779,7 @@ class ChatProvider with ChangeNotifier {
               ? InputDevice(
                   id: AppCache.micrpohoneDeviceId.value!,
                   label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
-              : null,
+              : devices.first,
         ),
       );
 

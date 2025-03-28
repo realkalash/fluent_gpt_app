@@ -45,8 +45,6 @@ import 'package:window_manager/window_manager.dart';
 import '../providers/chat_provider.dart';
 
 final promptTextFocusNode = FocusNode();
-// only for mini input field
-final promptTextMiniFocusNode = FocusNode();
 
 class InputField extends StatefulWidget {
   const InputField({super.key, this.isMini = false});
@@ -57,28 +55,29 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-    void onSubmit(String text, ChatProvider chatProvider) {
+  void onSubmit(String text, ChatProvider chatProvider) {
     if (shiftPressedStream.valueOrNull == true) {
       final currentText = chatProvider.messageController.text;
       final selection = chatProvider.messageController.selection;
       final cursorPosition = selection.baseOffset;
-      
+
       if (cursorPosition >= 0 && cursorPosition <= currentText.length) {
         // Insert newline at cursor position
-        final newText = '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
+        final newText =
+            '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
         chatProvider.messageController.text = newText;
         // Place cursor after the inserted newline
-        chatProvider.messageController.selection = 
+        chatProvider.messageController.selection =
             TextSelection.collapsed(offset: cursorPosition + 1);
       } else {
         // Fallback if cursor position is invalid
         chatProvider.messageController.text = '$currentText\n';
       }
-      
+
       promptTextFocusNode.requestFocus();
       return;
     }
-    
+
     if (altPressedStream.value) {
       chatProvider.addMessageSystem(text).then((_) {
         chatProvider.updateUI();
@@ -86,23 +85,18 @@ class _InputFieldState extends State<InputField> {
       clearFieldAndFocus();
       return;
     }
-    
+
     if (text.trim().isEmpty && chatProvider.fileInput == null) {
       return;
     }
-    
+
     chatProvider.sendMessage(text.trim());
     clearFieldAndFocus();
   }
 
   void clearFieldAndFocus() {
-    final chatProvider = context.read<ChatProvider>();
-    Future.delayed(const Duration(milliseconds: 50)).then(
-      (value) {
-        chatProvider.messageController.clear();
-        promptTextFocusNode.requestFocus();
-      },
-    );
+    ChatProvider.messageControllerGlobal.clear();
+    promptTextFocusNode.requestFocus();
   }
 
   @override
@@ -116,6 +110,7 @@ class _InputFieldState extends State<InputField> {
 
   @override
   void dispose() {
+    promptTextFocusNode.unfocus();
     ChatProvider.messageControllerGlobal.removeListener(onTextChangedListener);
     super.dispose();
   }
@@ -199,9 +194,9 @@ class _InputFieldState extends State<InputField> {
     final provider = context.read<ChatProvider>();
     provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
     if (provider.includeConversationGlobal) {
-      displayTextInfoBar('History enabled');
+      displayTextInfoBar('History enabled'.tr);
     } else {
-      displayTextInfoBar('History disabled');
+      displayTextInfoBar('History disabled'.tr);
     }
   }
 
@@ -222,8 +217,8 @@ class _InputFieldState extends State<InputField> {
   }
 
   Future onDigitPressed(int number) async {
-    if (_quickInputCommandsList.isEmpty) return;
-    final selectedPrompt = _quickInputCommandsList[number - 1];
+    if (quickInputCommandsList.isEmpty) return;
+    final selectedPrompt = quickInputCommandsList[number - 1];
     if (selectedPrompt[0] == '/') {
       ChatProvider.messageControllerGlobal.text = '$selectedPrompt ';
     } else {
@@ -389,12 +384,8 @@ class _InputFieldState extends State<InputField> {
                           '', TrayCommand.create_new_chat.name);
                     },
                   ),
-                  if (chatProvider.fileInput == null)
-                    _AddFileButton(
-                        chatProvider: chatProvider, isMini: widget.isMini),
-                  if (chatProvider.fileInput != null)
-                    _FileThumbnail(chatProvider: chatProvider),
-                  const _ChooseModelButton(),
+                  AddFileButton(isMini: widget.isMini),
+                  const ChooseModelButton(),
                 ],
               ),
               Expanded(
@@ -403,11 +394,11 @@ class _InputFieldState extends State<InputField> {
                   autocorrect: true,
                   focusNode: promptTextFocusNode,
                   prefixMode: OverlayVisibilityMode.always,
+                  suffix: const MicrophoneButton(),
                   controller: chatProvider.messageController,
                   expands: false,
                   minLines: 2,
                   maxLines: 30,
-                  suffix: const _MicrophoneButton(),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) => onSubmit(value, chatProvider),
                   placeholder: 'Use "/" or type your message here'.tr,
@@ -417,10 +408,7 @@ class _InputFieldState extends State<InputField> {
             if (!widget.isMini)
               Row(
                 children: [
-                  if (chatProvider.fileInput == null)
-                    _AddFileButton(chatProvider: chatProvider),
-                  if (chatProvider.fileInput != null)
-                    _FileThumbnail(chatProvider: chatProvider),
+                  const AddFileButton(),
                   if (!widget.isMini)
                     Expanded(
                       child: Shimmer(
@@ -439,7 +427,7 @@ class _InputFieldState extends State<InputField> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              const _MicrophoneButton(),
+                              const MicrophoneButton(),
                               if (chatProvider
                                   .messageController.text.isNotEmpty)
                                 ImproveTextSparkleButton(
@@ -478,7 +466,7 @@ class _InputFieldState extends State<InputField> {
                                 ),
                                 style: TooltipThemeData(
                                     waitDuration: Duration.zero),
-                                child: const _ChooseModelButton(),
+                                child: const ChooseModelButton(),
                               ),
                               AiLibraryButton(
                                 onPressed: () async {
@@ -739,12 +727,12 @@ class ModelsTooltipContainer extends StatelessWidget {
 }
 
 OverlayEntry? aliasesCommandsOverlay;
-List<String> _quickInputCommandsList = [
+List<String> quickInputCommandsList = [
   // ...AliasesOverlay.quickInputDefaultCommands,
 ];
 void removeInputFieldQuickCommandsOverlay() {
   if (aliasesCommandsOverlay != null) {
-    _quickInputCommandsList.clear();
+    quickInputCommandsList.clear();
     aliasesCommandsOverlay!.remove();
     aliasesCommandsOverlay!.dispose();
     aliasesCommandsOverlay = null;
@@ -785,7 +773,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
     quickInputAllCommands.addAll(AliasesOverlay.quickInputDefaultCommands);
     quickInputAllCommands.addAll(allCustomPrompts);
     quickInputAllCommands.addAll(allPrompts);
-    _quickInputCommandsList.addAll(quickInputAllCommands);
+    quickInputCommandsList.addAll(quickInputAllCommands);
     setState(() {});
   }
 
@@ -800,9 +788,9 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
     if (text.isEmpty) {
       return;
     }
-    _quickInputCommandsList.clear();
+    quickInputCommandsList.clear();
     if (text.length == 1 && text[0] == '/') {
-      _quickInputCommandsList.clear();
+      quickInputCommandsList.clear();
       loadAllCommands();
       return;
     }
@@ -812,12 +800,12 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
       for (final word in clearTextWords) {
         if (word.isEmpty) continue;
         if (command.toLowerCase().contains(word)) {
-          _quickInputCommandsList.add(command);
+          quickInputCommandsList.add(command);
           break;
         }
       }
     }
-    if (_quickInputCommandsList.isNotEmpty) {
+    if (quickInputCommandsList.isNotEmpty) {
       setState(() {});
     }
   }
@@ -828,8 +816,10 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final isMainWindow = overlayVisibility.value == OverlayStatus.disabled;
     return Positioned(
-      bottom: 64,
+      bottom: isMainWindow ? 86 : null,
+      top: isMainWindow ? null : 86,
       left: 60,
       right: 60,
       child: Container(
@@ -854,7 +844,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                       child: SizedBox(
                         child: Button(
                           onPressed: () {
-                            _quickInputCommandsList.clear();
+                            quickInputCommandsList.clear();
                             quickInputAllCommands.clear();
                             removeInputFieldQuickCommandsOverlay();
                           },
@@ -877,10 +867,10 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                 Flexible(
                   fit: FlexFit.loose,
                   child: ListView.builder(
-                    itemCount: _quickInputCommandsList.length,
+                    itemCount: quickInputCommandsList.length,
                     shrinkWrap: true,
                     itemBuilder: (context, i) {
-                      final command = _quickInputCommandsList[i];
+                      final command = quickInputCommandsList[i];
                       bool isHovered = false;
                       return StatefulBuilder(
                         builder: (
@@ -982,14 +972,14 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
   }
 }
 
-class _MicrophoneButton extends StatefulWidget {
-  const _MicrophoneButton();
+class MicrophoneButton extends StatefulWidget {
+  const MicrophoneButton();
 
   @override
-  State<_MicrophoneButton> createState() => __MicrophoneButtonState();
+  State<MicrophoneButton> createState() => _MicrophoneButtonState();
 }
 
-class __MicrophoneButtonState extends State<_MicrophoneButton> {
+class _MicrophoneButtonState extends State<MicrophoneButton> {
   Future<bool> checkPermission() async {
     final result = await AudioRecorder().hasPermission();
     if (!result) {
@@ -1068,14 +1058,14 @@ class __MicrophoneButtonState extends State<_MicrophoneButton> {
   }
 }
 
-class _ChooseModelButton extends StatefulWidget {
-  const _ChooseModelButton();
+class ChooseModelButton extends StatefulWidget {
+  const ChooseModelButton({super.key});
 
   @override
-  State<_ChooseModelButton> createState() => _ChooseModelButtonState();
+  State<ChooseModelButton> createState() => _ChooseModelButtonState();
 }
 
-class _ChooseModelButtonState extends State<_ChooseModelButton> {
+class _ChooseModelButtonState extends State<ChooseModelButton> {
   final FlyoutController flyoutController = FlyoutController();
 
   @override
@@ -1098,7 +1088,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                 if (index < models.length - 1) {
                   final model = models[index + 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
+                  displayTextInfoBar(
+                      '${'Model changed to'.tr} ${model.customName}');
                 }
               } else {
                 final models = allModels.value;
@@ -1107,7 +1098,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
                 if (index > 0) {
                   final model = models[index - 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
+                  displayTextInfoBar(
+                      '${'Model changed to'.tr} ${model.customName}');
                 }
               }
             }
@@ -1211,17 +1203,17 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
   }
 }
 
-class _AddFileButton extends StatelessWidget {
-  const _AddFileButton({
-    required this.chatProvider,
-    this.isMini = false,
-  });
+class AddFileButton extends StatelessWidget {
+  const AddFileButton({super.key, this.isMini = false});
 
-  final ChatProvider chatProvider;
   final bool isMini;
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+    if (chatProvider.fileInput != null) {
+      return _FileThumbnail();
+    }
     return Tooltip(
       message: 'Supports jpeg, png, docx, xlsx, txt, csv',
       child: SizedBox.square(
@@ -1256,14 +1248,11 @@ class _AddFileButton extends StatelessWidget {
 }
 
 class _FileThumbnail extends StatelessWidget {
-  const _FileThumbnail({
-    required this.chatProvider,
-  });
-
-  final ChatProvider chatProvider;
+  const _FileThumbnail({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
     return SizedBox.square(
       dimension: 48,
       child: Stack(
@@ -1343,7 +1332,7 @@ class _FileThumbnail extends StatelessWidget {
   }
 }
 
-class HotShurtcutsWidget extends StatefulWidget {
+class HotShurtcutsWidget extends StatelessWidget {
   const HotShurtcutsWidget({super.key});
 
   static void showAnswerWithTagsDialog(BuildContext context, String text) {
@@ -1354,15 +1343,7 @@ class HotShurtcutsWidget extends StatefulWidget {
   }
 
   @override
-  State<HotShurtcutsWidget> createState() => _HotShurtcutsWidgetState();
-}
-
-class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
-  @override
   Widget build(BuildContext context) {
-    final chatProvider = context.watch<ChatProvider>();
-    final txtController = chatProvider.messageController;
-
     return StreamBuilder(
         stream: customPrompts,
         builder: (context, snapshot) {
@@ -1384,6 +1365,8 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                   Button(
                       child: Text('Answer with tags'.tr),
                       onPressed: () async {
+                        final chatProvider = context.read<ChatProvider>();
+                        final txtController = chatProvider.messageController;
                         final textFromClipboard =
                             (await Clipboard.getData('text/plain'))?.text ?? '';
                         final text = txtController.text.trim().isEmpty
@@ -1404,6 +1387,45 @@ class _HotShurtcutsWidgetState extends State<HotShurtcutsWidget> {
                     ),
                     tooltip: 'Quick prompts'.tr,
                   ),
+                ],
+              ),
+            ),
+          );
+        });
+  }
+}
+
+class HotShurtcutsOneLineWidget extends StatelessWidget {
+  const HotShurtcutsOneLineWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+        stream: customPrompts,
+        builder: (context, snapshot) {
+          if (snapshot.data == null) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: Row(
+                spacing: 4,
+                children: [
+                  ToggleButtonAdvenced(
+                    icon: ic.FluentIcons.settings_20_regular,
+                    onChanged: (_) => showDialog(
+                      context: context,
+                      builder: (ctx) => const CustomPromptsSettingsDialog(),
+                    ),
+                    tooltip: 'Quick prompts'.tr,
+                  ),
+                  for (final prompt in customPrompts.value.length > 4
+                      ? customPrompts.value.take(4)
+                      : customPrompts.value)
+                    if (prompt.showInChatField)
+                      PromptChipWidget(prompt: prompt),
                 ],
               ),
             ),

@@ -9,8 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
 class HomeDropRegion extends StatelessWidget {
-  const HomeDropRegion({super.key, this.onDrop});
+  const HomeDropRegion({super.key, this.onDrop, this.showAiLens = true});
   final VoidCallback? onDrop;
+  final bool showAiLens;
   static const allowedFormats = {
     'text/plain': true,
     'text/csv': true,
@@ -47,24 +48,23 @@ class HomeDropRegion extends StatelessWidget {
         return DropOperation.copy;
       },
       onDropEnter: (event) {
-        // This is called when region first accepts a drag. You can use this
-        // to display a visual indicator that the drop is allowed.
-        if (event.session.items.first.platformFormats.first.contains('image')) {
-          isDropOverlayVisible.add(DropOverlayState.dropOver);
-        } else if (allowedFormats
-            .containsKey(event.session.items.first.platformFormats.first)) {
-          isDropOverlayVisible.add(DropOverlayState.dropOver);
-        } else {
-          isDropOverlayVisible.add(DropOverlayState.dropInvalidFormat);
-          log('Invalid format: ${event.session.items.first.platformFormats.first}');
-          displayInfoBar(context, builder: (ctx, close) {
-            return InfoBar(
-              title: Text('Invalid format'),
-              content: Text(event.session.items.first.platformFormats.first),
-              severity: InfoBarSeverity.error,
-            );
-          });
+        // This is called when region first accepts a drag
+        for (final format in event.session.items.first.platformFormats) {
+          if (allowedFormats.containsKey(format)) {
+            isDropOverlayVisible.add(DropOverlayState.dropOver);
+            return;
+          }
         }
+
+        isDropOverlayVisible.add(DropOverlayState.dropInvalidFormat);
+        log('Invalid format: ${event.session.items.first.platformFormats.first}');
+        displayInfoBar(context, builder: (ctx, close) {
+          return InfoBar(
+            title: Text('Invalid format'),
+            content: Text(event.session.items.first.platformFormats.first),
+            severity: InfoBarSeverity.error,
+          );
+        });
       },
       onDropLeave: (event) {
         // Called when drag leaves the region. Will also be called after
@@ -103,7 +103,7 @@ class HomeDropRegion extends StatelessWidget {
               return;
             }
             log('File dropped: ${xfile.mimeType} ${data.length} bytes');
-            provider.addAttachmentAiLens(data);
+            provider.addAttachmentAiLens(data, showDialog: showAiLens);
           }, onError: (error) {
             log('Error reading value $error');
           });

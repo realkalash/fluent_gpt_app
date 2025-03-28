@@ -157,15 +157,26 @@ enum TrayCommand {
 }
 
 Future showWindow() async {
+  log('Showing Window');
   await windowManager.show(inactive: false);
   if (Platform.isMacOS) {
     // await windowManager.focus();
   }
 }
 
+Future hideWindow() async {
+  log('Hiding Window');
+  await windowManager.hide();
+}
+
 /// Opens window/focus on the text field if opened, or hides the window if already opened and focused
 HotKey openWindowHotkey = HotKey(
   key: LogicalKeyboardKey.digit1,
+  modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
+  scope: HotKeyScope.system,
+);
+HotKey openSearchOverlayHotkey = HotKey(
+  key: LogicalKeyboardKey.space,
   modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
   scope: HotKeyScope.system,
 );
@@ -194,11 +205,22 @@ Future<void> initShortcuts() async {
       final isAppVisible = await windowManager.isVisible();
       log('Open Window Hotkey: $isAppVisible');
       if (isAppVisible) {
-        log('Hiding Window');
-        windowManager.hide();
+        hideWindow();
       } else {
-        log('Showing Window');
         await showWindow();
+      }
+    },
+  );
+  await hotKeyManager.register(
+    openSearchOverlayHotkey,
+    keyDownHandler: (hotKey) async {
+      final isAppVisible = await windowManager.isVisible() &&
+          overlayVisibility.value.isShowingSearchOverlay;
+      if (isAppVisible) {
+        await hideWindow();
+      } else {
+        await showWindow();
+        OverlayManager.showSearchOverlay();
       }
     },
   );

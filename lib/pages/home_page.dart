@@ -83,7 +83,7 @@ class ChatRoomPage extends StatelessWidget {
                           right: 0,
                           child: Center(child: EditChatDrawer()),
                         ),
-                        HomeDropRegion(),
+                        HomeDropRegion(showAiLens: true),
                       ],
                     ),
                   ),
@@ -1107,7 +1107,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
           ),
           const GeneratingImagesCard(),
           const QuickHelperButtonsFromLLMRow(),
-          const _ToggleButtons(),
+          const ToggleButtonsRow(),
           const HotShurtcutsWidget(),
           const InputField()
         ],
@@ -1116,14 +1116,14 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
   }
 }
 
-class _ToggleButtons extends StatefulWidget {
-  const _ToggleButtons({super.key});
+class ToggleButtonsRow extends StatefulWidget {
+  const ToggleButtonsRow({super.key});
 
   @override
-  State<_ToggleButtons> createState() => _ToggleButtonsState();
+  State<ToggleButtonsRow> createState() => _ToggleButtonsRowState();
 }
 
-class _ToggleButtonsState extends State<_ToggleButtons> {
+class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
@@ -1557,8 +1557,8 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
         checked: provider.scrollToBottomOnAnswer,
         style: ToggleButtonThemeData(
           checkedButtonStyle: ButtonStyle(
-            backgroundColor:
-                WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
+            backgroundColor: WidgetStateProperty.all(
+                context.theme.accentColor.withAlpha(128)),
           ),
           uncheckedButtonStyle: ButtonStyle(
               // padding: WidgetStateProperty.all(EdgeInsets.zero),

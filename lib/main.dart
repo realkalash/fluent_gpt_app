@@ -10,6 +10,7 @@ import 'package:fluent_gpt/main_page_with_navbar.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
@@ -365,6 +366,9 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
                 }
                 if (snapshot.data?.isShowingSidebarOverlay == true) {
                   return const SidebarOverlayUI();
+                }
+                if (snapshot.data?.isShowingSearchOverlay == true) {
+                  return const SearchOverlayUI();
                 }
                 return const MainPageWithNavigation();
               }),
