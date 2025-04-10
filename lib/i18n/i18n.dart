@@ -40,6 +40,14 @@ class I18n {
       'disable_tools_btn': 'Disable tools',
     },
     'ru': {
+      'Choose a hotkey': 'Выберите сочетание клавиш',
+      'Press a key combination to set a new hotkey (escape to cancel)': 'Нажмите сочетание клавиш, чтобы установить новую привязку клавиш (escape для отмены)',
+      'Current hotkey:': 'Текущая привязка клавиш:',
+      'This hotkey is already in use': 'Эта привязка клавиш уже используется',
+      'Hotkeys in use (click for details)': 'Горячие клавиши в использовании (нажмите для деталей)',
+      'Hotkeys in use': 'Горячие клавиши в использовании',
+
+
       'No microphone found': 'Микрофон не найден',
       'History enabled': 'История чата включена',
       'History disabled': 'История чата отключена',

@@ -214,4 +214,26 @@ class CustomPrompt {
       includeConversation: includeConversation ?? this.includeConversation,
     );
   }
+
+  CustomPrompt copyWithKey({
+    HotKey? hotkey,
+  }) {
+    return CustomPrompt(
+      id: id,
+      title: title,
+      prompt: prompt,
+      index: index,
+      iconCodePoint: iconCodePoint,
+      showInChatField: showInChatField,
+      showInOverlay: showInOverlay,
+      showInContextMenu: showInContextMenu,
+      showInHomePage: showInHomePage,
+      children: children,
+      hotkey: hotkey,
+      tags: tags,
+      silentHideWindowsAfterRun: silentHideWindowsAfterRun,
+      includeSystemPrompt: includeSystemPrompt,
+      includeConversation: includeConversation,
+    );
+  }
 }
