@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -217,7 +219,8 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
               Tooltip(
                 message:
-                    'If checked, the prompt will include system prompt with each activation'.tr,
+                    'If checked, the prompt will include system prompt with each activation'
+                        .tr,
                 child: CheckBoxTile(
                   isChecked: item.includeSystemPrompt,
                   onChanged: (p0) {
@@ -238,7 +241,8 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               ),
               Tooltip(
                 message:
-                    'If checked, the prompt will include ALL messages from the conversation with each activation'.tr,
+                    'If checked, the prompt will include ALL messages from the conversation with each activation'
+                        .tr,
                 child: CheckBoxTile(
                   isChecked: item.includeConversation,
                   onChanged: (p0) {
@@ -319,11 +323,17 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
                 IconButton(
                   icon: const Icon(FluentIcons.delete_24_filled),
                   onPressed: () {
-                    final newItem = item.copyWith(hotkey: null);
-                    final wasRegistered = hotKeyManager.registeredHotKeyList
-                        .any((element) => element == item.hotkey);
-                    if (wasRegistered) {
+                    final newItem = item.copyWithKey(hotkey: null);
+
+                    if (Platform.isMacOS) {
+                      // just unregister
                       hotKeyManager.unregister(item.hotkey!);
+                    } else {
+                      final wasRegistered = hotKeyManager.registeredHotKeyList
+                          .any((element) => element == item.hotkey);
+                      if (wasRegistered) {
+                        hotKeyManager.unregister(item.hotkey!);
+                      }
                     }
 
                     updateItem(newItem, context);

@@ -5,6 +5,8 @@ PODS:
     - FlutterMacOS
   - device_info_plus (0.0.1):
     - FlutterMacOS
+  - file_picker (0.0.1):
+    - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
   - FluentIcons (1.1.258):
@@ -38,7 +40,6 @@ PODS:
   - protocol_handler_macos (0.0.1):
     - FlutterMacOS
   - record_darwin (1.0.0):
-    - Flutter
     - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
@@ -60,6 +61,7 @@ DEPENDENCIES:
   - audioplayers_darwin (from `Flutter/ephemeral/.symlinks/plugins/audioplayers_darwin/macos`)
   - cryptography_flutter (from `Flutter/ephemeral/.symlinks/plugins/cryptography_flutter/macos`)
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - FluentIcons (= 1.1.258)
   - flutter_gpt_tokenizer (from `Flutter/ephemeral/.symlinks/plugins/flutter_gpt_tokenizer/macos`)
@@ -94,6 +96,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/cryptography_flutter/macos
   device_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
+  file_picker:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   flutter_gpt_tokenizer:
@@ -139,21 +143,22 @@ SPEC CHECKSUMS:
   audioplayers_darwin: dcad41de4fbd0099cb3749f7ab3b0cb8f70b810c
   cryptography_flutter: c9fa581b52e6fe19475432b6f44489c387f61e19
   device_info_plus: ce1b7762849d3ec103d0e0517299f2db7ad60720
+  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
   file_selector_macos: cc3858c981fe6889f364731200d6232dac1d812d
   FluentIcons: 7d6e501bf569ebd7257261fdcf20f359b4267e79
   flutter_gpt_tokenizer: 0d9e224c1ff3bc0ae48f802fc87258c08057350c
-  flutter_local_notifications: 7062189aabf7f50938a7b8b6614ffa97656eb0bf
+  flutter_local_notifications: 4ccab5b7a22835214a6672e3f9c5e8ae207dab36
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   HotKey: 400beb7caa29054ea8d864c96f5ba7e5b4852277
   hotkey_manager_macos: 1e2edb0c7ae4fe67108af44a9d3445de41404160
   irondash_engine_context: da62996ee25616d2f01bbeb85dc115d813359478
   keypress_simulator_macos: f8556f9101f9f2f175652e0bceddf0fe82a4c6b2
   macos_window_utils: 933f91f64805e2eb91a5bd057cf97cd097276663
-  package_info_plus: f5790acc797bf17c3e959e9d6cf162cc68ff7523
+  package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
   pasteboard: 9b69dba6fedbb04866be632205d532fe2f6b1d99
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   protocol_handler_macos: d10a6c01d6373389ffd2278013ab4c47ed6d6daa
-  record_darwin: df0a677188e5fed18472550298e675f19ddaffbe
+  record_darwin: a0d515a0ef78c440c123ea3ac76184c9927a94d6
   screen_retriever_macos: 776e0fa5d42c6163d2bf772d22478df4b302b161
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   super_native_extensions: 85efee3a7495b46b04befcfc86ed12069264ebf3
