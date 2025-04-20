@@ -1,6 +1,7 @@
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/web_result_custom_message.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
+import 'package:intl/intl.dart';
 import 'package:langchain/langchain.dart';
 
 class FluentChatMessage {
@@ -15,10 +16,17 @@ class FluentChatMessage {
   final String? fileName;
   final List<WebSearchResult>? webResults;
   final int timestamp;
+
+  String formatDate() {
+    final formatter = DateFormat('dd/MM/yyyy HH:mm:ss');
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return formatter.format(date);
+  }
   final int tokens;
   final FluentChatMessageType type;
   final bool useLowResImage = false;
   final List<String>? buttons;
+  final int? indexPin;
 
   bool get isTextMessage =>
       type == FluentChatMessageType.textHuman ||
@@ -37,7 +45,18 @@ class FluentChatMessage {
     this.fileName,
     this.webResults,
     this.buttons,
+    this.indexPin,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is FluentChatMessage && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode ^ content.hashCode ^ creator.hashCode;
 
   factory FluentChatMessage.system({
     required String id,
@@ -139,12 +158,14 @@ class FluentChatMessage {
     String? fileName,
     List<WebSearchResult>? webResults,
     String? imagePrompt,
+    int? indexPin,
     List<String>? buttons,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
       content: content ?? this.content,
       creator: creator ?? this.creator,
+      indexPin: indexPin ?? this.indexPin,
       timestamp: timestamp ?? this.timestamp,
       type: type ?? this.type,
       tokens: tokens ?? this.tokens,
@@ -156,6 +177,25 @@ class FluentChatMessage {
     );
   }
 
+  FluentChatMessage newPin({
+    required int? indexPin,
+  }) {
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      indexPin: indexPin,
+      timestamp: timestamp,
+      type: type,
+      tokens: tokens,
+      fileName: fileName,
+      path: path,
+      webResults: webResults,
+      buttons: buttons,
+      imagePrompt: imagePrompt,
+    );
+  }
+
   Map<String, Object> toJson() {
     return {
       'id': id,
@@ -164,6 +204,7 @@ class FluentChatMessage {
       'timestamp': timestamp,
       'type': type.index,
       'tokens': tokens,
+      if (indexPin != null) 'pin': indexPin!,
       if (imagePrompt != null) 'imagePrompt': imagePrompt!,
       if (path != null) 'path': path!,
       if (fileName != null) 'fileName': fileName!,
@@ -179,6 +220,7 @@ class FluentChatMessage {
       content: json['content'] as String,
       creator: json['creator'] as String,
       timestamp: json['timestamp'] as int,
+      indexPin: json['pin'] as int?,
       type: (json['type'] as int?)?.toEnum(FluentChatMessageType.values) ??
           FluentChatMessageType.textHuman,
       tokens: json['tokens'] as int,
@@ -314,6 +356,7 @@ class FluentChatMessage {
       webResults: webResults,
       buttons: buttons,
       imagePrompt: imagePrompt,
+      indexPin: indexPin,
     );
   }
 }

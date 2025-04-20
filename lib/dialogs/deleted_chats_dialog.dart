@@ -165,7 +165,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                             context.read<ChatProvider>().initChatsFromDisk();
                           }
                         },
-                        child: const Text('Restore'),
+                        child: Text('Restore'.tr),
                       ),
                       FilledRedButton(
                         onPressed: () async {
@@ -195,7 +195,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                             });
                           }
                         },
-                        child: const Text('Delete'),
+                        child:  Text('Delete'.tr),
                       ),
                     ],
                   ),

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:collection/collection.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/file_utils.dart';
@@ -43,6 +42,7 @@ mixin ChatProviderFoldersMixin on ChangeNotifier {
     final roomId = id;
     final fileContent = await FileUtils.getChatRoomMessagesFileById(roomId);
     final fileContentString = await fileContent.readAsString();
+    pinnedMessagesIndexes.clear();
 
     final chatRoomRaw = jsonDecode(fileContentString) as List<dynamic>;
     // id is the key
@@ -58,12 +58,22 @@ mixin ChatProviderFoldersMixin on ChangeNotifier {
               TrayCommand.show_dialog.name);
           break;
         }
-        roomMessages[id] = FluentChatMessage.fromJson(messageJson);
+        final message = FluentChatMessage.fromJson(messageJson);
+        roomMessages[id] = message;
+        if (message.indexPin != null) {
+          pinnedMessagesIndexes.add(message.indexPin!);
+        }
       } catch (e) {
         logError('Error while loading message from disk: $e');
       }
     }
-
+    if (pinnedMessagesIndexes.isNotEmpty) {
+      if (selectedChatRoom.systemMessage?.contains('{{pinnedMessages}}') !=
+          true) {
+        selectedChatRoom.systemMessage =
+            '${selectedChatRoom.systemMessage}\n{{pinnedMessages}}';
+      }
+    }
     messages.add(roomMessages);
     notifyListeners();
   }

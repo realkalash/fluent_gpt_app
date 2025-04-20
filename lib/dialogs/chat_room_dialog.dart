@@ -53,7 +53,10 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
     characterName = widget.room.characterName;
     characterAvatarPath = widget.room.characterAvatarPath;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      countTokens();
+      // to improve animation performance
+      Future.delayed(Duration(seconds: 1), () {
+        countTokens();
+      });
     });
   }
 

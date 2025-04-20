@@ -1051,7 +1051,7 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
                 checked: PushToTalkTool.isRecording,
                 padding: EdgeInsets.zero,
                 icon: ic.FluentIcons.mic_24_regular,
-                tooltip: 'Use voice input',
+                tooltip: 'Use voice input'.tr,
               ),
             ),
           );

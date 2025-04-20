@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 import 'custom_buttons.dart';
@@ -64,17 +65,17 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Are you sure?'),
+      title:  Text('Are you sure?'.tr),
       content: widget.message != null
           ? Text(widget.message!)
-          : const Text('This action cannot be undone.'),
+          : Text('This action cannot be undone.'.tr),
       actions: [
         Button(
           focusNode: focus,
           onPressed: () {
             Navigator.of(context).pop(false);
           },
-          child: const Text('Cancel'),
+          child: Text('Cancel'.tr),
         ),
         widget.isDelete
             ? FilledRedButton(
@@ -82,13 +83,13 @@ class _ConfirmationDialogState extends State<ConfirmationDialog> {
                   widget.onAcceptPressed?.call();
                   Navigator.of(context).pop(true);
                 },
-                child: const Text('Delete'))
+                child: Text('Delete'.tr))
             : FilledButton(
                 onPressed: () {
                   widget.onAcceptPressed?.call();
                   Navigator.of(context).pop(true);
                 },
-                child: const Text('Accept')),
+                child: Text('Accept'.tr)),
       ],
     );
   }

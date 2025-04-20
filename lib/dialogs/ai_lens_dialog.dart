@@ -710,11 +710,17 @@ class _AiLensDialogState extends State<AiLensDialog> {
 }
 
 class HoverListTile extends StatefulWidget {
-  const HoverListTile(
-      {super.key, this.backgroundColor, required this.child, this.onTap});
+  const HoverListTile({
+    super.key,
+    this.backgroundColor,
+    required this.child,
+    this.onTap,
+    this.cursor,
+  });
   final Color? backgroundColor;
   final Widget child;
   final VoidCallback? onTap;
+  final MouseCursor? cursor;
 
   @override
   State<HoverListTile> createState() => _HoverListTileState();
@@ -727,6 +733,7 @@ class _HoverListTileState extends State<HoverListTile> {
     final tileColor =
         widget.backgroundColor ?? context.theme.scaffoldBackgroundColor;
     return MouseRegion(
+      cursor: widget.cursor ?? SystemMouseCursors.none,
       onEnter: (_) {
         if (isHovering) return;
         setState(() {
@@ -741,8 +748,10 @@ class _HoverListTileState extends State<HoverListTile> {
       },
       child: GestureDetector(
         onTap: widget.onTap,
-        child: Container(
-          color: isHovering ? tileColor.withAlpha(127) : tileColor,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: isHovering ? tileColor.withAlpha(127) : tileColor,
+          ),
           child: widget.child,
         ),
       ),

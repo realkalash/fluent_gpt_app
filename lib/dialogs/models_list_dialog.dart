@@ -28,7 +28,7 @@ class _ModelsListDialog extends State<ModelsListDialog> {
     return ContentDialog(
       title: Row(
         children: [
-          const Text('Models List'),
+          Text('Models List'.tr),
           Spacer(),
           SqueareIconButton(
             onTap: () async {
@@ -45,7 +45,7 @@ class _ModelsListDialog extends State<ModelsListDialog> {
               }
             },
             icon: Icon(FluentIcons.add_24_filled),
-            tooltip: 'Add Model',
+            tooltip: 'Add'.tr,
           ),
         ],
       ),
@@ -167,19 +167,19 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
   Widget build(BuildContext context) {
     final ownedBy = model.ownedBy ?? '';
     return ContentDialog(
-      title: const Text('Add Model'),
+      title: Text('Add'.tr),
       content: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Custom Name'),
+            Text('Custom Name'.tr),
             TextFormBox(
               initialValue: model.customName,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a name';
+                  return 'Please enter a name'.tr;
                 }
                 return null;
               },
@@ -188,7 +188,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               },
             ),
             spacer,
-            Text('Model Name (Important. Case sensetive)'),
+            Text('Model Name (Important. Case sensetive)'.tr),
             AutoSuggestBox.form(
               key: autoSuggestOverlayController,
               items: [
@@ -206,7 +206,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               controller: autoSuggestController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a name';
+                  return 'Please enter a name'.tr;
                 }
                 return null;
               },
@@ -216,7 +216,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
             ),
             spacer,
             Checkbox(
-              content: const Text('Support images?'),
+              content: Text('Support images?'.tr),
               checked: model.imageSupported,
               onChanged: (value) {
                 model = model.copyWith(imageSupported: value);
@@ -224,7 +224,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               },
             ),
             spacer,
-            Text('Provider'),
+            Text('Provider'.tr),
             DropDownButton(
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -236,7 +236,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
                   const Icon(FluentIcons.chevron_down_20_regular),
                 ],
               ),
-              title: Text(ownedBy.isEmpty ? 'Select' : ownedBy),
+              title: Text(ownedBy.isEmpty ? 'Select'.tr : ownedBy),
               items: [
                 for (final item in ChatModelProviderBase.providersList)
                   MenuFlyoutItem(
@@ -273,15 +273,15 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               ],
             ),
             spacer,
-            Text('Url or Path'),
+            Text('Url'.tr),
             TextFormBox(
               controller: modelUriController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter a path';
+                  return 'Please enter a path'.tr;
                 }
                 if (value.endsWith('/')) {
-                  return 'Please remove the trailing "/"';
+                  return 'Please remove the trailing "/"'.tr;
                 }
                 return null;
               },
@@ -308,7 +308,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               },
             ),
             spacer,
-            Text('API Key'),
+            Text('API Key'.tr),
             TextFormBox(
               initialValue: model.apiKey,
               obscureText: obscureKey,
@@ -347,12 +347,12 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
             }
           },
           child: widget.initialModel == null
-              ? const Text('Add')
-              : const Text('Save'),
+              ? Text('Add'.tr)
+              : Text('Save'.tr),
         ),
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text('Cancel'.tr),
         ),
       ],
     );

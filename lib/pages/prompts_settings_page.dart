@@ -20,7 +20,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: const Text('Quick prompts'),
+      title: Text('Quick prompts'.tr),
       constraints: const BoxConstraints(maxWidth: 800),
       actions: [
         Button(
@@ -55,7 +55,7 @@ class CustomPromptsSettingsContainer extends StatelessWidget {
                 child: SizedBox(
                   width: 200,
                   child: FilledRedButton(
-                    child: const Text('Reset to default template'),
+                    child: Text('Reset to default template'.tr),
                     onPressed: () async {
                       final accept = await ConfirmationDialog.show(
                           context: context, isDelete: true);
@@ -133,7 +133,7 @@ class CustomPromptsSettingsContainer extends StatelessWidget {
               ),
               ListTile(
                 leading: const Icon(FluentIcons.add_24_filled),
-                title: const Text('Add new prompt'),
+                title: Text('Add new prompt'.tr),
                 onPressed: () {
                   final lenght = calcAllPromptsLenght();
                   final newPrompt = CustomPrompt(
@@ -149,7 +149,7 @@ class CustomPromptsSettingsContainer extends StatelessWidget {
                 },
               ),
               Expander(
-                header: const Text('Archived prompts'),
+                header: Text('Archived prompts'.tr),
                 content: StreamBuilder(
                     stream: archivedPrompts,
                     builder: (context, snapshot) {
@@ -262,7 +262,7 @@ class _PromptListTile extends StatelessWidget {
           ),
           if (prompt.children.isNotEmpty)
             Expander(
-              header: const Text('Sub-prompts'),
+              header: Text('Sub-prompts'.tr),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +276,7 @@ class _PromptListTile extends StatelessWidget {
                   // add new sub-prompt
                   ListTile(
                     leading: const Icon(FluentIcons.add_24_filled),
-                    title: const Text('Add new sub-prompt'),
+                    title: Text('Add new sub-prompt'.tr),
                     onPressed: () {
                       final lenght = calcAllPromptsLenght();
                       final newPrompt = CustomPrompt(
@@ -305,8 +305,8 @@ class _PromptListTile extends StatelessWidget {
           Wrap(
             spacing: 4,
             children: [
-              SizedBox.square(
-                dimension: 48,
+              SizedBox(
+                width: 64,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -319,12 +319,12 @@ class _PromptListTile extends StatelessWidget {
                         updateItem(newPrompt, prompt);
                       },
                     ),
-                    const Text('Chat field', style: TextStyle(fontSize: 10)),
+                    Text('Chat field'.tr, style: TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
-              SizedBox.square(
-                dimension: 48,
+              SizedBox(
+                width: 64,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -337,12 +337,11 @@ class _PromptListTile extends StatelessWidget {
                         updateItem(newPrompt, prompt);
                       },
                     ),
-                    const Text('Overlay', style: TextStyle(fontSize: 10)),
+                    Text('Overlay'.tr, style: TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
               SizedBox(
-                height: 48,
                 width: 64,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -356,7 +355,8 @@ class _PromptListTile extends StatelessWidget {
                         updateItem(newPrompt, prompt);
                       },
                     ),
-                    const Text('Context menu', style: TextStyle(fontSize: 10)),
+                    Text('Context menu'.tr,
+                        style: TextStyle(fontSize: 10), maxLines: 1),
                   ],
                 ),
               ),
@@ -369,8 +369,8 @@ class _PromptListTile extends StatelessWidget {
         children: [
           Tooltip(
             message: isArchived == false
-                ? 'Archive this prompt'
-                : 'Unarchive this prompt',
+                ? 'Archive this prompt'.tr
+                : 'Restore this prompt'.tr,
             child: IconButton(
               icon: Icon(FluentIcons.archive_24_filled, color: Colors.red),
               onPressed: () {
@@ -397,7 +397,7 @@ class _PromptListTile extends StatelessWidget {
           ),
           if (isArchived)
             Tooltip(
-              message: 'Delete this prompt',
+              message: 'Delete'.tr,
               child: IconButton(
                 icon: Icon(FluentIcons.delete_24_filled, color: Colors.red),
                 onPressed: () {

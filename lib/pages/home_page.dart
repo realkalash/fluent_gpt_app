@@ -16,6 +16,7 @@ import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/dialogs/cost_dialog.dart';
 import 'package:fluent_gpt/dialogs/edit_chat_drawer.dart';
 import 'package:fluent_gpt/dialogs/edit_conv_length_dialog.dart';
+import 'package:fluent_gpt/dialogs/pinned_messages_dialog.dart';
 import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -28,6 +29,7 @@ import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/drop_region.dart';
 import 'package:fluent_gpt/widgets/home_widgets/src.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/message_list_tile.dart';
 import 'package:fluent_gpt/shell_driver.dart';
@@ -78,6 +80,7 @@ class ChatRoomPage extends StatelessWidget {
                       fit: StackFit.expand,
                       children: [
                         ChatGPTContent(),
+                        PinnedMessagesRow(),
                         HomeDropOverlay(),
                         Positioned(
                           top: 0,
@@ -92,6 +95,71 @@ class ChatRoomPage extends StatelessWidget {
                 );
               });
         });
+  }
+}
+
+class PinnedMessagesRow extends StatelessWidget {
+  const PinnedMessagesRow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<ChatProvider>();
+    final pinnedMessages = pinnedMessagesIndexes;
+
+    final lastPinned = pinnedMessages.isNotEmpty
+        ? messagesReversedList.elementAtOrNull(pinnedMessages.last)
+        : null;
+    return AnimatedCrossFade(
+      duration: const Duration(milliseconds: 300),
+      firstChild: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            provider.scrollToMessage(lastPinned?.id ?? '');
+          },
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: Colors.black),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child:
+                      Icon(ic.FluentIcons.pin_20_filled, color: Colors.white),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Text(
+                      lastPinned?.content ?? '-'.tr,
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                if (pinnedMessages.length > 1)
+                  SqueareIconButtonSized(
+                    onTap: () {
+                      showDialog(
+                          context: context,
+                          builder: (ctx) => PinnedMessagesDialog());
+                    },
+                    icon: Text('${pinnedMessages.length}'),
+                    tooltip: 'Pinned messages'.tr,
+                    height: 20,
+                    width: 64,
+                    // width: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      secondChild: const SizedBox.shrink(),
+      crossFadeState: pinnedMessages.isNotEmpty
+          ? CrossFadeState.showFirst
+          : CrossFadeState.showSecond,
+    );
   }
 }
 
@@ -317,8 +385,11 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                         color: Colors.black.withAlpha(191),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(ic.FluentIcons.arrow_left_24_filled,
-                              size: 24),
+                          child: Icon(
+                            ic.FluentIcons.arrow_left_24_filled,
+                            size: 24,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -341,8 +412,11 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                         color: Colors.black.withAlpha(191),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(ic.FluentIcons.arrow_right_24_filled,
-                              size: 24),
+                          child: Icon(
+                            ic.FluentIcons.arrow_right_24_filled,
+                            size: 24,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -1034,6 +1108,12 @@ class ChatGPTContent extends StatefulWidget {
 }
 
 class _ChatGPTContentState extends State<ChatGPTContent> {
+  int screenSize = 800;
+  @override
+  void initState() {
+    super.initState();
+    screenSize = AppCache.windowHeight.value ?? 400;
+  }
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
@@ -1067,6 +1147,8 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     addAutomaticKeepAlives: false,
                     addRepaintBoundaries: true,
                     reverse: true,
+                    // twice the screen size to avoid flickering on scroll
+                    cacheExtent: (screenSize * 2).toDouble(),
                     itemBuilder: (context, index) {
                       final FluentChatMessage message =
                           reverseList.elementAt(index);

@@ -61,7 +61,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     children: [
                       Icon(FluentIcons.search_24_regular),
                       const SizedBox(width: 8),
-                      Text('Search'),
+                      Text('Search'.tr),
                     ],
                   ),
                 ),
@@ -72,7 +72,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   children: [
                     Expanded(child: Text('Chat rooms'.tr)),
                     Tooltip(
-                      message: 'Create new chat',
+                      message: 'Create new chat'.tr,
                       child: IconButton(
                           icon: const Icon(FluentIcons.compose_24_regular,
                               size: 20),
@@ -82,7 +82,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                           }),
                     ),
                     Tooltip(
-                      message: 'Create folder',
+                      message: 'Create folder'.tr,
                       child: IconButton(
                         icon: const Icon(FluentIcons.folder_add_24_regular,
                             size: 20),
@@ -94,7 +94,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                       ),
                     ),
                     Tooltip(
-                      message: 'Deleted chats',
+                      message: 'Deleted chats'.tr,
                       child: IconButton(
                         icon: const Icon(FluentIcons.bin_recycle_24_regular,
                             size: 20),
@@ -102,7 +102,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                       ),
                     ),
                     Tooltip(
-                      message: 'Storage usage',
+                      message: 'Storage usage'.tr,
                       child: IconButton(
                         icon: const Icon(FluentIcons.storage_24_regular,
                             size: 20),
@@ -110,7 +110,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                       ),
                     ),
                     Tooltip(
-                      message: 'Refresh from disk',
+                      message: 'Refresh from disk'.tr,
                       child: IconButton(
                         icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
                             size: 20),
@@ -164,16 +164,16 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     FluentPageRoute(builder: (context) => const AboutPage()),
                   ),
                 ),
-                if (kDebugMode)
-                  PaneItem(
-                    key: const ValueKey('/local'),
-                    icon: const Icon(FluentIcons.info_24_regular),
-                    title: Text('Local'.tr),
-                    body: const AboutPage(),
-                    onTap: () => Navigator.of(context).push(
-                      FluentPageRoute(builder: (context) => const AboutPage()),
-                    ),
-                  ),
+                // if (kDebugMode)
+                //   PaneItem(
+                //     key: const ValueKey('/local'),
+                //     icon: const Icon(FluentIcons.developer_board_16_filled),
+                //     title: Text('Local'.tr),
+                //     body: const AboutPage(),
+                //     onTap: () => Navigator.of(context).push(
+                //       FluentPageRoute(builder: (context) => const AboutPage()),
+                //     ),
+                //   ),
                 PaneItem(
                   key: const ValueKey('/log'),
                   icon: const Icon(FluentIcons.bug_24_regular),
@@ -313,7 +313,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 ),
                               ),
                               Tooltip(
-                                message: 'Pin/unpin chat',
+                                message: 'Pin/unpin chat'.tr,
                                 child: IconButton(
                                     icon: chatRoom.isPinned
                                         ? const Icon(FluentIcons.pin_24_filled,
@@ -332,7 +332,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               ),
                               if (!chatRoom.isFolder)
                                 Tooltip(
-                                  message: 'Edit chat',
+                                  message: 'Edit chat'.tr,
                                   child: IconButton(
                                       icon: const Icon(
                                         FluentIcons.chat_settings_24_regular,
@@ -347,7 +347,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                       }),
                                 ),
                               Tooltip(
-                                message: 'Delete chat',
+                                message: 'Delete chat'.tr,
                                 child: IconButton(
                                     icon: Icon(FluentIcons.delete_24_filled,
                                         color: Colors.red, size: 18),
@@ -407,7 +407,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             const SizedBox(height: 4),
                             Divider(),
                             FlyoutListTile(
-                              text: Text('Pin/unpin chat', style: TextStyle()),
+                              text: Text('Pin/unpin chat'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.pin_24_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
@@ -421,7 +421,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             Divider(),
                             if (chatRoom.isFolder)
                               FlyoutListTile(
-                                text: Text('Ungroup', style: TextStyle()),
+                                text: Text('Ungroup'.tr, style: TextStyle()),
                                 icon: Icon(FluentIcons.group_20_regular),
                                 onPressed: () {
                                   final provider = context.read<ChatProvider>();
@@ -433,7 +433,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             // if root we can create folder
                             if (widget.parentFolderId == null)
                               FlyoutListTile(
-                                text: Text('Create folder', style: TextStyle()),
+                                text: Text('Create folder'.tr, style: TextStyle()),
                                 icon: Icon(FluentIcons.folder_24_filled),
                                 onPressed: () {
                                   final provider = context.read<ChatProvider>();
@@ -446,7 +446,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 },
                               ),
                             FlyoutListTile(
-                              text: Text('Move to Folder', style: TextStyle()),
+                              text: Text('Move to Folder'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.folder_24_filled),
                               onPressed: () {
                                 Navigator.of(context).pop();
@@ -459,7 +459,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             ),
                             Divider(),
                             FlyoutListTile(
-                              text: Text('Edit chat', style: TextStyle()),
+                              text: Text('Edit chat'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.chat_settings_20_regular),
                               onPressed: () async {
                                 Navigator.of(context).pop();
@@ -471,7 +471,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text: Text('Duplicate chat', style: TextStyle()),
+                              text: Text('Duplicate chat'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.document_copy_20_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
@@ -482,7 +482,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text: Text('Delete chat',
+                              text: Text('Delete chat'.tr,
                                   style: TextStyle(color: Colors.red)),
                               icon: Icon(FluentIcons.delete_20_filled,
                                   color: Colors.red),

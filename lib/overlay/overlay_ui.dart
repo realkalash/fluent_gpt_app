@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
@@ -112,17 +113,6 @@ class _OverlayUIState extends State<OverlayUI> {
                         ],
                       ),
                     ),
-                    if (isSuperCompact == false)
-                      Positioned(
-                          left: 0,
-                          bottom: 0,
-                          child: IconButton(
-                            visualDensity: VisualDensity.compact,
-                            icon: isShowChatUI
-                                ? const Icon(Icons.arrow_circle_up_rounded)
-                                : const Icon(Icons.arrow_circle_down_rounded),
-                            onPressed: () => toggleChatVisibilityStream(),
-                          )),
                     Positioned(
                       top: isSuperCompact ? 7.0 : 0,
                       left: 4.0,
@@ -133,12 +123,28 @@ class _OverlayUIState extends State<OverlayUI> {
                           mainAxisAlignment: MainAxisAlignment.start,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SqueareIconButtonSized(
-                              height: openWindowIconSize,
-                              width: openWindowIconSize,
-                              onTap: () => OverlayManager.switchToMainWindow(),
-                              icon: const Icon(FluentIcons.open_20_filled),
-                              tooltip: 'Open main app',
+                            fluent.Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SqueareIconButtonSized(
+                                  height: openWindowIconSize,
+                                  width: openWindowIconSize,
+                                  onTap: () =>
+                                      OverlayManager.switchToMainWindow(),
+                                  icon: const Icon(FluentIcons.open_20_filled),
+                                  tooltip: 'Open main app'.tr,
+                                ),
+                                if (isSuperCompact == false)
+                                  SqueareIconButtonSized(
+                                    height: 24,
+                                    width: 24,
+                                    onTap: () => toggleChatVisibilityStream(),
+                                    icon: Icon(isShowChatUI
+                                        ? FluentIcons.arrow_up_24_filled
+                                        : FluentIcons.arrow_down_24_filled),
+                                    tooltip: 'Open chat'.tr,
+                                  ),
+                              ],
                             ),
                             if (isSuperCompact == false) ...[
                               ...customPrompts.value

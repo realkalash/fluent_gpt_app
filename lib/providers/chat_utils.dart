@@ -15,8 +15,6 @@ String modifyMessageStyle(String prompt) {
   return prompt;
 }
 
-
-
 ChatRoom generateDefaultChatroom({String? systemMessage}) {
   return ChatRoom(
     id: generateChatID(),

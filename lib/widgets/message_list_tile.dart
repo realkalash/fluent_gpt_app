@@ -28,6 +28,7 @@ import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/services.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:open_filex/open_filex.dart';
@@ -171,7 +172,7 @@ class _MessageCardState extends State<MessageCard> {
         child: GestureDetector(
           onSecondaryTap: () {
             flyoutController.showFlyout(
-              builder: (context) => _showOptionsFlyout(context),
+              builder: (context) => _showOptionsFlyout(),
               position: mouseLocalPosition,
             );
           },
@@ -244,6 +245,9 @@ class _MessageCardState extends State<MessageCard> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (widget.message.indexPin != null)
+                  Icon(ic.FluentIcons.pin_20_filled,
+                      size: 12, color: Colors.orange),
                 if (widget.message.type == FluentChatMessageType.image ||
                     widget.message.type == FluentChatMessageType.imageAi)
                   MouseRegion(
@@ -283,7 +287,7 @@ class _MessageCardState extends State<MessageCard> {
                         },
                         onMorePressed: () {
                           flyoutController.showFlyout(
-                            builder: (context) => _showOptionsFlyout(context),
+                            builder: (context) => _showOptionsFlyout(),
                             position: mouseLocalPosition,
                           );
                         },
@@ -316,7 +320,7 @@ class _MessageCardState extends State<MessageCard> {
                       },
                       onMorePressed: () {
                         flyoutController.showFlyout(
-                          builder: (context) => _showOptionsFlyout(context),
+                          builder: (context) => _showOptionsFlyout(),
                           position: mouseLocalPosition,
                         );
                       },
@@ -396,7 +400,8 @@ class _MessageCardState extends State<MessageCard> {
                       if (widget.message.content.isNotEmpty)
                         SelectableText(
                           widget.message.content,
-                          style: TextStyle(fontSize: widget.textSize.toDouble()),
+                          style:
+                              TextStyle(fontSize: widget.textSize.toDouble()),
                         ),
                       for (final result
                           in (widget.message.webResults ?? <WebSearchResult>[]))
@@ -459,19 +464,14 @@ class _MessageCardState extends State<MessageCard> {
                         )
                     ],
                   ),
-
-                /// BOTTOM
-                FluentTheme(
-                  data: FluentThemeData(
-                    typography: Typography.raw(
-                      body: TextStyle(
-                        fontSize: widget.textSize * 0.9,
-                        fontWeight: FontWeight.w200,
-                      ),
-                    ),
+                Text(
+                  '$formatDateTime, T: ${widget.message.tokens}',
+                  style: TextStyle(
+                    fontSize: widget.textSize * 0.9,
+                    fontWeight: FontWeight.w200,
+                    color: context.theme.typography.body?.color,
                   ),
-                  child: Text('$formatDateTime, T: ${widget.message.tokens}'),
-                )
+                ),
               ],
             ),
           ),
@@ -485,7 +485,7 @@ class _MessageCardState extends State<MessageCard> {
           GestureDetector(
             onSecondaryTap: () {
               flyoutController.showFlyout(
-                builder: (context) => _showOptionsFlyout(context),
+                builder: (context) => _showOptionsFlyout(),
                 position: mouseLocalPosition,
               );
             },
@@ -514,7 +514,7 @@ class _MessageCardState extends State<MessageCard> {
                           ClipboardData(text: widget.message.content));
                       displayCopiedToClipboard();
                     },
-                    tooltip: 'Copy',
+                    tooltip: 'Copy'.tr,
                   ),
                   SizedBox(width: 8),
                   FlyoutTarget(
@@ -523,10 +523,10 @@ class _MessageCardState extends State<MessageCard> {
                       icon: const Icon(FluentIcons.more_vertical_16_filled),
                       onTap: () {
                         flyoutController.showFlyout(
-                          builder: (context) => _showOptionsFlyout(context),
+                          builder: (ctx) => _showOptionsFlyout(),
                         );
                       },
-                      tooltip: 'More',
+                      tooltip: 'More'.tr,
                     ),
                   ),
                 ],
@@ -557,7 +557,7 @@ class _MessageCardState extends State<MessageCard> {
                         },
                       ),
                       SqueareIconButton(
-                        tooltip: 'Edit message',
+                        tooltip: 'Edit'.tr,
                         icon: const Icon(FluentIcons.edit_12_regular),
                         onTap: () {
                           _showEditMessageDialog(context, widget.message);
@@ -661,7 +661,7 @@ class _MessageCardState extends State<MessageCard> {
                       ),
                     ],
                     SqueareIconButton(
-                      tooltip: 'Copy to clipboard',
+                      tooltip: 'Copy'.tr,
                       icon: const Icon(FluentIcons.copy_16_regular),
                       onTap: () async {
                         if (widget.message.type ==
@@ -681,7 +681,7 @@ class _MessageCardState extends State<MessageCard> {
                       },
                     ),
                     SqueareIconButton(
-                      tooltip: 'Delete',
+                      tooltip: 'Delete'.tr,
                       icon:
                           Icon(FluentIcons.delete_16_filled, color: Colors.red),
                       onTap: () async {
@@ -695,10 +695,10 @@ class _MessageCardState extends State<MessageCard> {
                         icon: const Icon(FluentIcons.more_vertical_16_filled),
                         onTap: () {
                           flyoutController.showFlyout(
-                            builder: (context) => _showOptionsFlyout(context),
+                            builder: (context) => _showOptionsFlyout(),
                           );
                         },
-                        tooltip: 'More',
+                        tooltip: 'More'.tr,
                       ),
                     ),
                   ],
@@ -926,7 +926,7 @@ class _MessageCardState extends State<MessageCard> {
       }
       if (command.children.isNotEmpty) {
         items.add(MenuFlyoutSubItem(
-          text: Text(command.title),
+          text: Text(command.title.tr),
           leading: Icon(command.icon),
           items: (BuildContext context) {
             return _buildMenuItems(command.children, selectedText);
@@ -934,7 +934,7 @@ class _MessageCardState extends State<MessageCard> {
         ));
       } else {
         items.add(MenuFlyoutItem(
-          text: Text(command.title),
+          text: Text(command.title.tr),
           leading: Icon(command.icon),
           onPressed: () {
             final provider = context.read<ChatProvider>();
@@ -955,10 +955,26 @@ class _MessageCardState extends State<MessageCard> {
         items: _buildMenuItems(customPrompts.value, selectedText));
   }
 
-  MenuFlyout _showOptionsFlyout(BuildContext context) {
+  MenuFlyout _showOptionsFlyout() {
     final message = widget.message;
     return MenuFlyout(
       items: [
+        if (message.indexPin == null)
+          MenuFlyoutItem(
+              text: Text('Pin message'.tr),
+              leading: const Icon(FluentIcons.pin_20_filled),
+              onPressed: () {
+                final provider = context.read<ChatProvider>();
+                provider.pinMessage(message.id);
+              })
+        else
+          MenuFlyoutItem(
+              text: Text('Unpin message'.tr),
+              leading: const Icon(FluentIcons.pin_off_20_filled),
+              onPressed: () {
+                final provider = context.read<ChatProvider>();
+                provider.unpinMessage(message.id);
+              }),
         MenuFlyoutItem(
             text: Text('Shorter'.tr),
             leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
@@ -1038,7 +1054,7 @@ class _MessageCardState extends State<MessageCard> {
           ),
         ],
         MenuFlyoutSubItem(
-          text: const Text('Commands'),
+          text: Text('Commands'.tr),
           trailing: const Icon(FluentIcons.chevron_right_16_filled),
           items: (context) =>
               _buildMenuItems(customPrompts.value, widget.message.content),
@@ -1047,19 +1063,19 @@ class _MessageCardState extends State<MessageCard> {
             message.type == FluentChatMessageType.image) ...[
           const MenuFlyoutSeparator(),
           MenuFlyoutItem(
-            text: const Text('Save image to file'),
+            text: Text('Save image to file'.tr),
             leading: const Icon(FluentIcons.save_16_regular),
             onPressed: () => _saveImageToFile(context),
           ),
           MenuFlyoutItem(
-            text: const Text('Copy image'),
+            text: Text('Copy image'.tr),
             leading: const Icon(FluentIcons.copy_16_regular),
             onPressed: () => _copyImageToClipboard(context),
           ),
         ],
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-          text: const Text('New conversation branch from here'),
+          text: Text('New conversation branch from here'.tr),
           leading: const Icon(FluentIcons.branch_20_regular),
           onPressed: () {
             final provider = context.read<ChatProvider>();
@@ -1076,7 +1092,7 @@ class _MessageCardState extends State<MessageCard> {
           },
         ),
         MenuFlyoutItem(
-          text: Text('Delete everything above',
+          text: Text('Delete everything above'.tr,
               style: TextStyle(color: Colors.red)),
           leading: Icon(FluentIcons.arrow_up_exclamation_20_regular,
               color: Colors.red),
@@ -1088,7 +1104,7 @@ class _MessageCardState extends State<MessageCard> {
           },
         ),
         MenuFlyoutItem(
-          text: Text('Delete everything below',
+          text: Text('Delete everything below'.tr,
               style: TextStyle(color: Colors.red)),
           leading: Icon(FluentIcons.arrow_down_exclamation_20_regular,
               color: Colors.red),

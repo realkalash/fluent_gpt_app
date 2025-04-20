@@ -1,11 +1,9 @@
-
 import 'package:collection/collection.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
-import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/subjects.dart';
@@ -18,6 +16,9 @@ BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
     BehaviorSubject.seeded({});
 BehaviorSubject<List<OnMessageAction>> onMessageActions =
     BehaviorSubject.seeded([]);
+
+/// Indexes from original [messages] list where 0 is the oldest one and 999 is the newest
+List<int> pinnedMessagesIndexes = [];
 
 /// first is ID, second is ChatRoom
 Map<String, ChatRoom> get chatRooms => chatRoomsStream.valueOrNull ?? {};

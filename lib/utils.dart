@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/main.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
@@ -200,6 +202,47 @@ Future<String> getFormattedSystemPrompt(
     prompt += '\n\n$appendText';
   }
   return prompt;
+}
+
+String formatArgsInSystemPrompt(String prompt) {
+  /// TODO: implement this function to format the args in the system prompt
+  // final userName = AppCache.userName.value;
+  // final systemInfo = getSystemInfoString();
+  // infoAboutUser = await AppCache.userInfo.value();
+  // final userInfo = infoAboutUser;
+  // String formattedPrompt = prompt;
+  // formattedPrompt = formattedPrompt.replaceAll('{user_name}', userName);
+  // formattedPrompt = formattedPrompt.replaceAll('{system_info}', systemInfo);
+  // formattedPrompt =
+  //     formattedPrompt.replaceAll('{user_info}', infoAboutUser ?? '');
+  // return formattedPrompt;
+  // {{pinnedMessages}}
+
+  StringBuffer sb = StringBuffer();
+  // Split by any whitespace (space, tab, newline, etc.)
+  final words = prompt.split(RegExp(r'\s+'));
+  for (final word in words) {
+    if (word.isNotEmpty && word[0] == '{') {
+      if (word.contains('{{pinnedMessages}}')) {
+        _addPinnedMessages(sb, word);
+      }
+    } else if (word.isNotEmpty) {
+      sb.write('$word ');
+    }
+  }
+  return sb.toString();
+}
+
+void _addPinnedMessages(StringBuffer sb, String word) {
+  /// Indexes from [reversedMessagesList] list where 0 is the oldest one and 999 is the newest
+  final pinnedMessages = pinnedMessagesIndexes;
+  sb.writeln('\nPinned:');
+  int i = 0;
+  for (final index in pinnedMessages) {
+    final message = messagesReversedList[index];
+    sb.writeln('$i: ${message.content}. By: ${message.creator}');
+    i++;
+  }
 }
 
 extension ListExtension<T> on List<T> {

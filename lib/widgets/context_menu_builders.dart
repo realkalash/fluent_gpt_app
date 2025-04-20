@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, SelectableRegion;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
@@ -40,7 +41,7 @@ class ContextMenuBuilders {
               children: [
                 if (selectedText.isNotEmpty)
                   FlyoutListTile(
-                    text: Text('Copy'),
+                    text: Text('Copy'.tr),
                     icon: Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
@@ -50,7 +51,7 @@ class ContextMenuBuilders {
                     },
                   ),
                 FlyoutListTile(
-                  text: Text('Select all'),
+                  text: Text('Select all'.tr),
                   icon: Icon(FluentIcons.select_object_skew_20_regular),
                   onPressed: () {
                     editableTextState.selectAll(SelectionChangedCause.tap);
@@ -63,7 +64,7 @@ class ContextMenuBuilders {
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('Improve "$selectedText"',
+                    text: Text('${'Improve'.tr} "$selectedText"',
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
@@ -73,7 +74,7 @@ class ContextMenuBuilders {
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('Quote "$selectedText"',
+                    text: Text('${'Quote'.tr} "$selectedText"',
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
@@ -88,7 +89,7 @@ class ContextMenuBuilders {
                   child: Divider(),
                 ),
                 FlyoutListTile(
-                  text: Text('Commands'),
+                  text: Text('Commands'.tr),
                   trailing: Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onShowCommandsPressed(selectedText);
@@ -96,7 +97,7 @@ class ContextMenuBuilders {
                   },
                 ),
                 FlyoutListTile(
-                  text: Text('More'),
+                  text: Text('More'.tr),
                   trailing: Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onMorePressed();
@@ -132,7 +133,7 @@ class ContextMenuBuilders {
   }) {
     final anchor = editableTextState.contextMenuAnchors.primaryAnchor;
     selectedText =
-        editableTextState.currentLastSelectedContent?.plainText ?? '';
+        editableTextState.currentSelectable?.getSelectedContent()?.plainText ?? '';
     return Stack(
       fit: StackFit.passthrough,
       children: [
@@ -148,7 +149,7 @@ class ContextMenuBuilders {
               children: [
                 if (editableTextState.copyEnabled)
                   FlyoutListTile(
-                    text: Text('Copy'),
+                    text: Text('Copy'.tr),
                     icon: Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
@@ -158,7 +159,7 @@ class ContextMenuBuilders {
                     },
                   ),
                 FlyoutListTile(
-                  text: Text('Select all'),
+                  text: Text('Select all'.tr),
                   icon: Icon(FluentIcons.select_object_skew_20_regular),
                   onPressed: () {
                     editableTextState.selectAll(SelectionChangedCause.tap);
@@ -171,7 +172,7 @@ class ContextMenuBuilders {
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('Improve "$selectedText"',
+                    text: Text('${'Improve'.tr} "$selectedText"',
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
@@ -181,7 +182,7 @@ class ContextMenuBuilders {
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('Quote "$selectedText"',
+                    text: Text('${'Quote'.tr} "$selectedText"',
                         maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
@@ -195,7 +196,7 @@ class ContextMenuBuilders {
                   child: Divider(),
                 ),
                 FlyoutListTile(
-                  text: Text('Commands'),
+                  text: Text('Commands'.tr),
                   trailing: Icon(FluentIcons.chevron_right_20_regular),
                   onPressed: () {
                     onShowCommandsPressed(selectedText);
@@ -203,7 +204,7 @@ class ContextMenuBuilders {
                   },
                 ),
                 FlyoutListTile(
-                  text: Text('More'),
+                  text: Text('More'.tr),
                   trailing: Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onMorePressed();

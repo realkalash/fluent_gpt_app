@@ -32,6 +32,13 @@ class ChatRoom {
   int? totalSentTokens;
   int? totalReceivedTokens;
   int? seed;
+  /// Contains system prompt. Sample:
+  /// ```string
+  /// "You are a helpful assistant.
+  /// User name: {{userName}}
+  /// User city: {{userCity}}
+  /// {{pinnedMessages}}
+  /// "```
   String? systemMessage;
   int? systemMessageTokensCount;
   String characterName;

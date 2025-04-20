@@ -256,6 +256,16 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                     });
                   },
                 ),
+                ToggleButton(
+                  checked: true,
+                  child: _expandSystemMessage
+                      ? const Icon(FluentIcons.chevron_up_20_regular)
+                      : const Icon(FluentIcons.chevron_down_20_regular),
+                  onChanged: (v) {
+                    final output = formatArgsInSystemPrompt(selectedChatRoom.systemMessage ?? '');
+                    print(output);
+                  },
+                ),
               ]),
               spacer,
               _GridChildRow(

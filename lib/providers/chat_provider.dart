@@ -7,7 +7,6 @@ import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
-import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/excel_to_json.dart';
@@ -982,7 +981,11 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       if (selectedChatRoom.systemMessage?.isNotEmpty == true &&
           useSystemPrompt) {
         messagesToSend.insert(
-            0, SystemChatMessage(content: selectedChatRoom.systemMessage!));
+          0,
+          SystemChatMessage(
+            content: formatArgsInSystemPrompt(selectedChatRoom.systemMessage!),
+          ),
+        );
       }
       // if (messages.value.length > 1)
       // messagesToSend.insert(
@@ -994,7 +997,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         final systemMessage = await getFormattedSystemPrompt(
           basicPrompt: selectedChatRoom.systemMessage!,
         );
-        messagesToSend.add(SystemChatMessage(content: systemMessage));
+        messagesToSend.add(SystemChatMessage(
+            content: formatArgsInSystemPrompt(systemMessage)));
       }
 
       if (messageContent.isNotEmpty)
@@ -1109,6 +1113,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         } else if (selectedChatRoom.model.ownedBy == OwnedByEnum.claude.name) {
           throw Exception('Claude is not supported yet');
           // TODO: add more models
+        }
+        for (var message in messagesToSend) {
+          print('message: ${message.toString()}');
         }
         responseStream = localModel!
             .stream(PromptValue.chat(messagesToSend), options: options);
@@ -2447,7 +2454,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     return deleteChatRoom(room.id);
   }
 
-
   void toggleWebSearch() {
     isWebSearchEnabled = !isWebSearchEnabled;
     notifyListeners();
@@ -2504,6 +2510,13 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> scrollToMessage(String messageKey) async {
     final index = indexOf(messagesReversedList, messages.value[messageKey]);
     blinkMessageId = messageKey;
+    await listItemsScrollController.scrollToIndex(index);
+    notifyListeners();
+  }
+
+  /// Index in reversed list
+  Future<void> scrollToIndex(int index) async {
+    blinkMessageId = messagesReversedList[index].id;
     await listItemsScrollController.scrollToIndex(index);
     notifyListeners();
   }
@@ -2607,6 +2620,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     micStream = null;
   }
 
+  /// Replace the message with the new one. Recover the tokens if textHuman or textAi
   Future editMessage(String id, FluentChatMessage message) async {
     if (message.type == FluentChatMessageType.textHuman ||
         message.type == FluentChatMessageType.textAi) {
@@ -3032,9 +3046,65 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     notifyListeners();
   }
 
-  void shortenMessage(String id) {}
+  void shortenMessage(String id) {
+    final message = messages.value[id];
+    sendSingleMessage(
+      'Please shorten the following text while keeping all the essential information and key points intact. Remove any unnecessary details or repetition:'
+      '\n"${message?.content}"',
+    );
+  }
 
-  void lengthenMessage(String id) {}
+  void lengthenMessage(String id) {
+    final message = messages.value[id];
+    sendSingleMessage(
+      'Please expand the following text by providing more details and explanations. Make the text more specific and elaborate on the key points, while keeping it clear and understandable'
+      '\n"${message?.content}"',
+    );
+  }
+
+  void pinMessage(String messageId) {
+    final message = messages.value[messageId];
+    if (message == null) return;
+    if (message.indexPin != null) {
+      return;
+    }
+    if (pinnedMessagesIndexes.contains(message.indexPin ?? -1)) {
+      return;
+    }
+
+    /// "some prompt {{pinnedMessages}}". We remove tag to get clear prompt
+    final currentSysPrompt =
+        selectedChatRoom.systemMessage!.replaceAll('\n{{pinnedMessages}}', '');
+
+    final messageIndex = messagesReversedList
+        .indexOf(FluentChatMessage.ai(id: messageId, content: ''));
+    if (messageIndex == -1) return;
+    final pinnedMessage = message.copyWith(indexPin: messageIndex);
+
+    /// modify sys prompt to add "{{pinnedMessages}}" back
+    StringBuffer sb = StringBuffer();
+    sb.write(currentSysPrompt);
+    sb.write('\n{{pinnedMessages}}');
+    selectedChatRoom.systemMessage = sb.toString();
+    pinnedMessagesIndexes.add(messageIndex);
+    editMessage(messageId, pinnedMessage);
+    notifyListeners();
+  }
+
+  /// modify sys prompt to remove "{{pinnedMessages}}"
+  void unpinMessage(String messageId) {
+    final message = messages.value[messageId];
+    if (message == null) return;
+    if (message.indexPin == null) return;
+    final newMessage = message.newPin(indexPin: null);
+    editMessage(messageId, newMessage);
+    pinnedMessagesIndexes.remove(message.indexPin!);
+    if (pinnedMessagesIndexes.isEmpty) {
+      selectedChatRoom.systemMessage = selectedChatRoom.systemMessage!
+          .replaceAll('\n{{pinnedMessages}}', '');
+    }
+    notifyListeners();
+  }
 }
 
 enum MesssageListTileButtons {
