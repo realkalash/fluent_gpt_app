@@ -12,6 +12,7 @@ import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 class FilledRedButton extends StatelessWidget {
   const FilledRedButton({

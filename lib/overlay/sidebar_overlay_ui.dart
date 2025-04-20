@@ -9,6 +9,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -22,7 +23,6 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../providers/chat_provider.dart';
 import '../widgets/input_field.dart';
 import '../widgets/message_list_tile.dart';
 

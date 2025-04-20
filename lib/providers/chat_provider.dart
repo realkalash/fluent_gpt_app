@@ -38,6 +38,9 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
+import 'package:fluent_gpt/providers/chat_provider_folders_mixin.dart';
+import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -62,114 +65,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../common/last_deleted_message.dart';
 
-ChatOpenAI? openAI;
-ChatOpenAI? localModel;
-
-/// First is ID, second is ChatRoom
-BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =
-    BehaviorSubject.seeded({});
-BehaviorSubject<List<OnMessageAction>> onMessageActions =
-    BehaviorSubject.seeded([]);
-
-/// first is ID, second is ChatRoom
-Map<String, ChatRoom> get chatRooms => chatRoomsStream.valueOrNull ?? {};
-
-/// key is date, value is list of chat rooms
-Map<String, List<ChatRoom>> get chatRoomsGrouped {
-  final grouped = groupBy(chatRooms.values, (ChatRoom chatRoom) {
-    if (chatRoom.isPinned) return 'Pinned';
-    final date =
-        DateTime.fromMillisecondsSinceEpoch(chatRoom.dateModifiedMilliseconds);
-    return '${date.day}/${date.month}/${date.year}';
-  });
-  return grouped;
-}
-
-BehaviorSubject<String> selectedChatRoomIdStream =
-    BehaviorSubject.seeded('Default');
-String get selectedChatRoomId => selectedChatRoomIdStream.value;
-set selectedChatRoomId(String v) => selectedChatRoomIdStream.add(v);
-
-ChatModelAi get selectedModel =>
-    chatRooms[selectedChatRoomId]?.model ??
-    (allModels.value.isNotEmpty
-        ? allModels.value.first
-        : const ChatModelAi(modelName: 'Unknown', apiKey: ''));
-ChatRoom get selectedChatRoom {
-  final fastSearchItem = chatRooms[selectedChatRoomId];
-  if (fastSearchItem != null) return fastSearchItem;
-  if (chatRooms.values.isEmpty == true) {
-    return _generateDefaultChatroom();
-  }
-  // next we search in all chats
-  final allRooms = getChatRoomsRecursive(chatRooms.values.toList());
-  for (var chatRoom in allRooms) {
-    if (chatRoom.id == selectedChatRoomId) {
-      return chatRoom;
-    }
-  }
-  return chatRooms.values.first;
-}
-
-double get temp => chatRooms[selectedChatRoomId]?.temp ?? 0.9;
-int get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
-int get promptBatchSize =>
-    chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
-double get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
-int get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
-double get repeatPenalty =>
-    chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
-
-/// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
-BehaviorSubject<Map<String, FluentChatMessage>> messages =
-    BehaviorSubject.seeded({});
-
-/// This list is only for the UI part. It's reversed to show the messages from the bottom and we have separate list for keys to optimize memory usage
-List<FluentChatMessage> messagesReversedList = [];
-
-/// conversation lenght style. Will be appended to the prompt
-BehaviorSubject<ConversationLengthStyleEnum> conversationLenghtStyleStream =
-    BehaviorSubject.seeded(ConversationLengthStyleEnum.normal);
-
-/// conversation style. Will be appended to the prompt
-BehaviorSubject<ConversationStyleEnum> conversationStyleStream =
-    BehaviorSubject.seeded(ConversationStyleEnum.normal);
-
-String modifyMessageStyle(String prompt) {
-  if (conversationLenghtStyleStream.value !=
-      ConversationLengthStyleEnum.normal) {
-    prompt += ' ${conversationLenghtStyleStream.value.prompt}';
-  }
-
-  if (conversationStyleStream.value != ConversationStyleEnum.normal) {
-    prompt += ' ${conversationStyleStream.value.prompt}';
-  }
-  return prompt;
-}
-
-String removeMessageTagsFromPrompt(String message, String tagsStr) {
-  String newContent = message;
-  final tags = tagsStr.split(';');
-  if (tags.isEmpty) return message;
-  for (var tag in tags) {
-    final lenghtStyle = ConversationLengthStyleEnum.fromName(tag);
-    final style = ConversationStyleEnum.fromName(tag);
-    if (lenghtStyle != null) {
-      newContent = newContent.replaceAll(lenghtStyle.prompt ?? '', '');
-      continue;
-    }
-    if (style != null) {
-      newContent = newContent.replaceAll(style.prompt ?? '', '');
-      continue;
-    }
-    newContent = newContent.replaceAll(tag, '');
-  }
-  return newContent;
-}
-
-final allModels = BehaviorSubject<List<ChatModelAi>>.seeded([]);
-
-class ChatProvider with ChangeNotifier {
+class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   final listItemsScrollController = AutoScrollController();
   static final TextEditingController messageControllerGlobal =
       TextEditingController();
@@ -277,28 +173,6 @@ class ChatProvider with ChangeNotifier {
     scrollToBottomOnAnswer = !scrollToBottomOnAnswer;
   }
 
-  /// if [rooms] list is 1 element and it's current chat room, it will save messages to disk
-  Future<void> saveToDisk(List<ChatRoom> rooms) async {
-    if (rooms.length == 1) {
-      if (rooms.first.id == selectedChatRoomId) {
-        // if it's current chat room, save messages
-        final messagesRaw = <Map<String, dynamic>>[];
-        for (var message in messages.value.entries) {
-          /// add key and message.toJson
-          messagesRaw.add(message.value.toJson());
-        }
-        await FileUtils.saveChatMessages(
-            rooms.first.id, jsonEncode(messagesRaw));
-      }
-    }
-    for (var chatRoom in rooms) {
-      var chatRoomRaw = chatRoom.toJson();
-      final path = await FileUtils.getChatRoomsPath();
-      await FileUtils.saveFile(
-          '$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
-    }
-  }
-
   Future<void> initChatsFromDisk() async {
     final path = await FileUtils.getChatRoomsPath();
     final files = FileUtils.getFilesRecursive(path);
@@ -326,7 +200,7 @@ class ChatProvider with ChangeNotifier {
         }
         // root level check to load messages
         if (chatRoom.id == selectedChatRoomId) {
-          _loadMessagesFromDisk(selectedChatRoomId);
+          loadMessagesFromDisk(selectedChatRoomId);
         } else if (chatRoom.children != null) {
           // We allow only 2 levels deep
           for (var subItem in chatRoom.children!) {
@@ -335,13 +209,13 @@ class ChatProvider with ChangeNotifier {
               for (var subSubItem in subItem.children!) {
                 if (subSubItem.id == selectedChatRoomId) {
                   selectedChatRoomId = chatRoom.id;
-                  _loadMessagesFromDisk(selectedChatRoomId);
+                  loadMessagesFromDisk(selectedChatRoomId);
                 }
               }
             } else if (subItem.id == selectedChatRoomId) {
               // 1 deep level check level check to load mesages
               selectedChatRoomId = chatRoom.id;
-              _loadMessagesFromDisk(selectedChatRoomId);
+              loadMessagesFromDisk(selectedChatRoomId);
             }
           }
         }
@@ -363,14 +237,14 @@ class ChatProvider with ChangeNotifier {
       }
     }
     if (chatRooms.isEmpty) {
-      final newChatRoom = _generateDefaultChatroom();
+      final newChatRoom = generateDefaultChatroom();
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
     }
     // safety check if does not contain selected chat room
     if (!chatRooms.containsKey(selectedChatRoomId)) {
       selectedChatRoomId = chatRooms.entries.first.key;
-      _loadMessagesFromDisk(selectedChatRoomId);
+      loadMessagesFromDisk(selectedChatRoomId);
     }
     selectedChatRoomId = selectedChatRoomId;
     if (openAI == null &&
@@ -2176,40 +2050,6 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void notifyRoomsStream() {
-    final sortedChatRooms = chatRoomsStream.value.values.toList()
-      ..sort((a, b) {
-        if (a.indexSort == b.indexSort) {
-          return b.dateModifiedMilliseconds
-              .compareTo(a.dateModifiedMilliseconds);
-        }
-        return a.indexSort.compareTo(b.indexSort);
-      });
-
-    sortChatRoomChildren(sortedChatRooms);
-
-    chatRoomsStream.add(
-      {
-        for (var e in sortedChatRooms) (e).id: e,
-      },
-    );
-  }
-
-  void sortChatRoomChildren(List<ChatRoom> chatRooms) {
-    for (var chatRoom in chatRooms) {
-      if (chatRoom.isFolder && chatRoom.children != null) {
-        chatRoom.children!.sort((a, b) {
-          if (a.indexSort == b.indexSort) {
-            return b.dateModifiedMilliseconds
-                .compareTo(a.dateModifiedMilliseconds);
-          }
-          return a.indexSort.compareTo(b.indexSort);
-        });
-        sortChatRoomChildren(chatRoom.children!);
-      }
-    }
-  }
-
   void selectNewModel(ChatModelAi model) {
     if (chatRooms[selectedChatRoomId] == null) {
       // create new chat Room
@@ -2289,7 +2129,7 @@ class ChatProvider with ChangeNotifier {
 
     messages.add({});
 
-    await _loadMessagesFromDisk(room.id);
+    await loadMessagesFromDisk(room.id);
     totalSentTokens = room.totalSentTokens ?? 0;
     totalReceivedTokens = room.totalReceivedTokens ?? 0;
     totalReceivedForCurrentChat.add(totalReceivedTokens);
@@ -2327,7 +2167,7 @@ class ChatProvider with ChangeNotifier {
     chatRooms.remove(chatRoomId);
     // if last one - create a default one
     if (chatRooms.isEmpty) {
-      final newChatRoom = _generateDefaultChatroom(
+      final newChatRoom = generateDefaultChatroom(
         systemMessage: await getFormattedSystemPrompt(
             basicPrompt: defaultGlobalSystemMessage),
       );
@@ -2367,7 +2207,7 @@ class ChatProvider with ChangeNotifier {
     });
     if (chatRoomId == selectedChatRoomId) {
       selectedChatRoomId = chatRooms.keys.first;
-      await _loadMessagesFromDisk(selectedChatRoomId);
+      await loadMessagesFromDisk(selectedChatRoomId);
     }
   }
 
@@ -2406,22 +2246,6 @@ class ChatProvider with ChangeNotifier {
     saveToDisk([chatRoom]);
   }
 
-  // void sendResultOfRunningShellCode(String result) {
-  //   messages[lastTimeAnswer] = ({
-  //     'role': Role.assistant.name,
-  //     'content':
-  //         'Result: \n${result.trim().isEmpty ? 'Done. No output' : '```plaintext\n$result```'}',
-  //   });
-  //   notifyRoomsStream();
-  //   saveToDisk([selectedChatRoom]);
-  //   // scroll to bottom
-  //   listItemsScrollController.animateTo(
-  //     listItemsScrollController.position.maxScrollExtent + 200,
-  //     duration: const Duration(milliseconds: 400),
-  //     curve: Curves.easeOut,
-  //   );
-  // }
-
   List<LastDeletedMessage> lastDeletedMessage = [];
 
   void deleteMessage(String id, [bool showInfo = true]) {
@@ -2432,6 +2256,10 @@ class ChatProvider with ChangeNotifier {
         LastDeletedMessage(messageChatRoomId: id, message: removedVal),
         ...lastDeletedMessage,
       ];
+      // optimize the list to keep only 10 last deleted messages
+      if (lastDeletedMessage.length > 10) {
+        lastDeletedMessage = lastDeletedMessage.sublist(0, 10);
+      }
 
       messages.add(_messages);
       saveToDisk([selectedChatRoom]);
@@ -2619,50 +2447,6 @@ class ChatProvider with ChangeNotifier {
     return deleteChatRoom(room.id);
   }
 
-  void shortenMessage(String id) {
-    final message = messages.value[id];
-    sendSingleMessage(
-      'Please shorten the following text while keeping all the essential information and key points intact. Remove any unnecessary details or repetition:'
-      '\n"${message?.content}"',
-    );
-  }
-
-  void lengthenMessage(String id) {
-    final message = messages.value[id];
-    sendSingleMessage(
-      'Please expand the following text by providing more details and explanations. Make the text more specific and elaborate on the key points, while keeping it clear and understandable'
-      '\n"${message?.content}"',
-    );
-  }
-
-  Future _loadMessagesFromDisk(String id) async {
-    final roomId = id;
-    final fileContent = await FileUtils.getChatRoomMessagesFileById(roomId);
-    final fileContentString = await fileContent.readAsString();
-
-    final chatRoomRaw = jsonDecode(fileContentString) as List<dynamic>;
-    // id is the key
-    final roomMessages = <String, FluentChatMessage>{};
-    for (var messageJson in chatRoomRaw) {
-      try {
-        final id = messageJson['id'] as String;
-        final timestamp = messageJson['timestamp'] as int?;
-        // if is not containing 'timestamp' break the loop and ask to upgrade
-        if (timestamp == null) {
-          onTrayButtonTapCommand(
-              'You use deprecated chat format. Please go to the settings page->Application storage location->Import old chats in deprecated format',
-              TrayCommand.show_dialog.name);
-          break;
-        }
-        roomMessages[id] = FluentChatMessage.fromJson(messageJson);
-      } catch (e) {
-        logError('Error while loading message from disk: $e');
-      }
-    }
-
-    messages.add(roomMessages);
-    notifyListeners();
-  }
 
   void toggleWebSearch() {
     isWebSearchEnabled = !isWebSearchEnabled;
@@ -2844,36 +2628,6 @@ class ChatProvider with ChangeNotifier {
 
     saveToDisk([selectedChatRoom]);
     notifyListeners();
-  }
-
-  Future<void> createNewBranchFromLastMessage(String id) async {
-    final listNewMessages = <String, FluentChatMessage>{};
-    for (var message in messages.value.entries) {
-      // All messages are sorted. So if we face the message with the same id, we add it and stop
-      if (message.key == id) {
-        listNewMessages[message.key] = message.value;
-        break;
-      }
-      listNewMessages[message.key] = message.value;
-    }
-    // create new chat room with new messages
-    final chatRoomName = '${selectedChatRoom.chatRoomName}*';
-    final newChatId = generateChatID();
-    final newChatRoom = selectedChatRoom.copyWith(
-      id: newChatId,
-      chatRoomName: chatRoomName,
-      dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
-    );
-    final chatRooms = chatRoomsStream.value;
-    chatRooms[newChatId] = newChatRoom;
-    chatRoomsStream.add(chatRooms);
-    selectedChatRoomId = newChatId;
-    messages.add(listNewMessages);
-    notifyRoomsStream();
-    saveToDisk([newChatRoom]);
-    // wait until the new chat room is created and opened
-    await Future.delayed(const Duration(milliseconds: 300));
-    await scrollToEnd(withDelay: false);
   }
 
   Future continueMessage(String id) async {
@@ -3160,45 +2914,6 @@ class ChatProvider with ChangeNotifier {
     saveToDisk(chatRoomsStream.value.values.toList());
   }
 
-  void moveChatRoomToParentFolder(ChatRoom chatRoom) {
-    final chatRooms =
-        getChatRoomsFoldersRecursive(chatRoomsStream.value.values.toList());
-    final chRooms = chatRoomsStream.value;
-    final parent = chatRooms.firstWhereOrNull(
-        (element) => element.children!.any((e) => e.id == chatRoom.id));
-    if (parent != null) {
-      parent.children!.removeWhere((element) => element.id == chatRoom.id);
-      chRooms[parent.id] = parent;
-      chRooms[chatRoom.id] = chatRoom;
-      chatRoomsStream.add(chRooms);
-      // delete files because we already have them in the other folder
-      FileUtils.getChatRoomFilePath(chatRoom.id).then((path) {
-        FileUtils.deleteFile(path);
-      });
-      notifyRoomsStream();
-      saveToDisk(chatRoomsStream.value.values.toList());
-    }
-  }
-
-  void ungroupByFolder(ChatRoom chatFolder) {
-    // get all children from folder
-    // remove folder
-    // paste children to the main list
-    final chatRooms = chatRoomsStream.value;
-    final folder = chatFolder;
-    final children = folder.children!;
-    chatRooms.removeWhere((key, value) => value.id == folder.id);
-    // delete file
-    FileUtils.getChatRoomFilePath(folder.id)
-        .then((path) => FileUtils.deleteFile(path));
-    for (var child in children) {
-      chatRooms[child.id] = child;
-    }
-    chatRoomsStream.add(chatRooms);
-    notifyRoomsStream();
-    saveToDisk(chatRoomsStream.value.values.toList());
-  }
-
   Future<void> recalculateTokensFromLocalMessages(
       [bool showPromptToOverride = true]) async {
     var _sentTokens = 0;
@@ -3312,51 +3027,16 @@ class ChatProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void notifyUI() {
+    notifyListeners();
+  }
+
+  void shortenMessage(String id) {}
+
+  void lengthenMessage(String id) {}
 }
 
 enum MesssageListTileButtons {
   disable_tools_btn,
-}
-
-List<ChatRoom> getChatRoomsFoldersRecursive(List<ChatRoom> chatRooms) {
-  final folders = <ChatRoom>[];
-  for (var chatRoom in chatRooms) {
-    if (chatRoom.isFolder) {
-      folders.add(chatRoom);
-      if (chatRoom.children != null) {
-        folders.addAll(getChatRoomsFoldersRecursive(chatRoom.children!));
-      }
-    }
-  }
-  return folders;
-}
-
-List<ChatRoom> getChatRoomsRecursive(List<ChatRoom> chatRooms) {
-  final folders = <ChatRoom>[];
-  for (var chatRoom in chatRooms) {
-    folders.add(chatRoom);
-    if (chatRoom.children != null) {
-      folders.addAll(getChatRoomsRecursive(chatRoom.children!));
-    }
-  }
-  return folders;
-}
-
-ChatRoom _generateDefaultChatroom({String? systemMessage}) {
-  return ChatRoom(
-    id: generateChatID(),
-    chatRoomName: 'Default',
-    model: selectedModel,
-    temp: temp,
-    topk: topk,
-    promptBatchSize: promptBatchSize,
-    topP: topP,
-    systemMessageTokensCount: 0,
-    totalReceivedTokens: 0,
-    totalSentTokens: 0,
-    maxTokenLength: maxTokenLenght,
-    repeatPenalty: repeatPenalty,
-    systemMessage: '',
-    dateCreatedMilliseconds: DateTime.now().millisecondsSinceEpoch,
-  );
 }

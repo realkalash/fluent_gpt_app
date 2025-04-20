@@ -1,7 +1,7 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
-import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:langchain/langchain.dart';

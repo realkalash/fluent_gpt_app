@@ -7,6 +7,7 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';

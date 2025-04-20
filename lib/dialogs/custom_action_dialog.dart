@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart';
