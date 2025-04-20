@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/prompts_templates.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
@@ -10,7 +9,7 @@ import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
-import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
 import 'package:flutter/material.dart';

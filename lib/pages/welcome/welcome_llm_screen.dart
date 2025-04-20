@@ -6,6 +6,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 class WelcomeLLMConfigPage extends StatefulWidget {
   const WelcomeLLMConfigPage({super.key});

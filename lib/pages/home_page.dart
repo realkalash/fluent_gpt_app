@@ -21,6 +21,7 @@ import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
@@ -43,6 +44,7 @@ import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import '../providers/chat_provider.dart';
 
@@ -1337,7 +1339,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                           .first,
                 );
                 chatRooms[selectedChatRoomId] = editedChatRoom;
-                chatProvider.notifyRoomsStream();
+                notifyRoomsStream();
               },
               tooltip: 'Use memory about the user'.tr,
             ),

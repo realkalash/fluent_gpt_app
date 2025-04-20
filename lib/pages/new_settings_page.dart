@@ -52,6 +52,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_info2/system_info2.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import 'settings_page.dart';
 

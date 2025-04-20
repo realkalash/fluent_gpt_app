@@ -6,6 +6,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:provider/provider.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 class CommandRequestAnswerOverlay extends StatefulWidget {
   const CommandRequestAnswerOverlay({

@@ -10,6 +10,7 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -147,7 +148,7 @@ class _OverlayUIState extends State<SearchOverlayUI> {
 }
 
 class _InputField extends StatefulWidget {
-  const _InputField({super.key});
+  const _InputField();
 
   @override
   State<_InputField> createState() => _InputFieldState();
@@ -463,7 +464,7 @@ class _InputFieldState extends State<_InputField> {
 }
 
 class _LoadingIndicator extends StatelessWidget {
-  const _LoadingIndicator({super.key});
+  const _LoadingIndicator();
 
   @override
   Widget build(BuildContext context) {
@@ -487,7 +488,7 @@ class _LoadingIndicator extends StatelessWidget {
 }
 
 class _MessagesList extends StatelessWidget {
-  const _MessagesList({super.key});
+  const _MessagesList();
 
   @override
   Widget build(BuildContext context) {

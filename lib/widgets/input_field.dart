@@ -41,6 +41,7 @@ import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import '../providers/chat_provider.dart';
 
@@ -973,7 +974,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
 }
 
 class MicrophoneButton extends StatefulWidget {
-  const MicrophoneButton();
+  const MicrophoneButton({super.key});
 
   @override
   State<MicrophoneButton> createState() => _MicrophoneButtonState();
@@ -1248,7 +1249,7 @@ class AddFileButton extends StatelessWidget {
 }
 
 class _FileThumbnail extends StatelessWidget {
-  const _FileThumbnail({super.key});
+  const _FileThumbnail();
 
   @override
   Widget build(BuildContext context) {
