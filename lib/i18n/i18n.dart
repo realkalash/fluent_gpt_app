@@ -40,6 +40,7 @@ class I18n {
       'disable_tools_btn': 'Disable tools',
     },
     'ru': {
+      '% overflow. Click here to go to the last visible to AI message': '% переполнение. Нажмите здесь, чтобы перейти к последнему видимому ИИ сообщению',
       'Archive this prompt': 'Архивировать этот промпт',
       'Restore this prompt': 'Восстановить этот промпт',
       'Context menu': 'Контекстное меню',
@@ -359,6 +360,8 @@ class I18n {
       'Pin/unpin chat': 'Закрепить/открепить чат',
     },
     'es': {
+      'Tokens in field': 'Tokens en el campo',
+      '% overflow. Click here to go to the last visible to AI message': '% desbordamiento. Haga clic aquí para ir al último mensaje visible para la IA',
       'Pin/unpin chat': 'Fijar/desfijar chat',
       'Duplicate chat': 'Duplicar chat',
       'Delete chat': 'Eliminar chat',

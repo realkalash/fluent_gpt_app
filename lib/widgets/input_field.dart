@@ -550,7 +550,7 @@ class _InputFieldState extends State<InputField> {
                         GestureDetector(
                           onTap: chatProvider.scrollToLastOverflowMessage,
                           child: Text(
-                            '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}% overflow. Click here to go to the last overflow message  ',
+                            '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}${'% overflow. Click here to go to the last visible to AI message'.tr}  ',
                             style: context.theme.typography.caption?.copyWith(
                               color: context.theme.typography.caption?.color
                                   ?.withAlpha(127),
@@ -558,7 +558,7 @@ class _InputFieldState extends State<InputField> {
                           ),
                         ),
                       if (tokensInInputField > 0)
-                        Text('Tokens in field: $tokensInInputField',
+                        Text('${'Tokens in field'.tr}: $tokensInInputField',
                             style: context.theme.typography.caption),
                     ],
                   ),

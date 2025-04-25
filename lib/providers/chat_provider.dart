@@ -200,6 +200,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         // root level check to load messages
         if (chatRoom.id == selectedChatRoomId) {
           loadMessagesFromDisk(selectedChatRoomId);
+          totalSentTokens = chatRoom.totalSentTokens ?? 0;
+          totalReceivedTokens = chatRoom.totalReceivedTokens ?? 0;
+          totalReceivedForCurrentChat.add(totalReceivedTokens);
         } else if (chatRoom.children != null) {
           // We allow only 2 levels deep
           for (var subItem in chatRoom.children!) {
@@ -603,7 +606,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final chatRoom =
         chatRooms[selectedChatRoomId] ?? chatRooms.entries.first.value;
 
-    chatRoom.chatRoomName = newName.removeWrappedQuotes;
+    chatRoom.chatRoomName = newName.removeWrappedQuotes.split('\n').first;
     if (applyIcon) {
       final words = newName.split(' ');
       for (var word in words) {
@@ -611,12 +614,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           chatRoom.iconCodePoint = tagToIconMap[word.toLowerCase()]!.codePoint;
           break;
         }
-        // for (var entry in tagToIconMap.entries) {
-        //   if (entry.key.contains(word.toLowerCase())) {
-        //     chatRoom.iconCodePoint = entry.value.codePoint;
-        //     break;
-        //   }
-        // }
       }
     }
     selectedChatRoomIdStream.add(selectedChatRoomId);
@@ -2255,8 +2252,15 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   List<LastDeletedMessage> lastDeletedMessage = [];
 
-  void deleteMessage(String id, [bool showInfo = true]) {
+  /// Returns index of the deleted message in the reversed list.
+  int? deleteMessage(String id, [bool showInfo = true]) {
     final _messages = messages.value;
+    final indexOfMessage =
+        messagesReversedList.indexWhere((element) => element.id == id);
+    if (indexOfMessage == -1) {
+      if (showInfo) displayErrorInfoBar(title: 'Message not found');
+      return null;
+    }
     final removedVal = _messages.remove(id);
     if (removedVal != null) {
       lastDeletedMessage = [
@@ -2283,9 +2287,11 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           ),
         );
       }
+      return indexOfMessage;
     } else {
       if (showInfo) displayErrorInfoBar(title: 'Message not found');
     }
+    return null;
   }
 
   void revertDeletedMessage() {
@@ -2340,6 +2346,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   Future<void> addMessageSystem(String message) async {
+    if (message.trimLeft().isEmpty) return;
     final value = messages.value;
     final timeStamp = DateTime.now().millisecondsSinceEpoch;
     final tokens = await countTokensString(message);
