@@ -203,6 +203,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           totalSentTokens = chatRoom.totalSentTokens ?? 0;
           totalReceivedTokens = chatRoom.totalReceivedTokens ?? 0;
           totalReceivedForCurrentChat.add(totalReceivedTokens);
+          totalTokensByMessages = totalSentTokens + totalReceivedTokens;
         } else if (chatRoom.children != null) {
           // We allow only 2 levels deep
           for (var subItem in chatRoom.children!) {
