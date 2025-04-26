@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
-import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/keyboard_shortcuts/intents.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
@@ -27,10 +26,10 @@ import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
-import 'package:fluent_gpt/widgets/wiget_constants.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:open_filex/open_filex.dart';
@@ -130,10 +129,10 @@ class _MessageCardState extends State<MessageCard> {
   Color? backgroundColor;
   bool isEditing = false;
   TextEditingController? textEditingController;
-  final focusNode = FocusNode();
   FocusNode? textEditingFocus;
-  var isFocused = false;
-
+  bool isFocused = false;
+  String? selectedContent;
+  final FocusNode focusNode = FocusNode();
   @override
   void initState() {
     super.initState();
@@ -175,7 +174,6 @@ class _MessageCardState extends State<MessageCard> {
 
     if (widget.message.type == FluentChatMessageType.system)
       return Focus(
-        focusNode: focusNode,
         autofocus: false,
         descendantsAreTraversable: false,
         descendantsAreFocusable: true,
@@ -336,7 +334,39 @@ class _MessageCardState extends State<MessageCard> {
                     context,
                     widget.message.content,
                     textSize: widget.textSize.toDouble(),
-                    contextMenuBuilder: (ctx, state) {
+                    focusNode: FocusNode(descendantsAreTraversable: false),
+                    onSelectionChanged: (text) {
+                      selectedContent = text?.plainText;
+                    },
+                    contextMenuBuilder: (ctx, state) =>
+                        ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                      ctx,
+                      state,
+                      onShowCommandsPressed: (text) {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showCommandsFlyout(text),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onMorePressed: () {
+                        flyoutController.showFlyout(
+                          builder: (context) => _showOptionsFlyout(),
+                          position: mouseLocalPosition,
+                        );
+                      },
+                      onQuoteSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.messageController.text =
+                            provider.messageController.text += '"$text" ';
+                        promptTextFocusNode.requestFocus();
+                      },
+                      onImproveSelectedText: (text) {
+                        final provider = context.read<ChatProvider>();
+                        provider.sendMessage('Improve writing: "$text"',
+                            hidePrompt: true);
+                      },
+                    ),
+                    contextMenuBuilderMarkdown: (ctx, state) {
                       return ContextMenuBuilders
                           .markdownChatMessageContextMenuBuilder(
                         context,
@@ -585,245 +615,82 @@ class _MessageCardState extends State<MessageCard> {
                 FocusScope.of(context).requestFocus(focusNode);
                 return;
               }
-              final indexOfDeleted = provider.deleteMessage(widget.message.id);
+              provider.deleteMessage(widget.message.id);
               // ignore: use_build_context_synchronously
               FocusScope.of(context).nextFocus();
               return null;
             },
           ),
         },
-        child: Focus(
-          focusNode: focusNode,
-          autofocus: false,
-          descendantsAreTraversable: false,
-          descendantsAreFocusable: true,
-          onFocusChange: (value) {
-            if (isFocused == value) return;
-            setState(() {
-              isFocused = value;
-            });
+        child: Listener(
+          behavior: HitTestBehavior.deferToChild,
+          onPointerDown: (event) async {
+            // if right click - ignore
+            if (event.buttons == kSecondaryMouseButton) {
+              return;
+            }
+            FocusScope.of(context).unfocus(
+                disposition: UnfocusDisposition.previouslyFocusedChild);
+            // ideal delay to unfocus the previous tile, but still not loose focus on current one
+            await Future.delayed(Duration(milliseconds: 1));
+            // even if we are focused on current one, since we unfocused unknown previous one we need to focus on current one again
+            FocusManager.instance.primaryFocus?.requestFocus(focusNode);
           },
-          child: Stack(
-            children: [
-              GestureDetector(
-                onSecondaryTap: () {
-                  flyoutController.showFlyout(
-                    builder: (context) => _showOptionsFlyout(),
-                    position: mouseLocalPosition,
-                  );
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: EdgeInsets.only(bottom: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                    color: backgroundColor ??
-                        context.theme.cardColor.withAlpha(127),
-                    border: Border.all(
-                      color: isFocused
-                          ? context.theme.accentColor.withAlpha(127)
-                          : Colors.transparent,
-                      width: 2,
+          child: Focus(
+            focusNode: focusNode,
+            autofocus: false,
+            descendantsAreTraversable: false,
+            descendantsAreFocusable: true,
+            canRequestFocus: true,
+            onFocusChange: (value) async {
+              if (isFocused == value) return;
+              setState(() {
+                isFocused = value;
+              });
+            },
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onSecondaryTap: () {
+                    flyoutController.showFlyout(
+                      builder: (context) => _showOptionsFlyout(),
+                      position: mouseLocalPosition,
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      color: backgroundColor ??
+                          context.theme.cardColor.withAlpha(127),
+                      border: Border.all(
+                        color: isFocused
+                            ? context.theme.accentColor.withAlpha(127)
+                            : Colors.transparent,
+                        width: 2,
+                      ),
                     ),
+                    child: tileWidget,
                   ),
-                  child: tileWidget,
                 ),
-              ),
-              if (widget.isCompactMode)
-                Positioned(
-                  right: 16,
-                  top: 8,
-                  child: Row(
-                    children: [
-                      //copy button
-                      SqueareIconButton(
-                        icon: const Icon(FluentIcons.copy_16_regular),
-                        onTap: () {
-                          Clipboard.setData(
-                              ClipboardData(text: widget.message.content));
-                          displayCopiedToClipboard();
-                        },
-                        tooltip: 'Copy'.tr,
-                      ),
-                      SizedBox(width: 8),
-                      FlyoutTarget(
-                        controller: flyoutController,
-                        child: SqueareIconButton(
-                          icon: const Icon(FluentIcons.more_vertical_16_filled),
-                          onTap: () {
-                            flyoutController.showFlyout(
-                              builder: (ctx) => _showOptionsFlyout(),
-                            );
-                          },
-                          tooltip: 'More'.tr,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Positioned(
-                  right: 16,
-                  bottom: 8,
-                  child: Focus(
-                    canRequestFocus: false,
-                    descendantsAreFocusable: false,
-                    descendantsAreTraversable: false,
-                    child: Wrap(
-                      spacing: 4,
+                if (widget.isCompactMode)
+                  Positioned(
+                    right: 16,
+                    top: 8,
+                    child: Row(
                       children: [
-                        if (widget.message.isTextMessage) ...[
-                          SqueareIconButton(
-                            tooltip:
-                                _isMarkdownView ? 'Show text' : 'Show markdown',
-                            icon:
-                                const Icon(FluentIcons.paint_brush_12_regular),
-                            onTap: () {
-                              AppCache.isMarkdownViewEnabled.value =
-                                  !_isMarkdownView;
-                              setState(() {
-                                _isMarkdownView = !_isMarkdownView;
-                              });
-                            },
-                          ),
-                          SqueareIconButton(
-                            tooltip: 'Edit'.tr,
-                            icon: const Icon(FluentIcons.edit_12_regular),
-                            onTap: () {
-                              // _showEditMessageDialog(context, widget.message);
-                              _toggleEditing();
-                            },
-                          ),
-                          // only for the last 2 items
-                          if (widget.indexMessage < 2)
-                            SqueareIconButton(
-                              tooltip: 'Regenerate message',
-                              icon: widget.message.isTextFromMe
-                                  ? const Icon(
-                                      FluentIcons.arrow_down_12_regular)
-                                  : const Icon(FluentIcons
-                                      .arrow_counterclockwise_16_filled),
-                              onTap: () {
-                                final provider = context.read<ChatProvider>();
-                                final indexInReversedList = messagesReversedList
-                                    .indexOf(widget.message);
-                                provider.regenerateMessage(widget.message,
-                                    indexInReversedList: indexInReversedList);
-                              },
-                            ),
-                          SqueareIconButton(
-                            tooltip: 'Read aloud (Requires Speech API)',
-                            icon: _isLoadingReadAloud
-                                ? ProgressRing()
-                                : TextToSpeechService.isReadingAloud
-                                    ? Icon(
-                                        FluentIcons.stop_24_filled,
-                                        color: context.theme.accentColor,
-                                      )
-                                    : const Icon(FluentIcons
-                                        .sound_wave_circle_24_regular),
-                            onTap: () async {
-                              if (TextToSpeechService.isValid() == false) {
-                                displayInfoBar(context, builder: (ctx, close) {
-                                  return InfoBar(
-                                    severity: InfoBarSeverity.warning,
-                                    title: Text(
-                                        '${TextToSpeechService.serviceName} API key is not set'),
-                                    action: Button(
-                                        child: Text('Settings'.tr),
-                                        onPressed: () {
-                                          Navigator.of(context).push(
-                                            FluentPageRoute(builder: (context) {
-                                              return const NewSettingsPage();
-                                            }),
-                                          );
-                                        }),
-                                  );
-                                });
-                                return;
-                              }
-                              if (TextToSpeechService.isReadingAloud) {
-                                TextToSpeechService.stopReadingAloud();
-                              } else {
-                                try {
-                                  setState(() {
-                                    _isLoadingReadAloud = true;
-                                  });
-                                  await TextToSpeechService.readAloud(
-                                    widget.message.content,
-                                    onCompleteReadingAloud: () {
-                                      setState(() {
-                                        _isLoadingReadAloud = false;
-                                      });
-                                    },
-                                  );
-                                  setState(() {
-                                    _isLoadingReadAloud = false;
-                                  });
-                                } catch (e) {
-                                  setState(() {
-                                    _isLoadingReadAloud = false;
-                                  });
-                                  if (e is DeadlineExceededException) {
-                                    // ignore: use_build_context_synchronously
-                                    displayInfoBar(context,
-                                        builder: (ctx, close) {
-                                      return InfoBar(
-                                        severity: InfoBarSeverity.error,
-                                        title: Text(
-                                            'Timeout exceeded. Please try again later.'),
-                                      );
-                                    });
-                                  } else {
-                                    // ignore: use_build_context_synchronously
-                                    displayInfoBar(context,
-                                        builder: (ctx, close) {
-                                      return InfoBar(
-                                        severity: InfoBarSeverity.error,
-                                        title: Text('$e'),
-                                      );
-                                    });
-
-                                    rethrow;
-                                  }
-                                }
-                              }
-                              await Future.delayed(
-                                  const Duration(milliseconds: 100));
-                              setState(() {});
-                            },
-                          ),
-                        ],
+                        //copy button
                         SqueareIconButton(
-                          tooltip: 'Copy'.tr,
                           icon: const Icon(FluentIcons.copy_16_regular),
-                          onTap: () async {
-                            if (widget.message.type ==
-                                    FluentChatMessageType.image ||
-                                widget.message.type ==
-                                    FluentChatMessageType.imageAi) {
-                              {
-                                final bytes =
-                                    decodeImage(widget.message.content);
-                                await Pasteboard.writeImage(bytes);
-                                displayCopiedToClipboard();
-                                return;
-                              }
-                            }
+                          onTap: () {
                             Clipboard.setData(
                                 ClipboardData(text: widget.message.content));
                             displayCopiedToClipboard();
                           },
+                          tooltip: 'Copy'.tr,
                         ),
-                        SqueareIconButton(
-                          tooltip: 'Delete'.tr,
-                          icon: Icon(FluentIcons.delete_16_filled,
-                              color: Colors.red),
-                          onTap: () async {
-                            final provider = context.read<ChatProvider>();
-                            provider.deleteMessage(widget.message.id);
-                          },
-                        ),
+                        SizedBox(width: 8),
                         FlyoutTarget(
                           controller: flyoutController,
                           child: SqueareIconButton(
@@ -831,7 +698,7 @@ class _MessageCardState extends State<MessageCard> {
                                 const Icon(FluentIcons.more_vertical_16_filled),
                             onTap: () {
                               flyoutController.showFlyout(
-                                builder: (context) => _showOptionsFlyout(),
+                                builder: (ctx) => _showOptionsFlyout(),
                               );
                             },
                             tooltip: 'More'.tr,
@@ -839,9 +706,193 @@ class _MessageCardState extends State<MessageCard> {
                         ),
                       ],
                     ),
+                  )
+                else
+                  Positioned(
+                    right: 16,
+                    bottom: 8,
+                    child: Focus(
+                      canRequestFocus: false,
+                      descendantsAreFocusable: false,
+                      descendantsAreTraversable: false,
+                      child: Wrap(
+                        spacing: 4,
+                        children: [
+                          if (widget.message.isTextMessage) ...[
+                            SqueareIconButton(
+                              tooltip: _isMarkdownView
+                                  ? 'Show text'
+                                  : 'Show markdown',
+                              icon: const Icon(
+                                  FluentIcons.paint_brush_12_regular),
+                              onTap: () {
+                                AppCache.isMarkdownViewEnabled.value =
+                                    !_isMarkdownView;
+                                setState(() {
+                                  _isMarkdownView = !_isMarkdownView;
+                                });
+                              },
+                            ),
+                            SqueareIconButton(
+                              tooltip: 'Edit'.tr,
+                              icon: const Icon(FluentIcons.edit_12_regular),
+                              onTap: () {
+                                // _showEditMessageDialog(context, widget.message);
+                                _toggleEditing();
+                              },
+                            ),
+                            // only for the last 2 items
+                            if (widget.indexMessage < 2)
+                              SqueareIconButton(
+                                tooltip: 'Regenerate message',
+                                icon: widget.message.isTextFromMe
+                                    ? const Icon(
+                                        FluentIcons.arrow_down_12_regular)
+                                    : const Icon(FluentIcons
+                                        .arrow_counterclockwise_16_filled),
+                                onTap: () {
+                                  final provider = context.read<ChatProvider>();
+                                  final indexInReversedList =
+                                      messagesReversedList
+                                          .indexOf(widget.message);
+                                  provider.regenerateMessage(widget.message,
+                                      indexInReversedList: indexInReversedList);
+                                },
+                              ),
+                            SqueareIconButton(
+                              tooltip: 'Read aloud (Requires Speech API)',
+                              icon: _isLoadingReadAloud
+                                  ? ProgressRing()
+                                  : TextToSpeechService.isReadingAloud
+                                      ? Icon(
+                                          FluentIcons.stop_24_filled,
+                                          color: context.theme.accentColor,
+                                        )
+                                      : const Icon(FluentIcons
+                                          .sound_wave_circle_24_regular),
+                              onTap: () async {
+                                if (TextToSpeechService.isValid() == false) {
+                                  displayInfoBar(context,
+                                      builder: (ctx, close) {
+                                    return InfoBar(
+                                      severity: InfoBarSeverity.warning,
+                                      title: Text(
+                                          '${TextToSpeechService.serviceName} API key is not set'),
+                                      action: Button(
+                                          child: Text('Settings'.tr),
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              FluentPageRoute(
+                                                  builder: (context) {
+                                                return const NewSettingsPage();
+                                              }),
+                                            );
+                                          }),
+                                    );
+                                  });
+                                  return;
+                                }
+                                if (TextToSpeechService.isReadingAloud) {
+                                  TextToSpeechService.stopReadingAloud();
+                                } else {
+                                  try {
+                                    setState(() {
+                                      _isLoadingReadAloud = true;
+                                    });
+                                    await TextToSpeechService.readAloud(
+                                      widget.message.content,
+                                      onCompleteReadingAloud: () {
+                                        setState(() {
+                                          _isLoadingReadAloud = false;
+                                        });
+                                      },
+                                    );
+                                    setState(() {
+                                      _isLoadingReadAloud = false;
+                                    });
+                                  } catch (e) {
+                                    setState(() {
+                                      _isLoadingReadAloud = false;
+                                    });
+                                    if (e is DeadlineExceededException) {
+                                      // ignore: use_build_context_synchronously
+                                      displayInfoBar(context,
+                                          builder: (ctx, close) {
+                                        return InfoBar(
+                                          severity: InfoBarSeverity.error,
+                                          title: Text(
+                                              'Timeout exceeded. Please try again later.'),
+                                        );
+                                      });
+                                    } else {
+                                      // ignore: use_build_context_synchronously
+                                      displayInfoBar(context,
+                                          builder: (ctx, close) {
+                                        return InfoBar(
+                                          severity: InfoBarSeverity.error,
+                                          title: Text('$e'),
+                                        );
+                                      });
+
+                                      rethrow;
+                                    }
+                                  }
+                                }
+                                await Future.delayed(
+                                    const Duration(milliseconds: 100));
+                                setState(() {});
+                              },
+                            ),
+                          ],
+                          SqueareIconButton(
+                            tooltip: 'Copy'.tr,
+                            icon: const Icon(FluentIcons.copy_16_regular),
+                            onTap: () async {
+                              if (widget.message.type ==
+                                      FluentChatMessageType.image ||
+                                  widget.message.type ==
+                                      FluentChatMessageType.imageAi) {
+                                {
+                                  final bytes =
+                                      decodeImage(widget.message.content);
+                                  await Pasteboard.writeImage(bytes);
+                                  displayCopiedToClipboard();
+                                  return;
+                                }
+                              }
+                              Clipboard.setData(
+                                  ClipboardData(text: widget.message.content));
+                              displayCopiedToClipboard();
+                            },
+                          ),
+                          SqueareIconButton(
+                            tooltip: 'Delete'.tr,
+                            icon: Icon(FluentIcons.delete_16_filled,
+                                color: Colors.red),
+                            onTap: () async {
+                              final provider = context.read<ChatProvider>();
+                              provider.deleteMessage(widget.message.id);
+                            },
+                          ),
+                          FlyoutTarget(
+                            controller: flyoutController,
+                            child: SqueareIconButton(
+                              icon: const Icon(
+                                  FluentIcons.more_vertical_16_filled),
+                              onTap: () {
+                                flyoutController.showFlyout(
+                                  builder: (context) => _showOptionsFlyout(),
+                                );
+                              },
+                              tooltip: 'More'.tr,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -863,7 +914,7 @@ class _MessageCardState extends State<MessageCard> {
       textEditingController = null;
       // focusScope.unfocus();
       final focusScope = FocusScope.of(context);
-      focusScope.requestFocus(focusNode);
+      focusScope.requestFocus(focusScope);
     } else {
       textEditingFocus?.requestFocus();
     }
@@ -1076,14 +1127,6 @@ class _MessageCardState extends State<MessageCard> {
         ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-          text: Text('Delete'.tr, style: TextStyle(color: Colors.red)),
-          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
-          onPressed: () {
-            final provider = context.read<ChatProvider>();
-            provider.deleteMessage(widget.message.id);
-          },
-        ),
-        MenuFlyoutItem(
           text: Text('Delete everything above'.tr,
               style: TextStyle(color: Colors.red)),
           leading: Icon(FluentIcons.arrow_up_exclamation_20_regular,
@@ -1105,6 +1148,14 @@ class _MessageCardState extends State<MessageCard> {
             await provider.deleteMessagesBelow(widget.message.id);
             // ignore: use_build_context_synchronously
             Navigator.of(context).maybePop();
+          },
+        ),
+        MenuFlyoutItem(
+          text: Text('Delete'.tr, style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.deleteMessage(widget.message.id);
           },
         ),
       ],

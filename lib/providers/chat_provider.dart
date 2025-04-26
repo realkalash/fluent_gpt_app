@@ -2975,7 +2975,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> deleteMessagesAbove(String id) async {
     final confirmed = await ConfirmationDialog.show(
         context: context!,
-        message: 'Everything above will be deleted in current chat');
+        message: 'Everything above will be deleted in current chat'.tr);
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -2991,7 +2991,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> deleteMessagesBelow(String id) async {
     final confirmed = await ConfirmationDialog.show(
         context: context!,
-        message: 'Everything below will be deleted in current chat');
+        message: 'Everything below will be deleted in current chat'.tr);
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();

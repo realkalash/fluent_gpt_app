@@ -1107,13 +1107,26 @@ class ChatGPTContent extends StatefulWidget {
   State<ChatGPTContent> createState() => _ChatGPTContentState();
 }
 
+FocusScopeNode? messagesFocusScopeNode;
+
 class _ChatGPTContentState extends State<ChatGPTContent> {
   int screenSize = 800;
   @override
   void initState() {
     super.initState();
     screenSize = AppCache.windowHeight.value ?? 400;
+    messagesFocusScopeNode = FocusScopeNode(
+      debugLabel: 'MessagesListScope',
+    );
   }
+
+  @override
+  void dispose() {
+    messagesFocusScopeNode?.dispose();
+    messagesFocusScopeNode = null;
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
@@ -1141,33 +1154,44 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                 stream: messages,
                 builder: (context, snapshot) {
                   final reverseList = messagesReversedList;
-                  return ListView.builder(
-                    controller: chatProvider.listItemsScrollController,
-                    itemCount: messages.value.entries.length,
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: true,
-                    reverse: true,
-                    // twice the screen size to avoid flickering on scroll
-                    cacheExtent: (screenSize * 2).toDouble(),
-                    itemBuilder: (context, index) {
-                      final FluentChatMessage message =
-                          reverseList.elementAt(index);
-
-                      return AutoScrollTag(
-                        controller: chatProvider.listItemsScrollController,
-                        key: ValueKey('message_$index'),
-                        index: index,
-                        child: MessageCard(
-                          message: message,
-                          selectionMode: false,
-                          textSize: chatProvider.textSize,
-                          isCompactMode: false,
-                          shouldBlink:
-                              chatProvider.blinkMessageId == message.id,
-                          indexMessage: index,
-                        ),
-                      );
+                  return FocusScope(
+                    node: messagesFocusScopeNode,
+                    onKeyEvent: (node, event) {
+                      if (event.logicalKey == LogicalKeyboardKey.tab) {
+                        promptTextFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
                     },
+                    child: ListView.builder(
+                      controller: chatProvider.listItemsScrollController,
+                      itemCount: messages.value.entries.length,
+                      addAutomaticKeepAlives: false,
+                      addRepaintBoundaries: true,
+                      reverse: true,
+                      // twice the screen size to avoid flickering on scroll
+                      cacheExtent: (screenSize * 2).toDouble(),
+                      itemBuilder: (context, index) {
+                        final FluentChatMessage message =
+                            reverseList.elementAt(index);
+
+                        return AutoScrollTag(
+                          controller: chatProvider.listItemsScrollController,
+                          key: ValueKey('message_$index'),
+                          index: index,
+                          highlightColor: Colors.red,
+                          child: MessageCard(
+                            message: message,
+                            selectionMode: false,
+                            textSize: chatProvider.textSize,
+                            isCompactMode: false,
+                            shouldBlink:
+                                chatProvider.blinkMessageId == message.id,
+                            indexMessage: index,
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),

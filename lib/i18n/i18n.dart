@@ -40,7 +40,8 @@ class I18n {
       'disable_tools_btn': 'Disable tools',
     },
     'ru': {
-      '% overflow. Click here to go to the last visible to AI message': '% переполнение. Нажмите здесь, чтобы перейти к последнему видимому ИИ сообщению',
+      '% overflow. Click here to go to the last visible to AI message':
+          '% переполнение. Нажмите здесь, чтобы перейти к последнему видимому ИИ сообщению',
       'Archive this prompt': 'Архивировать этот промпт',
       'Restore this prompt': 'Восстановить этот промпт',
       'Context menu': 'Контекстное меню',
@@ -343,6 +344,7 @@ class I18n {
       'Create folder': 'Создать папку',
       'Move to Folder': 'Переместить в папку',
       'Deleted chats': 'Удаленные чаты',
+      'Move out': 'Переместить наружу',
       'Storage usage': 'Использование хранилища',
       'Refresh from disk': 'Обновить с диска',
       'Add new': 'Добавить',
@@ -357,14 +359,25 @@ class I18n {
       'Edit chat': 'Редактировать чат',
       'Duplicate chat': 'Дублировать чат',
       'Delete chat': 'Удалить чат',
+      'Delete': 'Удалить',
       'Pin/unpin chat': 'Закрепить/открепить чат',
+      "Everything below will be deleted in current chat":
+          "Всё что ниже будет удалено в текущем чате",
+      "Everything above will be deleted in current chat":
+          "Всё что выше будет удалено в текущем чате"
     },
     'es': {
+      "Everything below will be deleted in current chat":
+          "Todo lo que está debajo se eliminará en el chat actual",
+      "Everything above will be deleted in current chat":
+          "Todo lo que está arriba se eliminará en el chat actual",
       'Tokens in field': 'Tokens en el campo',
-      '% overflow. Click here to go to the last visible to AI message': '% desbordamiento. Haga clic aquí para ir al último mensaje visible para la IA',
+      '% overflow. Click here to go to the last visible to AI message':
+          '% desbordamiento. Haga clic aquí para ir al último mensaje visible para la IA',
       'Pin/unpin chat': 'Fijar/desfijar chat',
       'Duplicate chat': 'Duplicar chat',
       'Delete chat': 'Eliminar chat',
+      'Delete': 'Eliminar',
       'Edit chat': 'Editar chat',
       'Move to Folder': 'Mover a carpeta',
       'Archive this prompt': 'Archivar este prompt',

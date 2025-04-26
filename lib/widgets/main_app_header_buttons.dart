@@ -16,52 +16,57 @@ class MainAppHeaderButtons extends StatelessWidget {
     final appTheme = context.watch<AppTheme>();
     final bool isDark = appTheme.isDark;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 6.0, right: 16),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          const RevertMessageHeaderButton(),
-          const AddChatButton(),
-          const ClearChatButton(),
-          const PinAppButton(),
-          if (AppCache.enableOverlay.value == true)
-            const ToggleOverlaySqueareButton(),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ToggleButton(
-              checked: false,
-              onChanged: (_) {
-                Navigator.of(context).push(
-                  FluentPageRoute(
-                      builder: (context) => const NewSettingsPage()),
-                );
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreFocusable: false,
+      descendantsAreTraversable: false,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 6.0, right: 16),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const RevertMessageHeaderButton(),
+            const AddChatButton(),
+            const ClearChatButton(),
+            const PinAppButton(),
+            if (AppCache.enableOverlay.value == true)
+              const ToggleOverlaySqueareButton(),
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ToggleButton(
+                checked: false,
+                onChanged: (_) {
+                  Navigator.of(context).push(
+                    FluentPageRoute(
+                        builder: (context) => const NewSettingsPage()),
+                  );
+                },
+                child: const Icon(
+                  icons.FluentIcons.settings_24_regular,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4.0),
+            ToggleButton(
+              checked: isDark,
+              onChanged: (v) {
+                if (isDark) {
+                  appTheme.applyLightTheme();
+                } else {
+                  appTheme.applyDarkTheme();
+                }
               },
               child: const Icon(
-                icons.FluentIcons.settings_24_regular,
+                icons.FluentIcons.weather_sunny_24_regular,
                 size: 20,
               ),
             ),
-          ),
-          const SizedBox(width: 4.0),
-          ToggleButton(
-            checked: isDark,
-            onChanged: (v) {
-              if (isDark) {
-                appTheme.applyLightTheme();
-              } else {
-                appTheme.applyDarkTheme();
-              }
-            },
-            child: const Icon(
-              icons.FluentIcons.weather_sunny_24_regular,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 8.0),
-          const CollapseAppButton(),
-          // if (!kIsWeb) const WindowButtons(),
-        ],
+            const SizedBox(width: 8.0),
+            const CollapseAppButton(),
+            // if (!kIsWeb) const WindowButtons(),
+          ],
+        ),
       ),
     );
   }

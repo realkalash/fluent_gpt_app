@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markdown_widget/widget/blocks/leaf/code_block.dart';
 import 'package:markdown_widget/widget/proxy_rich_text.dart';
+import 'package:highlight/highlight.dart' as hi;
 
 class CodeWrapperWidget extends StatefulWidget {
   final String content;
@@ -20,7 +21,7 @@ class CodeWrapperWidget extends StatefulWidget {
   final PreConfig preConfig;
   final FocusNode? focusNode;
   final TextStyle style;
-  final Widget Function(BuildContext, CustomSelectableRegionState)?
+  final Widget Function(BuildContext, EditableTextState)?
       contextMenuBuilder;
 
   const CodeWrapperWidget({
@@ -102,17 +103,15 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
       );
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final splitContents = widget.content.split(RegExp(r'(\r?\n)|(\r?\t)|(\r)'));
-    if (splitContents.last.isEmpty) splitContents.removeLast();
+    // final splitContents = widget.content.split(RegExp(r'(\r?\n)|(\r?\t)|(\r)'));
+    // if (splitContents.last.isEmpty) splitContents.removeLast();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildHeader(context, isDark),
-        Container(
-          padding: const EdgeInsets.only(left: 8, right: 8),
-          width: double.infinity,
+        DecoratedBox(
           decoration: BoxDecoration(
             color: isDark ? Colors.grey[900] : Colors.white,
             border: Border.all(color: Colors.black),
@@ -120,28 +119,58 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                 bottomLeft: Radius.circular(8),
                 bottomRight: Radius.circular(8)),
           ),
-          child: CustomSelectableRegion(
-            contextMenuBuilder: widget.contextMenuBuilder,
-            focusNode: widget.focusNode ?? FocusNode(),
-            selectionControls: materialTextSelectionHandleControls,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(splitContents.length, (index) {
-                final currentContent = splitContents[index];
-                return ProxyRichText(
-                  TextSpan(
-                    children: highLightSpans(
-                      currentContent,
-                      language: widget.language,
-                      theme: widget.preConfig.theme,
-                      textStyle: widget.style,
-                      styleNotMatched: widget.preConfig.styleNotMatched,
-                    ),
-                  ),
-                );
-              }),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: SelectableText.rich(
+              TextSpan(
+                children: convertHiNodes(
+                  hi.highlight
+                      .parse(widget.content,
+                          language: widget.language, autoDetection: false)
+                      .nodes!,
+                  widget.preConfig.theme,
+                  widget.style,
+                  widget.preConfig.styleNotMatched,
+                ),
+              ),
+              contextMenuBuilder: widget.contextMenuBuilder,
             ),
           ),
+          // child: fluent.Padding(
+          //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          //   child: CustomSelectableRegion(
+          //     contextMenuBuilder: widget.contextMenuBuilder,
+          //     focusNode: widget.focusNode ?? FocusNode(),
+          //     selectionControls: materialTextSelectionHandleControls,
+          //     child: Column(
+          //       crossAxisAlignment: CrossAxisAlignment.start,
+          //       children: List.generate(splitContents.length, (index) {
+          //         final input = splitContents[index];
+          //         return ProxyRichText(
+          //           TextSpan(
+          //               children: convertHiNodes(
+          //                   hi.highlight
+          //                       .parse(input,
+          //                           language: widget.language,
+          //                           autoDetection: false)
+          //                       .nodes!,
+          //                   widget.preConfig.theme,
+          //                   widget.style,
+          //                   widget.preConfig.styleNotMatched)
+          //               // uses trimRight and we don't need trimming here
+          //               // children: highLightSpans(
+          //               //   currentContent,
+          //               //   language: widget.language,
+          //               //   theme: widget.preConfig.theme,
+          //               //   textStyle: widget.style,
+          //               //   styleNotMatched: widget.preConfig.styleNotMatched,
+          //               // ),
+          //               ),
+          //         );
+          //       }),
+          //     ),
+          //   ),
+          // ),
         ),
       ],
     );
@@ -149,85 +178,92 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
 
   Widget _buildHeader(BuildContext context, bool isDark) {
     return SelectionContainer.disabled(
-      child: Container(
+      child: fluent.SizedBox(
         width: double.infinity,
-        padding: const EdgeInsets.all(8.0),
-        decoration: BoxDecoration(
-          color: context.theme.accentColor.withAlpha(128),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(8),
-            topRight: Radius.circular(8),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.theme.accentColor.withAlpha(128),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+            ),
           ),
-        ),
-        child: Wrap(
-          spacing: 8,
-          alignment: WrapAlignment.end,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            fluent.Tooltip(
-              message:
-                  'Run python/shell code (only for python and shell commands!)',
-              child: RunCodeButton(
-                code: widget.content,
-                language: widget.language,
-              ),
-            ),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: fluent.SizedBox.square(
-                dimension: 30,
-                child: fluent.Button(
-                  style: fluent.ButtonStyle(
-                    padding:
-                        fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
+          child: fluent.Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
+            child: Wrap(
+              spacing: 8,
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                fluent.Tooltip(
+                  message:
+                      'Run python/shell code (only for python and shell commands!)',
+                  child: RunCodeButton(
+                    code: widget.content,
+                    language: widget.language,
                   ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: _switchWidget,
-                  ),
-                  onPressed: () async {
-                    if (hasCopied) return;
-                    await Clipboard.setData(
-                        ClipboardData(text: widget.content));
-                    displayCopiedToClipboard();
-                    _switchWidget = Icon(Icons.check);
-                    refresh();
-                    Future.delayed(const Duration(seconds: 2), () {
-                      hasCopied = false;
-                      _switchWidget = Icon(Icons.copy_rounded);
-                      refresh();
-                    });
-                  },
                 ),
-              ),
-            ),
-            // open in vscode
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: fluent.SizedBox.square(
-                dimension: 30,
-                child: fluent.Button(
-                  style: fluent.ButtonStyle(
-                    padding:
-                        fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: fluent.SizedBox.square(
+                    dimension: 30,
+                    child: fluent.Button(
+                      style: fluent.ButtonStyle(
+                        padding: fluent.WidgetStateProperty.all(
+                            fluent.EdgeInsets.zero),
+                      ),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: _switchWidget,
+                      ),
+                      onPressed: () async {
+                        if (hasCopied) return;
+                        await Clipboard.setData(
+                            ClipboardData(text: widget.content));
+                        displayCopiedToClipboard();
+                        _switchWidget = Icon(Icons.check);
+                        refresh();
+                        Future.delayed(const Duration(seconds: 2), () {
+                          hasCopied = false;
+                          _switchWidget = Icon(Icons.copy_rounded);
+                          refresh();
+                        });
+                      },
+                    ),
                   ),
-                  child: Icon(FluentIcons.open_20_filled),
-                  onPressed: () => openInVsCode(widget.content),
                 ),
-              ),
+                // open in vscode
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: fluent.SizedBox.square(
+                    dimension: 30,
+                    child: fluent.Button(
+                      style: fluent.ButtonStyle(
+                        padding: fluent.WidgetStateProperty.all(
+                            fluent.EdgeInsets.zero),
+                      ),
+                      child: Icon(FluentIcons.open_20_filled),
+                      onPressed: () => openInVsCode(widget.content),
+                    ),
+                  ),
+                ),
+                if (widget.language.isNotEmpty)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                            width: 0.5,
+                            color: isDark ? Colors.white : Colors.black)),
+                    child: fluent.Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: Text(widget.language,
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.normal)),
+                    ),
+                  ),
+              ],
             ),
-            if (widget.language.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(right: 2),
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                        width: 0.5,
-                        color: isDark ? Colors.white : Colors.black)),
-                child: Text(widget.language),
-              ),
-          ],
+          ),
         ),
       ),
     );

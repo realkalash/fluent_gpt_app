@@ -19,6 +19,7 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
+import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
@@ -201,6 +202,48 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
+  void arrowUpPressed() {
+    // Get the current text editing controller and selection
+    final chatProvider = context.read<ChatProvider>();
+    final controller = chatProvider.messageController;
+    final selection = controller.selection;
+
+    // If the caret is at the very start (offset 0), move focus to previous focusable widget
+    if (selection.baseOffset == 0 && selection.extentOffset == 0) {
+      // Move focus to previous focusable widget in the focus tree
+      FocusScope.of(context).requestFocus(messagesFocusScopeNode);
+      return;
+    }
+
+    // Otherwise, move the caret up one line (like in a multiline textbox)
+    final text = controller.text;
+    final offset = selection.baseOffset;
+
+    // Find the position of the previous newline before the caret
+    final prevNewline = text.lastIndexOf('\n', offset - 1);
+
+    if (prevNewline == -1) {
+      // If there is no previous line, move caret to start
+      controller.selection = TextSelection.collapsed(offset: 0);
+      return;
+    }
+
+    // Calculate the column (caret position in the current line)
+    final currentLineStart = text.lastIndexOf('\n', offset - 1) + 1;
+    final column = offset - currentLineStart;
+
+    // Find the start of the previous line
+    final prevLineStart = text.lastIndexOf('\n', prevNewline - 1) + 1;
+    final prevLineEnd = prevNewline;
+
+    // Calculate the offset for the caret in the previous line
+    final prevLineLength = prevLineEnd - prevLineStart;
+    final newOffset =
+        prevLineStart + (column > prevLineLength ? prevLineLength : column);
+
+    controller.selection = TextSelection.collapsed(offset: newOffset);
+  }
+
   Future<void> onShortcutCopyToThirdParty() async {
     final lastMessage = messages.value.values.last;
     Pasteboard.writeText(lastMessage.content);
@@ -345,6 +388,7 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(9),
           SingleActivator(LogicalKeyboardKey.keyH, control: true):
               toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
@@ -457,40 +501,46 @@ class _InputFieldState extends State<InputField> {
                                 ),
                             ],
                           ),
-                          prefix: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Tooltip(
-                                richMessage: WidgetSpan(
-                                  child: ModelsTooltipContainer(),
-                                  alignment: PlaceholderAlignment.top,
+                          prefix: Focus(
+                            skipTraversal: true,
+                            canRequestFocus: false,
+                            descendantsAreFocusable: false,
+                            descendantsAreTraversable: false,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Tooltip(
+                                  richMessage: WidgetSpan(
+                                    child: ModelsTooltipContainer(),
+                                    alignment: PlaceholderAlignment.top,
+                                  ),
+                                  style: TooltipThemeData(
+                                      waitDuration: Duration.zero),
+                                  child: const ChooseModelButton(),
                                 ),
-                                style: TooltipThemeData(
-                                    waitDuration: Duration.zero),
-                                child: const ChooseModelButton(),
-                              ),
-                              AiLibraryButton(
-                                onPressed: () async {
-                                  // ignore: use_build_context_synchronously
-                                  final controller =
-                                      context.read<ChatProvider>();
-                                  final prompt =
-                                      await showDialog<CustomPrompt?>(
-                                    context: context,
-                                    builder: (ctx) =>
-                                        const AiPromptsLibraryDialog(),
-                                    barrierDismissible: true,
-                                  );
-                                  if (prompt != null) {
-                                    controller.messageController.text =
-                                        prompt.getPromptText(
-                                            controller.messageController.text);
-                                    promptTextFocusNode.requestFocus();
-                                  }
-                                },
-                                isSmall: true,
-                              ),
-                            ],
+                                AiLibraryButton(
+                                  onPressed: () async {
+                                    // ignore: use_build_context_synchronously
+                                    final controller =
+                                        context.read<ChatProvider>();
+                                    final prompt =
+                                        await showDialog<CustomPrompt?>(
+                                      context: context,
+                                      builder: (ctx) =>
+                                          const AiPromptsLibraryDialog(),
+                                      barrierDismissible: true,
+                                    );
+                                    if (prompt != null) {
+                                      controller.messageController.text =
+                                          prompt.getPromptText(controller
+                                              .messageController.text);
+                                      promptTextFocusNode.requestFocus();
+                                    }
+                                  },
+                                  isSmall: true,
+                                ),
+                              ],
+                            ),
                           ),
                           textInputAction: TextInputAction.done,
                           onSubmitted: (value) => onSubmit(value, chatProvider),
@@ -523,6 +573,7 @@ class _InputFieldState extends State<InputField> {
                         child: GestureDetector(
                           onSecondaryTap: _onSecondaryTap,
                           child: Button(
+                            focusable: false,
                             onPressed: () => onSubmit(
                               chatProvider.messageController.text,
                               chatProvider,
@@ -575,8 +626,9 @@ class _InputFieldState extends State<InputField> {
   void _onSecondaryTap() {
     final provider = context.read<ChatProvider>();
     final controller = provider.messageController;
+    final text = controller.text.trim();
+    if (text.isEmpty) return;
     menuController.showFlyout(builder: (ctx) {
-      final text = controller.text.trim();
       return MenuFlyout(
         items: [
           if (text.isNotEmpty)
