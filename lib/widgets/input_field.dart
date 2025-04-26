@@ -202,7 +202,7 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
-  void arrowUpPressed() {
+  Future<void> arrowUpPressed() async {
     // Get the current text editing controller and selection
     final chatProvider = context.read<ChatProvider>();
     final controller = chatProvider.messageController;
@@ -211,6 +211,10 @@ class _InputFieldState extends State<InputField> {
     // If the caret is at the very start (offset 0), move focus to previous focusable widget
     if (selection.baseOffset == 0 && selection.extentOffset == 0) {
       // Move focus to previous focusable widget in the focus tree
+      // FocusScope.of(context).requestFocus(messagesFocusScopeNode);
+      FocusScope.of(context).unfocus();
+      await Future.delayed(Duration(milliseconds: 5));
+      // ignore: use_build_context_synchronously
       FocusScope.of(context).requestFocus(messagesFocusScopeNode);
       return;
     }
@@ -358,6 +362,7 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(9),
           SingleActivator(LogicalKeyboardKey.keyH, meta: true):
               toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
@@ -388,10 +393,10 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(9),
           SingleActivator(LogicalKeyboardKey.keyH, control: true):
               toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
-        SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),

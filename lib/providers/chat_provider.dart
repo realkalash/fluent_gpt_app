@@ -1112,9 +1112,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           throw Exception('Claude is not supported yet');
           // TODO: add more models
         }
-        for (var message in messagesToSend) {
-          print('message: ${message.toString()}');
-        }
+
         responseStream = localModel!
             .stream(PromptValue.chat(messagesToSend), options: options);
       }

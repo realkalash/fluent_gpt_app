@@ -1117,6 +1117,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
     screenSize = AppCache.windowHeight.value ?? 400;
     messagesFocusScopeNode = FocusScopeNode(
       debugLabel: 'MessagesListScope',
+      traversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
     );
   }
 

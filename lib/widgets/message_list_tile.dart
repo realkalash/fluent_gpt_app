@@ -293,16 +293,20 @@ class _MessageCardState extends State<MessageCard> {
                     ),
                   ),
                 if (isEditing && isContentText)
-                  TextBox(
-                    focusNode: textEditingFocus,
-                    maxLines: 999,
-                    minLines: 1,
-                    style: TextStyle(fontSize: widget.textSize.toDouble()),
-                    controller: textEditingController,
-                    suffixMode: OverlayVisibilityMode.editing,
-                    suffix: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: SqueareIconButtonSized(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextBox(
+                          focusNode: textEditingFocus,
+                          maxLines: 999,
+                          minLines: 1,
+                          style: TextStyle(fontSize: widget.textSize.toDouble()),
+                          controller: textEditingController,
+                        ),
+                      ),
+                      SqueareIconButtonSized(
                         icon: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -326,8 +330,8 @@ class _MessageCardState extends State<MessageCard> {
                           );
                           _toggleEditing();
                         },
-                      ),
-                    ),
+                      )
+                    ],
                   )
                 else if (isContentText && _isMarkdownView)
                   buildMarkdown(

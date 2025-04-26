@@ -6,13 +6,11 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/utils.dart';
-import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:markdown_widget/widget/blocks/leaf/code_block.dart';
-import 'package:markdown_widget/widget/proxy_rich_text.dart';
 import 'package:highlight/highlight.dart' as hi;
 
 class CodeWrapperWidget extends StatefulWidget {
