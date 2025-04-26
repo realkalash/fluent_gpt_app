@@ -388,11 +388,10 @@ class _InputFieldState extends State<InputField> {
               onDigitPressed(9),
           SingleActivator(LogicalKeyboardKey.keyH, control: true):
               toggleEnableHistory,
-          SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true):
             onShortcutCopyToThirdParty,
-        const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {},
+        SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
