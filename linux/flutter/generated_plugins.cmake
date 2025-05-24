@@ -7,11 +7,9 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_linux
   flutter_acrylic
   hotkey_manager_linux
-  irondash_engine_context
   pasteboard
   record_linux
   screen_retriever_linux
-  super_native_extensions
   system_theme
   tray_manager
   url_launcher_linux

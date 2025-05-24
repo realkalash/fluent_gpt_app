@@ -1,10 +1,17 @@
 #!/bin/bash
 
+# Get version from parameter or use default
+VERSION=${1:-"1.0.64"}
+# Remove 'v' prefix if present
+VERSION=${VERSION#v}
+
+echo "Building macOS version $VERSION..."
+
 flutter build macos --release --no-tree-shake-icons
 
 # Set variables
 APP_NAME="FluentGPT"
-DMG_NAME="fluent-gpt-macos.dmg"
+DMG_NAME="FluentGPT-${VERSION}.dmg"
 SOURCE_DIR="build/macos/Build/Products/Release"
 APP_PATH="${SOURCE_DIR}/${APP_NAME}.app"
 OUTPUT_DIR="installers"

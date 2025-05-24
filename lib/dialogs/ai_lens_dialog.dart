@@ -396,10 +396,10 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       ),
                     ),
                     HomeDropOverlay(),
-                    HomeDropRegion(
-                      onDrop: () => Navigator.of(context).pop(),
-                      showAiLens: true,
-                    ),
+                    // HomeDropRegion(
+                    //   onDrop: () => Navigator.of(context).pop(),
+                    //   showAiLens: true,
+                    // ),
                   ],
                 ),
               ),

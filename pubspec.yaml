@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.64+1
+version: 1.0.59+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -12,13 +12,13 @@ dependencies:
   fluent_ui: ^4.11.3
   system_theme: ^3.0.0
   flutter_acrylic: ^1.1.3
-  go_router: ^14.0.1
+  go_router: ^15.1.2
   provider: ^6.1.1
   url_launcher: ^6.3.0
   window_manager: ^0.4.2
   shared_preferences: ^2.2.2
   chat_gpt_flutter: ^1.0.16
-  tray_manager: ^0.3.2
+  tray_manager: ^0.5.0
   hotkey_manager: ^0.2.3
   process_run: ^1.1.0
   shell: ^2.0.0
@@ -29,19 +29,19 @@ dependencies:
   dio: ^5.4.0
   windows_single_instance: ^1.0.1
   flutter_highlighter: ^0.1.1
-  file_picker: ^9.2.1
+  file_picker: ^10.1.9
   cross_file: ^0.3.4+1
   mime_type: ^1.0.0
-  pasteboard: ^0.3.0
   easy_image_viewer: ^1.4.1
   path_provider: ^2.1.3
   protocol_handler: ^0.2.0
   package_info_plus: ^8.0.0
   flutter_gpt_tokenizer: ^0.1.1
-  super_drag_and_drop: ^0.8.17
+  # super_drag_and_drop: ^0.8.17
+  # super_clipboard: ^0.8.17
+  # super_native_extensions: ^0.8.17
   file_selector: ^1.0.3
-  super_clipboard: ^0.8.17
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.0+1
   http: ^1.2.1
   animated_list_plus: ^0.5.2
   scroll_to_index: ^3.0.1
@@ -63,9 +63,9 @@ dependencies:
   # googleapis_auth: ^1.6.0
   # google_sign_in: ^6.2.1
   system_info2: ^4.0.0
-  intl: ^0.19.0
+  intl: ^0.20.2
   entry: ^1.0.0
-  record: ^5.1.2
+  record: ^6.0.0
   deepgram_speech_to_text: ^2.3.2
   audioplayers: ^6.1.0
   launch_at_startup: ^0.3.1
@@ -81,6 +81,7 @@ dependencies:
   animate_do: ^4.2.0
   image: ^4.3.0
   highlight: ^0.7.0
+  pasteboard: ^0.4.0
   # llama_library_flutter: ^0.0.3
   # ggml_library_flutter: ^0.0.10
   
@@ -91,7 +92,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 dependency_overrides:
-  intl: ^0.19.0
+  intl: ^0.20.2
   uuid: ^4.1.0
 
 flutter:

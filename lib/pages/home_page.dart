@@ -88,7 +88,7 @@ class ChatRoomPage extends StatelessWidget {
                           right: 0,
                           child: Center(child: EditChatDrawer()),
                         ),
-                        HomeDropRegion(showAiLens: true),
+                        // HomeDropRegion(showAiLens: true),
                       ],
                     ),
                   ),

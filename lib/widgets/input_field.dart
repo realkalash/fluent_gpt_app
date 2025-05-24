@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cross_file/cross_file.dart';
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -37,6 +39,7 @@ import 'package:hotkey_manager/hotkey_manager.dart';
 // ignore: unused_import
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
+import 'package:mime_type/mime_type.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
@@ -182,6 +185,7 @@ class _InputFieldState extends State<InputField> {
   }
 
   Future<void> onShortcutPasteToField() async {
+    final chatProvider = context.read<ChatProvider>();
     final text = await Pasteboard.text;
     if (text != null) {
       onShortcutPasteText(text);
@@ -190,6 +194,19 @@ class _InputFieldState extends State<InputField> {
     if (image != null) {
       onShortcutPasteImage(image);
     }
+    final files = await Pasteboard.files();
+    if (files.isNotEmpty) {
+      // we can only take one file
+      final file = files.first;
+      final filePath = file;
+      final xfile = XFile(
+        filePath,
+        mimeType: mime(filePath) ?? 'application/octet-stream',
+        name: filePath.split('/').last,
+      );
+      chatProvider.addAttachmentToInput(Attachment.fromFile(xfile));
+    }
+
   }
 
   Future<void> toggleEnableHistory() async {

@@ -227,7 +227,7 @@ Future<void> initShortcuts() async {
   await hotKeyManager.register(
     createNewChat,
     keyDownHandler: (hotKey) async {
-      onTrayButtonTapCommand('', 'create_new_chat');
+      onTrayButtonTapCommand('', TrayCommand.create_new_chat.name);
       await Future.delayed(const Duration(milliseconds: 200));
       promptTextFocusNode.requestFocus();
     },
@@ -235,7 +235,7 @@ Future<void> initShortcuts() async {
   await hotKeyManager.register(
     resetChat,
     keyDownHandler: (hotKey) async {
-      onTrayButtonTapCommand('', 'reset_chat');
+      onTrayButtonTapCommand('', TrayCommand.reset_chat.name);
       await Future.delayed(const Duration(milliseconds: 200));
       promptTextFocusNode.requestFocus();
     },

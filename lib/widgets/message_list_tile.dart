@@ -35,7 +35,6 @@ import 'package:mime_type/mime_type.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
-import 'package:super_clipboard/super_clipboard.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
@@ -1196,13 +1195,9 @@ class _MessageCardState extends State<MessageCard> {
   _copyImageToClipboard(BuildContext context) async {
     Navigator.of(context).maybePop();
 
-    final item = DataWriterItem();
     final imageBytesString = widget.message.content;
     final imageBytes = base64.decode(imageBytesString);
-
-    item.add(Formats.png(imageBytes));
-    await SystemClipboard.instance!.write([item]);
-    // ignore: use_build_context_synchronously
+    Pasteboard.writeImage(imageBytes);
     displayCopiedToClipboard();
   }
 }

@@ -32,7 +32,7 @@ LicenseFile=C:\Users\alex\repos\fluent_gpt_app\LICENSE.md
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 OutputDir=C:\Users\alex\repos\fluent_gpt_app\installers
-OutputBaseFilename=fluent-gpt-windows
+OutputBaseFilename=FluentGPT-{#MyAppVersion}
 SetupIconFile="C:\Users\alex\repos\fluent_gpt_app\assets\app_icon.ico"
 Compression=lzma
 SolidCompression=yes
@@ -58,8 +58,8 @@ Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\rec
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\permission_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\protocol_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\screen_retriever_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\system_theme_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\tray_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\keypress_simulator_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion

@@ -2074,9 +2074,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   Future<void> createNewChatRoom() async {
     // if (messages.value.isEmpty) return;
-    if (AppCache.learnAboutUserAfterCreateNewChat.value!) {
-      generateUserKnowladgeBasedOnConversation();
-    }
     final chatRoomName = '${chatRooms.length + 1} Chat';
     final id = generateChatID();
     String systemMessage = '';

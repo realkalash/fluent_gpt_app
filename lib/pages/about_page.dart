@@ -1,3 +1,5 @@
+import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/services/update_manager.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:markdown_widget/markdown_widget.dart';
@@ -8,7 +10,7 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage(
         header: PageHeader(
@@ -28,9 +30,25 @@ class AboutPage extends StatelessWidget {
             SizedBox(height: 16.0),
             // description
             AppDescription(),
+            SizedBox(height: 16.0),
+            CheckUpdatesButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class CheckUpdatesButton extends StatelessWidget {
+  const CheckUpdatesButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Button(
+      child: Text('Check for Updates'.tr),
+      onPressed: () {
+        UpdateManager.instance.checkForUpdatesNow(silent: false);
+      },
     );
   }
 }
