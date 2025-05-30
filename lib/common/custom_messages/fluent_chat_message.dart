@@ -22,15 +22,14 @@ class FluentChatMessage {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     return formatter.format(date);
   }
+
   final int tokens;
   final FluentChatMessageType type;
   final bool useLowResImage = false;
   final List<String>? buttons;
   final int? indexPin;
 
-  bool get isTextMessage =>
-      type == FluentChatMessageType.textHuman ||
-      type == FluentChatMessageType.textAi;
+  bool get isTextMessage => type == FluentChatMessageType.textHuman || type == FluentChatMessageType.textAi;
   bool get isTextFromMe => type == FluentChatMessageType.textHuman;
 
   const FluentChatMessage({
@@ -208,8 +207,7 @@ class FluentChatMessage {
       if (imagePrompt != null) 'imagePrompt': imagePrompt!,
       if (path != null) 'path': path!,
       if (fileName != null) 'fileName': fileName!,
-      if (webResults != null)
-        'webResults': webResults!.map((e) => e.toJson()).toList(),
+      if (webResults != null) 'webResults': webResults!.map((e) => e.toJson()).toList(),
       if (buttons != null) 'buttons': buttons!,
     };
   }
@@ -221,14 +219,12 @@ class FluentChatMessage {
       creator: json['creator'] as String,
       timestamp: json['timestamp'] as int,
       indexPin: json['pin'] as int?,
-      type: (json['type'] as int?)?.toEnum(FluentChatMessageType.values) ??
-          FluentChatMessageType.textHuman,
+      type: (json['type'] as int?)?.toEnum(FluentChatMessageType.values) ?? FluentChatMessageType.textHuman,
       tokens: json['tokens'] as int,
       path: json['path'] as String?,
       fileName: json['fileName'] as String?,
-      webResults: (json['webResults'] as List?)
-          ?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      webResults:
+          (json['webResults'] as List?)?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>)).toList(),
       imagePrompt: json['imagePrompt'] as String?,
       buttons: (json['buttons'] as List?)?.map((e) => e as String).toList(),
     );
@@ -239,32 +235,29 @@ class FluentChatMessage {
     return 'FMessage{id: $id, content: $content, creator: $creator, timestamp: $timestamp, prefix: $type}';
   }
 
-  ChatMessage toLangChainChatMessage() {
+  ChatMessage toLangChainChatMessage({bool shouldCleanReasoning = false}) {
     switch (type) {
       case FluentChatMessageType.textHuman:
         return HumanChatMessage(content: ChatMessageContentText(text: content));
       case FluentChatMessageType.textAi:
+        if (shouldCleanReasoning) {
+          return AIChatMessage(content: content.replaceAll(RegExp(r'<think>[\s\S]*?</think>'), '').trimLeft());
+        }
         return AIChatMessage(content: content);
       case FluentChatMessageType.system:
         return SystemChatMessage(content: content);
       case FluentChatMessageType.image:
         return HumanChatMessage(
             content: ChatMessageContentImage(
-                data: content,
-                detail: ChatMessageContentImageDetail.high,
-                mimeType: 'image/png'));
+                data: content, detail: ChatMessageContentImageDetail.high, mimeType: 'image/png'));
       case FluentChatMessageType.imageAi:
         return HumanChatMessage(
             content: ChatMessageContentImage(
-                data: content,
-                detail: ChatMessageContentImageDetail.high,
-                mimeType: 'image/png'));
+                data: content, detail: ChatMessageContentImageDetail.high, mimeType: 'image/png'));
       case FluentChatMessageType.file:
-        return TextFileCustomMessage(
-            fileName: fileName ?? 'temp', content: content, path: path ?? '');
+        return TextFileCustomMessage(fileName: fileName ?? 'temp', content: content, path: path ?? '');
       case FluentChatMessageType.webResult:
-        return WebResultCustomMessage(
-            content: content, searchResults: webResults ?? []);
+        return WebResultCustomMessage(content: content, searchResults: webResults ?? []);
       // ignore: unreachable_switch_default
       default:
         return HumanChatMessage(content: ChatMessageContentText(text: content));
@@ -272,8 +265,7 @@ class FluentChatMessage {
   }
 
   /// USE ONLY FOR IMPORTING
-  static FluentChatMessage fromLangChainChatMessage(ChatMessage message,
-      [String? id]) {
+  static FluentChatMessage fromLangChainChatMessage(ChatMessage message, [String? id]) {
     if (message is HumanChatMessage) {
       if (message.content is ChatMessageContentText) {
         return FluentChatMessage(
@@ -364,9 +356,7 @@ class FluentChatMessage {
 extension _FluentChatMessageTypeEnum on int? {
   FluentChatMessageType? toEnum(List<FluentChatMessageType> values) {
     if (this == null) return null;
-    return this != null && this! >= 0 && this! < values.length
-        ? values[this!]
-        : FluentChatMessageType.textHuman;
+    return this != null && this! >= 0 && this! < values.length ? values[this!] : FluentChatMessageType.textHuman;
   }
 }
 

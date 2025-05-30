@@ -58,6 +58,7 @@ class AppCache {
   static const imageGeneratorModel = StringPref("imageGeneratorModel", null);
   static const useRAG = BoolPref("useRag", false);
   static const ragThreshold = DoublePref("ragThreshold", 0.5);
+  static const enableReasoning = BoolPref("enableReasoning", false);
 
   /// Contains Strings that we can't migrate because they are used by StringPref, IntPref etc.
   /// the format is:

@@ -7,16 +7,28 @@ const getCurrentWeatherFunction = {
     "parameters": {
       "type": "object",
       "properties": {
-        "location": {
-          "type": "string",
-          "description": "The city and state, e.g. San Francisco, CA"
-        },
+        "location": {"type": "string", "description": "The city and state, e.g. San Francisco, CA"},
         "unit": {
           "type": "string",
           "enum": ["celsius", "fahrenheit"]
         }
       },
       "required": ["location"]
+    }
+  }
+};
+// testing function for pinging
+const pingFunction = {
+  "type": "function",
+  "function": {
+    "name": "ping",
+    "description": "Ping the server",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "responseMessage": {"type": "string", "description": "The response summary message from chatGPT. Answers only with 'pong' word."}
+      },
+      "required": ["responseMessage"]
     }
   }
 };
@@ -30,19 +42,9 @@ const searchFilesFunction = {
     "parameters": {
       "type": "object",
       "properties": {
-        "filename": {
-          "type": "string",
-          "description": "The name of the file to search for"
-        },
-        "o": {
-          "type": "integer",
-          "description": "The index to start the search from"
-        },
-        "n": {
-          "type": "integer",
-          "description":
-              "The maximum number of files to return in the search results"
-        }
+        "filename": {"type": "string", "description": "The name of the file to search for"},
+        "o": {"type": "integer", "description": "The index to start the search from"},
+        "n": {"type": "integer", "description": "The maximum number of files to return in the search results"}
       },
       "required": ["filename", "o", "n"]
     }
@@ -58,10 +60,7 @@ const writePythonCodeFunction = {
       "type": "object",
       "properties": {
         "code": {"type": "string", "description": "The Python code"},
-        "responseMessage": {
-          "type": "string",
-          "description": "The response summary message from chatGPT"
-        }
+        "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
       },
       "required": ["code", "responseMessage"]
     }
@@ -76,10 +75,7 @@ const copyToClipboardFunction = {
       "type": "object",
       "properties": {
         "clipboard": {"type": "string", "description": "Text to copy"},
-        "responseMessage": {
-          "type": "string",
-          "description": "The response summary message from chatGPT"
-        }
+        "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
       },
       "required": ["code", "responseMessage"]
     }
@@ -89,10 +85,7 @@ const copyToClipboardFunctionParameters = {
   "type": "object",
   "properties": {
     "clipboard": {"type": "string", "description": "Text to copy"},
-    "responseMessage": {
-      "type": "string",
-      "description": "The response summary message from chatGPT"
-    }
+    "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
   },
   "required": ["clipboard", "responseMessage"]
 };
@@ -101,27 +94,17 @@ const autoOpenUrlParameters = {
   "properties": {
     "url": {
       "type": "string",
-      "description":
-          "A valid URI with a scheme (e.g., https, tel, whatsapp, mailto, sms, geo)"
+      "description": "A valid URI with a scheme (e.g., https, tel, whatsapp, mailto, sms, geo)"
     },
-    "responseMessage": {
-      "type": "string",
-      "description": "Short response summary message from chatGPT"
-    }
+    "responseMessage": {"type": "string", "description": "Short response summary message from chatGPT"}
   },
   "required": ["url", "responseMessage"]
 };
 const generateImageParameters = {
   "type": "object",
   "properties": {
-    "prompt": {
-      "type": "string",
-      "description": "A detailed description of the image to generate."
-    },
-    "responseMessage": {
-      "type": "string",
-      "description": "Your short response summary message"
-    },
+    "prompt": {"type": "string", "description": "A detailed description of the image to generate."},
+    "responseMessage": {"type": "string", "description": "Your short response summary message"},
     "size": {
       "type": "string",
       "description": "The size of the image. E.g '1024x1024'. Ensure values are less than 1440. default is 1024x1024"
@@ -134,13 +117,9 @@ const rememberInfoParameters = {
   "properties": {
     "info": {
       "type": "string",
-      "description":
-          "A one line summary of the information you want to remember. E.g '{user} likes cats'"
+      "description": "A one line summary of the information you want to remember. E.g '{user} likes cats'"
     },
-    "responseMessage": {
-      "type": "string",
-      "description": "Your answer to the user. E.g 'Noted' or your own message"
-    }
+    "responseMessage": {"type": "string", "description": "Your answer to the user. E.g 'Noted' or your own message"}
   },
   "required": ["info", "responseMessage"]
 };

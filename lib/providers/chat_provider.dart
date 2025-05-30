@@ -66,10 +66,8 @@ import '../common/last_deleted_message.dart';
 
 class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   final listItemsScrollController = AutoScrollController();
-  static final TextEditingController messageControllerGlobal =
-      TextEditingController();
-  TextEditingController get messageController =>
-      ChatProvider.messageControllerGlobal;
+  static final TextEditingController messageControllerGlobal = TextEditingController();
+  TextEditingController get messageController => ChatProvider.messageControllerGlobal;
   late AgentGetMessageActions agentMessageActions;
 
   bool includeConversationGlobal = true;
@@ -186,12 +184,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         chatRooms[chatRoom.id] = chatRoom;
         // delete chat if it's old enough
         if (deleteChatsAfterXDays != null) {
-          final date = DateTime.fromMillisecondsSinceEpoch(
-              chatRoom.dateModifiedMilliseconds);
+          final date = DateTime.fromMillisecondsSinceEpoch(chatRoom.dateModifiedMilliseconds);
           final difference = currentDate.difference(date).inDays;
-          if (difference >= deleteChatsAfterXDays &&
-              !chatRoom.isPinned &&
-              !chatRoom.isFolder) {
+          if (difference >= deleteChatsAfterXDays && !chatRoom.isPinned && !chatRoom.isFolder) {
             log('Deleting chat room ${chatRoom.id} because it\'s old enough');
             await deleteChatRoom(chatRoom.id);
             continue;
@@ -250,9 +245,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       loadMessagesFromDisk(selectedChatRoomId);
     }
     selectedChatRoomId = selectedChatRoomId;
-    if (openAI == null &&
-        localModel == null &&
-        selectedChatRoom.model.ownedBy != null) {
+    if (openAI == null && localModel == null && selectedChatRoom.model.ownedBy != null) {
       initModelsApi();
     }
     // dumb way to notify UI listeners
@@ -269,9 +262,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   void initListeners() {
     if (AppCache.fetchChatsPeriodically.value == true) {
       /// If chats are located in the cloud, we need to fetch them twice
-      AppWindowListener.windowVisibilityStream
-          .distinct()
-          .listen((isOpen) async {
+      AppWindowListener.windowVisibilityStream.distinct().listen((isOpen) async {
         if (isOpen) {
           /// This waiting is needed to prevent errors wtih cloud storate
           await Future.delayed(const Duration(milliseconds: 1500));
@@ -286,8 +277,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   void initTimers() {
     fetchChatsTimer?.cancel();
     if (AppCache.fetchChatsPeriodically.value == true) {
-      fetchChatsTimer = Timer.periodic(
-          Duration(minutes: AppCache.fetchChatsPeriodMin.value ?? 10), (timer) {
+      fetchChatsTimer = Timer.periodic(Duration(minutes: AppCache.fetchChatsPeriodMin.value ?? 10), (timer) {
         log('Fetching chats from disk. ${timer.tick}');
         if (AppCache.fetchChatsPeriodically.value == false) {
           timer.cancel();
@@ -306,9 +296,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final actionsJson = await AppCache.customActions.value();
     if (actionsJson.isNotEmpty == true && actionsJson != '[]') {
       final actions = jsonDecode(actionsJson) as List;
-      final listActions = actions
-          .map((e) => OnMessageAction.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final listActions = actions.map((e) => OnMessageAction.fromJson(e as Map<String, dynamic>)).toList();
       onMessageActions.add(listActions);
     } else {
       onMessageActions.add(defaultCustomActionsList);
@@ -319,9 +307,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final listModelsJsonString = await AppCache.savedModels.value();
     if (listModelsJsonString.isNotEmpty == true) {
       final listModelsJson = jsonDecode(listModelsJsonString) as List;
-      final listModels = listModelsJson
-          .map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final listModels = listModelsJson.map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>)).toList();
       allModels.add(listModels);
     }
   }
@@ -362,8 +348,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       var text = '';
       Uri? uri;
       Map<String, String> params = {};
-      if (value?.contains('fluentgpt:///') == true ||
-          value?.contains('fluentgpt://') == true) {
+      if (value?.contains('fluentgpt:///') == true || value?.contains('fluentgpt://') == true) {
         uri = Uri.tryParse(value!);
         command = uri!.queryParameters['command'] ?? '';
         text = uri.queryParameters['text'] ?? '';
@@ -409,8 +394,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           if (TextToSpeechService.isValid()) {
             isAnswering = true;
             notifyListeners();
-            await TextToSpeechService.readAloud(aiAnswer.content,
-                onCompleteReadingAloud: () {
+            await TextToSpeechService.readAloud(aiAnswer.content, onCompleteReadingAloud: () {
               isAnswering = false;
               notifyListeners();
             });
@@ -439,8 +423,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       } else if (command == TrayCommand.improve_writing.name) {
         sendMessage('Improve writing: "$text"', hidePrompt: true);
       } else if (command == TrayCommand.summarize_markdown_short.name) {
-        sendMessage('Summarize using markdown. Use short summary: "$text"',
-            hidePrompt: false);
+        sendMessage('Summarize using markdown. Use short summary: "$text"', hidePrompt: false);
       } else if (command == TrayCommand.answer_with_tags.name) {
         HotShurtcutsWidget.showAnswerWithTagsDialog(context!, text);
       } else if (command == TrayCommand.create_new_chat.name) {
@@ -481,22 +464,19 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         if (AppCache.imageGeneratorApiKey.value != null) {
           apiKey = AppCache.imageGeneratorApiKey.value;
         } else {
-          final openAiModel = allModels.value
-              .firstWhereOrNull((element) => element.ownedBy == 'openai');
+          final openAiModel = allModels.value.firstWhereOrNull((element) => element.ownedBy == 'openai');
           apiKey = openAiModel?.apiKey;
         }
         if (apiKey == null) {
           return displayErrorInfoBar(
               title: 'API key error',
-              message:
-                  'No API key found for image generation. Please add an API key in the settings page',
+              message: 'No API key found for image generation. Please add an API key in the settings page',
               action: Button(
                 child: Text('Settings'.tr),
                 onPressed: () {
                   Navigator.of(context!).push(
                     FluentPageRoute(
-                      builder: (context) => NewSettingsPage(
-                          initialIndex: NewSettingsPage.apiUrlsIndex),
+                      builder: (context) => NewSettingsPage(initialIndex: NewSettingsPage.apiUrlsIndex),
                     ),
                   );
                 },
@@ -542,8 +522,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
                   onPressed: () {
                     Navigator.of(context!).push(
                       FluentPageRoute(
-                        builder: (context) => NewSettingsPage(
-                            initialIndex: NewSettingsPage.apiUrlsIndex),
+                        builder: (context) => NewSettingsPage(initialIndex: NewSettingsPage.apiUrlsIndex),
                       ),
                     );
                   },
@@ -574,8 +553,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     notifyListeners();
   }
 
-  Future<void> addAttachmentAiLens(Uint8List bytes,
-      {bool showDialog = true}) async {
+  Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput(attachment);
     if (showDialog) {
@@ -604,8 +582,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   void renameCurrentChatRoom(String newName, [bool applyIcon = true]) {
-    final chatRoom =
-        chatRooms[selectedChatRoomId] ?? chatRooms.entries.first.value;
+    final chatRoom = chatRooms[selectedChatRoomId] ?? chatRooms.entries.first.value;
 
     chatRoom.chatRoomName = newName.removeWrappedQuotes.split('\n').first;
     if (applyIcon) {
@@ -642,8 +619,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> generateUserKnowladgeBasedOnConversation() async {
     final userName = AppCache.userName.value!;
     final limitedMessages = await getLastMessagesLimitToTokens(4096);
-    final mainPrompt =
-        summarizeConversationToRememberUser.replaceAll('{user}', userName);
+    final mainPrompt = summarizeConversationToRememberUser.replaceAll('{user}', userName);
     final messagesAsString = await convertMessagesToString(limitedMessages);
     final finalPrompt = '$mainPrompt\n"$messagesAsString"';
     final messageToSend = ChatMessage.humanText(finalPrompt);
@@ -680,8 +656,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         builder: (ctx, close) {
           return InfoBar(
             title: Text('Memory updated'.tr),
-            content: Text(newKnowladge.content,
-                maxLines: 2, overflow: TextOverflow.ellipsis),
+            content: Text(newKnowladge.content, maxLines: 2, overflow: TextOverflow.ellipsis),
             severity: InfoBarSeverity.info,
             isLong: true,
             action: Button(
@@ -745,8 +720,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final userName = AppCache.userName.value ?? 'User';
     final dateFormatter = DateFormat('EEE M/d HH:mm');
     final result = messages.map((e) {
-      final date = dateFormatter
-          .format(DateTime.fromMillisecondsSinceEpoch(e.timestamp));
+      final date = dateFormatter.format(DateTime.fromMillisecondsSinceEpoch(e.timestamp));
       if (e.type == FluentChatMessageType.textAi) {
         return '$date $aiName: ${e.content}';
       }
@@ -782,6 +756,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final isToolsEnabled = AppCache.gptToolCopyToClipboardEnabled.value == true;
+    final shouldForceDisableReasoning =
+        AppCache.enableReasoning.value == false && selectedModel.reasoningSupported == true;
+
     String? ragPart;
     if (isFirstMessage && useSystemPrompt) {
       // regenerate system message to update time/weather etc
@@ -790,16 +767,12 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       selectedChatRoom.systemMessage = await getFormattedSystemPrompt(
         basicPrompt: (selectedChatRoom.systemMessage ?? '').isEmpty
             ? defaultGlobalSystemMessage
-            : selectedChatRoom.systemMessage!
-                .split(contextualInfoDelimeter)
-                .first,
+            : selectedChatRoom.systemMessage!.split(contextualInfoDelimeter).first,
       );
 
       /// Name chat room
       if (AppCache.useAiToNameChat.value == false) {
-        final first50CharsIfPossible = messageContent.length > 50
-            ? messageContent.substring(0, 50)
-            : messageContent;
+        final first50CharsIfPossible = messageContent.length > 50 ? messageContent.substring(0, 50) : messageContent;
         renameCurrentChatRoom(first50CharsIfPossible);
       }
     }
@@ -814,7 +787,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       String lastMessages = await getLastFewMessagesForContextAsString();
       lastMessages += ' Human: $messageContent';
       retrieveResponseFromPrompt(
-        '${nameTopicPrompt.replaceAll('{lang}', I18n.currentLocale.languageCode)} "$lastMessages"',
+        '${nameTopicPrompt.replaceAll('{lang}', I18n.currentLocale.languageCode)} "$lastMessages"${selectedModel.reasoningSupported == true ? '/no_think' : ''}',
+        maxTokens: 100,
       ).then(renameCurrentChatRoom);
     }
     // Stops.
@@ -823,10 +797,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       return;
     }
     if (AppCache.useRAG.value == true) {
-      final String? openAiKey = allModels.valueOrNull
-          ?.firstWhereOrNull(
-              (element) => element.ownedBy == OwnedByEnum.openai.name)
-          ?.apiKey;
+      final String? openAiKey =
+          allModels.valueOrNull?.firstWhereOrNull((element) => element.ownedBy == OwnedByEnum.openai.name)?.apiKey;
       final enhancedPrompt = await RAGOpenAi.getEnhancedPromptWithDocs(
         query: messageContent,
         apiKey: openAiKey!,
@@ -873,14 +845,11 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       );
     }
 
-    final isImageAttached =
-        fileInput != null && fileInput!.mimeType?.contains('image') == true;
-    final isTextFileAttached =
-        fileInput != null && fileInput!.mimeType?.contains('text') == true;
-    final isWordFileAttached =
-        fileInput != null && (fileInput!.name.endsWith('.docx'));
-    final isExcelFileAttached = fileInput != null &&
-        (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
+    final isImageAttached = fileInput != null && fileInput!.mimeType?.contains('image') == true;
+    final isTextFileAttached = fileInput != null && fileInput!.mimeType?.contains('text') == true;
+    final isWordFileAttached = fileInput != null && (fileInput!.name.endsWith('.docx'));
+    final isExcelFileAttached =
+        fileInput != null && (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
     if (isImageAttached) {
       final bytes = await fileInput!.readAsBytes();
       final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
@@ -954,17 +923,17 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     if (messageContent.isNotEmpty) isAnswering = true;
     notifyListeners();
     final messagesToSend = <ChatMessage>[];
+
     if (includeConversationGlobal) {
       await Future.delayed(const Duration(milliseconds: 50));
       if (includeConversationOnSend) {
         final lastMessages = await getLastMessagesLimitToTokens(
-          selectedChatRoom.maxTokenLength -
-              (selectedChatRoom.systemMessageTokensCount ?? 0),
+          selectedChatRoom.maxTokenLength - (selectedChatRoom.systemMessageTokensCount ?? 0),
           allowImages: true,
         );
         // if false it will just skip all messages in chat for this case
         final lastMessagesLangChain =
-            lastMessages.map((e) => e.toLangChainChatMessage());
+            lastMessages.map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported));
         messagesToSend.addAll(lastMessagesLangChain);
       } else {
         messagesToSend.add(
@@ -976,12 +945,21 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         );
       }
 
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true &&
-          useSystemPrompt) {
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
         messagesToSend.insert(
           0,
           SystemChatMessage(
             content: formatArgsInSystemPrompt(selectedChatRoom.systemMessage!),
+          ),
+        );
+      }
+
+      /// we modify it here because we don't want the messageContent to be shown in UI
+      if (shouldForceDisableReasoning) {
+        // modify the last message to append /no_think
+        messagesToSend[messagesToSend.length - 1] = messagesToSend[messagesToSend.length - 1].concat(
+          HumanChatMessage(
+            content: ChatMessageContent.text('/no_think'),
           ),
         );
       }
@@ -990,23 +968,22 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       //     0, ChatMessage.system('Previous chat hidden due to overflow'));
     }
     if (!includeConversationGlobal) {
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true &&
-          useSystemPrompt) {
+      if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
         final systemMessage = await getFormattedSystemPrompt(
           basicPrompt: selectedChatRoom.systemMessage!,
         );
-        messagesToSend.add(SystemChatMessage(
-            content: formatArgsInSystemPrompt(systemMessage)));
+        messagesToSend.add(SystemChatMessage(content: formatArgsInSystemPrompt(systemMessage)));
       }
 
-      if (messageContent.isNotEmpty)
+      if (messageContent.isNotEmpty) {
         messagesToSend.add(
           sendAsUser
               ? HumanChatMessage(
-                  content: ChatMessageContent.text(messageContent),
+                  content: ChatMessageContent.text(messageContent + (shouldForceDisableReasoning ? ' /no_think' : '')),
                 )
-              : AIChatMessage(content: messageContent),
+              : AIChatMessage(content: messageContent + (shouldForceDisableReasoning ? ' /no_think' : '')),
         );
+      }
       if (isImageAttached) {
         messagesToSend.add(
           HumanChatMessage(
@@ -1024,8 +1001,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       model: selectedChatRoom.model.modelName,
       user: AppCache.userName.value,
       maxTokens: selectedChatRoom.maxTokensResponseLenght != null
-          ? (selectedChatRoom.maxTokensResponseLenght! -
-              (selectedChatRoom.systemMessageTokensCount ?? 0))
+          ? (selectedChatRoom.maxTokensResponseLenght! - (selectedChatRoom.systemMessageTokensCount ?? 0))
           : null,
       temperature: selectedChatRoom.temp,
       topP: selectedChatRoom.topP,
@@ -1055,8 +1031,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
               if (AppCache.gptToolRememberInfo.value!)
                 ToolSpec(
                   name: 'remember_info_tool',
-                  description:
-                      'Tool to remember info. Use it to store info about user or important notes',
+                  description: 'Tool to remember info. Use it to store info about user or important notes',
                   inputJsonSchema: rememberInfoParameters,
                 ),
             ]
@@ -1102,8 +1077,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         return;
       }
       if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-        responseStream =
-            openAI!.stream(PromptValue.chat(messagesToSend), options: options);
+        responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
       } else {
         if (selectedChatRoom.model.ownedBy == OwnedByEnum.gemini.name) {
           throw Exception('Gemini is not supported yet');
@@ -1113,8 +1087,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           // TODO: add more models
         }
 
-        responseStream = localModel!
-            .stream(PromptValue.chat(messagesToSend), options: options);
+        responseStream = localModel!.stream(PromptValue.chat(messagesToSend), options: options);
       }
 
       String functionCallString = '';
@@ -1173,8 +1146,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
             notifyListeners();
             onResponseEnd(messageContent, responseId);
             if (functionCallString.isNotEmpty) {
-              final lastChar =
-                  functionCallString[functionCallString.length - 1];
+              final lastChar = functionCallString[functionCallString.length - 1];
               if (lastChar == '}') {
                 final decoded = jsonDecode(functionCallString);
                 _onToolsResponseEnd(messageContent, decoded, functionName);
@@ -1307,11 +1279,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     try {
       final results = await scrapper.search(searchPrompt);
       if (AppCache.scrapOnlyDecription.value!) {
-        final List<WebSearchResult> shortResults =
-            results.take(15).map((e) => e).toList();
+        final List<WebSearchResult> shortResults = results.take(15).map((e) => e).toList();
         addWebResultsToMessages(shortResults);
-        await _answerBasedOnWebResults(shortResults,
-            'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+        await _answerBasedOnWebResults(
+            shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
       } else {
         final threeRessults = results.take(3).map((e) => e).toList();
         addWebResultsToMessages(threeRessults);
@@ -1359,14 +1330,20 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
     /// Will restart autonomous mode and all timers if enabled in cache settings
     AnnoyFeature.init();
+    String newContent = response.content;
+
+    // if reasoning is disabled, we should remove all blocks with reasoning
+    // like <think>\n</think>
+    // and swap the message
+    if (AppCache.enableReasoning.value == false && selectedModel.reasoningSupported == true) {
+      newContent = response.content.replaceAll(RegExp(r'<think>\s*</think>'), '').trimLeft();
+    }
 
     if (AppCache.enableQuestionHelpers.value == true) {
       isGeneratingQuestionHelpers = true;
       questionHelpers.clear();
       notifyListeners();
-      agentMessageActions
-          .askForPromptsFromLLM(userContent, response.content)
-          .then(
+      agentMessageActions.askForPromptsFromLLM(userContent, response.content).then(
         (questionMessages) {
           if (questionMessages.isNotEmpty) {
             questionHelpers.addAll(questionMessages);
@@ -1384,7 +1361,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
     /// calculate tokens and swap message
     final tokens = await countTokensString(response.content);
-    final newResponse = response.copyWith(tokens: tokens);
+    final newResponse = response.copyWith(tokens: tokens, content: newContent);
     final values = messages.value;
     values[id] = newResponse;
     messages.add(values);
@@ -1403,8 +1380,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           displayCopiedToClipboard();
         } else if (action.actionEnum == OnMessageActionEnum.remember) {
           final lastFewMessages = await getLastFewMessages(count: 3);
-          final lastMessagesAsString =
-              await convertMessagesToString(lastFewMessages);
+          final lastMessagesAsString = await convertMessagesToString(lastFewMessages);
           await generateUserKnowladgeBasedOnText(lastMessagesAsString);
         } else if (action.actionEnum == OnMessageActionEnum.generateImage) {
           _onResponseEndGenerateImage(response, action);
@@ -1413,15 +1389,13 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         } else if (action.actionEnum == OnMessageActionEnum.runShellCommand) {
           final result = await ShellDriver.runShellCommand(match!.group(1)!);
           if (result.trim().isEmpty) {
-            addMessageSystem(
-                'Shell command output: EMPTY result or returned an error');
+            addMessageSystem('Shell command output: EMPTY result or returned an error');
           } else {
             addMessageSystem('Shell command result: $result');
           }
           // wait for the message to be added
           await Future.delayed(const Duration(milliseconds: 50));
-          sendMessage('Answer based on the result (answer short)',
-              onMessageSent: () {
+          sendMessage('Answer based on the result (answer short)', onMessageSent: () {
             final lastMessage = messages.value.entries.last;
             deleteMessage(lastMessage.key, false);
           });
@@ -1444,8 +1418,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         if (message.type == FluentChatMessageType.file) {
           // insert at start to maintain order
           list.insert(0, message);
-        } else if (message.type == FluentChatMessageType.image ||
-            message.type == FluentChatMessageType.imageAi) {
+        } else if (message.type == FluentChatMessageType.image || message.type == FluentChatMessageType.imageAi) {
           if (selectedChatRoom.model.imageSupported) list.insert(0, message);
         } else {
           // insert at start to maintain order
@@ -1519,8 +1492,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         // await modelCounter.countTokens(PromptValue.string(message.content));
         if ((currentTokens + tokensCount) > tokens) {
           if (kDebugMode) {
-            print(
-                '[BREAK beacuse of limit] Tokens: $tokensCount; message: ${message.content.split('\n').first} ');
+            print('[BREAK beacuse of limit] Tokens: $tokensCount; message: ${message.content.split('\n').first} ');
           }
           break;
         }
@@ -1528,12 +1500,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         if (stripMessage) {
           final countNewLines = message.content.split('\n\n').length;
           if (countNewLines > 1) {
-            final newContent =
-                message.content.replaceAll('\n\n', ' ').replaceAll('  ', ' ');
+            final newContent = message.content.replaceAll('\n\n', ' ').replaceAll('  ', ' ');
             // rough estimation of tokens because each model can count them differently
             tokensCount = message.tokens - countNewLines + 1;
-            message =
-                message.copyWith(content: newContent, tokens: tokensCount);
+            message = message.copyWith(content: newContent, tokens: tokensCount);
           }
         }
         currentTokens += tokensCount;
@@ -1541,8 +1511,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         //     '${message.timestamp} Tokens stripped: $currentTokens; Tokens raw: $currentTokensRaw;');
         result.add(message);
       } else if (allowImages &&
-          (message.type == FluentChatMessageType.image ||
-              message.type == FluentChatMessageType.imageAi)) {
+          (message.type == FluentChatMessageType.image || message.type == FluentChatMessageType.imageAi)) {
         if (chatModel.imageSupported) result.add(message);
       }
     }
@@ -1552,9 +1521,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     if (result.length == 1 && allowOverflow) {
       if (lastElement.type == FluentChatMessageType.textHuman) {
         final indexLast = messagesOriginal.length - 1;
-        final beforeLast = indexLast == 0
-            ? null
-            : messagesOriginal.elementAtOrNull(indexLast - 1);
+        final beforeLast = indexLast == 0 ? null : messagesOriginal.elementAtOrNull(indexLast - 1);
 
         /// The last message can be human message, so we need to add it and the previous one
         if (beforeLast != null) result.add(beforeLast);
@@ -1569,8 +1536,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     return result.reversed.toList();
   }
 
-  Future<String> getLastFewMessagesForContextAsString(
-      {int maxTokensLenght = 1024}) async {
+  Future<String> getLastFewMessagesForContextAsString({int maxTokensLenght = 1024}) async {
     final lastMessages = await getLastMessagesLimitToTokens(maxTokensLenght);
     final userName = AppCache.userName.value ?? 'User';
     final characterName = selectedChatRoom.characterName;
@@ -1595,8 +1561,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     if (selectedModel.ownedBy == 'openai') {
       return openAI!.countTokens(PromptValue.string(text), options: options);
     } else {
-      return (localModel ?? openAI)!
-          .countTokens(PromptValue.string(text), options: options);
+      return (localModel ?? openAI)!.countTokens(PromptValue.string(text), options: options);
     }
   }
 
@@ -1620,8 +1585,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   /// will calculate tokens for messages using cached tokens in each message.
   ///
   /// If the message has tokens, it will use them. Otherwise, it will use Future to calculate the tokens for the message.
-  Future<int> countTokensFromMessagesCached(
-      Iterable<FluentChatMessage> messages) async {
+  Future<int> countTokensFromMessagesCached(Iterable<FluentChatMessage> messages) async {
     int tokens = 0;
     for (int i = 0; i < messages.length; i++) {
       var message = messages.elementAt(i);
@@ -1655,8 +1619,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       if (systemMessage != null) {
         messagesToSend.add(SystemChatMessage(content: systemMessage));
       }
-      messagesToSend.add(
-          HumanChatMessage(content: ChatMessageContent.text(messageContent)));
+      messagesToSend.add(HumanChatMessage(content: ChatMessageContent.text(messageContent)));
     } else {
       messagesToSend.add(
         HumanChatMessage(
@@ -1696,11 +1659,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       if (sendAsStream) {
         Stream<ChatResult> stream;
         if (selectedModel.ownedBy == 'openai') {
-          stream = openAI!
-              .stream(PromptValue.chat(messagesToSend), options: options);
+          stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
         } else {
-          stream = localModel!
-              .stream(PromptValue.chat(messagesToSend), options: options);
+          stream = localModel!.stream(PromptValue.chat(messagesToSend), options: options);
         }
         await stream.forEach(
           (final chunk) {
@@ -1732,8 +1693,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         } else {
           response = await localModel!.call(messagesToSend, options: options);
         }
-        addBotMessageToList(
-            FluentChatMessage.ai(id: responseId, content: response.content));
+        addBotMessageToList(FluentChatMessage.ai(id: responseId, content: response.content));
         saveToDisk([selectedChatRoom]);
         notifyListeners();
       }
@@ -1741,8 +1701,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       logError('Error while sending single message: $e');
       final id = DateTime.now().millisecondsSinceEpoch.toString();
       addBotErrorMessageToList(
-        FluentChatMessage.system(
-            content: 'Error while sending single message: $e', id: id),
+        FluentChatMessage.system(content: 'Error while sending single message: $e', id: id),
       );
       fileInput = null;
       notifyListeners();
@@ -1756,6 +1715,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     String message, {
     String? systemMessage,
     List<FluentChatMessage> additionalPreMessages = const [],
+    int? maxTokens,
   }) async {
     final messagesToSend = <ChatMessage>[];
 
@@ -1763,33 +1723,28 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       messagesToSend.add(SystemChatMessage(content: systemMessage));
     }
     if (additionalPreMessages.isNotEmpty) {
-      messagesToSend
-          .addAll(additionalPreMessages.map((e) => e.toLangChainChatMessage()));
+      messagesToSend.addAll(additionalPreMessages
+          .map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported)));
     }
 
-    messagesToSend
-        .add(HumanChatMessage(content: ChatMessageContent.text(message)));
+    messagesToSend.add(HumanChatMessage(content: ChatMessageContent.text(message)));
     if (kDebugMode) {
       log('messagesToSend: $messagesToSend');
     }
 
     AIChatMessage response;
     final options = ChatOpenAIOptions(
-      model: selectedChatRoom.model.modelName,
-    );
+        model: selectedChatRoom.model.modelName, maxTokens: maxTokens, toolChoice: ChatToolChoice.none);
     var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
     var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
     if (selectedModel.ownedBy == 'openai') {
       sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
       response = await openAI!.call(messagesToSend, options: options);
-      respTokens +=
-          await openAI!.countTokens(PromptValue.string(response.content));
+      respTokens += await openAI!.countTokens(PromptValue.string(response.content));
     } else {
-      sentTokens +=
-          await localModel!.countTokens(PromptValue.chat(messagesToSend));
+      sentTokens += await localModel!.countTokens(PromptValue.chat(messagesToSend));
       response = await localModel!.call(messagesToSend, options: options);
-      respTokens +=
-          await localModel!.countTokens(PromptValue.string(response.content));
+      respTokens += await localModel!.countTokens(PromptValue.string(response.content));
     }
     if (sentTokens != selectedChatRoom.totalSentTokens) {
       selectedChatRoom.totalSentTokens = sentTokens;
@@ -1806,8 +1761,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   @Deprecated('Don not use it to set value. Only for StreamBuilder')
 
   /// Calculated by current messages in the chat.
-  final BehaviorSubject<int> totalTokensForCurrentChatByMessages =
-      BehaviorSubject.seeded(0);
+  final BehaviorSubject<int> totalTokensForCurrentChatByMessages = BehaviorSubject.seeded(0);
   set totalTokensByMessages(int value) =>
       // ignore: deprecated_member_use_from_same_package
       totalTokensForCurrentChatByMessages.add(value);
@@ -1817,8 +1771,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   int get totalTokensByMessages => totalTokensForCurrentChatByMessages.value;
 
   @Deprecated('Don not use it to set value. Only for StreamBuilder')
-  final BehaviorSubject<int> totalSentForCurrentChat =
-      BehaviorSubject.seeded(0);
+  final BehaviorSubject<int> totalSentForCurrentChat = BehaviorSubject.seeded(0);
   set totalSentTokens(int value) {
     // ignore: deprecated_member_use_from_same_package
     totalSentForCurrentChat.add(value);
@@ -1912,8 +1865,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   void updateChatRoomTimestamp() {
     final lastUpdated = selectedChatRoom.dateModifiedMilliseconds;
-    selectedChatRoom.dateModifiedMillisecondsNullable =
-        DateTime.now().millisecondsSinceEpoch;
+    selectedChatRoom.dateModifiedMillisecondsNullable = DateTime.now().millisecondsSinceEpoch;
     // notify if the chat room was not updated in the last 30 seconds. Just a safety mechanism
     if (selectedChatRoom.dateModifiedMilliseconds - lastUpdated > 30_000) {
       notifyRoomsStream();
@@ -1926,19 +1878,16 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     String? toolName,
   ) async {
     log('assistantArgs: $toolArgs');
-    if (toolName == 'copy_to_clipboard_tool' &&
-        AppCache.gptToolCopyToClipboardEnabled.value!) {
+    if (toolName == 'copy_to_clipboard_tool' && AppCache.gptToolCopyToClipboardEnabled.value!) {
       final text = toolArgs['responseMessage'];
       final textToCopy = toolArgs['clipboard'];
       await Clipboard.setData(ClipboardData(text: textToCopy));
       displayCopiedToClipboard();
       final newId = DateTime.now().millisecondsSinceEpoch.toString();
       addBotMessageToList(
-        FluentChatMessage.ai(
-            id: newId, content: "```Clipboard\n$textToCopy\n```\n$text"),
+        FluentChatMessage.ai(id: newId, content: "```Clipboard\n$textToCopy\n```\n$text"),
       );
-    } else if (toolName == 'auto_open_urls_tool' &&
-        AppCache.gptToolAutoOpenUrls.value!) {
+    } else if (toolName == 'auto_open_urls_tool' && AppCache.gptToolAutoOpenUrls.value!) {
       final url = toolArgs['url'];
       final text = toolArgs['responseMessage'];
       final appendedText = text + '```func\n$url\n```';
@@ -1955,8 +1904,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       // User need time to read XD
       await Future.delayed(const Duration(milliseconds: 1500));
       if (await canLaunchUrlString(url)) await launchUrlString(url);
-    } else if (toolName == 'generate_image_tool' &&
-        AppCache.gptToolGenerateImage.value!) {
+    } else if (toolName == 'generate_image_tool' && AppCache.gptToolGenerateImage.value!) {
       final String prompt = toolArgs['prompt'];
       final String? size = toolArgs['size'];
       final String? responseMessage = toolArgs['responseMessage'];
@@ -1990,8 +1938,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         );
         addBotMessageToList(botResponse);
       }
-    } else if (toolName == 'remember_info_tool' &&
-        AppCache.gptToolRememberInfo.value == true) {
+    } else if (toolName == 'remember_info_tool' && AppCache.gptToolRememberInfo.value == true) {
       final info = toolArgs['info'];
       final responseMessage = toolArgs['responseMessage'];
       final time = DateTime.now().millisecondsSinceEpoch;
@@ -2043,8 +1990,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   Future<void> clearChatMessages() async {
-    final confirmed = await ConfirmationDialog.show(
-        context: appContext!, message: 'Clear current chat?');
+    final confirmed = await ConfirmationDialog.show(context: appContext!, message: 'Clear current chat?');
     if (!confirmed) return;
     messages.add({});
     questionHelpers.clear();
@@ -2078,8 +2024,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final id = generateChatID();
     String systemMessage = '';
 
-    systemMessage =
-        await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
+    systemMessage = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
 
     chatRooms[id] = ChatRoom(
       id: id,
@@ -2149,10 +2094,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   Future<void> deleteChatRoom(String chatRoomId) async {
-    final allChatRooms =
-        getChatRoomsRecursive(chatRoomsStream.value.values.toList());
-    final chatRoomToDelete = chatRooms[chatRoomId] ??
-        allChatRooms.firstWhereOrNull((element) => element.id == chatRoomId);
+    final allChatRooms = getChatRoomsRecursive(chatRoomsStream.value.values.toList());
+    final chatRoomToDelete =
+        chatRooms[chatRoomId] ?? allChatRooms.firstWhereOrNull((element) => element.id == chatRoomId);
     if (chatRoomToDelete?.isFolder == true) {
       ungroupByFolder(chatRoomToDelete!);
       return;
@@ -2168,8 +2112,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     // if last one - create a default one
     if (chatRooms.isEmpty) {
       final newChatRoom = generateDefaultChatroom(
-        systemMessage: await getFormattedSystemPrompt(
-            basicPrompt: defaultGlobalSystemMessage),
+        systemMessage: await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage),
       );
       chatRooms[newChatRoom.id] = newChatRoom;
       selectedChatRoomId = newChatRoom.id;
@@ -2186,8 +2129,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
             '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId.json');
       }
     } catch (e) {
-      displayErrorInfoBar(
-          title: 'Error while deleting chat room', message: '$e');
+      displayErrorInfoBar(title: 'Error while deleting chat room', message: '$e');
     }
 
     /// 2. Delete messages file
@@ -2197,12 +2139,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         if (chatRoomToDelete.model.modelName == 'error') {
           FileUtils.deleteFile(chatRoomId);
         } else {
-          await FileUtils.moveFile(file.path,
-              '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId-messages.json');
+          await FileUtils.moveFile(file.path, '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId-messages.json');
         }
       } catch (e) {
-        displayErrorInfoBar(
-            title: 'Error while deleting chat room messages', message: '$e');
+        displayErrorInfoBar(title: 'Error while deleting chat room messages', message: '$e');
       }
     });
     if (chatRoomId == selectedChatRoomId) {
@@ -2211,13 +2151,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
   }
 
-  void editChatRoom(String oldChatRoomId, ChatRoom chatRoom,
-      {switchToForeground = false}) {
+  void editChatRoom(String oldChatRoomId, ChatRoom chatRoom, {switchToForeground = false}) {
     final oldChatRoom = chatRooms[oldChatRoomId];
-    final isCharNameChanged =
-        oldChatRoom!.characterName != chatRoom.characterName;
-    chatRoom.dateModifiedMillisecondsNullable =
-        DateTime.now().millisecondsSinceEpoch;
+    final isCharNameChanged = oldChatRoom!.characterName != chatRoom.characterName;
+    chatRoom.dateModifiedMillisecondsNullable = DateTime.now().millisecondsSinceEpoch;
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
       if (isCharNameChanged) {
@@ -2226,8 +2163,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         // we need to go through all messages and change the creator name
         for (var message in messages.value.values) {
           if (message.type == FluentChatMessageType.textAi) {
-            _messages[message.id] =
-                message.copyWith(creator: chatRoom.characterName);
+            _messages[message.id] = message.copyWith(creator: chatRoom.characterName);
           } else {
             _messages[message.id] = message;
           }
@@ -2251,8 +2187,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   /// Returns index of the deleted message in the reversed list.
   int? deleteMessage(String id, [bool showInfo = true]) {
     final _messages = messages.value;
-    final indexOfMessage =
-        messagesReversedList.indexWhere((element) => element.id == id);
+    final indexOfMessage = messagesReversedList.indexWhere((element) => element.id == id);
     if (indexOfMessage == -1) {
       if (showInfo) displayErrorInfoBar(title: 'Message not found');
       return null;
@@ -2397,17 +2332,14 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
   }
 
-  Future<void> regenerateMessage(FluentChatMessage currentElementToDelete,
-      {required int indexInReversedList}) async {
+  Future<void> regenerateMessage(FluentChatMessage currentElementToDelete, {required int indexInReversedList}) async {
     final isLastMessage = indexInReversedList == 0;
     final isBeforeLastMessage = indexInReversedList == 1;
     final isSelectedMessageFromMe = currentElementToDelete.isTextFromMe;
 
-    final previousItemInRevList =
-        messagesReversedList.elementAtOrNull(indexInReversedList + 1);
+    final previousItemInRevList = messagesReversedList.elementAtOrNull(indexInReversedList + 1);
 
-    final nextItemInRevList =
-        messagesReversedList.elementAtOrNull(indexInReversedList + 1);
+    final nextItemInRevList = messagesReversedList.elementAtOrNull(indexInReversedList + 1);
 
     if (isLastMessage || isBeforeLastMessage) {
       // delete the message because we will regenerate from the chat history before that message appeared
@@ -2415,16 +2347,13 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       // if we just deleted ai text message it means we need to delete the previous (related) question from human
       if (currentElementToDelete.type == FluentChatMessageType.textAi) {
         //Just to confirm that the next message is AI message
-        if (previousItemInRevList != null &&
-            previousItemInRevList.type == FluentChatMessageType.textHuman) {
+        if (previousItemInRevList != null && previousItemInRevList.type == FluentChatMessageType.textHuman) {
           deleteMessage(previousItemInRevList.id, false);
         }
       }
-      if (currentElementToDelete.type == FluentChatMessageType.textHuman &&
-          !isLastMessage) {
+      if (currentElementToDelete.type == FluentChatMessageType.textHuman && !isLastMessage) {
         //Just to confirm that the next message is AI message
-        if (nextItemInRevList != null &&
-            nextItemInRevList.type == FluentChatMessageType.textAi) {
+        if (nextItemInRevList != null && nextItemInRevList.type == FluentChatMessageType.textAi) {
           deleteMessage(nextItemInRevList.id, false);
         }
       }
@@ -2435,14 +2364,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       );
       return;
     }
-    final messageForType = isSelectedMessageFromMe
-        ? currentElementToDelete
-        : previousItemInRevList;
+    final messageForType = isSelectedMessageFromMe ? currentElementToDelete : previousItemInRevList;
 
     await sendMessage(
-      isSelectedMessageFromMe
-          ? currentElementToDelete.content
-          : previousItemInRevList!.content,
+      isSelectedMessageFromMe ? currentElementToDelete.content : previousItemInRevList!.content,
       hidePrompt: true,
       sendAsUser: messageForType?.type == FluentChatMessageType.textHuman,
       seed: Random().nextInt(10000),
@@ -2488,8 +2413,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       if (tokenCount > 2000) {
         // append the first 2000 chars
         urlContent += characters.take(2000).join('');
-        urlContent +=
-            '[SYSTEM:Char count exceeded 500. Skip the rest of the page]';
+        urlContent += '[SYSTEM:Char count exceeded 500. Skip the rest of the page]';
         continue;
       }
 
@@ -2525,8 +2449,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   /// custom get index
-  int indexOf(List<FluentChatMessage> list, FluentChatMessage? element,
-      [int start = 0]) {
+  int indexOf(List<FluentChatMessage> list, FluentChatMessage? element, [int start = 0]) {
     if (start < 0) start = 0;
     for (int i = start; i < list.length; i++) {
       final first = list[i];
@@ -2577,8 +2500,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           numChannels: 1,
           device: AppCache.micrpohoneDeviceId.value != null
               ? InputDevice(
-                  id: AppCache.micrpohoneDeviceId.value!,
-                  label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
+                  id: AppCache.micrpohoneDeviceId.value!, label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
               : devices.first,
         ),
       );
@@ -2590,8 +2512,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         'encoding': 'linear16',
         'sample_rate': 16000,
       };
-      transcriber = DeepgramSpeech.deepgram
-          .createLiveTranscriber(micStream!, queryParams: streamParams);
+      transcriber = DeepgramSpeech.deepgram.createLiveTranscriber(micStream!, queryParams: streamParams);
       transcriber!.stream.listen((res) {
         if (res.transcript?.isNotEmpty == true) {
           messageController.text += '${res.transcript!} ';
@@ -2625,8 +2546,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   /// Replace the message with the new one. Recover the tokens if textHuman or textAi
   Future editMessage(String id, FluentChatMessage message) async {
-    if (message.type == FluentChatMessageType.textHuman ||
-        message.type == FluentChatMessageType.textAi) {
+    if (message.type == FluentChatMessageType.textHuman || message.type == FluentChatMessageType.textAi) {
       final lastTokenLenght = messages.value[id]?.tokens ?? 0;
       final newLenghtTokens = await countTokensString(message.content);
 
@@ -2662,8 +2582,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       onFinishResponse: () {
         final aiAnswer = messages.value.entries.last;
 
-        final concatMessage =
-            lastMessageToMerge!.concat(aiAnswer.value.content);
+        final concatMessage = lastMessageToMerge!.concat(aiAnswer.value.content);
         final listMessages = messages.value;
         listMessages.remove(aiAnswer.key);
         listMessages[id] = concatMessage;
@@ -2689,8 +2608,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> saveChatWithoutMessages(ChatRoom chatRoom) async {
     final chatRoomRaw = chatRoom.toJson();
     final path = await FileUtils.getChatRoomsPath();
-    await FileUtils.saveFile(
-        '$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
+    await FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
   }
 
   Future<void> _onResponseEndGenerateImage(
@@ -2715,14 +2633,12 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       if (apiKey == null) {
         return displayErrorInfoBar(
           title: 'Error while generating image'.tr,
-          message:
-              'No API key found for image generation. Please add an API key in the settings page',
+          message: 'No API key found for image generation. Please add an API key in the settings page',
           action: Button(
             child: Text('Settings'.tr),
             onPressed: () {
-              Navigator.of(context!).push(FluentPageRoute(
-                  builder: (ctx) => NewSettingsPage(
-                      initialIndex: NewSettingsPage.apiUrlsIndex)));
+              Navigator.of(context!)
+                  .push(FluentPageRoute(builder: (ctx) => NewSettingsPage(initialIndex: NewSettingsPage.apiUrlsIndex)));
             },
           ),
         );
@@ -2800,13 +2716,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> scrollToLastOverflowMessage() async {
     final maxTokens = maxTokenLenght;
     final messagesList = messagesReversedList.toList();
-    messagesList.add(FluentChatMessage.system(
-        id: '000', content: selectedChatRoom.systemMessage ?? ''));
+    messagesList.add(FluentChatMessage.system(id: '000', content: selectedChatRoom.systemMessage ?? ''));
     int tokens = 0;
     for (var message in messagesList) {
-      tokens += message.tokens == 0
-          ? await countTokensString(message.content)
-          : message.tokens;
+      tokens += message.tokens == 0 ? await countTokensString(message.content) : message.tokens;
       if (tokens > maxTokens) {
         scrollToMessage(message.id);
         break;
@@ -2833,8 +2746,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       return;
     }
     if (parentFolderId != null) {
-      final allChatRooms =
-          getChatRoomsFoldersRecursive(chRooms.values.toList());
+      final allChatRooms = getChatRoomsFoldersRecursive(chRooms.values.toList());
       final parentFolder = allChatRooms.firstWhereOrNull(
         (element) => element.id == parentFolderId,
       );
@@ -2851,8 +2763,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
         for (var chatRoom in chatRoomsForFolder) {
           chRooms.remove(chatRoom.id);
-          parentFolder.children!
-              .removeWhere((element) => element.id == chatRoom.id);
+          parentFolder.children!.removeWhere((element) => element.id == chatRoom.id);
         }
         chRooms[parentFolder.id] = parentFolder;
         chatRoomsStream.add(chRooms);
@@ -2887,8 +2798,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     saveToDisk(chatRoomsStream.value.values.toList());
   }
 
-  void moveChatRoomToFolder(ChatRoom chatRoom, ChatRoom folder,
-      {required String? parentFolder}) {
+  void moveChatRoomToFolder(ChatRoom chatRoom, ChatRoom folder, {required String? parentFolder}) {
     // remove chat room from the list
     // add chat room to the folder
     final chatRooms = chatRoomsStream.value;
@@ -2907,10 +2817,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       );
     } else {
       // parent folder is not null and we need to find it and remove child from there
-      final allChatRooms =
-          getChatRoomsFoldersRecursive(chatRooms.values.toList());
-      final parent = allChatRooms
-          .firstWhereOrNull((element) => element.id == parentFolder);
+      final allChatRooms = getChatRoomsFoldersRecursive(chatRooms.values.toList());
+      final parent = allChatRooms.firstWhereOrNull((element) => element.id == parentFolder);
       if (parent != null) {
         parent.children!.removeWhere((element) => element.id == chatRoom.id);
         // ungroup if no children
@@ -2931,8 +2839,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     saveToDisk(chatRoomsStream.value.values.toList());
   }
 
-  Future<void> recalculateTokensFromLocalMessages(
-      [bool showPromptToOverride = true]) async {
+  Future<void> recalculateTokensFromLocalMessages([bool showPromptToOverride = true]) async {
     var _sentTokens = 0;
     var _receivedTokens = 0;
     for (var message in messages.value.values) {
@@ -2955,8 +2862,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     if (showPromptToOverride == false) return;
     final shouldOverrideChatTokens = await ConfirmationDialog.show(
       context: context!,
-      message:
-          'Do you want to save and override chat tokens with the new value?',
+      message: 'Do you want to save and override chat tokens with the new value?',
     );
     if (shouldOverrideChatTokens) {
       selectedChatRoom.totalSentTokens = _sentTokens;
@@ -2969,8 +2875,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   Future<void> deleteMessagesAbove(String id) async {
     final confirmed = await ConfirmationDialog.show(
-        context: context!,
-        message: 'Everything above will be deleted in current chat'.tr);
+        context: context!, message: 'Everything above will be deleted in current chat'.tr);
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -2985,8 +2890,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   Future<void> deleteMessagesBelow(String id) async {
     final confirmed = await ConfirmationDialog.show(
-        context: context!,
-        message: 'Everything below will be deleted in current chat'.tr);
+        context: context!, message: 'Everything below will be deleted in current chat'.tr);
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -3009,8 +2913,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     chatRooms[newChatRoom.id] = newChatRoom;
     // if it's current chat room, save messages
     final messagesRaw = <Map<String, dynamic>>[];
-    final fileMessagesOfSelectedChat =
-        await FileUtils.getChatRoomMessagesFileById(
+    final fileMessagesOfSelectedChat = await FileUtils.getChatRoomMessagesFileById(
       chatRoom.id,
     );
     final stringMessages = await fileMessagesOfSelectedChat.readAsString();
@@ -3076,11 +2979,9 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
 
     /// "some prompt {{pinnedMessages}}". We remove tag to get clear prompt
-    final currentSysPrompt =
-        selectedChatRoom.systemMessage!.replaceAll('\n{{pinnedMessages}}', '');
+    final currentSysPrompt = selectedChatRoom.systemMessage!.replaceAll('\n{{pinnedMessages}}', '');
 
-    final messageIndex = messagesReversedList
-        .indexOf(FluentChatMessage.ai(id: messageId, content: ''));
+    final messageIndex = messagesReversedList.indexOf(FluentChatMessage.ai(id: messageId, content: ''));
     if (messageIndex == -1) return;
     final pinnedMessage = message.copyWith(indexPin: messageIndex);
 
@@ -3103,8 +3004,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     editMessage(messageId, newMessage);
     pinnedMessagesIndexes.remove(message.indexPin!);
     if (pinnedMessagesIndexes.isEmpty) {
-      selectedChatRoom.systemMessage = selectedChatRoom.systemMessage!
-          .replaceAll('\n{{pinnedMessages}}', '');
+      selectedChatRoom.systemMessage = selectedChatRoom.systemMessage!.replaceAll('\n{{pinnedMessages}}', '');
     }
     notifyListeners();
   }

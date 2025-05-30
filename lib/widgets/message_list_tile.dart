@@ -143,8 +143,7 @@ class _MessageCardState extends State<MessageCard> {
           return;
         }
         final cardColor = context.theme.cardColor;
-        backgroundColor =
-            backgroundColor == cardColor ? Colors.yellow.dark : cardColor;
+        backgroundColor = backgroundColor == cardColor ? Colors.yellow.dark : cardColor;
         if (mounted) setState(() {});
 
         if (timer.tick == 5) {
@@ -164,8 +163,7 @@ class _MessageCardState extends State<MessageCard> {
 
   @override
   Widget build(BuildContext context) {
-    final formatDateTime = DateFormat('HH:mm:ss')
-        .format(DateTime.fromMillisecondsSinceEpoch(widget.message.timestamp));
+    final formatDateTime = DateFormat('HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(widget.message.timestamp));
     final appTheme = context.read<AppTheme>();
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     Widget tileWidget;
@@ -203,9 +201,7 @@ class _MessageCardState extends State<MessageCard> {
                 borderRadius: BorderRadius.circular(20.0),
                 color: backgroundColor ?? context.theme.cardColor,
                 border: Border.all(
-                  color: isFocused
-                      ? context.theme.accentColor.withAlpha(127)
-                      : Colors.transparent,
+                  color: isFocused ? context.theme.accentColor.withAlpha(127) : Colors.transparent,
                   width: 2,
                 ),
               ),
@@ -216,15 +212,12 @@ class _MessageCardState extends State<MessageCard> {
                     children: [
                       Expanded(child: Text('System', style: myMessageStyle)),
                       _isExpanded
-                          ? const Icon(FluentIcons.chevron_up_16_filled,
-                              size: 12)
-                          : const Icon(FluentIcons.chevron_down_16_filled,
-                              size: 12)
+                          ? const Icon(FluentIcons.chevron_up_16_filled, size: 12)
+                          : const Icon(FluentIcons.chevron_down_16_filled, size: 12)
                     ],
                   ),
                   if (_isExpanded)
-                    SelectableText(widget.message.content,
-                        style: TextStyle(fontSize: widget.textSize.toDouble())),
+                    SelectableText(widget.message.content, style: TextStyle(fontSize: widget.textSize.toDouble())),
                 ],
               ),
             ),
@@ -238,26 +231,26 @@ class _MessageCardState extends State<MessageCard> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.message.type == FluentChatMessageType.textAi &&
-              selectedChatRoom.characterAvatarPath != null)
+          if (widget.message.type == FluentChatMessageType.textAi && selectedChatRoom.characterAvatarPath != null)
             GestureDetector(
               onTap: () {
-                final base64Image = base64Encode(
-                    File(selectedChatRoom.characterAvatarPath!)
-                        .readAsBytesSync());
-                _showImageDialog(context,
-                    FluentChatMessage.imageAi(id: '', content: base64Image));
+                final base64Image = base64Encode(File(selectedChatRoom.characterAvatarPath!).readAsBytesSync());
+                _showImageDialog(context, FluentChatMessage.imageAi(id: '', content: base64Image));
               },
-              child: Container(
+              child: SizedBox(
                 width: 64,
                 height: 64,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.0),
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: FileImage(
-                      File(selectedChatRoom.characterAvatarPath!),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8.0),
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: FileImage(
+                          File(selectedChatRoom.characterAvatarPath!),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -268,9 +261,7 @@ class _MessageCardState extends State<MessageCard> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.message.indexPin != null)
-                  Icon(ic.FluentIcons.pin_20_filled,
-                      size: 12, color: Colors.orange),
+                if (widget.message.indexPin != null) Icon(ic.FluentIcons.pin_20_filled, size: 12, color: Colors.orange),
                 if (widget.message.type == FluentChatMessageType.image ||
                     widget.message.type == FluentChatMessageType.imageAi)
                   MouseRegion(
@@ -278,8 +269,7 @@ class _MessageCardState extends State<MessageCard> {
                     child: GestureDetector(
                       onTap: () => _showImageDialog(context, widget.message),
                       child: Padding(
-                        padding: const EdgeInsets.only(
-                            left: 0.0, right: 12, top: 8, bottom: 12),
+                        padding: const EdgeInsets.only(left: 0.0, right: 12, top: 8, bottom: 12),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10.0),
                           child: Image.memory(
@@ -311,10 +301,7 @@ class _MessageCardState extends State<MessageCard> {
                           children: [
                             const Icon(FluentIcons.checkmark_16_filled),
                             const SizedBox(width: 4),
-                            HotkeyText([
-                              LogicalKeyboardKey.alt,
-                              LogicalKeyboardKey.enter
-                            ]),
+                            HotkeyText([LogicalKeyboardKey.alt, LogicalKeyboardKey.enter]),
                           ],
                         ),
                         tooltip: 'Save'.tr,
@@ -341,8 +328,7 @@ class _MessageCardState extends State<MessageCard> {
                     onSelectionChanged: (text) {
                       selectedContent = text?.plainText;
                     },
-                    contextMenuBuilder: (ctx, state) =>
-                        ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                    contextMenuBuilder: (ctx, state) => ContextMenuBuilders.textChatMessageContextMenuBuilder(
                       ctx,
                       state,
                       onShowCommandsPressed: (text) {
@@ -359,19 +345,16 @@ class _MessageCardState extends State<MessageCard> {
                       },
                       onQuoteSelectedText: (text) {
                         final provider = context.read<ChatProvider>();
-                        provider.messageController.text =
-                            provider.messageController.text += '"$text" ';
+                        provider.messageController.text = provider.messageController.text += '"$text" ';
                         promptTextFocusNode.requestFocus();
                       },
                       onImproveSelectedText: (text) {
                         final provider = context.read<ChatProvider>();
-                        provider.sendMessage('Improve writing: "$text"',
-                            hidePrompt: true);
+                        provider.sendMessage('Improve writing: "$text"', hidePrompt: true);
                       },
                     ),
                     contextMenuBuilderMarkdown: (ctx, state) {
-                      return ContextMenuBuilders
-                          .markdownChatMessageContextMenuBuilder(
+                      return ContextMenuBuilders.markdownChatMessageContextMenuBuilder(
                         context,
                         flyoutController,
                         state,
@@ -389,14 +372,12 @@ class _MessageCardState extends State<MessageCard> {
                         },
                         onQuoteSelectedText: (text) {
                           final provider = context.read<ChatProvider>();
-                          provider.messageController.text =
-                              provider.messageController.text += '"$text" ';
+                          provider.messageController.text = provider.messageController.text += '"$text" ';
                           promptTextFocusNode.requestFocus();
                         },
                         onImproveSelectedText: (text) {
                           final provider = context.read<ChatProvider>();
-                          provider.sendMessage('Improve writing: "$text"',
-                              hidePrompt: true);
+                          provider.sendMessage('Improve writing: "$text"', hidePrompt: true);
                         },
                       );
                     },
@@ -404,8 +385,7 @@ class _MessageCardState extends State<MessageCard> {
                 else if (isContentText)
                   SelectableText(
                     widget.message.content,
-                    contextMenuBuilder: (ctx, state) =>
-                        ContextMenuBuilders.textChatMessageContextMenuBuilder(
+                    contextMenuBuilder: (ctx, state) => ContextMenuBuilders.textChatMessageContextMenuBuilder(
                       ctx,
                       state,
                       onShowCommandsPressed: (text) {
@@ -422,19 +402,15 @@ class _MessageCardState extends State<MessageCard> {
                       },
                       onQuoteSelectedText: (text) {
                         final provider = context.read<ChatProvider>();
-                        provider.messageController.text =
-                            provider.messageController.text += '"$text" ';
+                        provider.messageController.text = provider.messageController.text += '"$text" ';
                         promptTextFocusNode.requestFocus();
                       },
                       onImproveSelectedText: (text) {
                         final provider = context.read<ChatProvider>();
-                        provider.sendMessage('Improve writing: "$text"',
-                            hidePrompt: true);
+                        provider.sendMessage('Improve writing: "$text"', hidePrompt: true);
                       },
                     ),
-                    style: TextStyle(
-                        fontSize: widget.textSize.toDouble(),
-                        fontWeight: FontWeight.normal),
+                    style: TextStyle(fontSize: widget.textSize.toDouble(), fontWeight: FontWeight.normal),
                   ),
                 if (widget.message.type == FluentChatMessageType.file)
                   Button(
@@ -496,11 +472,9 @@ class _MessageCardState extends State<MessageCard> {
                       if (widget.message.content.isNotEmpty)
                         SelectableText(
                           widget.message.content,
-                          style:
-                              TextStyle(fontSize: widget.textSize.toDouble()),
+                          style: TextStyle(fontSize: widget.textSize.toDouble()),
                         ),
-                      for (final result
-                          in (widget.message.webResults ?? <WebSearchResult>[]))
+                      for (final result in (widget.message.webResults ?? <WebSearchResult>[]))
                         SizedBox(
                           width: 200,
                           child: Button(
@@ -514,18 +488,14 @@ class _MessageCardState extends State<MessageCard> {
                                     width: 24,
                                     height: 24,
                                     fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Icon(
+                                    errorBuilder: (context, error, stackTrace) => const Icon(
                                       FluentIcons.globe_16_regular,
                                       size: 24,
                                     ),
                                   ),
                                 Text(
                                   result.title,
-                                  style: FluentTheme.of(context)
-                                      .typography
-                                      .subtitle!,
+                                  style: FluentTheme.of(context).typography.subtitle!,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
                                   maxLines: 2,
@@ -534,9 +504,7 @@ class _MessageCardState extends State<MessageCard> {
                                 /// url short one line
                                 Text(
                                   result.url,
-                                  style: FluentTheme.of(context)
-                                      .typography
-                                      .caption!,
+                                  style: FluentTheme.of(context).typography.caption!,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
                                   maxLines: 1,
@@ -577,8 +545,7 @@ class _MessageCardState extends State<MessageCard> {
 
     return Shortcuts(
       shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.enter):
-            const ActivateIntent(),
+        LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.enter): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.escape): const DoNothingIntent(),
         LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
       },
@@ -632,8 +599,7 @@ class _MessageCardState extends State<MessageCard> {
             if (event.buttons == kSecondaryMouseButton) {
               return;
             }
-            FocusScope.of(context).unfocus(
-                disposition: UnfocusDisposition.previouslyFocusedChild);
+            FocusScope.of(context).unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
             // ideal delay to unfocus the previous tile, but still not loose focus on current one
             await Future.delayed(Duration(milliseconds: 1));
             // even if we are focused on current one, since we unfocused unknown previous one we need to focus on current one again
@@ -665,12 +631,9 @@ class _MessageCardState extends State<MessageCard> {
                     padding: EdgeInsets.only(bottom: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.0),
-                      color: backgroundColor ??
-                          context.theme.cardColor.withAlpha(127),
+                      color: backgroundColor ?? context.theme.cardColor.withAlpha(127),
                       border: Border.all(
-                        color: isFocused
-                            ? context.theme.accentColor.withAlpha(127)
-                            : Colors.transparent,
+                        color: isFocused ? context.theme.accentColor.withAlpha(127) : Colors.transparent,
                         width: 2,
                       ),
                     ),
@@ -687,8 +650,7 @@ class _MessageCardState extends State<MessageCard> {
                         SqueareIconButton(
                           icon: const Icon(FluentIcons.copy_16_regular),
                           onTap: () {
-                            Clipboard.setData(
-                                ClipboardData(text: widget.message.content));
+                            Clipboard.setData(ClipboardData(text: widget.message.content));
                             displayCopiedToClipboard();
                           },
                           tooltip: 'Copy'.tr,
@@ -697,8 +659,7 @@ class _MessageCardState extends State<MessageCard> {
                         FlyoutTarget(
                           controller: flyoutController,
                           child: SqueareIconButton(
-                            icon:
-                                const Icon(FluentIcons.more_vertical_16_filled),
+                            icon: const Icon(FluentIcons.more_vertical_16_filled),
                             onTap: () {
                               flyoutController.showFlyout(
                                 builder: (ctx) => _showOptionsFlyout(),
@@ -723,14 +684,10 @@ class _MessageCardState extends State<MessageCard> {
                         children: [
                           if (widget.message.isTextMessage) ...[
                             SqueareIconButton(
-                              tooltip: _isMarkdownView
-                                  ? 'Show text'
-                                  : 'Show markdown',
-                              icon: const Icon(
-                                  FluentIcons.paint_brush_12_regular),
+                              tooltip: _isMarkdownView ? 'Show text' : 'Show markdown',
+                              icon: const Icon(FluentIcons.paint_brush_12_regular),
                               onTap: () {
-                                AppCache.isMarkdownViewEnabled.value =
-                                    !_isMarkdownView;
+                                AppCache.isMarkdownViewEnabled.value = !_isMarkdownView;
                                 setState(() {
                                   _isMarkdownView = !_isMarkdownView;
                                 });
@@ -749,17 +706,12 @@ class _MessageCardState extends State<MessageCard> {
                               SqueareIconButton(
                                 tooltip: 'Regenerate message',
                                 icon: widget.message.isTextFromMe
-                                    ? const Icon(
-                                        FluentIcons.arrow_down_12_regular)
-                                    : const Icon(FluentIcons
-                                        .arrow_counterclockwise_16_filled),
+                                    ? const Icon(FluentIcons.arrow_down_12_regular)
+                                    : const Icon(FluentIcons.arrow_counterclockwise_16_filled),
                                 onTap: () {
                                   final provider = context.read<ChatProvider>();
-                                  final indexInReversedList =
-                                      messagesReversedList
-                                          .indexOf(widget.message);
-                                  provider.regenerateMessage(widget.message,
-                                      indexInReversedList: indexInReversedList);
+                                  final indexInReversedList = messagesReversedList.indexOf(widget.message);
+                                  provider.regenerateMessage(widget.message, indexInReversedList: indexInReversedList);
                                 },
                               ),
                             SqueareIconButton(
@@ -771,22 +723,18 @@ class _MessageCardState extends State<MessageCard> {
                                           FluentIcons.stop_24_filled,
                                           color: context.theme.accentColor,
                                         )
-                                      : const Icon(FluentIcons
-                                          .sound_wave_circle_24_regular),
+                                      : const Icon(FluentIcons.sound_wave_circle_24_regular),
                               onTap: () async {
                                 if (TextToSpeechService.isValid() == false) {
-                                  displayInfoBar(context,
-                                      builder: (ctx, close) {
+                                  displayInfoBar(context, builder: (ctx, close) {
                                     return InfoBar(
                                       severity: InfoBarSeverity.warning,
-                                      title: Text(
-                                          '${TextToSpeechService.serviceName} API key is not set'),
+                                      title: Text('${TextToSpeechService.serviceName} API key is not set'),
                                       action: Button(
                                           child: Text('Settings'.tr),
                                           onPressed: () {
                                             Navigator.of(context).push(
-                                              FluentPageRoute(
-                                                  builder: (context) {
+                                              FluentPageRoute(builder: (context) {
                                                 return const NewSettingsPage();
                                               }),
                                             );
@@ -819,18 +767,15 @@ class _MessageCardState extends State<MessageCard> {
                                     });
                                     if (e is DeadlineExceededException) {
                                       // ignore: use_build_context_synchronously
-                                      displayInfoBar(context,
-                                          builder: (ctx, close) {
+                                      displayInfoBar(context, builder: (ctx, close) {
                                         return InfoBar(
                                           severity: InfoBarSeverity.error,
-                                          title: Text(
-                                              'Timeout exceeded. Please try again later.'),
+                                          title: Text('Timeout exceeded. Please try again later.'),
                                         );
                                       });
                                     } else {
                                       // ignore: use_build_context_synchronously
-                                      displayInfoBar(context,
-                                          builder: (ctx, close) {
+                                      displayInfoBar(context, builder: (ctx, close) {
                                         return InfoBar(
                                           severity: InfoBarSeverity.error,
                                           title: Text('$e'),
@@ -841,8 +786,7 @@ class _MessageCardState extends State<MessageCard> {
                                     }
                                   }
                                 }
-                                await Future.delayed(
-                                    const Duration(milliseconds: 100));
+                                await Future.delayed(const Duration(milliseconds: 100));
                                 setState(() {});
                               },
                             ),
@@ -851,27 +795,22 @@ class _MessageCardState extends State<MessageCard> {
                             tooltip: 'Copy'.tr,
                             icon: const Icon(FluentIcons.copy_16_regular),
                             onTap: () async {
-                              if (widget.message.type ==
-                                      FluentChatMessageType.image ||
-                                  widget.message.type ==
-                                      FluentChatMessageType.imageAi) {
+                              if (widget.message.type == FluentChatMessageType.image ||
+                                  widget.message.type == FluentChatMessageType.imageAi) {
                                 {
-                                  final bytes =
-                                      decodeImage(widget.message.content);
+                                  final bytes = decodeImage(widget.message.content);
                                   await Pasteboard.writeImage(bytes);
                                   displayCopiedToClipboard();
                                   return;
                                 }
                               }
-                              Clipboard.setData(
-                                  ClipboardData(text: widget.message.content));
+                              Clipboard.setData(ClipboardData(text: widget.message.content));
                               displayCopiedToClipboard();
                             },
                           ),
                           SqueareIconButton(
                             tooltip: 'Delete'.tr,
-                            icon: Icon(FluentIcons.delete_16_filled,
-                                color: Colors.red),
+                            icon: Icon(FluentIcons.delete_16_filled, color: Colors.red),
                             onTap: () async {
                               final provider = context.read<ChatProvider>();
                               provider.deleteMessage(widget.message.id);
@@ -880,8 +819,7 @@ class _MessageCardState extends State<MessageCard> {
                           FlyoutTarget(
                             controller: flyoutController,
                             child: SqueareIconButton(
-                              icon: const Icon(
-                                  FluentIcons.more_vertical_16_filled),
+                              icon: const Icon(FluentIcons.more_vertical_16_filled),
                               onTap: () {
                                 flyoutController.showFlyout(
                                   builder: (context) => _showOptionsFlyout(),
@@ -945,8 +883,7 @@ class _MessageCardState extends State<MessageCard> {
     chooseCodeBlockDialog(context, code);
   }
 
-  Future<void> _showImageDialog(
-      BuildContext context, FluentChatMessage message) async {
+  Future<void> _showImageDialog(BuildContext context, FluentChatMessage message) async {
     final image = decodeImage(message.content);
     final provider = Image.memory(
       image,
@@ -958,14 +895,12 @@ class _MessageCardState extends State<MessageCard> {
       barrierColor: Colors.black,
       barrierDismissible: true,
       builder: (context) {
-        return ImageViewerDialog(
-            provider: provider, description: message.imagePrompt);
+        return ImageViewerDialog(provider: provider, description: message.imagePrompt);
       },
     );
   }
 
-  List<MenuFlyoutItemBase> _buildMenuItems(
-      List<CustomPrompt> commands, String selectedText) {
+  List<MenuFlyoutItemBase> _buildMenuItems(List<CustomPrompt> commands, String selectedText) {
     List<MenuFlyoutItemBase> items = [];
     for (final command in commands) {
       if (command.showInContextMenu == false) {
@@ -985,8 +920,7 @@ class _MessageCardState extends State<MessageCard> {
           leading: Icon(command.icon),
           onPressed: () {
             final provider = context.read<ChatProvider>();
-            provider.sendToQuickOverlay(
-                command.title, command.getPromptText(selectedText));
+            provider.sendToQuickOverlay(command.title, command.getPromptText(selectedText));
           },
         ));
       }
@@ -998,8 +932,7 @@ class _MessageCardState extends State<MessageCard> {
     if (selectedText == null || selectedText.isEmpty) {
       selectedText = widget.message.content;
     }
-    return MenuFlyout(
-        items: _buildMenuItems(customPrompts.value, selectedText));
+    return MenuFlyout(items: _buildMenuItems(customPrompts.value, selectedText));
   }
 
   MenuFlyout _showOptionsFlyout() {
@@ -1051,20 +984,17 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () async {
               final provider = context.read<ChatProvider>();
               final messageIndex = messagesReversedList.indexOf(message);
-              final previous = messagesReversedList.length > messageIndex + 1
-                  ? messagesReversedList[messageIndex + 1]
-                  : null;
-              final next = messagesReversedList.length > messageIndex - 1
-                  ? messagesReversedList[messageIndex - 1]
-                  : null;
+              final previous =
+                  messagesReversedList.length > messageIndex + 1 ? messagesReversedList[messageIndex + 1] : null;
+              final next =
+                  messagesReversedList.length > messageIndex - 1 ? messagesReversedList[messageIndex - 1] : null;
               final messagesRange = await provider.convertMessagesToString([
                 if (previous != null) previous,
                 message,
                 if (next != null) next,
               ]);
               messagesReversedList[messageIndex + 1];
-              final information =
-                  await provider.generateUserKnowladgeBasedOnText(
+              final information = await provider.generateUserKnowladgeBasedOnText(
                 messagesRange,
               );
               displayInfoBar(provider.context!, builder: (ctx, close) {
@@ -1102,11 +1032,9 @@ class _MessageCardState extends State<MessageCard> {
         MenuFlyoutSubItem(
           text: Text('Commands'.tr),
           trailing: const Icon(FluentIcons.chevron_right_16_filled),
-          items: (context) =>
-              _buildMenuItems(customPrompts.value, widget.message.content),
+          items: (context) => _buildMenuItems(customPrompts.value, widget.message.content),
         ),
-        if ((message.type == FluentChatMessageType.imageAi) ||
-            message.type == FluentChatMessageType.image) ...[
+        if ((message.type == FluentChatMessageType.imageAi) || message.type == FluentChatMessageType.image) ...[
           const MenuFlyoutSeparator(),
           MenuFlyoutItem(
             text: Text('Save image to file'.tr),
@@ -1130,10 +1058,8 @@ class _MessageCardState extends State<MessageCard> {
         ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-          text: Text('Delete everything above'.tr,
-              style: TextStyle(color: Colors.red)),
-          leading: Icon(FluentIcons.arrow_up_exclamation_20_regular,
-              color: Colors.red),
+          text: Text('Delete everything above'.tr, style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.arrow_up_exclamation_20_regular, color: Colors.red),
           onPressed: () async {
             final provider = context.read<ChatProvider>();
             await provider.deleteMessagesAbove(widget.message.id);
@@ -1142,10 +1068,8 @@ class _MessageCardState extends State<MessageCard> {
           },
         ),
         MenuFlyoutItem(
-          text: Text('Delete everything below'.tr,
-              style: TextStyle(color: Colors.red)),
-          leading: Icon(FluentIcons.arrow_down_exclamation_20_regular,
-              color: Colors.red),
+          text: Text('Delete everything below'.tr, style: TextStyle(color: Colors.red)),
+          leading: Icon(FluentIcons.arrow_down_exclamation_20_regular, color: Colors.red),
           onPressed: () async {
             final provider = context.read<ChatProvider>();
             await provider.deleteMessagesBelow(widget.message.id);
@@ -1271,9 +1195,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                   WindowManager.instance.setFullScreen(fullScreen);
                 },
                 icon: Icon(
-                  fullScreen
-                      ? FluentIcons.full_screen_minimize_16_filled
-                      : FluentIcons.full_screen_maximize_16_filled,
+                  fullScreen ? FluentIcons.full_screen_minimize_16_filled : FluentIcons.full_screen_maximize_16_filled,
                 ),
                 tooltip: 'Full screen',
               ),
@@ -1299,9 +1221,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
             child: AnimatedContainer(
               duration: Duration(milliseconds: 400),
               height: isDescriptionVisible ? 200 : 48,
-              width: isDescriptionVisible
-                  ? MediaQuery.sizeOf(context).width - 300
-                  : 48,
+              width: isDescriptionVisible ? MediaQuery.sizeOf(context).width - 300 : 48,
               decoration: BoxDecoration(
                 color: context.theme.cardColor,
                 borderRadius: BorderRadius.circular(10),
@@ -1337,9 +1257,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                 });
               },
               icon: Icon(
-                isDescriptionVisible
-                    ? FluentIcons.chevron_right_16_filled
-                    : FluentIcons.chevron_left_16_filled,
+                isDescriptionVisible ? FluentIcons.chevron_right_16_filled : FluentIcons.chevron_left_16_filled,
               ),
               tooltip: 'Close',
             ),

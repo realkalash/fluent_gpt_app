@@ -19,8 +19,7 @@ class CodeWrapperWidget extends StatefulWidget {
   final PreConfig preConfig;
   final FocusNode? focusNode;
   final TextStyle style;
-  final Widget Function(BuildContext, EditableTextState)?
-      contextMenuBuilder;
+  final Widget Function(BuildContext, EditableTextState)? contextMenuBuilder;
 
   const CodeWrapperWidget({
     super.key,
@@ -50,54 +49,60 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
   @override
   Widget build(BuildContext context) {
     if (widget.language == 'func') {
-      return ExpansionTile(
-        title: Text('function'),
-        leading: Icon(Icons.code_rounded),
-        dense: true,
-        minTileHeight: 10,
-        showTrailingIcon: false,
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        visualDensity: VisualDensity.compact,
-        tilePadding: const EdgeInsets.all(0),
-        childrenPadding: const EdgeInsets.all(0),
-        expandedAlignment: Alignment.centerLeft,
-        children: [
-          Text(widget.content),
-        ],
+      return Material(
+        color: Colors.transparent,
+        child: ExpansionTile(
+          title: Text('function'),
+          leading: Icon(Icons.code_rounded),
+          dense: true,
+          minTileHeight: 10,
+          showTrailingIcon: false,
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          visualDensity: VisualDensity.compact,
+          tilePadding: const EdgeInsets.all(0),
+          childrenPadding: const EdgeInsets.all(0),
+          expandedAlignment: Alignment.centerLeft,
+          children: [
+            Text(widget.content),
+          ],
+        ),
       );
     }
     if (widget.language == 'remember') {
-      return ExpansionTile(
-        title: Text('Saved new info'),
-        leading: Icon(FluentIcons.book_32_filled),
-        dense: true,
-        minTileHeight: 10,
-        showTrailingIcon: false,
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        visualDensity: VisualDensity.compact,
-        tilePadding: const EdgeInsets.all(0),
-        childrenPadding: const EdgeInsets.all(0),
-        expandedAlignment: Alignment.centerLeft,
-        children: [
-          fluent.Row(
-            children: [
-              Expanded(child: Text(widget.content)),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: fluent.Button(
-                  onPressed: () {
-                    fluent.showDialog(
-                      context: context,
-                      builder: (ctx) => const InfoAboutUserDialog(),
-                      barrierDismissible: true,
-                    );
-                  },
-                  child: Text('Open memory'.tr),
-                ),
-              )
-            ],
-          ),
-        ],
+      return Material(
+        color: Colors.transparent,
+        child: ExpansionTile(
+          title: Text('Saved new info'),
+          leading: Icon(FluentIcons.book_32_filled),
+          dense: true,
+          minTileHeight: 10,
+          showTrailingIcon: false,
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          visualDensity: VisualDensity.compact,
+          tilePadding: const EdgeInsets.all(0),
+          childrenPadding: const EdgeInsets.all(0),
+          expandedAlignment: Alignment.centerLeft,
+          children: [
+            fluent.Row(
+              children: [
+                Expanded(child: Text(widget.content)),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: fluent.Button(
+                    onPressed: () {
+                      fluent.showDialog(
+                        context: context,
+                        builder: (ctx) => const InfoAboutUserDialog(),
+                        barrierDismissible: true,
+                      );
+                    },
+                    child: Text('Open memory'.tr),
+                  ),
+                )
+              ],
+            ),
+          ],
+        ),
       );
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -113,19 +118,14 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
           decoration: BoxDecoration(
             color: isDark ? Colors.grey[900] : Colors.white,
             border: Border.all(color: Colors.black),
-            borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(8),
-                bottomRight: Radius.circular(8)),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
           ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: SelectableText.rich(
               TextSpan(
                 children: convertHiNodes(
-                  hi.highlight
-                      .parse(widget.content,
-                          language: widget.language, autoDetection: false)
-                      .nodes!,
+                  hi.highlight.parse(widget.content, language: widget.language, autoDetection: false).nodes!,
                   widget.preConfig.theme,
                   widget.style,
                   widget.preConfig.styleNotMatched,
@@ -194,8 +194,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 fluent.Tooltip(
-                  message:
-                      'Run python/shell code (only for python and shell commands!)',
+                  message: 'Run python/shell code (only for python and shell commands!)',
                   child: RunCodeButton(
                     code: widget.content,
                     language: widget.language,
@@ -207,8 +206,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                     dimension: 30,
                     child: fluent.Button(
                       style: fluent.ButtonStyle(
-                        padding: fluent.WidgetStateProperty.all(
-                            fluent.EdgeInsets.zero),
+                        padding: fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
                       ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
@@ -216,8 +214,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                       ),
                       onPressed: () async {
                         if (hasCopied) return;
-                        await Clipboard.setData(
-                            ClipboardData(text: widget.content));
+                        await Clipboard.setData(ClipboardData(text: widget.content));
                         displayCopiedToClipboard();
                         _switchWidget = Icon(Icons.check);
                         refresh();
@@ -237,8 +234,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                     dimension: 30,
                     child: fluent.Button(
                       style: fluent.ButtonStyle(
-                        padding: fluent.WidgetStateProperty.all(
-                            fluent.EdgeInsets.zero),
+                        padding: fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
                       ),
                       child: Icon(FluentIcons.open_20_filled),
                       onPressed: () => openInVsCode(widget.content),
@@ -249,14 +245,10 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                   DecoratedBox(
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                            width: 0.5,
-                            color: isDark ? Colors.white : Colors.black)),
+                        border: Border.all(width: 0.5, color: isDark ? Colors.white : Colors.black)),
                     child: fluent.Padding(
                       padding: const EdgeInsets.all(6.0),
-                      child: Text(widget.language,
-                          style: TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.normal)),
+                      child: Text(widget.language, style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
                     ),
                   ),
               ],
@@ -347,11 +339,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
 }
 
 class SqueareIconButton extends fluent.StatelessWidget {
-  const SqueareIconButton(
-      {super.key,
-      required this.onTap,
-      required this.icon,
-      required this.tooltip});
+  const SqueareIconButton({super.key, required this.onTap, required this.icon, required this.tooltip});
   final void Function()? onTap;
   final Widget icon;
   final String tooltip;
@@ -379,12 +367,7 @@ class SqueareIconButton extends fluent.StatelessWidget {
 
 class SqueareIconButtonSized extends fluent.StatelessWidget {
   const SqueareIconButtonSized(
-      {super.key,
-      required this.onTap,
-      required this.icon,
-      this.width = 30,
-      this.height = 30,
-      required this.tooltip});
+      {super.key, required this.onTap, required this.icon, this.width = 30, this.height = 30, required this.tooltip});
   final void Function()? onTap;
   final Widget icon;
   final String tooltip;

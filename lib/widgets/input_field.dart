@@ -68,12 +68,10 @@ class _InputFieldState extends State<InputField> {
 
       if (cursorPosition >= 0 && cursorPosition <= currentText.length) {
         // Insert newline at cursor position
-        final newText =
-            '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
+        final newText = '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
         chatProvider.messageController.text = newText;
         // Place cursor after the inserted newline
-        chatProvider.messageController.selection =
-            TextSelection.collapsed(offset: cursorPosition + 1);
+        chatProvider.messageController.selection = TextSelection.collapsed(offset: cursorPosition + 1);
       } else {
         // Fallback if cursor position is invalid
         chatProvider.messageController.text = '$currentText\n';
@@ -139,29 +137,22 @@ class _InputFieldState extends State<InputField> {
 
         if (start > end) {
           // Swap if reversed
-          newText = currentText.substring(0, end) +
-              clipboard +
-              currentText.substring(start);
+          newText = currentText.substring(0, end) + clipboard + currentText.substring(start);
           newCursorPosition = end + clipboard.length;
         } else {
-          newText = currentText.substring(0, start) +
-              clipboard +
-              currentText.substring(end);
+          newText = currentText.substring(0, start) + clipboard + currentText.substring(end);
           newCursorPosition = start + clipboard.length;
         }
       } else {
         // Handle cursor insertion safely
-        final currentCursorPosition =
-            max(0, min(textSelection.base.offset, currentText.length));
-        newText = currentText.substring(0, currentCursorPosition) +
-            clipboard +
-            currentText.substring(currentCursorPosition);
+        final currentCursorPosition = max(0, min(textSelection.base.offset, currentText.length));
+        newText =
+            currentText.substring(0, currentCursorPosition) + clipboard + currentText.substring(currentCursorPosition);
         newCursorPosition = currentCursorPosition + clipboard.length;
       }
 
       chatProvider.messageController.text = newText;
-      chatProvider.messageController.selection =
-          TextSelection.collapsed(offset: newCursorPosition);
+      chatProvider.messageController.selection = TextSelection.collapsed(offset: newCursorPosition);
 
       // Safe focus management
       try {
@@ -206,7 +197,6 @@ class _InputFieldState extends State<InputField> {
       );
       chatProvider.addAttachmentToInput(Attachment.fromFile(xfile));
     }
-
   }
 
   Future<void> toggleEnableHistory() async {
@@ -259,8 +249,7 @@ class _InputFieldState extends State<InputField> {
 
     // Calculate the offset for the caret in the previous line
     final prevLineLength = prevLineEnd - prevLineStart;
-    final newOffset =
-        prevLineStart + (column > prevLineLength ? prevLineLength : column);
+    final newOffset = prevLineStart + (column > prevLineLength ? prevLineLength : column);
 
     controller.selection = TextSelection.collapsed(offset: newOffset);
   }
@@ -294,8 +283,7 @@ class _InputFieldState extends State<InputField> {
         (element) => element.title == selectedPrompt,
       );
       if (findedCustomPrompt != null) {
-        final isContainsPlaceHolder =
-            placeholdersRegex.hasMatch(findedCustomPrompt.getPromptText());
+        final isContainsPlaceHolder = placeholdersRegex.hasMatch(findedCustomPrompt.getPromptText());
         if (isContainsPlaceHolder) {
           final newText = await showDialog<String>(
             context: context,
@@ -307,8 +295,7 @@ class _InputFieldState extends State<InputField> {
             ChatProvider.messageControllerGlobal.text = newText;
           }
         } else {
-          ChatProvider.messageControllerGlobal.text =
-              '${findedCustomPrompt.getPromptText()} ';
+          ChatProvider.messageControllerGlobal.text = '${findedCustomPrompt.getPromptText()} ';
         }
       }
     }
@@ -327,8 +314,7 @@ class _InputFieldState extends State<InputField> {
     if (selectedModel.ownedBy == 'openai') {
       return openAI!.countTokens(PromptValue.string(text), options: options);
     } else {
-      return (localModel ?? openAI)!
-          .countTokens(PromptValue.string(text), options: options);
+      return (localModel ?? openAI)!.countTokens(PromptValue.string(text), options: options);
     }
   }
 
@@ -353,67 +339,42 @@ class _InputFieldState extends State<InputField> {
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
           const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textAi),
-          const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
-              onShortcutPasteToField,
+          const SingleActivator(LogicalKeyboardKey.keyV, meta: true): onShortcutPasteToField,
 
-          const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
-              onShortcutSearchPressed,
+          const SingleActivator(LogicalKeyboardKey.keyF, meta: true): onShortcutSearchPressed,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-              onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-              onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-              onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-              onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-              onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
-              onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
-              onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () =>
-              onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () =>
-              onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, meta: true):
-              toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () => onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () => onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () => onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () => onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () => onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () => onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, meta: true): toggleEnableHistory,
           SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
           const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textAi),
-          const SingleActivator(LogicalKeyboardKey.keyV, control: true):
-              onShortcutPasteToField,
-          const SingleActivator(LogicalKeyboardKey.keyF, control: true):
-              onShortcutSearchPressed,
+          const SingleActivator(LogicalKeyboardKey.keyV, control: true): onShortcutPasteToField,
+          const SingleActivator(LogicalKeyboardKey.keyF, control: true): onShortcutSearchPressed,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
-              onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
-              onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
-              onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
-              onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
-              onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, control: true): () =>
-              onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, control: true): () =>
-              onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, control: true): () =>
-              onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, control: true): () =>
-              onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, control: true):
-              toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.digit1, control: true): () => onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, control: true): () => onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, control: true): () => onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, control: true): () => onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, control: true): () => onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, control: true): () => onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, control: true): toggleEnableHistory,
           SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         },
-        const SingleActivator(LogicalKeyboardKey.enter, meta: true):
-            onShortcutCopyToThirdParty,
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -446,8 +407,7 @@ class _InputFieldState extends State<InputField> {
                     onPressed: () {
                       // if messages are not empty
                       if (messages.value.isEmpty) return;
-                      onTrayButtonTapCommand(
-                          '', TrayCommand.create_new_chat.name);
+                      onTrayButtonTapCommand('', TrayCommand.create_new_chat.name);
                     },
                   ),
                   AddFileButton(isMini: widget.isMini),
@@ -494,20 +454,15 @@ class _InputFieldState extends State<InputField> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               const MicrophoneButton(),
-                              if (chatProvider
-                                  .messageController.text.isNotEmpty)
+                              if (chatProvider.messageController.text.isNotEmpty)
                                 ImproveTextSparkleButton(
                                   onStateChange: (state) {
-                                    if (state ==
-                                        ImproveTextSparkleButtonState
-                                            .improving) {
+                                    if (state == ImproveTextSparkleButtonState.improving) {
                                       setState(() {
                                         _useShimmer = true;
                                       });
                                     }
-                                    if (state ==
-                                        ImproveTextSparkleButtonState
-                                            .improved) {
+                                    if (state == ImproveTextSparkleButtonState.improved) {
                                       setState(() {
                                         _useShimmer = false;
                                       });
@@ -516,9 +471,7 @@ class _InputFieldState extends State<InputField> {
                                   onTextImproved: (text) {
                                     chatProvider.messageController.text = text;
                                   },
-                                  input: () => chatProvider
-                                      .messageController.text
-                                      .trim(),
+                                  input: () => chatProvider.messageController.text.trim(),
                                 ),
                             ],
                           ),
@@ -535,26 +488,21 @@ class _InputFieldState extends State<InputField> {
                                     child: ModelsTooltipContainer(),
                                     alignment: PlaceholderAlignment.top,
                                   ),
-                                  style: TooltipThemeData(
-                                      waitDuration: Duration.zero),
+                                  style: TooltipThemeData(waitDuration: Duration.zero),
                                   child: const ChooseModelButton(),
                                 ),
                                 AiLibraryButton(
                                   onPressed: () async {
                                     // ignore: use_build_context_synchronously
-                                    final controller =
-                                        context.read<ChatProvider>();
-                                    final prompt =
-                                        await showDialog<CustomPrompt?>(
+                                    final controller = context.read<ChatProvider>();
+                                    final prompt = await showDialog<CustomPrompt?>(
                                       context: context,
-                                      builder: (ctx) =>
-                                          const AiPromptsLibraryDialog(),
+                                      builder: (ctx) => const AiPromptsLibraryDialog(),
                                       barrierDismissible: true,
                                     );
                                     if (prompt != null) {
                                       controller.messageController.text =
-                                          prompt.getPromptText(controller
-                                              .messageController.text);
+                                          prompt.getPromptText(controller.messageController.text);
                                       promptTextFocusNode.requestFocus();
                                     }
                                   },
@@ -578,8 +526,7 @@ class _InputFieldState extends State<InputField> {
                             backgroundColor: WidgetStatePropertyAll(
                           context.theme.scaffoldBackgroundColor,
                         )),
-                        onPressed: () =>
-                            chatProvider.stopAnswering(StopReason.canceled),
+                        onPressed: () => chatProvider.stopAnswering(StopReason.canceled),
                         icon: Icon(
                           ic.FluentIcons.stop_24_filled,
                           size: 24,
@@ -624,14 +571,12 @@ class _InputFieldState extends State<InputField> {
                           child: Text(
                             '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}${'% overflow. Click here to go to the last visible to AI message'.tr}  ',
                             style: context.theme.typography.caption?.copyWith(
-                              color: context.theme.typography.caption?.color
-                                  ?.withAlpha(127),
+                              color: context.theme.typography.caption?.color?.withAlpha(127),
                             ),
                           ),
                         ),
                       if (tokensInInputField > 0)
-                        Text('${'Tokens in field'.tr}: $tokensInInputField',
-                            style: context.theme.typography.caption),
+                        Text('${'Tokens in field'.tr}: $tokensInInputField', style: context.theme.typography.caption),
                     ],
                   ),
                 ),
@@ -678,8 +623,7 @@ class _InputFieldState extends State<InputField> {
                 }),
           if (text.isNotEmpty)
             MenuFlyoutItem(
-                text: Text(
-                    'Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
+                text: Text('Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
                 trailing: Text('(alt+i)'),
                 onPressed: () async {
                   final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -697,11 +641,9 @@ class _InputFieldState extends State<InputField> {
           MenuFlyoutSeparator(),
           if (text.isNotEmpty)
             MenuFlyoutItem(
-              text: const Text(
-                  'Send not in real-time (can help with some LLM providers)'),
+              text: const Text('Send not in real-time (can help with some LLM providers)'),
               onPressed: () {
-                provider.sendMessage(controller.text,
-                    hidePrompt: false, sendStream: false);
+                provider.sendMessage(controller.text, hidePrompt: false, sendStream: false);
                 clearFieldAndFocus();
               },
             )
@@ -784,9 +726,7 @@ class ModelsTooltipContainer extends StatelessWidget {
                   ),
                   title: Text(model.customName),
                   // subtitle: Text(model.modelName),
-                  trailing: selectedModel == model
-                      ? const Icon(ic.FluentIcons.checkmark_16_filled)
-                      : null,
+                  trailing: selectedModel == model ? const Icon(ic.FluentIcons.checkmark_16_filled) : null,
                   color: Colors.transparent,
                 ),
               ),
@@ -928,8 +868,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(ic.FluentIcons.arrow_down_16_filled,
-                                  size: 16),
+                              const Icon(ic.FluentIcons.arrow_down_16_filled, size: 16),
                               Text('[esc]'),
                             ],
                           ),
@@ -966,41 +905,31 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                               borderRadius: BorderRadius.circular(4),
                               child: BasicListTile(
                                 title: Text(command),
-                                color: isHovered
-                                    ? context.theme.accentColor.withAlpha(51)
-                                    : Colors.black.withAlpha(26),
-                                padding: EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 16),
+                                color: isHovered ? context.theme.accentColor.withAlpha(51) : Colors.black.withAlpha(26),
+                                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                                 onTap: () async {
                                   final isGlobalCommand = command[0] == '/';
                                   if (!isGlobalCommand) {
-                                    var prompt =
-                                        promptsLibrary.firstWhereOrNull(
+                                    var prompt = promptsLibrary.firstWhereOrNull(
                                       (element) => element.title == command,
                                     );
-                                    prompt ??=
-                                        customPrompts.value.firstWhereOrNull(
+                                    prompt ??= customPrompts.value.firstWhereOrNull(
                                       (element) => element.title == command,
                                     );
                                     if (prompt == null) return;
-                                    final isContainsPlaceHolder =
-                                        placeholdersRegex
-                                            .hasMatch(prompt.getPromptText());
+                                    final isContainsPlaceHolder = placeholdersRegex.hasMatch(prompt.getPromptText());
                                     if (isContainsPlaceHolder) {
                                       final newText = await showDialog<String>(
                                         context: context,
-                                        builder: (context) =>
-                                            ReplaceAllPlaceHoldersDialog(
+                                        builder: (context) => ReplaceAllPlaceHoldersDialog(
                                           originalText: prompt!.getPromptText(),
                                         ),
                                       );
                                       if (newText != null) {
-                                        ChatProvider.messageControllerGlobal
-                                            .text = newText;
+                                        ChatProvider.messageControllerGlobal.text = newText;
                                       }
                                     } else {
-                                      ChatProvider.messageControllerGlobal
-                                          .text = '${prompt.getPromptText()} ';
+                                      ChatProvider.messageControllerGlobal.text = '${prompt.getPromptText()} ';
                                     }
                                     removeInputFieldQuickCommandsOverlay();
                                     promptTextFocusNode.requestFocus();
@@ -1009,13 +938,11 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                                   if (command == '/settings') {
                                     Navigator.of(context).push(
                                       FluentPageRoute(
-                                        builder: (context) =>
-                                            const NewSettingsPage(),
+                                        builder: (context) => const NewSettingsPage(),
                                       ),
                                     );
                                   } else {
-                                    ChatProvider.messageControllerGlobal.text =
-                                        '$command ';
+                                    ChatProvider.messageControllerGlobal.text = '$command ';
                                     promptTextFocusNode.requestFocus();
                                     removeInputFieldQuickCommandsOverlay();
                                   }
@@ -1024,9 +951,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                                     ? Button(
                                         onPressed: null,
                                         focusable: false,
-                                        child: Platform.isMacOS
-                                            ? Text('⌘${i + 1}')
-                                            : Text('[ctrl+${i + 1}]'),
+                                        child: Platform.isMacOS ? Text('⌘${i + 1}') : Text('[ctrl+${i + 1}]'),
                                       )
                                     : null,
                               ),
@@ -1111,8 +1036,7 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
                   for (final locale in gptLocales)
                     FlyoutListTile(
                       text: Text(locale.languageCode),
-                      selected:
-                          AppCache.speechLanguage.value == locale.languageCode,
+                      selected: AppCache.speechLanguage.value == locale.languageCode,
                       onPressed: () {
                         AppCache.speechLanguage.value = locale.languageCode;
                         setState(() {});
@@ -1162,8 +1086,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
                 if (index < models.length - 1) {
                   final model = models[index + 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar(
-                      '${'Model changed to'.tr} ${model.customName}');
+                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
                 }
               } else {
                 final models = allModels.value;
@@ -1172,8 +1095,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
                 if (index > 0) {
                   final model = models[index - 1];
                   provider.selectNewModel(model);
-                  displayTextInfoBar(
-                      '${'Model changed to'.tr} ${model.customName}');
+                  displayTextInfoBar('${'Model changed to'.tr} ${model.customName}');
                 }
               }
             }
@@ -1223,14 +1145,12 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
 
                         final changedModel = await showDialog<ChatModelAi>(
                           context: context,
-                          builder: (context) =>
-                              AddAiModelDialog(initialModel: e),
+                          builder: (context) => AddAiModelDialog(initialModel: e),
                         );
                         if (changedModel != null) {
                           provider.removeCustomModel(e);
                           await provider.addNewCustomModel(changedModel);
-                          await Future.delayed(
-                              const Duration(milliseconds: 100));
+                          await Future.delayed(const Duration(milliseconds: 100));
                           provider.selectNewModel(changedModel);
                         }
                       },
@@ -1266,8 +1186,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
               text: Text('Edit'.tr),
               onPressed: () {
                 Navigator.of(ctx).pop();
-                showDialog(
-                    context: context, builder: (ctx) => ModelsListDialog());
+                showDialog(context: ctx, builder: (ctx) => ModelsListDialog());
               },
             ),
           ],
@@ -1341,16 +1260,14 @@ class _FileThumbnail extends StatelessWidget {
                 if (chatProvider.isSendingFile) {
                   return;
                 }
-                FilePickerResult? result =
-                    await FilePicker.platform.pickFiles();
+                FilePickerResult? result = await FilePicker.platform.pickFiles();
                 if (result != null && result.files.isNotEmpty) {
                   chatProvider.addFileToInput(result.files.first.toXFile());
                   windowManager.focus();
                   promptTextFocusNode.requestFocus();
                 }
               },
-              icon: const Icon(ic.FluentIcons.document_number_1_16_regular,
-                  size: 24),
+              icon: const Icon(ic.FluentIcons.document_number_1_16_regular, size: 24),
             ),
           ),
           if (chatProvider.fileInput!.mimeType?.contains('image') == true)
@@ -1378,9 +1295,7 @@ class _FileThumbnail extends StatelessWidget {
               right: 0,
               left: 0,
               child: Tooltip(
-                message: chatProvider.fileInput!.name.isEmpty
-                    ? '-'
-                    : chatProvider.fileInput!.name,
+                message: chatProvider.fileInput!.name.isEmpty ? '-' : chatProvider.fileInput!.name,
                 child: Text(
                   chatProvider.fileInput!.name,
                   maxLines: 1,
@@ -1393,8 +1308,7 @@ class _FileThumbnail extends StatelessWidget {
             right: 0,
             child: IconButton(
               style: ButtonStyle(
-                backgroundColor:
-                    WidgetStateProperty.all(Colors.black.withAlpha(128)),
+                backgroundColor: WidgetStateProperty.all(Colors.black.withAlpha(128)),
               ),
               onPressed: () => chatProvider.removeFileFromInput(),
               icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),
@@ -1434,18 +1348,14 @@ class HotShurtcutsWidget extends StatelessWidget {
                 runSpacing: 4,
                 children: [
                   for (final prompt in customPrompts.value)
-                    if (prompt.showInChatField)
-                      PromptChipWidget(prompt: prompt),
+                    if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
                   Button(
                       child: Text('Answer with tags'.tr),
                       onPressed: () async {
                         final chatProvider = context.read<ChatProvider>();
                         final txtController = chatProvider.messageController;
-                        final textFromClipboard =
-                            (await Clipboard.getData('text/plain'))?.text ?? '';
-                        final text = txtController.text.trim().isEmpty
-                            ? textFromClipboard
-                            : txtController.text;
+                        final textFromClipboard = (await Clipboard.getData('text/plain'))?.text ?? '';
+                        final text = txtController.text.trim().isEmpty ? textFromClipboard : txtController.text;
                         HotShurtcutsWidget.showAnswerWithTagsDialog(
                           // ignore: use_build_context_synchronously
                           context,
@@ -1495,11 +1405,9 @@ class HotShurtcutsOneLineWidget extends StatelessWidget {
                     ),
                     tooltip: 'Quick prompts'.tr,
                   ),
-                  for (final prompt in customPrompts.value.length > 4
-                      ? customPrompts.value.take(4)
-                      : customPrompts.value)
-                    if (prompt.showInChatField)
-                      PromptChipWidget(prompt: prompt),
+                  for (final prompt
+                      in customPrompts.value.length > 4 ? customPrompts.value.take(4) : customPrompts.value)
+                    if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
                 ],
               ),
             ),
