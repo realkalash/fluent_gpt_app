@@ -16,6 +16,7 @@ import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/tray.dart';
+import 'package:fluent_gpt/services/update_manager.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Page, FluentIcons;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -161,6 +162,9 @@ void main(List<String> args) async {
       isLaunchAtStartupEnabled = value;
     });
   }
+
+  // Initialize the update manager
+  UpdateManager.instance.initialize();
 
   runApp(const MyApp());
 }

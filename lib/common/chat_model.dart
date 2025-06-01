@@ -12,6 +12,8 @@ class ChatModelAi {
   /// Can be path or Url
   final String? uri;
   final bool imageSupported;
+  final bool reasoningSupported;
+  final bool toolSupported;
   final int index;
 
   const ChatModelAi({
@@ -22,6 +24,8 @@ class ChatModelAi {
     this.customName = '',
     this.imageSupported = false,
     this.index = 0,
+    this.reasoningSupported = false,
+    this.toolSupported = false,
   });
 
   @override
@@ -76,6 +80,8 @@ class ChatModelAi {
       uri: json['uri'],
       customName: json['customName'] ?? 'Custom',
       imageSupported: json['imageSupported'] ?? false,
+      reasoningSupported: json['reasoningSupported'] ?? false,
+      toolSupported: json['toolSupported'] ?? false,
     );
   }
 
@@ -98,6 +104,8 @@ class ChatModelAi {
       customName: json['customName'],
       imageSupported: json['imageSupported'] ?? false,
       index: json['i'] ?? 0,
+      reasoningSupported: json['reasoningSupported'] ?? false,
+      toolSupported: json['toolSupported'] ?? false,
     );
   }
 
@@ -110,6 +118,8 @@ class ChatModelAi {
       'customName': customName,
       'imageSupported': imageSupported,
       'i': index,
+      'reasoningSupported': reasoningSupported,
+      'toolSupported': toolSupported,
     };
   }
 
@@ -126,6 +136,8 @@ class ChatModelAi {
     String? customName,
     bool? imageSupported,
     int? index,
+    bool? reasoningSupported,
+    bool? toolSupported,
   }) {
     return ChatModelAi(
       apiKey: apiKey ?? this.apiKey,
@@ -135,6 +147,8 @@ class ChatModelAi {
       customName: customName ?? this.customName,
       imageSupported: imageSupported ?? this.imageSupported,
       index: index ?? this.index,
+      reasoningSupported: reasoningSupported ?? this.reasoningSupported,
+      toolSupported: toolSupported ?? this.toolSupported,
     );
   }
 

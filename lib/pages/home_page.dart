@@ -50,8 +50,7 @@ import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import '../providers/chat_provider.dart';
 
-final BehaviorSubject<bool> showEditChatDrawer =
-    BehaviorSubject<bool>.seeded(false);
+final BehaviorSubject<bool> showEditChatDrawer = BehaviorSubject<bool>.seeded(false);
 
 class ChatRoomPage extends StatelessWidget {
   const ChatRoomPage({super.key});
@@ -88,7 +87,7 @@ class ChatRoomPage extends StatelessWidget {
                           right: 0,
                           child: Center(child: EditChatDrawer()),
                         ),
-                        HomeDropRegion(showAiLens: true),
+                        // HomeDropRegion(showAiLens: true),
                       ],
                     ),
                   ),
@@ -106,9 +105,7 @@ class PinnedMessagesRow extends StatelessWidget {
     final provider = context.watch<ChatProvider>();
     final pinnedMessages = pinnedMessagesIndexes;
 
-    final lastPinned = pinnedMessages.isNotEmpty
-        ? messagesReversedList.elementAtOrNull(pinnedMessages.last)
-        : null;
+    final lastPinned = pinnedMessages.isNotEmpty ? messagesReversedList.elementAtOrNull(pinnedMessages.last) : null;
     return AnimatedCrossFade(
       duration: const Duration(milliseconds: 300),
       firstChild: MouseRegion(
@@ -123,8 +120,7 @@ class PinnedMessagesRow extends StatelessWidget {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(4.0),
-                  child:
-                      Icon(ic.FluentIcons.pin_20_filled, color: Colors.white),
+                  child: Icon(ic.FluentIcons.pin_20_filled, color: Colors.white),
                 ),
                 Expanded(
                   child: Padding(
@@ -140,9 +136,7 @@ class PinnedMessagesRow extends StatelessWidget {
                 if (pinnedMessages.length > 1)
                   SqueareIconButtonSized(
                     onTap: () {
-                      showDialog(
-                          context: context,
-                          builder: (ctx) => PinnedMessagesDialog());
+                      showDialog(context: context, builder: (ctx) => PinnedMessagesDialog());
                     },
                     icon: Text('${pinnedMessages.length}'),
                     tooltip: 'Pinned messages'.tr,
@@ -156,9 +150,7 @@ class PinnedMessagesRow extends StatelessWidget {
         ),
       ),
       secondChild: const SizedBox.shrink(),
-      crossFadeState: pinnedMessages.isNotEmpty
-          ? CrossFadeState.showFirst
-          : CrossFadeState.showSecond,
+      crossFadeState: pinnedMessages.isNotEmpty ? CrossFadeState.showFirst : CrossFadeState.showSecond,
     );
   }
 }
@@ -315,33 +307,26 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                     children: [
                       Text(
                         'Conversation length'.tr,
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       ...ConversationLengthStyleEnum.values.map((e) {
                         return SelectableColorContainer(
                           selectedColor: FluentTheme.of(context).accentColor,
-                          unselectedColor: FluentTheme.of(context)
-                              .accentColor
-                              .withAlpha(128),
+                          unselectedColor: FluentTheme.of(context).accentColor.withAlpha(128),
                           isSelected: lenghtStyle == e,
                           onTap: () => conversationLenghtStyleStream.add(e),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(e.name,
-                                  style: const TextStyle(fontSize: 12)),
+                              Text(e.name, style: const TextStyle(fontSize: 12)),
                               SizedBox.square(
                                 dimension: 16,
                                 child: Button(
                                   style: ButtonStyle(
-                                    padding: WidgetStateProperty.all(
-                                        EdgeInsets.zero),
+                                    padding: WidgetStateProperty.all(EdgeInsets.zero),
                                   ),
-                                  onPressed: () =>
-                                      editConversationStyle(context, e),
-                                  child: const Icon(
-                                      ic.FluentIcons.edit_20_regular),
+                                  onPressed: () => editConversationStyle(context, e),
+                                  child: const Icon(ic.FluentIcons.edit_20_regular),
                                 ),
                               )
                             ],
@@ -350,21 +335,15 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                       }),
                       Text(
                         'Style'.tr,
-                        style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
-                      ...ConversationStyleEnum.values
-                          .map((e) => SelectableColorContainer(
-                                selectedColor:
-                                    FluentTheme.of(context).accentColor,
-                                unselectedColor: FluentTheme.of(context)
-                                    .accentColor
-                                    .withAlpha(128),
-                                isSelected: style == e,
-                                onTap: () => conversationStyleStream.add(e),
-                                child: Text(e.name,
-                                    style: const TextStyle(fontSize: 12)),
-                              )),
+                      ...ConversationStyleEnum.values.map((e) => SelectableColorContainer(
+                            selectedColor: FluentTheme.of(context).accentColor,
+                            unselectedColor: FluentTheme.of(context).accentColor.withAlpha(128),
+                            isSelected: style == e,
+                            onTap: () => conversationStyleStream.add(e),
+                            child: Text(e.name, style: const TextStyle(fontSize: 12)),
+                          )),
                     ],
                   ),
                 ),
@@ -428,10 +407,8 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
     );
   }
 
-  editConversationStyle(
-      BuildContext context, ConversationLengthStyleEnum item) async {
-    final ConversationLengthStyleEnum? newItem =
-        await ConversationStyleDialog.show(context, item);
+  editConversationStyle(BuildContext context, ConversationLengthStyleEnum item) async {
+    final ConversationLengthStyleEnum? newItem = await ConversationStyleDialog.show(context, item);
     if (newItem != null) {
       final indexOldItem = ConversationLengthStyleEnum.values.indexOf(item);
       ConversationLengthStyleEnum.values.remove(item);
@@ -476,8 +453,7 @@ class PageHeaderText extends StatelessWidget {
                     if (selectedModel.apiKey.isEmpty)
                       Tooltip(
                         message: 'API token is empty!'.tr,
-                        child: Icon(ic.FluentIcons.lock_open_20_regular,
-                            color: Colors.red, size: 24),
+                        child: Icon(ic.FluentIcons.lock_open_20_regular, color: Colors.red, size: 24),
                       ),
                   ],
                 ),
@@ -505,8 +481,7 @@ class PageHeaderText extends StatelessWidget {
                               chatProvider.totalTokensForCurrentChatByMessages,
                           builder: (context, snapshot) {
                             return Text(
-                              '${'Tokens total:'.tr} ${(chatProvider.totalTokensByMessages)} '
-                                  .tr,
+                              '${'Tokens total:'.tr} ${(chatProvider.totalTokensByMessages)} '.tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -515,8 +490,7 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalSentForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              '${'sent:'.tr} ${(chatProvider.totalSentTokens)} '
-                                  .tr,
+                              '${'sent:'.tr} ${(chatProvider.totalSentTokens)} '.tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -524,8 +498,7 @@ class PageHeaderText extends StatelessWidget {
                           stream: chatProvider.totalReceivedForCurrentChat,
                           builder: (context, snapshot) {
                             return Text(
-                              '${'received:'.tr} ${(chatProvider.totalReceivedTokens)}'
-                                  .tr,
+                              '${'received:'.tr} ${(chatProvider.totalReceivedTokens)}'.tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -534,10 +507,8 @@ class PageHeaderText extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                  onTap: () =>
-                      chatProvider.recalculateTokensFromLocalMessages(),
-                  child: const Icon(
-                      ic.FluentIcons.arrow_counterclockwise_20_filled)),
+                  onTap: () => chatProvider.recalculateTokensFromLocalMessages(),
+                  child: const Icon(ic.FluentIcons.arrow_counterclockwise_20_filled)),
               const Spacer(),
               IconButton(
                 icon: const Icon(ic.FluentIcons.search_20_filled, size: 20),
@@ -595,12 +566,10 @@ class PageHeaderText extends StatelessWidget {
                         },
                         builder: (p0, state) {
                           return Container(
-                              color: state.contains(WidgetState.hovered)
-                                  ? Colors.white.withAlpha(51)
-                                  : Colors.transparent,
+                              color:
+                                  state.contains(WidgetState.hovered) ? Colors.white.withAlpha(51) : Colors.transparent,
                               padding: const EdgeInsets.all(4),
-                              child: Icon(ic.FluentIcons.arrow_up_16_filled,
-                                  size: 10));
+                              child: Icon(ic.FluentIcons.arrow_up_16_filled, size: 10));
                         },
                       ),
                     ),
@@ -612,9 +581,8 @@ class PageHeaderText extends StatelessWidget {
                         },
                         builder: (p0, state) {
                           return Container(
-                            color: state.contains(WidgetState.hovered)
-                                ? Colors.white.withAlpha(51)
-                                : Colors.transparent,
+                            color:
+                                state.contains(WidgetState.hovered) ? Colors.white.withAlpha(51) : Colors.transparent,
                             padding: const EdgeInsets.all(4),
                             child: Icon(
                               ic.FluentIcons.arrow_down_16_filled,
@@ -655,8 +623,7 @@ class IncludeConversationSwitcher extends StatelessWidget {
     final ChatProvider chatProvider = context.watch<ChatProvider>();
     return FlyoutListTile(
       text: const Icon(FluentIcons.full_history),
-      tooltip:
-          '${'Include conversation'.tr} ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
+      tooltip: '${'Include conversation'.tr} ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
       trailing: Checkbox(
         checked: chatProvider.includeConversationGlobal,
         onChanged: (value) {
@@ -781,9 +748,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: isHovered
-                ? FluentTheme.of(context).accentColor.withAlpha(26)
-                : FluentTheme.of(context).cardColor,
+            color: isHovered ? FluentTheme.of(context).accentColor.withAlpha(26) : FluentTheme.of(context).cardColor,
           ),
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -791,9 +756,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
           child: BasicListTile(
             color: Colors.transparent,
             title: Center(
-                child: Text('Add system message'.tr,
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
+                child: Text('Add system message'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
             trailing: const PromptLibraryButton(),
             subtitle: systemMessage.isEmpty
                 ? null
@@ -813,8 +776,7 @@ class HomePagePlaceholdersCards extends StatefulWidget {
   const HomePagePlaceholdersCards({super.key});
 
   @override
-  State<HomePagePlaceholdersCards> createState() =>
-      _HomePagePlaceholdersCardsState();
+  State<HomePagePlaceholdersCards> createState() => _HomePagePlaceholdersCardsState();
 }
 
 class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
@@ -898,8 +860,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
-                  icon: const Icon(
-                      ic.FluentIcons.arrow_counterclockwise_20_filled),
+                  icon: const Icon(ic.FluentIcons.arrow_counterclockwise_20_filled),
                   onPressed: () {
                     setState(() {
                       prompts = getRandom3Prompts(context);
@@ -913,8 +874,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                   icon: const Icon(FluentIcons.chrome_close, size: 10),
                   onPressed: () {
                     setState(() {
-                      provider.hideSuggestionsOnHomePage =
-                          !provider.hideSuggestionsOnHomePage;
+                      provider.hideSuggestionsOnHomePage = !provider.hideSuggestionsOnHomePage;
                     });
                   },
                 ),
@@ -940,39 +900,32 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                           alignment: Alignment.center,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 8.0, right: 8, top: 8, bottom: 8),
+                              padding: const EdgeInsets.only(left: 8.0, right: 8, top: 8, bottom: 8),
                               child: AnimatedHoverCard(
                                 defHeight: 60,
                                 defWidth: 150,
                                 onTap: () async {
-                                  final promptText = item.getPromptText(
-                                      (await Clipboard.getData(
-                                              Clipboard.kTextPlain))
-                                          ?.text);
-                                  final isContainsPlaceHolder =
-                                      placeholdersRegex.hasMatch(promptText);
+                                  final promptText =
+                                      item.getPromptText((await Clipboard.getData(Clipboard.kTextPlain))?.text);
+                                  final isContainsPlaceHolder = placeholdersRegex.hasMatch(promptText);
                                   String? newText = promptText;
                                   if (isContainsPlaceHolder) {
                                     newText = await showDialog<String>(
                                       // ignore: use_build_context_synchronously
                                       context: context,
-                                      builder: (context) =>
-                                          ReplaceAllPlaceHoldersDialog(
+                                      builder: (context) => ReplaceAllPlaceHoldersDialog(
                                         originalText: promptText,
                                       ),
                                     );
                                     if (newText == null) return;
                                   }
-                                  ChatProvider.messageControllerGlobal.text =
-                                      newText;
+                                  ChatProvider.messageControllerGlobal.text = newText;
 
                                   promptTextFocusNode.requestFocus();
                                 },
                                 color: getColorBasedOnFirstLetter(item.title),
                                 child: Padding(
-                                  padding: const EdgeInsets.only(
-                                      left: 6, right: 0, top: 4, bottom: 0),
+                                  padding: const EdgeInsets.only(left: 6, right: 0, top: 4, bottom: 0),
                                   child: Text(
                                     item.title.tr,
                                     maxLines: 2,
@@ -989,25 +942,19 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                               bottom: 8,
                               right: 16,
                               child: Button(
-                                child:
-                                    const Icon(ic.FluentIcons.send_24_filled),
+                                child: const Icon(ic.FluentIcons.send_24_filled),
                                 onPressed: () async {
-                                  final chatProvider =
-                                      context.read<ChatProvider>();
-                                  final promptText = item.getPromptText(
-                                      (await Clipboard.getData(
-                                              Clipboard.kTextPlain))
-                                          ?.text);
+                                  final chatProvider = context.read<ChatProvider>();
+                                  final promptText =
+                                      item.getPromptText((await Clipboard.getData(Clipboard.kTextPlain))?.text);
 
-                                  final isContainsPlaceHolder =
-                                      placeholdersRegex.hasMatch(promptText);
+                                  final isContainsPlaceHolder = placeholdersRegex.hasMatch(promptText);
                                   String? newText = promptText;
                                   if (isContainsPlaceHolder) {
                                     newText = await showDialog<String>(
                                       // ignore: use_build_context_synchronously
                                       context: context,
-                                      builder: (context) =>
-                                          ReplaceAllPlaceHoldersDialog(
+                                      builder: (context) => ReplaceAllPlaceHoldersDialog(
                                         originalText: promptText,
                                       ),
                                     );
@@ -1021,8 +968,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                                     switchToForeground: true,
                                   );
                                   // wait for the chat room to be updated
-                                  await Future.delayed(
-                                      const Duration(milliseconds: 50));
+                                  await Future.delayed(const Duration(milliseconds: 50));
                                   chatProvider.sendMessage(newText);
                                   promptTextFocusNode.requestFocus();
                                 },
@@ -1173,8 +1119,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                       // twice the screen size to avoid flickering on scroll
                       cacheExtent: (screenSize * 2).toDouble(),
                       itemBuilder: (context, index) {
-                        final FluentChatMessage message =
-                            reverseList.elementAt(index);
+                        final FluentChatMessage message = reverseList.elementAt(index);
 
                         return AutoScrollTag(
                           controller: chatProvider.listItemsScrollController,
@@ -1186,8 +1131,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                             selectionMode: false,
                             textSize: chatProvider.textSize,
                             isCompactMode: false,
-                            shouldBlink:
-                                chatProvider.blinkMessageId == message.id,
+                            shouldBlink: chatProvider.blinkMessageId == message.id,
                             indexMessage: index,
                           ),
                         );
@@ -1209,9 +1153,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                   child: ProgressBar(strokeWidth: 8),
                 ),
               ),
-              crossFadeState: !chatProvider.isAnswering
-                  ? CrossFadeState.showFirst
-                  : CrossFadeState.showSecond,
+              crossFadeState: !chatProvider.isAnswering ? CrossFadeState.showFirst : CrossFadeState.showSecond,
             ),
           ),
           const GeneratingImagesCard(),
@@ -1250,8 +1192,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 icon: ic.FluentIcons.eye_tracking_24_filled,
                 onChanged: (_) async {
                   String? base64Result;
-                  base64Result =
-                      await ScreenshotTool.takeScreenshotReturnBase64Native();
+                  base64Result = await ScreenshotTool.takeScreenshotReturnBase64Native();
 
                   if (base64Result != null && base64Result.isNotEmpty) {
                     final bytes = base64Decode(base64Result);
@@ -1271,16 +1212,13 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 } else {
                   displayInfoBar(context, builder: (context, close) {
                     return InfoBar(
-                      title: Text(
-                          'You need to obtain Brave API key to use web search'
-                              .tr),
+                      title: Text('You need to obtain Brave API key to use web search'.tr),
                       severity: InfoBarSeverity.warning,
                       action: Button(
                         onPressed: () {
                           close();
                           Navigator.of(context).push(
-                            FluentPageRoute(
-                                builder: (context) => const NewSettingsPage()),
+                            FluentPageRoute(builder: (context) => const NewSettingsPage()),
                           );
                         },
                         child: Text('Settings->API and URLs'.tr),
@@ -1289,16 +1227,13 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                   });
                 }
               },
-              tooltip: chatProvider.isWebSearchEnabled
-                  ? 'Disable web search'.tr
-                  : 'Enable web search'.tr,
+              tooltip: chatProvider.isWebSearchEnabled ? 'Disable web search'.tr : 'Enable web search'.tr,
             ),
             ToggleButtonAdvenced(
               checked: chatProvider.includeConversationGlobal,
               icon: ic.FluentIcons.history_20_filled,
               onChanged: chatProvider.setIncludeWholeConversation,
-              tooltip: 'Include conversation'.tr +
-                  ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
+              tooltip: 'Include conversation'.tr + ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
               maxWidthContextMenu: 350,
               maxHeightContextMenu: 96,
               contextItems: [
@@ -1307,10 +1242,8 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                   children: [
                     Tooltip(
                       message:
-                          'To prevent token overflows unnecessary cost we propose to limit the conversation length'
-                              .tr,
-                      child: Icon(ic.FluentIcons.question_circle_24_filled,
-                          size: 24),
+                          'To prevent token overflows unnecessary cost we propose to limit the conversation length'.tr,
+                      child: Icon(ic.FluentIcons.question_circle_24_filled, size: 24),
                     ),
                     const SizedBox(width: 8),
                     Expanded(child: Text('Max tokens to include'.tr)),
@@ -1335,9 +1268,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 spacer,
                 StatefulBuilder(builder: (context, updateSlider) {
                   return Slider(
-                    value: selectedChatRoom.maxTokenLength < 0.0
-                        ? 0.0
-                        : selectedChatRoom.maxTokenLength.toDouble(),
+                    value: selectedChatRoom.maxTokenLength < 0.0 ? 0.0 : selectedChatRoom.maxTokenLength.toDouble(),
                     onChanged: (value) {
                       updateSlider(() {
                         chatProvider.setMaxTokensForChat(value.toInt());
@@ -1377,8 +1308,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                   child: Divider(),
                 ),
                 CheckBoxTile(
-                  isChecked:
-                      AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+                  isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
                   child: Text('Knowledge about user'.tr),
                   onChanged: (p0) {
                     setState(() {
@@ -1441,9 +1371,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 editedChatRoom.systemMessage = await getFormattedSystemPrompt(
                   basicPrompt: (editedChatRoom.systemMessage ?? '').isEmpty
                       ? defaultGlobalSystemMessage
-                      : editedChatRoom.systemMessage!
-                          .split(contextualInfoDelimeter)
-                          .first,
+                      : editedChatRoom.systemMessage!.split(contextualInfoDelimeter).first,
                 );
                 chatRooms[selectedChatRoomId] = editedChatRoom;
                 notifyRoomsStream();
@@ -1470,6 +1398,24 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 });
               },
               tooltip: 'Auto play messages from ai'.tr,
+            ),
+            Button(
+              onPressed: () {
+                AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
+                chatProvider.updateUI();
+              },
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.all(
+                  AppCache.enableReasoning.value == true ? context.theme.accentColor : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(ic.FluentIcons.brain_sparkle_20_filled, size: 18),
+                  const SizedBox(width: 4),
+                  Text('Reasoning'.tr),
+                ],
+              ),
             ),
             Spacer(),
             _ScrollToBottomButton(),
@@ -1551,8 +1497,7 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
               ),
             if (AppCache.enableQuestionHelpers.value == null)
               Tooltip(
-                style: TooltipThemeData(
-                    waitDuration: const Duration(milliseconds: 200)),
+                style: TooltipThemeData(waitDuration: const Duration(milliseconds: 200)),
                 richMessage: WidgetSpan(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1571,10 +1516,7 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                   child: InfoBar(
                     title: Row(
                       children: [
-                        Expanded(
-                            child: Text(
-                                'Do you want to enable suggestion helpers?'
-                                    .tr)),
+                        Expanded(child: Text('Do you want to enable suggestion helpers?'.tr)),
                         FilledButton(
                           onPressed: () {
                             AppCache.enableQuestionHelpers.value = true;
@@ -1605,13 +1547,10 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                     ),
                   ),
                   onPressed: () async {
-                    final clipboard =
-                        await Clipboard.getData(Clipboard.kTextPlain);
+                    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
                     provider.sendMessage(item.getPromptText(clipboard?.text));
                   },
-                  child: Text(item.title.tr,
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: Text(item.title.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ),
           ],
@@ -1666,8 +1605,7 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
         checked: provider.scrollToBottomOnAnswer,
         style: ToggleButtonThemeData(
           checkedButtonStyle: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(
-                context.theme.accentColor.withAlpha(128)),
+            backgroundColor: WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
           ),
           uncheckedButtonStyle: ButtonStyle(
               // padding: WidgetStateProperty.all(EdgeInsets.zero),
@@ -1789,8 +1727,7 @@ class RunCodeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSupported =
-        language == 'shell' || language == 'python' || language == 'run-shell';
+    final isSupported = language == 'shell' || language == 'python' || language == 'run-shell';
     if (!isSupported) {
       return const SizedBox.shrink();
     }
@@ -1809,8 +1746,7 @@ class RunCodeButton extends StatelessWidget {
             }
             return ToggleButton(
               onChanged: (_) async {
-                final provider =
-                    Provider.of<ChatProvider>(context, listen: false);
+                final provider = Provider.of<ChatProvider>(context, listen: false);
 
                 if (language == 'shell') {
                   final result = await ShellDriver.runShellCommand(code);

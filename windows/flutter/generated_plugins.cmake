@@ -7,14 +7,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
   flutter_acrylic
   hotkey_manager_windows
-  irondash_engine_context
   keypress_simulator_windows
   pasteboard
   permission_handler_windows
   protocol_handler_windows
   record_windows
   screen_retriever_windows
-  super_native_extensions
   system_theme
   tray_manager
   url_launcher_windows

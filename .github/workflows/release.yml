@@ -1,0 +1,165 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Get version from tag
+      id: version
+      run: |
+        $version = "${env:GITHUB_REF}" -replace "refs/tags/", ""
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        $versionNoV = $version -replace "^v", ""
+        echo "VERSION_NO_V=$versionNoV" >> $env:GITHUB_OUTPUT
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Setup Inno Setup
+      run: |
+        choco install innosetup -y
+        
+    - name: Build Windows Installer
+      run: |
+        .\build_installer.bat ${{ steps.version.outputs.VERSION_NO_V }}
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-installer
+        path: installers/FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.exe
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Get version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        VERSION_NO_V=${VERSION#v}
+        echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_OUTPUT
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Install create-dmg
+      run: brew install create-dmg
+
+    - name: Build macOS DMG
+      run: |
+        chmod +x build-macos.sh
+        ./build-macos.sh ${{ steps.version.outputs.VERSION_NO_V }}
+
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-installer
+        path: installers/FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.dmg
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Get version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        VERSION_NO_V=${VERSION#v}
+        echo "VERSION_NO_V=$VERSION_NO_V" >> $GITHUB_OUTPUT
+
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-installer
+        path: ./artifacts/
+
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-installer
+        path: ./artifacts/
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Fluent GPT App ${{ steps.version.outputs.VERSION }}
+        body: |
+          # Fluent GPT App ${{ steps.version.outputs.VERSION }}
+          
+          ## 🆕 What's New
+          - Latest features and improvements
+          - Bug fixes and performance enhancements
+          - Auto-update system integration
+          
+          ## 📥 Download
+          Choose the installer for your platform:
+          
+          ### Windows
+          - **FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.exe** - Windows 10/11 installer (Inno Setup)
+          
+          ### macOS
+          - **FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.dmg** - macOS 10.15+ installer
+          
+          ## 🔧 System Requirements
+          - **Windows**: Windows 10/11 (64-bit)
+          - **macOS**: macOS 10.15+ (Intel/Apple Silicon)
+          
+          ## 🔄 Auto-Updates
+          This version includes an automatic update system that will notify you when new versions are available.
+        draft: false
+        prerelease: false
+
+    - name: Upload Windows Installer
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.exe
+        asset_name: FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.exe
+        asset_content_type: application/x-executable
+
+    - name: Upload macOS DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./artifacts/FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.dmg
+        asset_name: FluentGPT-${{ steps.version.outputs.VERSION_NO_V }}.dmg
+        asset_content_type: application/x-apple-diskimage 
