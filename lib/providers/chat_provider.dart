@@ -1142,7 +1142,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
             /// TODO: add more logic here
             updateChatRoomTimestamp();
             saveToDisk([selectedChatRoom]);
-            isAnswering = false;
             notifyListeners();
             onResponseEnd(messageContent, responseId);
             if (functionCallString.isNotEmpty) {
@@ -1163,7 +1162,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
               final decoded = jsonDecode(functionCallString);
               _onToolsResponseEnd(messageContent, decoded, functionName);
             }
-            isAnswering = false;
           }
         },
         onDone: () async {
@@ -1201,6 +1199,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
               ),
             ...messages.value.values
           ]);
+          isAnswering = false;
+          notifyListeners();
         },
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
