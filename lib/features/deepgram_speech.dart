@@ -59,8 +59,7 @@ class DeepgramSpeech {
     if (!isValid()) {
       return;
     }
-    final fileName =
-        (AppCache.deepgramVoiceModel.value ?? '') + text.hashCode.toString();
+    final fileName = (AppCache.deepgramVoiceModel.value ?? '') + text.hashCode.toString();
     final audioPath = (FileUtils.temporaryAudioDirectoryPath ?? '') + fileName;
     final file = File(audioPath);
     try {
@@ -79,10 +78,14 @@ class DeepgramSpeech {
     } catch (e) {
       logError(e.toString());
     }
-    final result = await deepgram.speakFromText(text, queryParams: {
+    final result = await deepgram.speak.text(text, queryParams: {
       'model': AppCache.deepgramVoiceModel.value!,
     });
     final audio = result.data;
+    if (audio == null) {
+      logError('result audio from deepgram is empty');
+      return;
+    }
     player = AudioPlayer();
     await player!.setSourceBytes(audio, mimeType: result.contentType);
     player!.onPlayerComplete.listen((onData) {

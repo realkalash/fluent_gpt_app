@@ -2461,7 +2461,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   Stream<List<int>>? micStream;
-  DeepgramLiveTranscriber? transcriber;
+  DeepgramLiveListener? transcriber;
   AudioRecorder? recorder;
   Future<bool> startListeningForInput() async {
     try {
@@ -2512,7 +2512,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         'encoding': 'linear16',
         'sample_rate': 16000,
       };
-      transcriber = DeepgramSpeech.deepgram.createLiveTranscriber(micStream!, queryParams: streamParams);
+      transcriber = DeepgramSpeech.deepgram.listen.liveListener(micStream!, queryParams: streamParams);
       transcriber!.stream.listen((res) {
         if (res.transcript?.isNotEmpty == true) {
           messageController.text += '${res.transcript!} ';
