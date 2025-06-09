@@ -16,6 +16,21 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
     return false
   }
+  override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+      if !flag {
+          for window in NSApp.windows {
+              if !window.isVisible {
+                  window.setIsVisible(true)
+              }
+              window.makeKeyAndOrderFront(self)
+              NSApp.activate(ignoringOtherApps: true)
+          }
+      }
+      return true
+  }
+  override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    return true
+  }
 
   override func applicationWillTerminate(_: Notification) {
     // customTimer.stopTimer()
@@ -27,18 +42,17 @@ class AppDelegate: FlutterAppDelegate {
     }
 
     methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt", binaryMessenger: controller.engine.binaryMessenger)
-    let checkOptPrompt = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as NSString
-
-    let options = [checkOptPrompt: true]
-    let isAppTrusted = AXIsProcessTrustedWithOptions(options as CFDictionary?)
-    if isAppTrusted != true {
+    
+    // First check if accessibility is already granted without showing prompt
+    if !checkAccessibilityPermissions() {
       print("[Swift] please allow accessibility API access to this app.")
+      // Only show prompt if permissions are not granted
+      requestAccessibilityPermissions()
       // open the accessibility settings in macos
       NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Library/PreferencePanes/Security.prefPane"))
     }
 
     setupMethodCallHandler()
-    requestAccessibilityPermissions()
     setupEventMonitoring()
 
     // customTimer.startTimer(interval: 3.0) {

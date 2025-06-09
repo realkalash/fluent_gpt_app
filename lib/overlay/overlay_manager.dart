@@ -16,18 +16,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../common/custom_prompt.dart';
 import 'overlay_ui.dart';
 
-BehaviorSubject<OverlayStatus> overlayVisibility =
-    BehaviorSubject<OverlayStatus>.seeded(OverlayStatus());
+BehaviorSubject<OverlayStatus> overlayVisibility = BehaviorSubject<OverlayStatus>.seeded(OverlayStatus());
 
-BehaviorSubject<List<CustomPrompt>> customPrompts =
-    BehaviorSubject.seeded([...basePromptsTemplate]);
-BehaviorSubject<List<CustomPrompt>> archivedPrompts =
-    BehaviorSubject.seeded([...baseArchivedPromptsTemplate]);
+BehaviorSubject<List<CustomPrompt>> customPrompts = BehaviorSubject.seeded([...basePromptsTemplate]);
+BehaviorSubject<List<CustomPrompt>> archivedPrompts = BehaviorSubject.seeded([...baseArchivedPromptsTemplate]);
 
 int calcAllPromptsForChild(CustomPrompt prompt) {
   int count = 1;
@@ -60,18 +58,13 @@ class OverlayStatus {
     this.isShowingSearchOverlay = false,
   });
 
-  bool get isEnabled =>
-      isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay;
+  bool get isEnabled => isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay;
 
   static const OverlayStatus enabled = OverlayStatus(isShowingOverlay: true);
   static const OverlayStatus disabled = OverlayStatus(isShowingOverlay: false);
-  static const OverlayStatus sidebarEnabled =
-      OverlayStatus(isShowingSidebarOverlay: true);
-  static const OverlayStatus sidebarDisabled =
-      OverlayStatus(isShowingSidebarOverlay: false);
-  static const OverlayStatus searchEnabled =
-      OverlayStatus(isShowingSearchOverlay: true);
-
+  static const OverlayStatus sidebarEnabled = OverlayStatus(isShowingSidebarOverlay: true);
+  static const OverlayStatus sidebarDisabled = OverlayStatus(isShowingSidebarOverlay: false);
+  static const OverlayStatus searchEnabled = OverlayStatus(isShowingSearchOverlay: true);
 
   //equality
   @override
@@ -85,10 +78,7 @@ class OverlayStatus {
   }
 
   @override
-  int get hashCode =>
-      isShowingOverlay.hashCode ^
-      isShowingSidebarOverlay.hashCode ^
-      isShowingSearchOverlay.hashCode;
+  int get hashCode => isShowingOverlay.hashCode ^ isShowingSidebarOverlay.hashCode ^ isShowingSearchOverlay.hashCode;
 }
 
 class OverlayManager {
@@ -96,16 +86,14 @@ class OverlayManager {
     final customPromptsJson = await AppCache.quickPrompts.value();
     if (customPromptsJson.isNotEmpty) {
       final customPromptsList = jsonDecode(customPromptsJson) as List<dynamic>;
-      final customPromptsListDecoded =
-          customPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
+      final customPromptsListDecoded = customPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
       customPrompts.add(customPromptsListDecoded);
       bindHotkeys(customPromptsListDecoded);
     }
     final archivedPromptsJson = AppCache.archivedPrompts.value;
     if (archivedPromptsJson != null && archivedPromptsJson.isNotEmpty) {
       final archivedPromptsList = jsonDecode(archivedPromptsJson) as List;
-      final archivedPromptsListDecoded =
-          archivedPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
+      final archivedPromptsListDecoded = archivedPromptsList.map((e) => CustomPrompt.fromJson(e)).toList();
       archivedPrompts.add(archivedPromptsListDecoded);
     }
     customPrompts.listen((newData) {
@@ -114,7 +102,7 @@ class OverlayManager {
       );
     });
   }
-  
+
   static const List<String> welcomesForEmptyList = [
     'Ask me anything',
     'What can I do for you?',
@@ -192,8 +180,7 @@ class OverlayManager {
     double? positionX,
     double? positionY,
   }) async {
-    if (overlayVisibility.value.isShowingOverlay ||
-        AppCache.enableOverlay.value == false) {
+    if (overlayVisibility.value.isShowingOverlay || AppCache.enableOverlay.value == false) {
       return;
     }
     overlayVisibility.add(OverlayStatus.enabled);
@@ -231,8 +218,7 @@ class OverlayManager {
     double? positionY,
     String? command,
   }) async {
-    if (overlayVisibility.value.isShowingSidebarOverlay ||
-        AppCache.enableOverlay.value == false) {
+    if (overlayVisibility.value.isShowingSidebarOverlay || AppCache.enableOverlay.value == false) {
       return;
     }
     overlayVisibility.add(OverlayStatus.sidebarEnabled);
@@ -275,9 +261,8 @@ class OverlayManager {
     await windowManager.setAlwaysOnTop(true);
     // final compactOverlaySize = ;
     await windowManager.setMinimumSize(SearchOverlayUI.defaultWindowSize());
-    await windowManager.setSize(haveMessages
-        ? SearchOverlayUI.defaultWindowSize() + Offset(0, 470)
-        : SearchOverlayUI.defaultWindowSize());
+    await windowManager.setSize(
+        haveMessages ? SearchOverlayUI.defaultWindowSize() + Offset(0, 470) : SearchOverlayUI.defaultWindowSize());
     overlayVisibility.add(OverlayStatus.searchEnabled);
     Size windowSize = await windowManager.getSize();
     Offset position = await calcWindowPosition(windowSize, Alignment.topCenter);
@@ -298,67 +283,125 @@ class OverlayManager {
     await windowManager.setResizable(true);
     await windowManager.setMinimumSize(defaultMinimumWindowSize);
     overlayVisibility.add(OverlayStatus.disabled);
-    final x = AppCache.windowX.value!.toDouble();
-    final y = AppCache.windowY.value!.toDouble();
-    log('Switching to main window at $x, $y');
+
+    // Get cached position and validate it
+    final cachedX = AppCache.windowX.value!.toDouble();
+    final cachedY = AppCache.windowY.value!.toDouble();
+    final windowWidth = AppCache.windowWidth.value?.toDouble() ?? 600.0;
+    final windowHeight = AppCache.windowHeight.value?.toDouble() ?? 700.0;
+
+    // Get screen size for validation using screen_retriever
+    late Size resolutionSize;
+    try {
+      final _primaryDisplay = await screenRetriever.getPrimaryDisplay();
+      final primaryDisplaySize = _primaryDisplay.visibleSize;
+      if (primaryDisplaySize != null) {
+        resolutionSize = Size(primaryDisplaySize.width, primaryDisplaySize.height);
+      } else {
+        // Fallback to cached resolution
+        final resolutionString = AppCache.resolution.value ?? '1920x1080';
+        final resList = resolutionString.split('x');
+        resolutionSize = Size(double.parse(resList[0]), double.parse(resList[1]));
+      }
+    } catch (e) {
+      // Fallback to cached resolution on error
+      final resolutionString = AppCache.resolution.value ?? '1920x1080';
+      final resList = resolutionString.split('x');
+      resolutionSize = Size(double.parse(resList[0]), double.parse(resList[1]));
+    }
+
+    // Validate and adjust cached position if necessary
+    double validatedX = cachedX;
+    double validatedY = cachedY;
+
+    // Only adjust if the cached position would put window off-screen
+    if (cachedX < 0) {
+      validatedX = 10; // Small margin from left edge
+    } else if (cachedX + windowWidth > resolutionSize.width) {
+      validatedX = resolutionSize.width - windowWidth - 10; // Small margin from right edge
+    }
+
+    if (cachedY < 0) {
+      validatedY = 0;
+    } else if (cachedY + windowHeight > resolutionSize.height) {
+      validatedY = resolutionSize.height - windowHeight;
+    }
+
+    log('Switching to main window at validated position: ($validatedX, $validatedY), cached was: ($cachedX, $cachedY) - Screen: ${resolutionSize.width}x${resolutionSize.height}');
+
     await windowManager.setPosition(
-      Offset(x, y),
+      Offset(validatedX, validatedY),
       animate: true,
     );
-    // delay due to macos bug. We can't do it simulteniously
-    if (Platform.isMacOS)
-      await Future.delayed(const Duration(milliseconds: 300));
+    // delay due to macos bug. We can't do it simultaneously
+    if (Platform.isMacOS) await Future.delayed(const Duration(milliseconds: 300));
     await windowManager.setSize(
-      Size(AppCache.windowWidth.value?.toDouble() ?? 600.0,
-          AppCache.windowHeight.value?.toDouble() ?? 700.0),
+      Size(windowWidth, windowHeight),
       animate: true,
     );
     await Future.delayed(const Duration(milliseconds: 400));
-    await OverlayManager.checkAndRepositionOverOffsetWindow();
+
+    // Only call repositioning check if we used the original cached values
+    // If we already validated and adjusted, no need for further repositioning
+    if (validatedX == cachedX && validatedY == cachedY) {
+      await OverlayManager.checkAndRepositionOverOffsetWindow();
+    }
   }
 
   static Future<void> checkAndRepositionOverOffsetWindow() async {
     try {
+      final _primaryDisplay = await screenRetriever.getPrimaryDisplay();
+      final primaryDisplaySize = _primaryDisplay.visibleSize;
       final currentPosition = await windowManager.getPosition();
       final windowSize = await windowManager.getSize();
 
       late Size resolutionSize;
-      final screenSizeResult = await NativeChannelUtils.getScreenSize();
-      if (screenSizeResult == null && screenSizeResult!['width'] != null) {
-        resolutionSize = Size(screenSizeResult['width']!.toDouble(),
-            screenSizeResult['height']!.toDouble());
+      if (primaryDisplaySize != null) {
+        resolutionSize = Size(primaryDisplaySize.width, primaryDisplaySize.height);
       } else {
+        // Fallback to cached resolution if screen_retriever fails
         final resolutionString = AppCache.resolution.value ?? '1920x1080';
         final resList = resolutionString.split('x');
         if (resList.length != 2) {
           throw const FormatException('Invalid resolution format');
         }
-        resolutionSize =
-            Size(double.parse(resList[0]), double.parse(resList[1]));
+        resolutionSize = Size(double.parse(resList[0]), double.parse(resList[1]));
       }
 
-      // Consider accounting for system UI elements (taskbar height, etc.)
-      // Example value, should be determined dynamically
-      final safeAreaInset = 0;
-      // Not sure why but we should add 60. Otherwise it will go out of screen bounds a little bit
-      final safeAreaInsetWidth = 60;
+      // Safe margin to prevent window from touching screen edges when repositioning
+      final safeMargin = 0.0;
 
       double newX = currentPosition.dx;
       double newY = currentPosition.dy;
+      bool needsRepositioning = false;
 
-      // Adjust X if out of bounds (keep fully visible when possible)
-      if (newX + windowSize.width > resolutionSize.width) {
-        newX = resolutionSize.width - windowSize.width + safeAreaInsetWidth;
+      // Only adjust X if window is actually off-screen
+      if (newX < 0) {
+        // Window is off-screen to the left - attach to left edge with margin
+        newX = safeMargin;
+        needsRepositioning = true;
+      } else if (newX + windowSize.width > resolutionSize.width) {
+        // Window is off-screen to the right - attach to right edge with margin
+        newX = resolutionSize.width - windowSize.width - safeMargin;
+        needsRepositioning = true;
       }
-      newX = max(0, newX);
+      // If window is within screen bounds horizontally, don't change X
 
-      // Adjust Y if out of bounds (keep fully visible when possible)
-      if (newY + windowSize.height > resolutionSize.height - safeAreaInset) {
-        newY = resolutionSize.height - windowSize.height - safeAreaInset;
+      // Only adjust Y if window is actually off-screen
+      if (newY < 0) {
+        // Window is off-screen at the top
+        newY = 0;
+        needsRepositioning = true;
+      } else if (newY + windowSize.height > resolutionSize.height) {
+        // Window is off-screen at the bottom
+        newY = resolutionSize.height - windowSize.height;
+        needsRepositioning = true;
       }
-      newY = max(0, newY);
+      // If window is within screen bounds vertically, don't change Y
 
-      if (newX != currentPosition.dx || newY != currentPosition.dy) {
+      // Only reposition if we actually detected the window being off-screen
+      if (needsRepositioning) {
+        log('Repositioning window from (${currentPosition.dx}, ${currentPosition.dy}) to ($newX, $newY) - Screen size: ${resolutionSize.width}x${resolutionSize.height}');
         await windowManager.setPosition(Offset(newX, newY), animate: true);
       }
     } catch (e) {
@@ -390,8 +433,7 @@ class OverlayManager {
       keyDownHandler: (hotKey) async {
         if (_isHotKeyRegistering) return;
         _isHotKeyRegistering = true;
-        final previousClipboard =
-            (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+        final previousClipboard = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
 
         String? selectedText; //await NativeChannelUtils.getSelectedText();
         // if (prompt.autoCopySelectedText) {
@@ -405,8 +447,7 @@ class OverlayManager {
         if (prompt.silentHideWindowsAfterRun == false) {
           /// show app window
           if (!isAppVisible) {
-            final Offset? mouseCoord =
-                await NativeChannelUtils.getMousePosition();
+            final Offset? mouseCoord = await NativeChannelUtils.getMousePosition();
             // windows can't resize windows at all
             if (!Platform.isLinux) {
               /// show mini overlay
@@ -444,8 +485,7 @@ class OverlayManager {
           Clipboard.setData(ClipboardData(text: previousClipboard));
         }
 
-        data['status'] =
-            prompt.silentHideWindowsAfterRun ? 'silent' : 'visible';
+        data['status'] = prompt.silentHideWindowsAfterRun ? 'silent' : 'visible';
         data['includeConversation'] = prompt.includeConversation.toString();
         data['includeSystemPrompt'] = prompt.includeSystemPrompt.toString();
 

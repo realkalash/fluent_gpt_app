@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.61+1
+version: 1.0.62+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -27,7 +27,6 @@ dependencies:
   fluentui_system_icons: ^1.1.246
   rxdart: ^0.28.0
   dio: ^5.4.0
-  windows_single_instance: ^1.0.1
   flutter_highlighter: ^0.1.1
   file_picker: ^10.1.9
   cross_file: ^0.3.4+1
@@ -82,6 +81,8 @@ dependencies:
   image: ^4.3.0
   highlight: ^0.7.0
   pasteboard: ^0.4.0
+  flutter_single_instance: ^1.1.2
+  screen_retriever: ^0.2.0
   # llama_library_flutter: ^0.0.3
   # ggml_library_flutter: ^0.0.10
   

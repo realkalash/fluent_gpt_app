@@ -10,8 +10,7 @@ class AppWindowListener extends WindowListener {
   static final AppWindowListener _instance = AppWindowListener._internal();
 
   /// Stream to listen to window visibility changes
-  static BehaviorSubject<bool> windowVisibilityStream =
-      BehaviorSubject<bool>.seeded(true);
+  static BehaviorSubject<bool> windowVisibilityStream = BehaviorSubject<bool>.seeded(true);
 
   factory AppWindowListener() {
     return _instance;
@@ -28,6 +27,12 @@ class AppWindowListener extends WindowListener {
       return;
     }
     final offset = await windowManager.getPosition();
+    if (overlayVisibility.value.isEnabled) {
+      return;
+    }
+    if (windowVisibilityStream.value == false) {
+      return;
+    }
     log('Window moved. Position: $offset');
     AppCache.windowX.set(offset.dx.toInt());
     AppCache.windowY.set(offset.dy.toInt());
@@ -42,9 +47,14 @@ class AppWindowListener extends WindowListener {
       return;
     }
     final size = await windowManager.getSize();
+    if (overlayVisibility.value.isEnabled) {
+      return;
+    }
+    if (windowVisibilityStream.value == false) {
+      return;
+    }
     log('Window resized. Size: $size');
-    if (size.width < defaultMinimumWindowSize.width ||
-        size.height < defaultMinimumWindowSize.height) {
+    if (size.width < defaultMinimumWindowSize.width || size.height < defaultMinimumWindowSize.height) {
       return;
     }
     AppCache.windowWidth.set(size.width.toInt());
