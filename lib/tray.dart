@@ -438,8 +438,8 @@ class AppTrayListener extends TrayListener {
     windowManager.isVisible().then((isVisible) async {
       if (isVisible) {
         windowManager.hide();
-        OverlayUI.isChatVisible.add(false);
-        overlayVisibility.add(OverlayStatus.disabled);
+        // OverlayUI.isChatVisible.add(false);
+        // overlayVisibility.add(OverlayStatus.disabled);
       } else {
         final cursorPos = await NativeChannelUtils.getMousePosition();
         await showWindow();
@@ -448,7 +448,7 @@ class AppTrayListener extends TrayListener {
           final screen = await NativeChannelUtils.getScreenSize();
           final height = screen?['height'] ?? 720;
           final modifCursorPos = Offset(cursorPos.dx, cursorPos.dy - height);
-          windowManager.setPosition(modifCursorPos, animate: false);
+          await windowManager.setPosition(modifCursorPos, animate: false);
           OverlayUI.isChatVisible.add(true);
           overlayVisibility.add(OverlayStatus.enabled);
 

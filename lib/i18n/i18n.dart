@@ -7,7 +7,7 @@ import 'package:rxdart/rxdart.dart';
 
 BehaviorSubject<Map<String, String?>> currentLocalization =
     BehaviorSubject.seeded(I18n._localizations['en']!);
-BehaviorSubject<Locale> localeSubject = BehaviorSubject<Locale>();
+BehaviorSubject<Locale> localeSubject = BehaviorSubject<Locale>.seeded(Locale('en'));
 
 class I18n {
   static Stream<Map<String, String?>> get currentLocalizationStream =>

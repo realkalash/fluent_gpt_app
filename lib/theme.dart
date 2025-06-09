@@ -202,7 +202,7 @@ class AppTheme extends ChangeNotifier {
   Color darkCardColor = const Color.fromARGB(255, 25, 24, 23);
 
   bool hideSuggestionsOnHomePage = false;
-  Locale get locale => localeSubject.value;
+  Locale get locale => localeSubject.valueOrNull ?? Locale('en');
 
   final localeDebouncer = Debouncer(milliseconds: 100);
 

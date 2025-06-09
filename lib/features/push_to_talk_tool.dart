@@ -9,8 +9,7 @@ import 'package:record/record.dart';
 import 'package:rxdart/rxdart.dart';
 
 class PushToTalkTool {
-  static final BehaviorSubject<bool> _isRecording =
-      BehaviorSubject<bool>.seeded(false);
+  static final BehaviorSubject<bool> _isRecording = BehaviorSubject<bool>.seeded(false);
   static bool get isRecording => _isRecording.value;
   static ValueStream<bool> get isRecordingStream => _isRecording.stream;
   static set isRecording(bool value) {
@@ -20,7 +19,7 @@ class PushToTalkTool {
 
   static AudioRecorder? _recorder;
   static Stream<List<int>>? micStream;
-  static DeepgramLiveTranscriber? transcriber;
+  static DeepgramLiveListener? transcriber;
   static String? text;
 
   static Future<void> start() async {
@@ -36,9 +35,7 @@ class PushToTalkTool {
         sampleRate: 16000,
         numChannels: 1,
         device: AppCache.micrpohoneDeviceId.value != null
-            ? InputDevice(
-                id: AppCache.micrpohoneDeviceId.value!,
-                label: AppCache.micrpohoneDeviceName.value!)
+            ? InputDevice(id: AppCache.micrpohoneDeviceId.value!, label: AppCache.micrpohoneDeviceName.value!)
             : null,
       ));
       final streamParams = {
@@ -48,15 +45,14 @@ class PushToTalkTool {
         'encoding': 'linear16',
         'sample_rate': 16000,
       };
-      transcriber = DeepgramSpeech.deepgram
-          .createLiveTranscriber(micStream!, queryParams: streamParams);
-      transcriber!.stream.listen((res) {
+      transcriber = DeepgramSpeech.deepgram.listen.liveListener(micStream!, queryParams: streamParams);
+      transcriber?.stream.listen((res) {
         if (res.transcript?.isNotEmpty == true) {
           text = '$text${res.transcript!} ';
           ChatProvider.messageControllerGlobal.text = text ?? '';
         }
       });
-      await transcriber!.start();
+      await transcriber?.start();
     } catch (e) {
       logError(e.toString());
       isRecording = false;

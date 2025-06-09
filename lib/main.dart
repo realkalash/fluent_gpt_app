@@ -22,6 +22,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as flutter_acrylic;
+import 'package:flutter_single_instance/flutter_single_instance.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -31,7 +32,6 @@ import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:windows_single_instance/windows_single_instance.dart';
 import 'navigation_provider.dart';
 import 'overlay/overlay_ui.dart';
 import 'overlay/sidebar_overlay_ui.dart';
@@ -99,15 +99,21 @@ void setupMethodChannel() {
       case 'showOverlay':
         break;
       default:
-        throw PlatformException(
-            code: 'Unimplemented',
-            details: '${call.method} is not implemented');
+        throw PlatformException(code: 'Unimplemented', details: '${call.method} is not implemented');
     }
   });
 }
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+
+  if (await FlutterSingleInstance().isFirstInstance() == false) {
+    log("App is already running");
+    showWindow();
+    return;
+  }
   FlutterError.onError = (details) {
     if (kDebugMode) {
       logError(details.exceptionAsString(), details.stack);
@@ -122,13 +128,7 @@ void main(List<String> args) async {
   if (Platform.isMacOS || Platform.isWindows) {
     SystemTheme.accentColor.load();
   }
-  if (!Platform.isMacOS)
-    await WindowsSingleInstance.ensureSingleInstance(args, "fluent_gpt",
-        onSecondWindow: (secondWindowArgs) {
-      showWindow();
 
-      log('onSecondWindow. args: $args');
-    });
   prefs = await SharedPreferences.getInstance();
   I18n.init();
   if (AppCache.isWelcomeShown.value == true) {
@@ -147,8 +147,7 @@ void main(List<String> args) async {
   // For hot reload, `unregisterAll()` needs to be called.
   await hotKeyManager.unregisterAll();
   OverlayManager.init();
-  AdditionalFeatures.initAdditionalFeatures(
-      isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
+  AdditionalFeatures.initAdditionalFeatures(isStorageAccessGranted: AppCache.isStorageAccessGranted.value!);
   packageInfo = await PackageInfo.fromPlatform();
   initializeNotifications(packageInfo?.packageName);
   launchAtStartup.setup(
@@ -193,8 +192,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
       if (size == null && (Platform.isMacOS || Platform.isWindows)) {
         final result = await NativeChannelUtils.getScreenSize();
         if (result != null) {
-          final screenSize =
-              Size(result['width']!.toDouble(), result['height']!.toDouble());
+          final screenSize = Size(result['width']!.toDouble(), result['height']!.toDouble());
 
           _appTheme.setResolution(screenSize, notify: false);
         }
@@ -235,8 +233,7 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                   lazy: true,
                   builder: (context, snapshot) {
                     return Listener(
-                      onPointerDown: (event) =>
-                          mouseLocalPosition = event.position,
+                      onPointerDown: (event) => mouseLocalPosition = event.position,
                       child: FluentApp(
                         title: '',
                         navigatorKey: navigatorKey,
@@ -249,24 +246,19 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                         darkTheme: FluentThemeData(
                           brightness: Brightness.dark,
                           visualDensity: appTheme.visualDensity,
-                          scaffoldBackgroundColor:
-                              _appTheme.darkBackgroundColor,
-                          infoBarTheme: InfoBarThemeData(
-                              decoration: (severity) =>
-                                  appTheme.buildInfoBarDecoration(severity)),
+                          scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
+                          infoBarTheme:
+                              InfoBarThemeData(decoration: (severity) => appTheme.buildInfoBarDecoration(severity)),
                           accentColor: appTheme.color,
-                          iconTheme: const IconThemeData(
-                              size: 20, color: Colors.white),
+                          iconTheme: const IconThemeData(size: 20, color: Colors.white),
                           cardColor: _appTheme.darkCardColor,
                         ),
                         theme: FluentThemeData(
                           accentColor: appTheme.color,
                           visualDensity: appTheme.visualDensity,
-                          scaffoldBackgroundColor:
-                              _appTheme.lightBackgroundColor,
-                          infoBarTheme: InfoBarThemeData(
-                              decoration: (severity) =>
-                                  appTheme.buildInfoBarDecoration(severity)),
+                          scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
+                          infoBarTheme:
+                              InfoBarThemeData(decoration: (severity) => appTheme.buildInfoBarDecoration(severity)),
                           iconTheme: const IconThemeData(size: 20),
                           cardColor: _appTheme.lightCardColor,
                         ),
@@ -274,9 +266,8 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
                         builder: (ctx, child) {
                           return NavigationPaneTheme(
                             data: NavigationPaneThemeData(
-                              backgroundColor: appTheme.isDark
-                                  ? _appTheme.darkBackgroundColor
-                                  : _appTheme.lightBackgroundColor,
+                              backgroundColor:
+                                  appTheme.isDark ? _appTheme.darkBackgroundColor : _appTheme.lightBackgroundColor,
                             ),
                             child: child!,
                           );
@@ -336,29 +327,21 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
           onKeyEvent: (event) {
             if (event is KeyRepeatEvent) return;
             if (!mounted) return;
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.shiftLeft) {
               shiftPressedStream.add(true);
-            } else if (event is KeyUpEvent &&
-                event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+            } else if (event is KeyUpEvent && event.logicalKey == LogicalKeyboardKey.shiftLeft) {
               shiftPressedStream.add(false);
-            } else if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape) {
+            } else if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
               escPressedStream.add(true);
-            } else if (event is KeyUpEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape) {
+            } else if (event is KeyUpEvent && event.logicalKey == LogicalKeyboardKey.escape) {
               escPressedStream.add(false);
-            } else if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.controlLeft) {
+            } else if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.controlLeft) {
               ctrlPressedStream.add(true);
-            } else if (event is KeyUpEvent &&
-                event.logicalKey == LogicalKeyboardKey.controlLeft) {
+            } else if (event is KeyUpEvent && event.logicalKey == LogicalKeyboardKey.controlLeft) {
               ctrlPressedStream.add(false);
-            } else if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.altLeft) {
+            } else if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.altLeft) {
               altPressedStream.add(true);
-            } else if (event is KeyUpEvent &&
-                event.logicalKey == LogicalKeyboardKey.altLeft) {
+            } else if (event is KeyUpEvent && event.logicalKey == LogicalKeyboardKey.altLeft) {
               altPressedStream.add(false);
             }
           },
