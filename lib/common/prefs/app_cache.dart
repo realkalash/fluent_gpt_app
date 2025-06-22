@@ -145,7 +145,7 @@ class AppCache {
   static const annoyModeTimerMaxMinutes =
       IntPref("annoyModeTimerMaxMinutes", 120);
   static const includeUserNameToSysPrompt =
-      BoolPref("includeUserNameToSysPrompt", false);
+      BoolPref("includeUserNameToSysPrompt", true);
   static const includeUserCityNamePrompt =
       BoolPref("includeUserCityNamePrompt", false);
   static const includeWeatherPrompt = BoolPref("includeWeatherPrompt", false);
@@ -154,7 +154,7 @@ class AppCache {
   static const includeKnowledgeAboutUserToSysPrompt =
       BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
   static const includeTimeToSystemPrompt =
-      BoolPref("includeTimeToSystemPrompt", false);
+      BoolPref("includeTimeToSystemPrompt", true);
   @Deprecated('Use gptToolRememberInfo')
   static const learnAboutUserAfterCreateNewChat =
       BoolPref("learnAboutUserAfterCreateNewChat", false);

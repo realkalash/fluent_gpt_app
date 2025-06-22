@@ -3015,6 +3015,11 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     switch (e) {
       case NerdySelectorType.newbie:
         AppCache.hideEditSystemPromptInHomePage.value = true;
+        AppCache.includeTimeToSystemPrompt.value = true;
+        AppCache.includeUserNameToSysPrompt.value = true;
+        if (AppCache.userCityName.value?.trim().isNotEmpty == true) {
+          AppCache.includeUserCityNamePrompt.value = true;
+        }
         break;
       case NerdySelectorType.advanced:
       case NerdySelectorType.developer:

@@ -148,6 +148,11 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                                 placeholder: AppCache.userCityName.value,
                                 onChanged: (value, reason) {
                                   AppCache.userCityName.value = value;
+                                  if (value.isNotEmpty) {
+                                    AppCache.includeUserCityNamePrompt.value = true;
+                                  } else {
+                                    AppCache.includeUserCityNamePrompt.value = false;
+                                  }
                                 },
                                 clearButtonEnabled: false,
                                 trailingIcon: IconButton(
@@ -155,6 +160,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () {
                                     AppCache.userCityName.value = '';
+                                    AppCache.includeUserCityNamePrompt.value = false;
                                     setState(() {});
                                   },
                                 ),

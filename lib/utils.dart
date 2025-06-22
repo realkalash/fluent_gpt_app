@@ -29,16 +29,14 @@ extension ThemeExtension on BuildContext {
 
 extension ChatMessageExtension on ChatMessage {
   Map<String, dynamic> toJson() {
-    if (this is HumanChatMessage &&
-        (this as HumanChatMessage).content is ChatMessageContentText) {
+    if (this is HumanChatMessage && (this as HumanChatMessage).content is ChatMessageContentText) {
       final message = this as HumanChatMessage;
       return {
         'prefix': HumanChatMessage.defaultPrefix,
         'content': (message.content as ChatMessageContentText).text,
       };
     }
-    if (this is HumanChatMessage &&
-        (this as HumanChatMessage).content is ChatMessageContentImage) {
+    if (this is HumanChatMessage && (this as HumanChatMessage).content is ChatMessageContentImage) {
       final message = this as HumanChatMessage;
       return {
         'prefix': HumanChatMessage.defaultPrefix,
@@ -144,16 +142,14 @@ Current date: $formattedDate
 ''';
 }
 
-String contextualInfoDelimeter =
-    '\n\nContextual information about the user. Dont use it until it is necessary!';
+String contextualInfoDelimeter = '\n\nContextual information about the user. Dont use it until it is necessary!';
 
-Future<String> getFormattedSystemPrompt(
-    {required String basicPrompt, String? appendText}) async {
+Future<String> getFormattedSystemPrompt({required String basicPrompt, String? appendText}) async {
   /// we append them line by line
   final userName = AppCache.userName.value;
   final systemInfo = getSystemInfoString();
   infoAboutUser = await AppCache.userInfo.value();
-  final userInfo = infoAboutUser;
+  final userInfo = infoAboutUser.replaceAll('{user_name}', userName ?? '{user}');
   String prompt = basicPrompt;
   bool isIncludeAdditionalEnabled = AppCache.includeSysInfoToSysPrompt.value! ||
       AppCache.includeUserNameToSysPrompt.value! ||
@@ -191,8 +187,7 @@ Future<String> getFormattedSystemPrompt(
   }
 
   if (AppCache.includeKnowledgeAboutUserToSysPrompt.value!) {
-    prompt +=
-        '\n\nThings you remembered from previous dialogs: """$userInfo"""';
+    prompt += '\n\nThings you remembered from previous dialogs: """$userInfo"""';
   }
   if (isIncludeAdditionalEnabled) {
     prompt += '\n';
@@ -294,8 +289,7 @@ Future<void> displayTextInfoBar(
   );
 }
 
-Future<void> displayErrorInfoBar(
-    {String? title, String? message, Widget? action}) {
+Future<void> displayErrorInfoBar({String? title, String? message, Widget? action}) {
   return displayInfoBar(
     appContext!,
     alignment: Alignment(0.0, 0.9),

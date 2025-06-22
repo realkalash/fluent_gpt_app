@@ -28,6 +28,7 @@ import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/about_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
@@ -876,6 +877,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           },
         ),
         spacer,
+        NerdySelectorDropdown(),
         CheckBoxTooltip(
           content: Text('Use ai to name chat'.tr),
           tooltip: 'Can cause additional charges!'.tr,
