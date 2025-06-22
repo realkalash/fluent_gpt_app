@@ -69,6 +69,7 @@ Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\win
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\windows_notification_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\capture_screenshot.py"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\drag_and_drop_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
