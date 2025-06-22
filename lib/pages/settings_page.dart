@@ -20,7 +20,6 @@ import 'new_settings_page.dart';
 
 bool isLaunchAtStartupEnabled = false;
 
-
 class DensityModeDropdown extends StatelessWidget {
   const DensityModeDropdown({super.key});
 
@@ -221,13 +220,14 @@ class _CheckBoxTileState extends State<CheckBoxTile> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Checkbox(
-                  checked: isChecked,
-                  onChanged: (value) {
-                    setState(() {
-                      isChecked = value!;
-                    });
-                    widget.onChanged?.call(value);
-                  }),
+                checked: isChecked,
+                onChanged: (value) {
+                  setState(() {
+                    isChecked = value!;
+                  });
+                  widget.onChanged?.call(value);
+                },
+              ),
               const SizedBox(width: 8.0),
               if (widget.expanded)
                 Expanded(child: widget.child)

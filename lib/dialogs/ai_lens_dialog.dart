@@ -12,7 +12,6 @@ import 'package:fluent_gpt/features/yandex_image_finder.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -116,7 +115,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                   Navigator.of(ctx).pop();
                   setState(() {});
                 },
-                child: Container(
+                child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text('Auto'),
                 ),
@@ -129,7 +128,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                     Navigator.of(ctx).pop();
                     setState(() {});
                   },
-                  child: Container(
+                  child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Text(lang),
                   ),
@@ -396,10 +395,10 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       ),
                     ),
                     HomeDropOverlay(),
-                    // HomeDropRegion(
-                    //   onDrop: () => Navigator.of(context).pop(),
-                    //   showAiLens: true,
-                    // ),
+                    HomeDropRegion(
+                      onDrop: () => Navigator.of(context).pop(),
+                      showAiLens: true,
+                    ),
                   ],
                 ),
               ),

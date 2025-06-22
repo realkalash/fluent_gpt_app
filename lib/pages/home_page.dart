@@ -87,7 +87,7 @@ class ChatRoomPage extends StatelessWidget {
                           right: 0,
                           child: Center(child: EditChatDrawer()),
                         ),
-                        // HomeDropRegion(showAiLens: true),
+                        HomeDropRegion(showAiLens: true),
                       ],
                     ),
                   ),
@@ -208,73 +208,6 @@ class EditChatDrawer extends StatelessWidget {
   }
 }
 
-enum DropOverlayState {
-  none,
-  dropOver,
-  dropInvalidFormat,
-}
-
-// isDropOverlayVisible is a BehaviorSubject that is used to show the overlay when a drag is over the drop region.
-final BehaviorSubject<DropOverlayState> isDropOverlayVisible =
-    BehaviorSubject<DropOverlayState>.seeded(DropOverlayState.none);
-
-class HomeDropOverlay extends StatelessWidget {
-  const HomeDropOverlay({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<DropOverlayState>(
-      stream: isDropOverlayVisible,
-      builder: (context, snapshot) {
-        if (snapshot.data == DropOverlayState.dropOver) {
-          return Container(
-            color: Colors.black.withAlpha(51),
-            child: Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: FluentTheme.of(context).accentColor.withAlpha(127),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: const Center(
-                  child: Icon(
-                    ic.FluentIcons.attach_24_filled,
-                    size: 64,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-        if (snapshot.data == DropOverlayState.dropInvalidFormat) {
-          return Container(
-            color: Colors.black.withAlpha(51),
-            child: Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.red.withAlpha(128),
-                  borderRadius: BorderRadius.circular(12.0),
-                ),
-                child: const Center(
-                  child: Icon(
-                    ic.FluentIcons.warning_24_filled,
-                    size: 48,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
-}
 
 class ConversationStyleRow extends StatefulWidget {
   const ConversationStyleRow({super.key});
@@ -682,6 +615,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
 
   @override
   Widget build(BuildContext context) {
+    if (AppCache.hideEditSystemPromptInHomePage.value == true) return const SizedBox.shrink();
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: isExpanded ? 300 : 100,

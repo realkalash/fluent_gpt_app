@@ -765,7 +765,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
           onChanged: (value) {
             if (value.isEmpty) return;
             AppCache.imageGeneratorApiKey.value = value;
-           },
+          },
         ),
         TextBox(
           controller: imageModelTextController,
@@ -987,16 +987,24 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           child: Text('Prevent close app'.tr),
         ),
         CheckBoxTile(
+          isChecked: AppCache.hideEditSystemPromptInHomePage.value == true,
+          onChanged: (value) {
+            AppCache.hideEditSystemPromptInHomePage.value = value;
+          },
+          child: Text('Hide showing system prompt in home page'.tr),
+        ),
+        CheckBoxTile(
           isChecked: AppCache.showAppInDock.value == true,
           onChanged: (value) => appTheme.toggleShowInDock(),
           child: Text('Show app in dock'.tr),
         ),
         CheckBoxTile(
-            isChecked: AppCache.hideTitleBar.value == true,
-            child: Text('Hide window title'.tr),
-            onChanged: (value) {
-              appTheme.toggleHideTitleBar();
-            }),
+          isChecked: AppCache.hideTitleBar.value == true,
+          child: Text('Hide window title'.tr),
+          onChanged: (value) {
+            appTheme.toggleHideTitleBar();
+          },
+        ),
       ]),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
+import 'package:fluent_gpt/system_messages.dart';
 import 'package:flutter/gestures.dart';
 
 class AppCache {
@@ -98,7 +99,7 @@ class AppCache {
   static const windowHeight = IntPref("windowHeight");
 
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
-
+  static const hideEditSystemPromptInHomePage = BoolPref("hideEditSystemPromptInHomePage", false);
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 

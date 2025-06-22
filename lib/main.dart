@@ -134,7 +134,9 @@ void main(List<String> args) async {
   if (AppCache.isWelcomeShown.value == true) {
     await FileUtils.init();
   }
-  defaultGlobalSystemMessage = AppCache.globalSystemPrompt.value!;
+  if (AppCache.globalSystemPrompt.value!.isNotEmpty) {
+    defaultGlobalSystemMessage = AppCache.globalSystemPrompt.value!;
+  }
   infoAboutUser = (await AppCache.userInfo.value());
   if (Platform.isMacOS || Platform.isWindows) {
     await flutter_acrylic.Window.initialize();
