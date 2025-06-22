@@ -37,6 +37,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_folders_mixin.dart';
 import 'package:fluent_gpt/providers/chat_utils.dart';
@@ -3005,6 +3006,20 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     pinnedMessagesIndexes.remove(message.indexPin!);
     if (pinnedMessagesIndexes.isEmpty) {
       selectedChatRoom.systemMessage = selectedChatRoom.systemMessage!.replaceAll('\n{{pinnedMessages}}', '');
+    }
+    notifyListeners();
+  }
+
+  void setNerdySelectorType(NerdySelectorType e) {
+    AppCache.nerdySelectorType.value = e.index;
+    switch (e) {
+      case NerdySelectorType.newbie:
+        AppCache.hideEditSystemPromptInHomePage.value = true;
+        break;
+      case NerdySelectorType.advanced:
+      case NerdySelectorType.developer:
+        AppCache.hideEditSystemPromptInHomePage.value = false;
+        break;
     }
     notifyListeners();
   }

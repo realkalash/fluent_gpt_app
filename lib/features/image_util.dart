@@ -8,8 +8,8 @@ class ImageUtil {
   /// Returns processed image as Uint8List
   static Future<Uint8List> resizeAndCompressImage(
     Uint8List imageBytes, {
-    int maxWidth = 1920,
-    int maxHeight = 1080,
+    int maxWidth = 1280,
+    int maxHeight = 720,
     int maxSizeInBytes = 1024 * 1024, // 1MB
   }) async {
     final start = DateTime.now();

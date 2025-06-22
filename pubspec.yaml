@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: A crossplatform gpt project created with Flutter.
 publish_to: "none"
-version: 1.0.64+1
+version: 1.0.70+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -36,7 +36,8 @@ dependencies:
   protocol_handler: ^0.2.0
   package_info_plus: ^8.0.0
   flutter_gpt_tokenizer: ^0.1.1
-  # super_drag_and_drop: ^0.8.17
+  # super_drag_and_drop: ^0.9.1
+  drag_and_drop_windows: ^0.0.3
   # super_clipboard: ^0.8.17
   # super_native_extensions: ^0.8.17
   file_selector: ^1.0.3
@@ -90,7 +91,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 dependency_overrides:
   intl: ^0.20.2

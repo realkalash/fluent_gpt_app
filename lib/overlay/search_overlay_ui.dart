@@ -140,7 +140,7 @@ class _OverlayUIState extends State<SearchOverlayUI> {
             ),
           ),
           const HomeDropOverlay(),
-          // const HomeDropRegion(showAiLens: false),
+          const HomeDropRegion(showAiLens: false),
         ],
       ),
     );

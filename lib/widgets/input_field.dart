@@ -575,7 +575,7 @@ class _InputFieldState extends State<InputField> {
                             ),
                           ),
                         ),
-                      if (tokensInInputField > 0)
+                      if (tokensInInputField > 0 && AppCache.nerdySelectorType.value != 0)
                         Text('${'Tokens in field'.tr}: $tokensInInputField', style: context.theme.typography.caption),
                     ],
                   ),

@@ -363,6 +363,13 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               onSaved: (value) {
                 model = model.copyWith(apiKey: value);
               },
+              onFieldSubmitted: (value) {
+                if (isTesting) {
+                  displayTextInfoBar('Wait for previous test to finish'.tr);
+                  return;
+                }
+                _testModel();
+              },
             ),
             if (ownedBy == OwnedByEnum.openai.name)
               const Align(

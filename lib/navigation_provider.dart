@@ -23,10 +23,12 @@ class NavigationProvider with ChangeNotifier {
   void welcomeScreenEnd() {
     AppCache.isWelcomeShown.value = true;
     // restore title bar because on the [WelcomePage] we hide it
-    if (AppCache.hideTitleBar.value == false) {
-      windowManager.setTitleBarStyle(TitleBarStyle.normal,
-          windowButtonVisibility: false);
-    }
+    // if (AppCache.hideTitleBar.value == false) {
+    //   windowManager.setTitleBarStyle(
+    //     TitleBarStyle.normal,
+    //     windowButtonVisibility: false,
+    //   );
+    // }
     Navigator.of(context!).pushReplacement(
       FluentPageRoute(builder: (context) => const GlobalPage()),
     );
@@ -34,8 +36,7 @@ class NavigationProvider with ChangeNotifier {
 
   PageController welcomeScreenPageController = PageController(keepPage: false);
   void initWelcomeScreenController([int indexStartPage = 0]) {
-    welcomeScreenPageController =
-        PageController(keepPage: false, initialPage: indexStartPage);
+    welcomeScreenPageController = PageController(keepPage: false, initialPage: indexStartPage);
   }
 
   final welcomeScreens = const [
