@@ -99,7 +99,7 @@ class AppCache {
   static const windowHeight = IntPref("windowHeight");
 
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
-  static const hideEditSystemPromptInHomePage = BoolPref("hideEditSystemPromptInHomePage", false);
+  static const hideEditSystemPromptInHomePage = BoolPref("hideEditSystemPromptInHomePage", true);
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
 
@@ -161,6 +161,7 @@ class AppCache {
   static const autoPlayMessagesFromAi = BoolPref("autoPlayMessagesFromAi", false);
   static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
   static const enableQuestionHelpers = BoolPref("enableQuestionHelpers");
+  static const nerdySelectorType = IntPref("nerdySelectorType", 0);
 
   /* Use API */
   static const useGoogleApi = BoolPref("useGoogleApi", false);

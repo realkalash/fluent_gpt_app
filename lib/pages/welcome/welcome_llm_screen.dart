@@ -1,7 +1,22 @@
+import 'package:fluent_gpt/cities_list.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart'
-    show Button, FlyoutController, FlyoutTarget, MenuFlyout, MenuFlyoutItem;
+    show
+        Button,
+        FlyoutController,
+        FlyoutTarget,
+        MenuFlyout,
+        MenuFlyoutItem,
+        AutoSuggestBox,
+        TextFormBox,
+        AutoSuggestBoxItem;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +31,8 @@ class WelcomeLLMConfigPage extends StatefulWidget {
 }
 
 class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
+  final cities = CitiesList.getAllCitiesList();
+
   @override
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
@@ -36,8 +53,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.red[900],
                         borderRadius: BorderRadius.circular(4),
@@ -49,22 +65,18 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const TextAnimator(
-                      'Configure your AI',
+                    TextAnimator(
+                      'Configure your AI'.tr,
                       initialDelay: Duration(milliseconds: 1000),
                       characterDelay: Duration(milliseconds: 15),
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     TextAnimator(
-                      'Configure your AI to work as you want',
+                      'Configure your AI to work as you want'.tr,
                       initialDelay: const Duration(milliseconds: 1500),
                       characterDelay: const Duration(milliseconds: 5),
-                      style: TextStyle(
-                          color: Colors.white.withAlpha(178), fontSize: 14),
+                      style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 14),
                     ),
                   ],
                 ),
@@ -83,19 +95,74 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const ListTile(
-                          title: Text('Add your models'),
+                        const NerdySelectorDropdown(),
+                        ListTile(
+                          title: Text('Add your models'.tr),
                           trailing: _ChooseModelButton(),
                         ),
                         const SizedBox(height: 24),
-                        Button(
-                            child: Text('Add'),
-                            onPressed: () {
-                              showDialog(
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Button(
+                            child: Text('Add'.tr),
+                            onPressed: () async {
+                              final chatProvider = context.read<ChatProvider>();
+                              final isListWasEmpty = allModels.value.isEmpty;
+                              final model = await showDialog<ChatModelAi>(
                                 context: context,
-                                builder: (ctx) => ModelsListDialog(),
+                                builder: (context) => const AddAiModelDialog(),
                               );
-                            })
+                              if (model != null) {
+                                await chatProvider.addNewCustomModel(model);
+                                if (isListWasEmpty) {
+                                  chatProvider.selectNewModel(model);
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text('Currently supported providers:'.tr,
+                            style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 14)),
+                        LinkTextButton('https://platform.openai.com/api-keys'),
+                        LinkTextButton('https://deepinfra.com/dash/deployments'),
+                        const SizedBox(height: 24),
+                        Text('You can add info about you to improve AI response'.tr,
+                            style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 14)),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            children: [
+                              TextFormBox(
+                                prefix: BadgePrefix(Text('User name'.tr)),
+                                initialValue: AppCache.userName.value,
+                                minLines: 1,
+                                maxLines: 1,
+                                onChanged: (value) {
+                                  AppCache.userName.value = value;
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              AutoSuggestBox(
+                                leadingIcon: BadgePrefix(Text('User city'.tr)),
+                                placeholder: AppCache.userCityName.value,
+                                onChanged: (value, reason) {
+                                  AppCache.userCityName.value = value;
+                                },
+                                clearButtonEnabled: false,
+                                trailingIcon: IconButton(
+                                  icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    AppCache.userCityName.value = '';
+                                    setState(() {});
+                                  },
+                                ),
+                                items: [for (var city in cities) AutoSuggestBoxItem(label: city, value: city)],
+                              ),
+                            ],
+                          ),
+                        )
                       ],
                     ),
                   ),
@@ -104,6 +171,66 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+enum NerdySelectorType {
+  newbie,
+  advanced,
+  developer,
+}
+
+class NerdySelectorDropdown extends StatefulWidget {
+  const NerdySelectorDropdown({super.key});
+
+  @override
+  State<NerdySelectorDropdown> createState() => _NerdySelectorDropdownState();
+}
+
+class _NerdySelectorDropdownState extends State<NerdySelectorDropdown> {
+  final FlyoutController flyoutController = FlyoutController();
+  final iconToLevel = <NerdySelectorType, Widget>{
+    NerdySelectorType.newbie: const Text('🤩'),
+    NerdySelectorType.advanced: const Text('😎'),
+    NerdySelectorType.developer: const Text('‍💻'),
+  };
+  @override
+  Widget build(BuildContext context) {
+    final selectedType = NerdySelectorType.values[AppCache.nerdySelectorType.value!];
+    return ListTile(
+      title: Text('Select your level'.tr),
+      leading: iconToLevel[selectedType] is Text
+          ? Text(
+              (iconToLevel[selectedType] as Text).data!,
+              style: const TextStyle(fontSize: 24),
+            )
+          : iconToLevel[selectedType]!,
+      subtitle: Text(selectedType.name.tr),
+      onTap: () {
+        flyoutController.showFlyout(builder: (ctx) {
+          return MenuFlyout(
+            items: NerdySelectorType.values
+                .map(
+                  (e) => MenuFlyoutItem(
+                    text: Text(e.name.tr),
+                    leading: iconToLevel[e],
+                    selected: e == selectedType,
+                    onPressed: () {
+                      final chatProvider = context.read<ChatProvider>();
+                      chatProvider.setNerdySelectorType(e);
+                      setState(() {});
+                    },
+                  ),
+                )
+                .toList(),
+          );
+        });
+      },
+      trailing: FlyoutTarget(
+        controller: flyoutController,
+        child: Icon(FluentIcons.chevron_down_24_regular),
       ),
     );
   }
@@ -133,12 +260,14 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
     final ChatProvider provider = context.watch<ChatProvider>();
+    if (selectedModel.modelName == 'Unknown' || allModels.value.isEmpty) {
+      return SizedBox.shrink();
+    }
     return FlyoutTarget(
       controller: flyoutController,
       child: ElevatedButton.icon(
         onPressed: () => openFlyout(context),
-        icon: SizedBox.square(
-            dimension: 24, child: getModelIcon(selectedModel.modelName)),
+        icon: SizedBox.square(dimension: 24, child: getModelIcon(selectedModel.modelName)),
         label: Text(selectedModel.modelName),
       ),
     );
@@ -154,11 +283,8 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
             .map(
               (e) => MenuFlyoutItem(
                 selected: e.modelName == selectedModel.modelName,
-                trailing: e.modelName == selectedModel.modelName
-                    ? const Icon(FluentIcons.checkmark_16_filled)
-                    : null,
-                leading: SizedBox.square(
-                    dimension: 24, child: getModelIcon(e.modelName)),
+                trailing: e.modelName == selectedModel.modelName ? const Icon(FluentIcons.checkmark_16_filled) : null,
+                leading: SizedBox.square(dimension: 24, child: getModelIcon(e.modelName)),
                 text: Text(e.modelName),
                 onPressed: () => provider.selectNewModel(e),
               ),

@@ -149,15 +149,13 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
           PaneItem(
             title: Text('Quick prompts'.tr),
             body: QuickPromptsSettingsPage(),
-            icon: Icon(FluentIcons.book_toolbox_24_filled,
-                color: Color.fromARGB(255, 55, 43, 226)),
+            icon: Icon(FluentIcons.book_toolbox_24_filled, color: Color.fromARGB(255, 55, 43, 226)),
           ),
           if (Platform.isMacOS)
             PaneItem(
               title: Text('Permissions'.tr),
               body: PermissionsSettingsPage(),
-              icon:
-                  Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
+              icon: Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
             ),
           PaneItem(
             title: Text('Overlay'.tr),
@@ -181,8 +179,7 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
             PaneItem(
               title: Text('Debug'),
               body: DebugPage(),
-              icon: Icon(FluentIcons.accessibility_32_filled,
-                  color: Colors.green),
+              icon: Icon(FluentIcons.accessibility_32_filled, color: Colors.green),
             ),
           PaneItem(
             title: Text('About'.tr),
@@ -240,8 +237,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
               initHotkey: takeScreenshot,
               title: Text('Take a screenshot keybinding'.tr),
             );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
-                .any((element) => element == key);
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
             if (key != null && key != takeScreenshot) {
               setState(() {
                 takeScreenshot = key;
@@ -276,8 +272,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
               initHotkey: pttScreenshotKey,
               title: Text('Push-to-talk with screenshot'.tr),
             );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
-                .any((element) => element == key);
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
             if (key != null && key != pttScreenshotKey) {
               setState(() {
                 pttScreenshotKey = key;
@@ -312,8 +307,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
               initHotkey: pttKey,
               title: Text('Push-to-talk'.tr),
             );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList
-                .any((element) => element == key);
+            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
             if (key != null && key != pttKey) {
               setState(() {
                 pttKey = key;
@@ -403,15 +397,13 @@ class StorageSettingsPage extends StatelessWidget {
         Button(
             child: Text('Delete temp cache'.tr),
             onPressed: () async {
-              final sizeBytes = await FileUtils.calculateSizeRecursive(
-                  FileUtils.appTemporaryDirectoryPath!);
+              final sizeBytes = await FileUtils.calculateSizeRecursive(FileUtils.appTemporaryDirectoryPath!);
               final sizeMb = sizeBytes == 0 ? 0 : sizeBytes / 1024 / 1024;
               ConfirmationDialog.show(
                 // ignore: use_build_context_synchronously
                 context: context,
                 isDelete: true,
-                message:
-                    '${'Delete temp cache? Size:'.tr} ${sizeMb.toStringAsFixed(2)} MB',
+                message: '${'Delete temp cache? Size:'.tr} ${sizeMb.toStringAsFixed(2)} MB',
                 onAcceptPressed: () async {
                   ShellDriver.deleteAllTempFiles();
                   AppCache.costTotal.value = 0.0;
@@ -436,9 +428,13 @@ class StorageSettingsPage extends StatelessWidget {
               prefs = await SharedPreferences.getInstance();
               await ShellDriver.deleteAllTempFiles();
               await prefs!.clear();
+              AppCache.userInfo.remove();
+              AppCache.quickPrompts.remove();
+              AppCache.promptsLibrary.remove();
+              AppCache.customActions.remove();
+              AppCache.savedModels.remove();
               // ignore: use_build_context_synchronously
-              navProvider.welcomeScreenPageController =
-                  PageController(keepPage: false);
+              navProvider.welcomeScreenPageController = PageController(keepPage: false);
               navProvider.updateUI();
               // ignore: use_build_context_synchronously
               final navigator = Navigator.of(context);
@@ -464,8 +460,7 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(children: [
-        Text('Overlay settings'.tr,
-            style: FluentTheme.of(context).typography.subtitle),
+        Text('Overlay settings'.tr, style: FluentTheme.of(context).typography.subtitle),
         CheckBoxTile(
           isChecked: AppCache.enableOverlay.value!,
           onChanged: (value) {
@@ -487,12 +482,8 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
         ),
         spacer,
         NumberBox(
-          value: AppCache.overlayVisibleElements.value == -1
-              ? null
-              : AppCache.overlayVisibleElements.value,
-          placeholder: AppCache.overlayVisibleElements.value == -1
-              ? 'Adaptive'.tr
-              : null,
+          value: AppCache.overlayVisibleElements.value == -1 ? null : AppCache.overlayVisibleElements.value,
+          placeholder: AppCache.overlayVisibleElements.value == -1 ? 'Adaptive'.tr : null,
           onChanged: (value) {
             AppCache.overlayVisibleElements.value = value ?? -1;
           },
@@ -508,8 +499,7 @@ class QuickPromptsSettingsPage extends StatefulWidget {
   const QuickPromptsSettingsPage({super.key});
 
   @override
-  State<QuickPromptsSettingsPage> createState() =>
-      _QuickPromptsSettingsPageState();
+  State<QuickPromptsSettingsPage> createState() => _QuickPromptsSettingsPageState();
 }
 
 class _QuickPromptsSettingsPageState extends State<QuickPromptsSettingsPage> {
@@ -527,8 +517,7 @@ class OnResponseEndSettingsPage extends StatefulWidget {
   const OnResponseEndSettingsPage({super.key});
 
   @override
-  State<OnResponseEndSettingsPage> createState() =>
-      _OnResponseEndSettingsPageState();
+  State<OnResponseEndSettingsPage> createState() => _OnResponseEndSettingsPageState();
 }
 
 class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
@@ -573,8 +562,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
             ),
             onTap: () {
               setState(() {
-                AppCache.enableQuestionHelpers.value =
-                    !(AppCache.enableQuestionHelpers.value ?? false);
+                AppCache.enableQuestionHelpers.value = !(AppCache.enableQuestionHelpers.value ?? false);
               });
             },
           ),
@@ -599,8 +587,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
                             final actions = onMessageActions.value;
                             actions[index] = edited;
                             onMessageActions.add(actions);
-                            final json =
-                                actions.map((e) => e.toJson()).toList();
+                            final json = actions.map((e) => e.toJson()).toList();
                             AppCache.customActions.set(jsonEncode(json));
                           }),
                     ),
@@ -621,8 +608,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
                               final actions = onMessageActions.value;
                               actions.removeAt(index);
                               onMessageActions.add(actions);
-                              final json =
-                                  actions.map((e) => e.toJson()).toList();
+                              final json = actions.map((e) => e.toJson()).toList();
                               AppCache.customActions.set(jsonEncode(json));
                             },
                           ),
@@ -660,10 +646,8 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   bool obscureBraveText = true;
   bool obscureOpenAiText = true;
   bool obscureimageApi = true;
-  final apiKeyTextController =
-      TextEditingController(text: AppCache.imageGeneratorApiKey.value);
-  final imageModelTextController =
-      TextEditingController(text: AppCache.imageGeneratorModel.value);
+  final apiKeyTextController = TextEditingController(text: AppCache.imageGeneratorApiKey.value);
+  final imageModelTextController = TextEditingController(text: AppCache.imageGeneratorModel.value);
   @override
   void dispose() {
     apiKeyTextController.dispose();
@@ -716,17 +700,13 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 text: Text(serv.name),
               ),
           ],
-          title: Text(
-              '${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
+          title: Text('${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
         ),
-        if (AppCache.textToSpeechService.value ==
-            TextToSpeechServiceEnum.deepgram.name)
+        if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.deepgram.name)
           _DeepgramSettings()
-        else if (AppCache.textToSpeechService.value ==
-            TextToSpeechServiceEnum.azure.name)
+        else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.azure.name)
           _AzureSettings()
-        else if (AppCache.textToSpeechService.value ==
-            TextToSpeechServiceEnum.elevenlabs.name)
+        else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.elevenlabs.name)
           _ElevenLabsSettings(),
         spacer,
         LabelText('Image generator'.tr),
@@ -744,8 +724,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
           ],
           title: Text(ImageGeneratorFeature.selectedGenerator.name.tr),
         ),
-        if (ImageGeneratorFeature.selectedGenerator ==
-            ImageGeneratorEnum.deepinfraGenerator)
+        if (ImageGeneratorFeature.selectedGenerator == ImageGeneratorEnum.deepinfraGenerator)
           LinkTextButton('https://deepinfra.com/dash/deployments'),
         spacer,
         TextBox(
@@ -911,8 +890,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           child: Divider(),
         ),
         Card(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text('OS: ${SysInfo.operatingSystemName}'),
             Text('Cores: ${SysInfo.cores.length}'),
             Text('Architecture: ${SysInfo.rawKernelArchitecture}'),
@@ -1057,14 +1035,9 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
               setState(() {});
             },
           ),
-          items: [
-            for (var city in cities)
-              AutoSuggestBoxItem(label: city, value: city)
-          ],
+          items: [for (var city in cities) AutoSuggestBoxItem(label: city, value: city)],
         ),
-        CaptionText(
-            'Your city name that will be used in the chat and to get weather'
-                .tr),
+        CaptionText('Your city name that will be used in the chat and to get weather'.tr),
         CheckBoxTile(
           isChecked: AppCache.includeUserCityNamePrompt.value!,
           onChanged: (value) {
@@ -1164,8 +1137,7 @@ class PermissionsSettingsPage extends StatefulWidget {
   const PermissionsSettingsPage({super.key});
 
   @override
-  State<PermissionsSettingsPage> createState() =>
-      _PermissionsSettingsPageState();
+  State<PermissionsSettingsPage> createState() => _PermissionsSettingsPageState();
 }
 
 class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
@@ -1228,8 +1200,7 @@ class DebugPage extends StatelessWidget {
             FilledRedButton(
                 child: const Text('is accessibility granted'),
                 onPressed: () async {
-                  final isGranted =
-                      await NativeChannelUtils.isAccessibilityGranted();
+                  final isGranted = await NativeChannelUtils.isAccessibilityGranted();
                   log('isAccessibilityGranted: $isGranted');
                 }),
             FilledRedButton(
@@ -1241,8 +1212,7 @@ class DebugPage extends StatelessWidget {
             FilledRedButton(
                 child: const Text('get mouse position'),
                 onPressed: () async {
-                  final mousePosition =
-                      await NativeChannelUtils.getMousePosition();
+                  final mousePosition = await NativeChannelUtils.getMousePosition();
                   log('mousePosition: $mousePosition');
                 }),
           ],
@@ -1276,8 +1246,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
-          Text('Function tools'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Function tools'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
             spacing: 15.0,
@@ -1300,8 +1269,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                 child: Text('Toggle All'.tr),
               ),
               CheckBoxTile(
-                key: Key(
-                    'gptToolCopyToClipboardEnabled ${AppCache.gptToolCopyToClipboardEnabled.value}'),
+                key: Key('gptToolCopyToClipboardEnabled ${AppCache.gptToolCopyToClipboardEnabled.value}'),
                 isChecked: AppCache.gptToolCopyToClipboardEnabled.value!,
                 expanded: false,
                 onChanged: (value) {
@@ -1323,8 +1291,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                 child: Text('Auto open url'.tr),
               ),
               CheckBoxTile(
-                key: Key(
-                    'gptToolGenerateImage ${AppCache.gptToolGenerateImage.value}'),
+                key: Key('gptToolGenerateImage ${AppCache.gptToolGenerateImage.value}'),
                 isChecked: AppCache.gptToolGenerateImage.value!,
                 expanded: false,
                 onChanged: (value) {
@@ -1335,8 +1302,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                 child: Text('Generate images'.tr),
               ),
               CheckBoxTile(
-                key: Key(
-                    'gptToolRememberInfo ${AppCache.gptToolRememberInfo.value}'),
+                key: Key('gptToolRememberInfo ${AppCache.gptToolRememberInfo.value}'),
                 isChecked: AppCache.gptToolRememberInfo.value!,
                 expanded: false,
                 onChanged: (value) {
@@ -1349,14 +1315,11 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ],
           ),
           biggerSpacer,
-          Text('Additional tools'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Additional tools'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Checkbox(
             content: Expanded(
-              child: Text(
-                  'Imgur (Used to upload your image to your private Imgur account and get image link)'
-                      .tr),
+              child: Text('Imgur (Used to upload your image to your private Imgur account and get image link)'.tr),
             ),
             checked: AppCache.useImgurApi.value,
             onChanged: (value) async {
@@ -1391,8 +1354,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ),
           ],
           spacer,
-          Text('Image Search engines'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Image Search engines'.tr, style: FluentTheme.of(context).typography.subtitle),
           Checkbox(
             content: const Text('SouceNao'),
             checked: AppCache.useSouceNao.value,
@@ -1413,9 +1375,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
           ),
           CheckBoxTooltip(
             content: Text('Enable annoy mode'.tr),
-            tooltip:
-                'Use timer and allow AI to write you. Can cause additional charges!'
-                    .tr,
+            tooltip: 'Use timer and allow AI to write you. Can cause additional charges!'.tr,
             checked: AppCache.enableAutonomousMode.value,
             onChanged: (value) async {
               if (value!) {
@@ -1478,8 +1438,7 @@ class AppearanceSettings extends StatelessWidget {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
-          Text('Accent Color'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Accent Color'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(children: [
             Tooltip(
@@ -1506,9 +1465,7 @@ class AppearanceSettings extends StatelessWidget {
                   hoverScale: 0.95,
                   child: Card(
                     borderRadius: BorderRadius.circular(12.0),
-                    borderColor: appTheme.currentThemeStyle == ThemeStyle.white
-                        ? Colors.blue
-                        : null,
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.white ? Colors.blue : null,
                     child: Column(
                       children: [
                         ClipRRect(
@@ -1533,9 +1490,7 @@ class AppearanceSettings extends StatelessWidget {
                   hoverScale: 0.95,
                   child: Card(
                     borderRadius: BorderRadius.circular(12.0),
-                    borderColor: appTheme.currentThemeStyle == ThemeStyle.dark
-                        ? Colors.blue
-                        : null,
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.dark ? Colors.blue : null,
                     child: Column(
                       children: [
                         ClipRRect(
@@ -1560,9 +1515,7 @@ class AppearanceSettings extends StatelessWidget {
                   hoverScale: 0.95,
                   child: Card(
                     borderRadius: BorderRadius.circular(12.0),
-                    borderColor: appTheme.currentThemeStyle == ThemeStyle.mica
-                        ? Colors.blue
-                        : null,
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.mica ? Colors.blue : null,
                     child: Column(
                       children: [
                         ClipRRect(
@@ -1587,10 +1540,7 @@ class AppearanceSettings extends StatelessWidget {
                   hoverScale: 0.95,
                   child: Card(
                     borderRadius: BorderRadius.circular(12.0),
-                    borderColor:
-                        appTheme.currentThemeStyle == ThemeStyle.acrylic
-                            ? Colors.blue
-                            : null,
+                    borderColor: appTheme.currentThemeStyle == ThemeStyle.acrylic ? Colors.blue : null,
                     child: Column(
                       children: [
                         ClipRRect(
@@ -1632,8 +1582,7 @@ class AppearanceSettings extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: Divider(),
           ),
-          Text('Message Text size'.tr,
-              style: FluentTheme.of(context).typography.subtitle),
+          Text('Message Text size'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -1642,8 +1591,7 @@ class AppearanceSettings extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Basic Message Text Size'.tr,
-                        style: FluentTheme.of(context).typography.subtitle),
+                    Text('Basic Message Text Size'.tr, style: FluentTheme.of(context).typography.subtitle),
                     SizedBox(
                       width: 200.0,
                       child: NumberBox(
@@ -1661,16 +1609,14 @@ class AppearanceSettings extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Compact Message Text Size'.tr,
-                        style: FluentTheme.of(context).typography.subtitle),
+                    Text('Compact Message Text Size'.tr, style: FluentTheme.of(context).typography.subtitle),
                     SizedBox(
                       width: 200.0,
                       child: NumberBox(
                         value: AppCache.compactMessageTextSize.value,
                         onChanged: (value) {
                           AppCache.compactMessageTextSize.value = value ?? 10;
-                          Provider.of<ChatProvider>(context, listen: false)
-                              .updateUI();
+                          Provider.of<ChatProvider>(context, listen: false).updateUI();
                         },
                         mode: SpinButtonPlacementMode.inline,
                       ),
@@ -1730,36 +1676,34 @@ class _AzureSettingsState extends State<_AzureSettings> {
           initialValue: AppCache.azureSpeechApiKey.value,
           placeholder: AppCache.azureSpeechApiKey.value,
           obscureText: true,
-          suffix: DropDownButton(
-              leading: Text('${'Voice:'.tr} ${AppCache.azureVoiceModel.value}'),
-              items: [
-                for (var model in AzureSpeech.listModels)
-                  MenuFlyoutItem(
-                    selected: AppCache.azureVoiceModel.value == model,
-                    trailing: SqueareIconButton(
-                      onTap: () {
-                        final previousModel = AppCache.azureVoiceModel.value;
-                        if (AzureSpeech.isValid()) {
-                          AppCache.azureVoiceModel.value = model;
-                          AzureSpeech.readAloud(
-                            'This is a sample text to read aloud',
-                            onCompleteReadingAloud: () {
-                              AppCache.azureVoiceModel.value = previousModel;
-                            },
-                          );
-                        }
-                      },
-                      icon: const Icon(FluentIcons.play_circle_24_filled),
-                      tooltip: 'Read sample'.tr,
-                    ),
-                    onPressed: () {
+          suffix: DropDownButton(leading: Text('${'Voice:'.tr} ${AppCache.azureVoiceModel.value}'), items: [
+            for (var model in AzureSpeech.listModels)
+              MenuFlyoutItem(
+                selected: AppCache.azureVoiceModel.value == model,
+                trailing: SqueareIconButton(
+                  onTap: () {
+                    final previousModel = AppCache.azureVoiceModel.value;
+                    if (AzureSpeech.isValid()) {
                       AppCache.azureVoiceModel.value = model;
-                      DeepgramSpeech.init();
-                      setState(() {});
-                    },
-                    text: Text(model),
-                  ),
-              ]),
+                      AzureSpeech.readAloud(
+                        'This is a sample text to read aloud',
+                        onCompleteReadingAloud: () {
+                          AppCache.azureVoiceModel.value = previousModel;
+                        },
+                      );
+                    }
+                  },
+                  icon: const Icon(FluentIcons.play_circle_24_filled),
+                  tooltip: 'Read sample'.tr,
+                ),
+                onPressed: () {
+                  AppCache.azureVoiceModel.value = model;
+                  DeepgramSpeech.init();
+                  setState(() {});
+                },
+                text: Text(model),
+              ),
+          ]),
           onChanged: (value) {
             AppCache.azureSpeechApiKey.value = value.trim();
             AzureSpeech.init();
@@ -1790,31 +1734,27 @@ class _DeepgramSettingsState extends State<_DeepgramSettings> {
           initialValue: AppCache.deepgramApiKey.value,
           placeholder: AppCache.deepgramApiKey.value,
           obscureText: true,
-          suffix: DropDownButton(
-              leading:
-                  Text('${'Voice:'.tr} ${AppCache.deepgramVoiceModel.value}'),
-              items: [
-                for (var model in DeepgramSpeech.listModels)
-                  MenuFlyoutItem(
-                    selected: AppCache.deepgramVoiceModel.value == model,
-                    trailing: SqueareIconButton(
-                      onTap: () {
-                        if (DeepgramSpeech.isValid()) {
-                          DeepgramSpeech.readAloud(
-                              'This is a sample text to read aloud');
-                        }
-                      },
-                      icon: const Icon(FluentIcons.play_circle_24_filled),
-                      tooltip: 'Read sample'.tr,
-                    ),
-                    onPressed: () {
-                      AppCache.deepgramVoiceModel.value = model;
-                      DeepgramSpeech.init();
-                      setState(() {});
-                    },
-                    text: Text(model),
-                  ),
-              ]),
+          suffix: DropDownButton(leading: Text('${'Voice:'.tr} ${AppCache.deepgramVoiceModel.value}'), items: [
+            for (var model in DeepgramSpeech.listModels)
+              MenuFlyoutItem(
+                selected: AppCache.deepgramVoiceModel.value == model,
+                trailing: SqueareIconButton(
+                  onTap: () {
+                    if (DeepgramSpeech.isValid()) {
+                      DeepgramSpeech.readAloud('This is a sample text to read aloud');
+                    }
+                  },
+                  icon: const Icon(FluentIcons.play_circle_24_filled),
+                  tooltip: 'Read sample'.tr,
+                ),
+                onPressed: () {
+                  AppCache.deepgramVoiceModel.value = model;
+                  DeepgramSpeech.init();
+                  setState(() {});
+                },
+                text: Text(model),
+              ),
+          ]),
           onChanged: (value) {
             AppCache.deepgramApiKey.value = value.trim();
             DeepgramSpeech.init();

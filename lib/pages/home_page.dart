@@ -208,7 +208,6 @@ class EditChatDrawer extends StatelessWidget {
   }
 }
 
-
 class ConversationStyleRow extends StatefulWidget {
   const ConversationStyleRow({super.key});
 
@@ -1333,24 +1332,25 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               },
               tooltip: 'Auto play messages from ai'.tr,
             ),
-            Button(
-              onPressed: () {
-                AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
-                chatProvider.updateUI();
-              },
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(
-                  AppCache.enableReasoning.value == true ? context.theme.accentColor : Colors.transparent,
+            if (selectedModel.reasoningSupported)
+              Button(
+                onPressed: () {
+                  AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
+                  chatProvider.updateUI();
+                },
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(
+                    AppCache.enableReasoning.value == true ? context.theme.accentColor : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(ic.FluentIcons.brain_sparkle_20_filled, size: 18),
+                    const SizedBox(width: 4),
+                    Text('Reasoning'.tr),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(ic.FluentIcons.brain_sparkle_20_filled, size: 18),
-                  const SizedBox(width: 4),
-                  Text('Reasoning'.tr),
-                ],
-              ),
-            ),
             Spacer(),
             _ScrollToBottomButton(),
           ],

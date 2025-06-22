@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:io';
 
-import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:cross_file/cross_file.dart';
@@ -101,8 +101,7 @@ class HomeDropRegion extends StatefulWidget {
     // 'application/msword': true,
     // 'application/vnd.ms-excel': true,
     // word
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        true,
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': true,
     // excel
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': true,
     'text/_moz_htmlcontext': true,
@@ -116,47 +115,48 @@ class HomeDropRegion extends StatefulWidget {
 
 class _HomeDropRegionState extends State<HomeDropRegion> {
   bool isDraggingOver = false;
-  late StreamSubscription<List<String>> subscription;
+  StreamSubscription<List<String>>? subscription;
   ChatProvider? provider;
   @override
   void initState() {
     super.initState();
     isDraggingOver = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      subscription = dropEventStream.listen((paths) async {
-        log('Dropped files: $paths');
-        try {
-          // ignore: use_build_context_synchronously
-          provider = context.read<ChatProvider>();
-        } catch (e) {
-          logError('Error dropping files: $e');
-        }
-
-        if (paths.isEmpty) {
-          logError('No provider or paths');
-          return;
-        }
-        for (final path in paths) {
-          final name = path.split('\\').last;
-          final mimeType = mime(name);
-          if (HomeDropRegion.allowedFormats[mimeType] != true) {
-            isDropOverlayVisible.add(DropOverlayState.dropInvalidFormat);
-            displayErrorInfoBar(title: 'Invalid format', message: mimeType);
-            await Future.delayed(const Duration(milliseconds: 1000));
-            isDropOverlayVisible.add(DropOverlayState.none);
-            continue;
+      if (Platform.isWindows)
+        subscription = dropEventStream.listen((paths) async {
+          log('Dropped files: $paths');
+          try {
+            // ignore: use_build_context_synchronously
+            provider = context.read<ChatProvider>();
+          } catch (e) {
+            logError('Error dropping files: $e');
           }
-          final file = XFile(path, name: name, mimeType: mime(name));
-          log('File dropped: ${file.mimeType} ${await file.length()} bytes');
-          provider!.addFileToInput(file);
-        }
-      });
+
+          if (paths.isEmpty) {
+            logError('No provider or paths');
+            return;
+          }
+          for (final path in paths) {
+            final name = path.split('\\').last;
+            final mimeType = mime(name);
+            if (HomeDropRegion.allowedFormats[mimeType] != true) {
+              isDropOverlayVisible.add(DropOverlayState.dropInvalidFormat);
+              displayErrorInfoBar(title: 'Invalid format', message: mimeType);
+              await Future.delayed(const Duration(milliseconds: 1000));
+              isDropOverlayVisible.add(DropOverlayState.none);
+              continue;
+            }
+            final file = XFile(path, name: name, mimeType: mime(name));
+            log('File dropped: ${file.mimeType} ${await file.length()} bytes');
+            provider!.addFileToInput(file);
+          }
+        });
     });
   }
 
   @override
   void dispose() {
-    subscription.cancel();
+    subscription?.cancel();
     super.dispose();
   }
 
