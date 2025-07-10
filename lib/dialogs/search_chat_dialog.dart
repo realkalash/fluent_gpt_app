@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -32,9 +33,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
     for (final entry in originalMessages.entries) {
       final message = entry.value;
       if (message.isTextMessage) {
-        if (message.content
-            .toLowerCase()
-            .contains(textController.text.toLowerCase())) {
+        if (message.content.toLowerCase().contains(textController.text.toLowerCase())) {
           _messages[entry.key] = message;
         }
       }
@@ -68,8 +67,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                 if (message is CustomChatMessage) {
                   return const SizedBox.shrink();
                 }
-                if (message is HumanChatMessage &&
-                    message.content is ChatMessageContentImage) {
+                if (message is HumanChatMessage && message.content is ChatMessageContentImage) {
                   return const SizedBox.shrink();
                 }
                 final words = message.content.split(' ');
@@ -94,10 +92,7 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
                                   TextSpan(
                                     text: '$word ',
                                     style: TextStyle(
-                                      backgroundColor: word
-                                              .toLowerCase()
-                                              .contains(textController.text
-                                                  .toLowerCase())
+                                      backgroundColor: word.toLowerCase().contains(textController.text.toLowerCase())
                                           ? Colors.yellow.withAlpha(127)
                                           : null,
                                       // color: word.toLowerCase().contains(
@@ -129,22 +124,21 @@ class _SearchChatDialogState extends State<SearchChatDialog> {
   }
 }
 
-// ImagesDialog class to display images from a chat in a dialog
-class ImagesDialog extends StatelessWidget {
-  const ImagesDialog({super.key});
-  static show(BuildContext context) {
+// ChatImagesDialog class to display images from a chat in a dialog
+class ChatImagesDialog extends StatelessWidget {
+  const ChatImagesDialog({super.key});
+  static void show(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => const ImagesDialog(),
+      builder: (context) => const ChatImagesDialog(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final imageMessages = messages.value.values.where((element) {
-      if (element.type == FluentChatMessageType.image ||
-          element.type == FluentChatMessageType.imageAi) {
+      if (element.type == FluentChatMessageType.image || element.type == FluentChatMessageType.imageAi) {
         return true;
       }
       return false;
@@ -164,8 +158,7 @@ class ImagesDialog extends StatelessWidget {
           if (message is CustomChatMessage) {
             return const SizedBox.shrink();
           }
-          if (message is HumanChatMessage &&
-              message.content is ChatMessageContentImage) {
+          if (message is HumanChatMessage && message.content is ChatMessageContentImage) {
             return const SizedBox.shrink();
           }
           return MouseRegion(
@@ -183,8 +176,7 @@ class ImagesDialog extends StatelessWidget {
                   barrierColor: Colors.black,
                   barrierDismissible: true,
                   builder: (context) {
-                    return ImageViewerDialog(
-                        provider: provider, description: message.imagePrompt);
+                    return ImageViewerDialog(provider: provider, description: message.imagePrompt);
                   },
                 );
               },
@@ -196,6 +188,101 @@ class ImagesDialog extends StatelessWidget {
                     fit: BoxFit.cover,
                   ),
                 ),
+              ),
+            ),
+          );
+        },
+      ),
+      actions: [
+        Button(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Dismiss'.tr),
+        ),
+      ],
+    );
+  }
+}
+
+class ImagesDialog extends StatelessWidget {
+  const ImagesDialog({super.key, required this.images});
+  final List<Attachment> images;
+  static void show(BuildContext context, List<Attachment> images) {
+    showDialog(context: context, builder: (ctx) => ImagesDialog(images: images));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ContentDialog(
+      title: Text('Images'.tr),
+      content: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: images.length,
+        itemBuilder: (context, index) {
+          final file = images[index];
+          if (file.isImage == true) {
+            return GestureDetector(
+              onTap: () async {
+                final fileData = await file.file.readAsBytes();
+                final provider = Image.memory(
+                  fileData,
+                  filterQuality: FilterQuality.high,
+                ).image;
+
+                showDialog(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  barrierColor: Colors.black,
+                  barrierDismissible: true,
+                  builder: (context) {
+                    return ImageViewerDialog(
+                      provider: provider,
+                      description: file.name,
+                    );
+                  },
+                );
+              },
+              child: ZoomHover(
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                    color: Colors.white,
+                  ),
+                  child: FutureBuilder(
+                    future: file.readAsBytes(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return Image.memory(
+                          snapshot.data!,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+              ),
+            );
+          }
+          return ColoredBox(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  Icon(FluentIcons.file_image, size: 48),
+                  const SizedBox(height: 8),
+                  Expanded(
+                      child: Text(
+                    file.name,
+                    style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  )),
+                ],
               ),
             ),
           );

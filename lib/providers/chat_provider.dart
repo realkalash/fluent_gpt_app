@@ -21,6 +21,7 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/agent_get_message_actions.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
+import 'package:fluent_gpt/features/pdf_utils.dart';
 import 'package:fluent_gpt/features/rag_openai.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/features/image_util.dart';
@@ -73,7 +74,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   bool includeConversationGlobal = true;
   bool scrollToBottomOnAnswer = true;
-  bool isSendingFile = false;
+  bool isSendingFiles = false;
   bool isWebSearchEnabled = false;
 
   final dialogApiKeyController = TextEditingController();
@@ -542,25 +543,50 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     });
   }
 
-  Attachment? fileInput;
+  List<Attachment>? fileInputs;
+  static const Map<String, bool> allowedFileExtensions = {
+    'jpg': true,
+    'jpeg': true,
+    'png': true,
+    'docx': true,
+    'xlsx': true,
+    'txt': true,
+    'csv': true,
+    'pdf': true,
+  };
 
-  void addFileToInput(XFile file) {
-    fileInput = Attachment.fromFile(file);
+  void addFilesToInput(List<XFile> files) {
+    fileInputs?.clear();
+    fileInputs ??= <Attachment>[];
+    for (var file in files) {
+      final fileExt = file.path.split('.').last;
+      if (allowedFileExtensions.containsKey(fileExt) == false) {
+        displayErrorInfoBar(
+          title: 'Not Supported'.tr,
+          message: "File type '$fileExt' is not supported",
+        );
+        logError('File ${file.path} is not supported');
+        continue;
+      }
+      final attachment = Attachment.fromFile(file);
+      fileInputs?.add(attachment);
+    }
     notifyListeners();
   }
 
-  void addAttachmentToInput(Attachment attachment) {
-    fileInput = attachment;
+  void addAttachmentToInput(List<Attachment> attachments) {
+    fileInputs?.clear();
+    fileInputs = attachments;
     notifyListeners();
   }
 
   Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
-    addAttachmentToInput(attachment);
+    addAttachmentToInput([attachment]);
     if (showDialog) {
       final isSent = await AiLensDialog.show<bool?>(context!, bytes);
       if (isSent != true) {
-        removeFileFromInput();
+        removeFilesFromInput();
       }
     }
   }
@@ -740,6 +766,94 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     return result;
   }
 
+  Future<void> processFilesBeforeSendingMessage() async {
+    if (fileInputs == null || fileInputs!.isEmpty) {
+      return;
+    }
+
+    for (var file in fileInputs!) {
+      if (file.isImage == true) {
+        final bytes = await file.readAsBytes();
+        final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
+        final base64 = base64Encode(newBytes);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage.image(
+            id: '$timestamp',
+            content: base64,
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+          ),
+        );
+      } else if (file.isText == true) {
+        final fileName = file.name;
+        final bytes = await file.readAsBytes();
+        final contentString = utf8.decode(bytes);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage(
+            id: '$timestamp',
+            content: contentString,
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+            type: FluentChatMessageType.file,
+            fileName: fileName,
+            path: file.path,
+          ),
+        );
+      } else if (file.isWord == true) {
+        final fileName = file.name;
+        final bytes = await file.readAsBytes();
+        final contentString = docxToText(bytes);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage(
+            id: '$timestamp',
+            content: contentString,
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+            type: FluentChatMessageType.file,
+            fileName: fileName,
+            path: file.path,
+          ),
+        );
+      } else if (file.isExcel == true) {
+        final fileName = file.name;
+        final bytes = await file.readAsBytes();
+        final excelToJson = ExcelToJson();
+        final contentString = await excelToJson.convert(bytes);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage(
+            id: '$timestamp',
+            content: contentString ?? '<No data available>',
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+            type: FluentChatMessageType.file,
+            fileName: fileName,
+            path: file.path,
+          ),
+        );
+      } else if (file.isPdf == true) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        addCustomMessageToList(
+          FluentChatMessage.file(
+            id: '$timestamp',
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+            path: file.path,
+            fileName: file.name,
+            tokens: 256,
+          ),
+        );
+      }
+    }
+    if (fileInputs != null) {
+      // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
   Stream<ChatResult>? responseStream;
   StreamSubscription<ChatResult>? listenerResponseStream;
 
@@ -846,81 +960,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       );
     }
 
-    final isImageAttached = fileInput != null && fileInput!.mimeType?.contains('image') == true;
-    final isTextFileAttached = fileInput != null && fileInput!.mimeType?.contains('text') == true;
-    final isWordFileAttached = fileInput != null && (fileInput!.name.endsWith('.docx'));
-    final isExcelFileAttached =
-        fileInput != null && (fileInput!.name.endsWith('.xlsx') || fileInput!.name.endsWith('.xls'));
-    if (isImageAttached) {
-      final bytes = await fileInput!.readAsBytes();
-      final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
-      final base64 = base64Encode(newBytes);
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addCustomMessageToList(
-        FluentChatMessage.image(
-          id: '$timestamp',
-          content: base64,
-          creator: AppCache.userName.value!,
-          timestamp: timestamp,
-        ),
-      );
-    }
-    if (isTextFileAttached) {
-      final fileName = fileInput!.name;
-      final bytes = await fileInput!.readAsBytes();
-      final contentString = utf8.decode(bytes);
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addCustomMessageToList(
-        FluentChatMessage(
-          id: '$timestamp',
-          content: contentString,
-          creator: AppCache.userName.value!,
-          timestamp: timestamp,
-          type: FluentChatMessageType.file,
-          fileName: fileName,
-          path: fileInput?.path,
-        ),
-      );
-    }
-    if (isWordFileAttached) {
-      final fileName = fileInput!.name;
-      final bytes = await fileInput!.readAsBytes();
-      final contentString = docxToText(bytes);
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addCustomMessageToList(
-        FluentChatMessage(
-          id: '$timestamp',
-          content: contentString,
-          creator: AppCache.userName.value!,
-          timestamp: timestamp,
-          type: FluentChatMessageType.file,
-          fileName: fileName,
-          path: fileInput?.path,
-        ),
-      );
-    }
-    if (isExcelFileAttached) {
-      final fileName = fileInput!.name;
-      final bytes = await fileInput!.readAsBytes();
-      final excelToJson = ExcelToJson();
-      final contentString = await excelToJson.convert(bytes);
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addCustomMessageToList(
-        FluentChatMessage(
-          id: '$timestamp',
-          content: contentString ?? '<No data available>',
-          creator: AppCache.userName.value!,
-          timestamp: timestamp,
-          type: FluentChatMessageType.file,
-          fileName: fileName,
-          path: fileInput?.path,
-        ),
-      );
-    }
-    if (fileInput != null) {
-      // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
+    await processFilesBeforeSendingMessage();
+
     if (messageContent.isNotEmpty) isAnswering = true;
     notifyListeners();
     final messagesToSend = <ChatMessage>[];
@@ -933,8 +974,28 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           allowImages: true,
         );
         // if false it will just skip all messages in chat for this case
-        final lastMessagesLangChain =
-            lastMessages.map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported));
+        final List<ChatMessage> lastMessagesLangChain = [];
+
+        for (var message in lastMessages) {
+          final langChainMessage =
+              message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
+          lastMessagesLangChain.add(langChainMessage);
+          if (message.path?.endsWith('.pdf') == true) {
+            final pdfImages = await PdfUtils.getImagesFromPdfPath(message.path!);
+            for (var image in pdfImages) {
+              lastMessagesLangChain.add(
+                HumanChatMessage(
+                  content: ChatMessageContentImage(
+                    data: base64Encode(image),
+                    detail: ChatMessageContentImageDetail.high,
+                    mimeType: 'image/png',
+                  ),
+                ),
+              );
+            }
+          }
+        }
+
         messagesToSend.addAll(lastMessagesLangChain);
       } else {
         messagesToSend.add(
@@ -985,16 +1046,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
               : AIChatMessage(content: messageContent + (shouldForceDisableReasoning ? ' /no_think' : '')),
         );
       }
-      if (isImageAttached) {
-        messagesToSend.add(
-          HumanChatMessage(
-            content: ChatMessageContent.image(
-              data: base64Encode(await fileInput!.readAsBytes()),
-              mimeType: fileInput!.mimeType ?? 'image/jpeg',
-            ),
-          ),
-        );
-      }
     }
     onMessageSent?.call();
     String responseId = '';
@@ -1008,7 +1059,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       topP: selectedChatRoom.topP,
       frequencyPenalty: selectedChatRoom.repeatPenalty,
       seed: seed ?? selectedChatRoom.seed,
-      toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
+      // toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
       tools: isToolsEnabled
           ? [
               if (AppCache.gptToolCopyToClipboardEnabled.value!)
@@ -1103,10 +1154,12 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           chunkNumber++;
 
           if (chunkNumber == 1) {
-            if (fileInput?.isInternalScreenshot == true) {
-              FileUtils.deleteFile(fileInput!.path);
+            for (var file in fileInputs ?? <Attachment>[]) {
+              if (file.isInternalScreenshot == true) {
+                FileUtils.deleteFile(file.path);
+              }
             }
-            fileInput = null;
+            fileInputs = null;
             notifyListeners();
           }
           final message = chunk.output;
@@ -1390,9 +1443,19 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         } else if (action.actionEnum == OnMessageActionEnum.runShellCommand) {
           final result = await ShellDriver.runShellCommand(match!.group(1)!);
           if (result.trim().isEmpty) {
-            addMessageSystem('Shell command output: EMPTY result or returned an error');
+            addCustomMessageToList(
+              FluentChatMessage.system(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: 'Shell command output: EMPTY result or returned an error',
+              ),
+            );
           } else {
-            addMessageSystem('Shell command result: $result');
+            addCustomMessageToList(
+              FluentChatMessage.system(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: 'Shell command result: $result',
+              ),
+            );
           }
           // wait for the message to be added
           await Future.delayed(const Duration(milliseconds: 50));
@@ -1704,7 +1767,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       addBotErrorMessageToList(
         FluentChatMessage.system(content: 'Error while sending single message: $e', id: id),
       );
-      fileInput = null;
+      fileInputs = null;
       notifyListeners();
     }
   }
@@ -1734,8 +1797,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
 
     AIChatMessage response;
-    final options = ChatOpenAIOptions(
-        model: selectedChatRoom.model.modelName, maxTokens: maxTokens, toolChoice: ChatToolChoice.none);
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName, maxTokens: maxTokens);
     var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
     var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
     if (selectedModel.ownedBy == 'openai') {
@@ -1862,6 +1924,12 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
     notifyListeners();
+  }
+
+  Future<void> sendAllAttachmentsToChatSilently() async {
+    if (fileInputs == null || fileInputs!.isEmpty) return;
+    await processFilesBeforeSendingMessage();
+    removeFilesFromInput();
   }
 
   void updateChatRoomTimestamp() {
@@ -2277,32 +2345,18 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
   }
 
-  Future<void> addMessageSystem(String message) async {
-    if (message.trimLeft().isEmpty) return;
-    final value = messages.value;
-    final timeStamp = DateTime.now().millisecondsSinceEpoch;
-    final tokens = await countTokensString(message);
-    value['$timeStamp'] = FluentChatMessage.system(
-      id: '$timeStamp',
-      content: message,
-      timestamp: timeStamp,
-      tokens: tokens,
-    );
-    messages.add(value);
-    saveToDisk([selectedChatRoom]);
-    scrollToEnd();
-  }
-
   void setIncludeWholeConversation(bool v) {
     includeConversationGlobal = v;
     notifyListeners();
   }
 
-  void removeFileFromInput() {
-    if (fileInput?.isInternalScreenshot == true) {
-      // FileUtils.deleteFile(fileInput!.path);
+  void removeFilesFromInput() {
+    for (var file in fileInputs ?? <Attachment>[]) {
+      if (file.isInternalScreenshot == true) {
+        FileUtils.deleteFile(file.path);
+      }
     }
-    fileInput = null;
+    fileInputs = null;
     notifyListeners();
   }
 

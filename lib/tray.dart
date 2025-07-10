@@ -444,13 +444,13 @@ class AppTrayListener extends TrayListener {
         final cursorPos = await NativeChannelUtils.getMousePosition();
         await showWindow();
         if (cursorPos != null) {
-          // dy is 961 instead of 38. We need to calc based on the height of the window
           final screen = await NativeChannelUtils.getScreenSize();
+          // dy is 961 instead of 38. We need to calc based on the height of the window
+          OverlayUI.isChatVisible.add(true);
+          overlayVisibility.add(OverlayStatus.enabled);
           final height = screen?['height'] ?? 720;
           final modifCursorPos = Offset(cursorPos.dx, cursorPos.dy - height);
           await windowManager.setPosition(modifCursorPos, animate: false);
-          OverlayUI.isChatVisible.add(true);
-          overlayVisibility.add(OverlayStatus.enabled);
 
           /// because focus node is linked to both widgets we need to unfocus from the old one
           promptTextFocusNode.unfocus();

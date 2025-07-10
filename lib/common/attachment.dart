@@ -30,7 +30,7 @@ class Attachment {
         uintList,
         mimeType: 'image/jpeg',
         length: uintList.length,
-        name: 'screenshot.jpg',
+        name: 'screenshot-${uintList.length}.jpg',
       ),
       isInternalScreenshot: true,
     );
@@ -41,9 +41,15 @@ class Attachment {
         uintList,
         mimeType: 'image/jpeg',
         length: uintList.length,
-        name: 'screenshot.jpg',
+        name: 'screenshot-${uintList.length}.jpg',
       ),
       isInternalScreenshot: true,
     );
   }
+
+  bool get isImage => mimeType?.contains('image') == true;
+  bool get isText => mimeType?.contains('text') == true;
+  bool get isWord => name.endsWith('.docx');
+  bool get isExcel => name.endsWith('.xlsx') || name.endsWith('.xls');
+  bool get isPdf => name.endsWith('.pdf');
 }

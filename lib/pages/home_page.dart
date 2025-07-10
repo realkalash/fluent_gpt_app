@@ -457,7 +457,7 @@ class PageHeaderText extends StatelessWidget {
               IconButton(
                 icon: const Icon(ic.FluentIcons.image_20_regular, size: 20),
                 onPressed: () {
-                  ImagesDialog.show(context);
+                  ChatImagesDialog.show(context);
                 },
               ),
               FlyoutButton(
@@ -1684,10 +1684,20 @@ class RunCodeButton extends StatelessWidget {
 
                 if (language == 'shell') {
                   final result = await ShellDriver.runShellCommand(code);
-                  provider.addMessageSystem('result: $result');
+                  provider.addCustomMessageToList(
+                    FluentChatMessage.system(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      content: 'result: $result',
+                    ),
+                  );
                 } else if (language == 'python') {
                   final result = await ShellDriver.runPythonCode(code);
-                  provider.addMessageSystem('result: $result');
+                  provider.addCustomMessageToList(
+                    FluentChatMessage.system(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      content: 'result: $result',
+                    ),
+                  );
                 }
               },
               checked: snap.data == true,
