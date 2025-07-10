@@ -772,6 +772,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
 
     for (var file in fileInputs!) {
+      await Future.delayed(const Duration(milliseconds: 10));
       if (file.isImage == true) {
         final bytes = await file.readAsBytes();
         final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
@@ -844,6 +845,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
             path: file.path,
             fileName: file.name,
             tokens: 256,
+            content: 'Uploaded file: "${file.path}". Analyse it before the answer',
           ),
         );
       }
@@ -993,6 +995,11 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
                 ),
               );
             }
+            lastMessagesLangChain.add(
+              HumanChatMessage(
+                content: ChatMessageContentText(text: 'End of the file.'),
+              ),
+            );
           }
         }
 
@@ -1059,7 +1066,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       topP: selectedChatRoom.topP,
       frequencyPenalty: selectedChatRoom.repeatPenalty,
       seed: seed ?? selectedChatRoom.seed,
-      // toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
+      toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
       tools: isToolsEnabled
           ? [
               if (AppCache.gptToolCopyToClipboardEnabled.value!)

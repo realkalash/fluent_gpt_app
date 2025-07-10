@@ -6,6 +6,7 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart'
     show
@@ -16,7 +17,8 @@ import 'package:fluent_ui/fluent_ui.dart'
         MenuFlyoutItem,
         AutoSuggestBox,
         TextFormBox,
-        AutoSuggestBoxItem;
+        AutoSuggestBoxItem,
+        FluentTheme;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -205,38 +207,46 @@ class _NerdySelectorDropdownState extends State<NerdySelectorDropdown> {
   @override
   Widget build(BuildContext context) {
     final selectedType = NerdySelectorType.values[AppCache.nerdySelectorType.value!];
-    return ListTile(
-      title: Text('Select your level'.tr),
-      leading: iconToLevel[selectedType] is Text
-          ? Text(
-              (iconToLevel[selectedType] as Text).data!,
-              style: const TextStyle(fontSize: 24),
-            )
-          : iconToLevel[selectedType]!,
-      subtitle: Text(selectedType.name.tr),
-      onTap: () {
-        flyoutController.showFlyout(builder: (ctx) {
-          return MenuFlyout(
-            items: NerdySelectorType.values
-                .map(
-                  (e) => MenuFlyoutItem(
-                    text: Text(e.name.tr),
-                    leading: iconToLevel[e],
-                    selected: e == selectedType,
-                    onPressed: () {
-                      final chatProvider = context.read<ChatProvider>();
-                      chatProvider.setNerdySelectorType(e);
-                      setState(() {});
-                    },
-                  ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(12)),
+      child: BasicListTile(
+        title: Text('Select your level'.tr, style: FluentTheme.of(context).typography.subtitle),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        leading: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: iconToLevel[selectedType] is Text
+              ? Text(
+                  (iconToLevel[selectedType] as Text).data!,
+                  style: const TextStyle(fontSize: 24),
                 )
-                .toList(),
-          );
-        });
-      },
-      trailing: FlyoutTarget(
-        controller: flyoutController,
-        child: Icon(FluentIcons.chevron_down_24_regular),
+              : iconToLevel[selectedType]!,
+        ),
+        subtitle: Text(selectedType.name.tr),
+        onTap: () {
+          flyoutController.showFlyout(builder: (ctx) {
+            return MenuFlyout(
+              items: NerdySelectorType.values
+                  .map(
+                    (e) => MenuFlyoutItem(
+                      text: Text(e.name.tr),
+                      leading: iconToLevel[e],
+                      selected: e == selectedType,
+                      onPressed: () {
+                        final chatProvider = context.read<ChatProvider>();
+                        chatProvider.setNerdySelectorType(e);
+                        setState(() {});
+                      },
+                    ),
+                  )
+                  .toList(),
+            );
+          });
+        },
+        trailing: FlyoutTarget(
+          controller: flyoutController,
+          child: Icon(FluentIcons.chevron_down_24_regular),
+        ),
       ),
     );
   }
