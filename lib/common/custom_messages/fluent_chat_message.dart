@@ -115,7 +115,8 @@ class FluentChatMessage {
     required String content,
     String creator = 'human',
     int? timestamp,
-    tokens = 0,
+    // just a placeholder because we can't calc it yet
+    int tokens = 256,
   }) {
     return FluentChatMessage(
       id: id,
@@ -126,6 +127,27 @@ class FluentChatMessage {
       tokens: tokens,
     );
   }
+  factory FluentChatMessage.file({
+    required String id,
+    required String path,
+    String? content,
+    String creator = 'human',
+    int? timestamp,
+    // just a placeholder because we can't calc it yet
+    int tokens = 256,
+    String? fileName,
+  }) {
+    return FluentChatMessage(
+      id: id,
+      content: content ?? 'File: $path',
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.file,
+      tokens: tokens,
+      fileName: fileName,
+      path: path,
+    );
+  }
 
   factory FluentChatMessage.imageAi({
     required String id,
@@ -133,7 +155,8 @@ class FluentChatMessage {
     String? imagePrompt,
     String creator = 'human',
     int? timestamp,
-    tokens = 0,
+    // just a placeholder because we can't calc it yet
+    int tokens = 256,
   }) {
     return FluentChatMessage(
       id: id,
@@ -255,7 +278,11 @@ class FluentChatMessage {
             content: ChatMessageContentImage(
                 data: content, detail: ChatMessageContentImageDetail.high, mimeType: 'image/png'));
       case FluentChatMessageType.file:
-        return TextFileCustomMessage(fileName: fileName ?? 'temp', content: content, path: path ?? '');
+        return HumanChatMessage(
+          // fileName: fileName ?? 'temp',
+          content: ChatMessageContentText(text: content),
+          // path: path ?? '',
+        );
       case FluentChatMessageType.webResult:
         return WebResultCustomMessage(content: content, searchResults: webResults ?? []);
       // ignore: unreachable_switch_default

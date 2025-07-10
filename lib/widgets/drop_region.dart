@@ -136,6 +136,7 @@ class _HomeDropRegionState extends State<HomeDropRegion> {
             logError('No provider or paths');
             return;
           }
+          final listXFiles = <XFile>[];
           for (final path in paths) {
             final name = path.split('\\').last;
             final mimeType = mime(name);
@@ -148,8 +149,10 @@ class _HomeDropRegionState extends State<HomeDropRegion> {
             }
             final file = XFile(path, name: name, mimeType: mime(name));
             log('File dropped: ${file.mimeType} ${await file.length()} bytes');
-            provider!.addFileToInput(file);
+            listXFiles.add(file);
           }
+          provider!.addFilesToInput(listXFiles);
+          listXFiles.clear();
         });
     });
   }

@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/keyboard_shortcuts/intents.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
+import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
+import 'package:fluent_gpt/features/pdf_utils.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -415,6 +418,15 @@ class _MessageCardState extends State<MessageCard> {
                 if (widget.message.type == FluentChatMessageType.file)
                   Button(
                     onPressed: () async {
+                      if (widget.message.path?.endsWith('.pdf') == true) {
+                        final pdfImages = await PdfUtils.getImagesFromPdfPath(widget.message.path!);
+                        ImagesDialog.show(
+                          // ignore: use_build_context_synchronously
+                          context,
+                          pdfImages.map((e) => Attachment.fromInternalScreenshotBytes(e)).toList(),
+                        );
+                        return;
+                      }
                       if (Platform.isWindows) {
                         final content = widget.message.content;
                         showDialog(
@@ -457,7 +469,14 @@ class _MessageCardState extends State<MessageCard> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(FluentIcons.document_24_filled, size: 24),
+                        if (widget.message.path?.endsWith('.pdf') == false)
+                          Icon(FluentIcons.document_24_filled, size: 24)
+                        else
+                          Icon(
+                            FluentIcons.document_pdf_24_filled,
+                            size: 24,
+                            color: Colors.warningPrimaryColor,
+                          ),
                         Text(
                           widget.message.fileName ?? 'File',
                           overflow: TextOverflow.ellipsis,
@@ -603,7 +622,11 @@ class _MessageCardState extends State<MessageCard> {
             // ideal delay to unfocus the previous tile, but still not loose focus on current one
             await Future.delayed(Duration(milliseconds: 1));
             // even if we are focused on current one, since we unfocused unknown previous one we need to focus on current one again
-            FocusManager.instance.primaryFocus?.requestFocus(focusNode);
+            try {
+              FocusManager.instance.primaryFocus?.requestFocus(focusNode);
+            } catch (e) {
+              logError(e.toString());
+            }
           },
           child: Focus(
             focusNode: focusNode,
@@ -1162,11 +1185,13 @@ class ImageViewerDialog extends StatefulWidget {
     required this.provider,
     this.description,
     this.barrierDismissible = true,
+    this.backgroundColor,
   });
 
   final ImageProvider<Object> provider;
   final String? description;
   final bool barrierDismissible;
+  final Color? backgroundColor;
 
   @override
   State<ImageViewerDialog> createState() => _ImageViewerDialogState();
@@ -1177,9 +1202,12 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
   bool fullScreen = false;
   @override
   Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
+    final backgroundColor = widget.backgroundColor ?? theme.scaffoldBackgroundColor;
     return Stack(
       fit: StackFit.expand,
       children: [
+        ColoredBox(color: backgroundColor),
         EasyImageView(imageProvider: widget.provider),
         Positioned(
           top: 16,
@@ -1219,12 +1247,12 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
             right: 16,
             bottom: 16,
             child: AnimatedContainer(
-              duration: Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 400),
               height: isDescriptionVisible ? 200 : 48,
               width: isDescriptionVisible ? MediaQuery.sizeOf(context).width - 300 : 48,
               decoration: BoxDecoration(
                 color: context.theme.cardColor,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: const BorderRadius.all(Radius.circular(10)),
               ),
               child: SingleChildScrollView(
                 child: Column(

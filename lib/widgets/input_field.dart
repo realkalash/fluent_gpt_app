@@ -60,7 +60,7 @@ class InputField extends StatefulWidget {
 }
 
 class _InputFieldState extends State<InputField> {
-  void onSubmit(String text, ChatProvider chatProvider) {
+  Future<void> onSubmit(String text, ChatProvider chatProvider) async {
     if (shiftPressedStream.valueOrNull == true) {
       final currentText = chatProvider.messageController.text;
       final selection = chatProvider.messageController.selection;
@@ -82,14 +82,19 @@ class _InputFieldState extends State<InputField> {
     }
 
     if (altPressedStream.value) {
-      chatProvider.addMessageSystem(text).then((_) {
-        chatProvider.updateUI();
-      });
+      chatProvider.addCustomMessageToList(
+        FluentChatMessage.system(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          content: chatProvider.messageController.text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          tokens: await chatProvider.countTokensString(text),
+        ),
+      );
       clearFieldAndFocus();
       return;
     }
 
-    if (text.trim().isEmpty && chatProvider.fileInput == null) {
+    if (text.trim().isEmpty && chatProvider.fileInputs == null) {
       return;
     }
 
@@ -177,25 +182,31 @@ class _InputFieldState extends State<InputField> {
 
   Future<void> onShortcutPasteToField() async {
     final chatProvider = context.read<ChatProvider>();
-    final text = await Pasteboard.text;
-    if (text != null) {
-      onShortcutPasteText(text);
-    }
-    final image = await Pasteboard.image;
-    if (image != null) {
-      onShortcutPasteImage(image);
-    }
+
     final files = await Pasteboard.files();
     if (files.isNotEmpty) {
-      // we can only take one file
-      final file = files.first;
-      final filePath = file;
-      final xfile = XFile(
-        filePath,
-        mimeType: mime(filePath) ?? 'application/octet-stream',
-        name: filePath.split('/').last,
-      );
-      chatProvider.addAttachmentToInput(Attachment.fromFile(xfile));
+      final listXFiles = <XFile>[];
+      for (var file in files) {
+        final filePath = file;
+        final xfile = XFile(
+          filePath,
+          mimeType: mime(filePath) ?? 'application/octet-stream',
+          name: filePath.split('/').last,
+        );
+        listXFiles.add(xfile);
+      }
+      chatProvider.addFilesToInput(listXFiles);
+      listXFiles.clear();
+      return;
+    }
+    final text = await Pasteboard.text;
+    if (text != null) {
+      return onShortcutPasteText(text);
+    }
+    final image = await Pasteboard.image;
+
+    if (image != null) {
+      return onShortcutPasteImage(image);
     }
   }
 
@@ -593,24 +604,34 @@ class _InputFieldState extends State<InputField> {
     final provider = context.read<ChatProvider>();
     final controller = provider.messageController;
     final text = controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && provider.fileInputs?.isEmpty == true) return;
     menuController.showFlyout(builder: (ctx) {
       return MenuFlyout(
         items: [
-          if (text.isNotEmpty)
-            MenuFlyoutItem(
-                text: const Text('Send silently as assistant'),
-                trailing: Text('(alt+enter)'),
-                onPressed: () {
-                  provider.addMessageSystem(controller.text);
-                  clearFieldAndFocus();
-                }),
-          if (text.isNotEmpty)
-            MenuFlyoutItem(
-                text: const Text('Send silently as user'),
-                trailing: Text('(alt+u)'),
-                onPressed: () async {
-                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+          MenuFlyoutItem(
+              text: const Text('Send silently as assistant'),
+              trailing: Text('(alt+enter)'),
+              onPressed: () async {
+                if (text.isNotEmpty)
+                  provider.addCustomMessageToList(
+                    FluentChatMessage.system(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      content: controller.text,
+                      timestamp: DateTime.now().millisecondsSinceEpoch,
+                      tokens: await provider.countTokensString(text),
+                    ),
+                  );
+                if (provider.fileInputs?.isNotEmpty == true) {
+                  await provider.sendAllAttachmentsToChatSilently();
+                }
+                clearFieldAndFocus();
+              }),
+          MenuFlyoutItem(
+              text: const Text('Send silently as user'),
+              trailing: Text('(alt+u)'),
+              onPressed: () async {
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                if (text.isNotEmpty)
                   provider.addHumanMessageToList(
                     FluentChatMessage.humanText(
                         id: timestamp.toString(),
@@ -619,14 +640,17 @@ class _InputFieldState extends State<InputField> {
                         timestamp: timestamp,
                         tokens: await provider.countTokensString(text)),
                   );
-                  clearFieldAndFocus();
-                }),
-          if (text.isNotEmpty)
-            MenuFlyoutItem(
-                text: Text('Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
-                trailing: Text('(alt+i)'),
-                onPressed: () async {
-                  final timestamp = DateTime.now().millisecondsSinceEpoch;
+                if (provider.fileInputs?.isNotEmpty == true) {
+                  await provider.sendAllAttachmentsToChatSilently();
+                }
+                clearFieldAndFocus();
+              }),
+          MenuFlyoutItem(
+              text: Text('Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
+              trailing: Text('(alt+i)'),
+              onPressed: () async {
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                if (text.isNotEmpty)
                   provider.addBotMessageToList(
                     FluentChatMessage.ai(
                       id: timestamp.toString(),
@@ -635,18 +659,20 @@ class _InputFieldState extends State<InputField> {
                       tokens: await provider.countTokensString(text),
                     ),
                   );
-                  clearFieldAndFocus();
-                  provider.onResponseEnd(controller.text, '$timestamp');
-                }),
-          MenuFlyoutSeparator(),
-          if (text.isNotEmpty)
-            MenuFlyoutItem(
-              text: const Text('Send not in real-time (can help with some LLM providers)'),
-              onPressed: () {
-                provider.sendMessage(controller.text, hidePrompt: false, sendStream: false);
+                if (provider.fileInputs?.isNotEmpty == true) {
+                  await provider.sendAllAttachmentsToChatSilently();
+                }
                 clearFieldAndFocus();
-              },
-            )
+                if (text.isNotEmpty) provider.onResponseEnd(controller.text, '$timestamp');
+              }),
+          MenuFlyoutSeparator(),
+          MenuFlyoutItem(
+            text: const Text('Send not in real-time (can help with some LLM providers)'),
+            onPressed: () {
+              provider.sendMessage(controller.text, hidePrompt: false, sendStream: false);
+              clearFieldAndFocus();
+            },
+          ),
         ],
       );
     });
@@ -674,9 +700,12 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
-  onShortcutPasteSilently(FluentChatMessageType messageType) async {
+  Future<void> onShortcutPasteSilently(FluentChatMessageType messageType) async {
     final provider = context.read<ChatProvider>();
     final message = provider.messageController.text;
+    if (provider.fileInputs?.isNotEmpty == true) {
+      await provider.sendAllAttachmentsToChatSilently();
+    }
     if (message.isEmpty) return;
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final fMessage = FluentChatMessage(
@@ -1204,7 +1233,7 @@ class AddFileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
-    if (chatProvider.fileInput != null) {
+    if (chatProvider.fileInputs != null) {
       return _FileThumbnail();
     }
     return Tooltip(
@@ -1224,14 +1253,15 @@ class AddFileButton extends StatelessWidget {
                 'csv',
               ],
               type: FileType.custom,
+              allowMultiple: true,
             );
             if (result != null && result.files.isNotEmpty) {
-              chatProvider.addFileToInput(result.files.first.toXFile());
+              chatProvider.addFilesToInput(result.files.map((e) => e.toXFile()).toList());
               windowManager.focus();
               promptTextFocusNode.requestFocus();
             }
           },
-          icon: chatProvider.isSendingFile
+          icon: chatProvider.isSendingFiles
               ? const ProgressRing()
               : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 16 : 24),
         ),
@@ -1242,64 +1272,87 @@ class AddFileButton extends StatelessWidget {
 
 class _FileThumbnail extends StatelessWidget {
   const _FileThumbnail();
-
+  static const BorderRadius borderRadius = BorderRadius.all(Radius.circular(6));
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
+    final theme = FluentTheme.of(context);
+    bool containsMultiple = chatProvider.fileInputs?.length != null && chatProvider.fileInputs!.length > 1;
     return SizedBox.square(
       dimension: 48,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Positioned(
-            top: 0,
-            right: 0,
-            left: 0,
-            child: IconButton(
-              onPressed: () async {
-                if (chatProvider.isSendingFile) {
-                  return;
-                }
-                FilePickerResult? result = await FilePicker.platform.pickFiles();
-                if (result != null && result.files.isNotEmpty) {
-                  chatProvider.addFileToInput(result.files.first.toXFile());
-                  windowManager.focus();
-                  promptTextFocusNode.requestFocus();
-                }
-              },
-              icon: const Icon(ic.FluentIcons.document_number_1_16_regular, size: 24),
-            ),
-          ),
-          if (chatProvider.fileInput!.mimeType?.contains('image') == true)
+          if (containsMultiple)
             Positioned.fill(
+              top: 0,
+              left: 0,
               bottom: 0,
               right: 0,
-              child: FutureBuilder<Uint8List>(
-                  future: chatProvider.fileInput!.readAsBytes(),
-                  builder: (context, snapshot) {
-                    if (snapshot.data == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.memory(
-                        snapshot.data as Uint8List,
-                        fit: BoxFit.cover,
-                      ),
-                    );
-                  }),
-            )
-          else if (chatProvider.fileInput!.name.isNotEmpty)
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.inactiveColor),
+                  borderRadius: borderRadius,
+                ),
+              ),
+            ),
+          Positioned.fill(
+            top: 0,
+            left: containsMultiple ? 4 : 0,
+            bottom: containsMultiple ? 4 : 0,
+            right: 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.inactiveColor),
+                borderRadius: borderRadius,
+              ),
+              child: Icon(ic.FluentIcons.document_16_regular),
+            ),
+          ),
+          if (chatProvider.fileInputs?.isNotEmpty == true &&
+              chatProvider.fileInputs!.first.mimeType?.contains('image') == true)
             Positioned.fill(
-              top: 28,
+              bottom: 0,
+              right: containsMultiple ? 0 : 16,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(128),
+                  borderRadius: borderRadius,
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    showDialog(context: context, builder: (ctx) => ImagesDialog(images: chatProvider.fileInputs!));
+                  },
+                  child: FutureBuilder<Uint8List>(
+                      future: chatProvider.fileInputs!.first.readAsBytes(),
+                      builder: (context, snapshot) {
+                        if (snapshot.data == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return ClipRRect(
+                          borderRadius: borderRadius,
+                          child: Image.memory(
+                            snapshot.data as Uint8List,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      }),
+                ),
+              ),
+            ),
+          if (containsMultiple)
+            Positioned(
+              bottom: 0,
               right: 0,
-              left: 0,
-              child: Tooltip(
-                message: chatProvider.fileInput!.name.isEmpty ? '-' : chatProvider.fileInput!.name,
+              left: 8,
+              top: 0,
+              child: GestureDetector(
+                onTap: () {
+                  showDialog(context: context, builder: (ctx) => ImagesDialog(images: chatProvider.fileInputs!));
+                },
                 child: Text(
-                  chatProvider.fileInput!.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  '${chatProvider.fileInputs!.length}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -1310,7 +1363,7 @@ class _FileThumbnail extends StatelessWidget {
               style: ButtonStyle(
                 backgroundColor: WidgetStateProperty.all(Colors.black.withAlpha(128)),
               ),
-              onPressed: () => chatProvider.removeFileFromInput(),
+              onPressed: () => chatProvider.removeFilesFromInput(),
               icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),
             ),
           ),

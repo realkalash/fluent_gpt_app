@@ -11,6 +11,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   keypress_simulator_windows
   pasteboard
   permission_handler_windows
+  printing
   protocol_handler_windows
   record_windows
   screen_retriever_windows

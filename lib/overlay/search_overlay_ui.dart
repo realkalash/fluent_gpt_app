@@ -60,9 +60,7 @@ class _OverlayUIState extends State<SearchOverlayUI> {
   @override
   Widget build(BuildContext context) {
     final appTheme = context.read<AppTheme>();
-    final backgroundColor = appTheme.isDark
-        ? appTheme.darkBackgroundColor
-        : appTheme.lightBackgroundColor;
+    final backgroundColor = appTheme.isDark ? appTheme.darkBackgroundColor : appTheme.lightBackgroundColor;
     return CallbackShortcuts(
       bindings: {
         /// esc
@@ -93,8 +91,7 @@ class _OverlayUIState extends State<SearchOverlayUI> {
                         const SizedBox(width: 4),
                         SqueareIconButtonSized(
                           onTap: () {
-                            onTrayButtonTapCommand(
-                                '', TrayCommand.create_new_chat.name);
+                            onTrayButtonTapCommand('', TrayCommand.create_new_chat.name);
                             windowManager.setSize(
                               SearchOverlayUI.defaultWindowSize(),
                               animate: true,
@@ -180,60 +177,37 @@ class _InputFieldState extends State<_InputField> {
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
           const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textAi),
-          const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
-              onShortcutPasteToField,
+          const SingleActivator(LogicalKeyboardKey.keyV, meta: true): onShortcutPasteToField,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-              onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-              onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-              onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-              onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-              onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
-              onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
-              onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () =>
-              onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () =>
-              onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, meta: true):
-              toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () => onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () => onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () => onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () => onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () => onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () => onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, meta: true): toggleEnableHistory,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
           const SingleActivator(LogicalKeyboardKey.keyI, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textAi),
-          const SingleActivator(LogicalKeyboardKey.keyV, control: true):
-              onShortcutPasteToField,
+          const SingleActivator(LogicalKeyboardKey.keyV, control: true): onShortcutPasteToField,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, control: true): () =>
-              onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, control: true): () =>
-              onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, control: true): () =>
-              onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, control: true): () =>
-              onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, control: true): () =>
-              onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, control: true): () =>
-              onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, control: true): () =>
-              onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, control: true): () =>
-              onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, control: true): () =>
-              onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, control: true):
-              toggleEnableHistory,
+          SingleActivator(LogicalKeyboardKey.digit1, control: true): () => onDigitPressed(1),
+          SingleActivator(LogicalKeyboardKey.digit2, control: true): () => onDigitPressed(2),
+          SingleActivator(LogicalKeyboardKey.digit3, control: true): () => onDigitPressed(3),
+          SingleActivator(LogicalKeyboardKey.digit4, control: true): () => onDigitPressed(4),
+          SingleActivator(LogicalKeyboardKey.digit5, control: true): () => onDigitPressed(5),
+          SingleActivator(LogicalKeyboardKey.digit6, control: true): () => onDigitPressed(6),
+          SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
+          SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
+          SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
+          SingleActivator(LogicalKeyboardKey.keyH, control: true): toggleEnableHistory,
         },
-        const SingleActivator(LogicalKeyboardKey.enter, meta: true):
-            onShortcutCopyToThirdParty,
+        const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
         const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {},
       },
       child: TextBox(
@@ -260,7 +234,7 @@ class _InputFieldState extends State<_InputField> {
     }
   }
 
-  void onSubmit(String text, ChatProvider chatProvider) {
+  Future<void> onSubmit(String text, ChatProvider chatProvider) async {
     if (shiftPressedStream.valueOrNull == true) {
       final currentText = chatProvider.messageController.text;
       final selection = chatProvider.messageController.selection;
@@ -268,12 +242,10 @@ class _InputFieldState extends State<_InputField> {
 
       if (cursorPosition >= 0 && cursorPosition <= currentText.length) {
         // Insert newline at cursor position
-        final newText =
-            '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
+        final newText = '${currentText.substring(0, cursorPosition)}\n${currentText.substring(cursorPosition)}';
         chatProvider.messageController.text = newText;
         // Place cursor after the inserted newline
-        chatProvider.messageController.selection =
-            TextSelection.collapsed(offset: cursorPosition + 1);
+        chatProvider.messageController.selection = TextSelection.collapsed(offset: cursorPosition + 1);
       } else {
         // Fallback if cursor position is invalid
         chatProvider.messageController.text = '$currentText\n';
@@ -284,14 +256,20 @@ class _InputFieldState extends State<_InputField> {
     }
 
     if (altPressedStream.value) {
-      chatProvider.addMessageSystem(text).then((_) {
-        chatProvider.updateUI();
-      });
+      chatProvider.addCustomMessageToList(
+        FluentChatMessage.system(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          content: chatProvider.messageController.text,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          tokens: await chatProvider.countTokensString(text),
+        ),
+      );
+
       clearFieldAndFocus();
       return;
     }
 
-    if (text.trim().isEmpty && chatProvider.fileInput == null) {
+    if (text.trim().isEmpty && chatProvider.fileInputs == null) {
       return;
     }
 
@@ -317,8 +295,7 @@ class _InputFieldState extends State<_InputField> {
         (element) => element.title == selectedPrompt,
       );
       if (findedCustomPrompt != null) {
-        final isContainsPlaceHolder =
-            placeholdersRegex.hasMatch(findedCustomPrompt.getPromptText());
+        final isContainsPlaceHolder = placeholdersRegex.hasMatch(findedCustomPrompt.getPromptText());
         if (isContainsPlaceHolder) {
           final newText = await showDialog<String>(
             context: context,
@@ -330,8 +307,7 @@ class _InputFieldState extends State<_InputField> {
             ChatProvider.messageControllerGlobal.text = newText;
           }
         } else {
-          ChatProvider.messageControllerGlobal.text =
-              '${findedCustomPrompt.getPromptText()} ';
+          ChatProvider.messageControllerGlobal.text = '${findedCustomPrompt.getPromptText()} ';
         }
       }
     }
@@ -364,29 +340,22 @@ class _InputFieldState extends State<_InputField> {
 
         if (start > end) {
           // Swap if reversed
-          newText = currentText.substring(0, end) +
-              clipboard +
-              currentText.substring(start);
+          newText = currentText.substring(0, end) + clipboard + currentText.substring(start);
           newCursorPosition = end + clipboard.length;
         } else {
-          newText = currentText.substring(0, start) +
-              clipboard +
-              currentText.substring(end);
+          newText = currentText.substring(0, start) + clipboard + currentText.substring(end);
           newCursorPosition = start + clipboard.length;
         }
       } else {
         // Handle cursor insertion safely
-        final currentCursorPosition =
-            max(0, min(textSelection.base.offset, currentText.length));
-        newText = currentText.substring(0, currentCursorPosition) +
-            clipboard +
-            currentText.substring(currentCursorPosition);
+        final currentCursorPosition = max(0, min(textSelection.base.offset, currentText.length));
+        newText =
+            currentText.substring(0, currentCursorPosition) + clipboard + currentText.substring(currentCursorPosition);
         newCursorPosition = currentCursorPosition + clipboard.length;
       }
 
       chatProvider.messageController.text = newText;
-      chatProvider.messageController.selection =
-          TextSelection.collapsed(offset: newCursorPosition);
+      chatProvider.messageController.selection = TextSelection.collapsed(offset: newCursorPosition);
 
       // Safe focus management
       try {
@@ -479,10 +448,9 @@ class _LoadingIndicator extends StatelessWidget {
           child: ProgressBar(strokeWidth: 8),
         ),
       ),
-      crossFadeState:
-          (chatProvider.isAnswering || chatProvider.isGeneratingImage)
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
+      crossFadeState: (chatProvider.isAnswering || chatProvider.isGeneratingImage)
+          ? CrossFadeState.showSecond
+          : CrossFadeState.showFirst,
     );
   }
 }
@@ -498,8 +466,8 @@ class _MessagesList extends StatelessWidget {
       builder: (context, snapshot) {
         final reverseList = messagesReversedList;
         if (reverseList.isEmpty) {
-          final randWelcome = OverlayManager.welcomesForEmptyList[
-              Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
+          final randWelcome =
+              OverlayManager.welcomesForEmptyList[Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
           return Center(
             child: TextAnimator(
               randWelcome,
