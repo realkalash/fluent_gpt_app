@@ -3,7 +3,7 @@ setlocal
 
 REM Get version from parameter or use default
 set "VERSION=%~1"
-if "%VERSION%"=="" set "VERSION=1.0.70"
+if "%VERSION%"=="" set "VERSION=1.0.71"
 
 REM Remove 'v' prefix if present
 set "VERSION=%VERSION:v=%"
