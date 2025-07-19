@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/shell_driver.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class UpdateInfo {
   final String version;
@@ -112,20 +116,26 @@ class UpdateService {
     }
   }
 
+  String getTempDir() {
+    final tempDir = (Directory.systemTemp).path;
+    return '$tempDir${Platform.pathSeparator}update_temp';
+  }
+
   /// Download the update file
   Future<String?> downloadUpdate(
     UpdateInfo updateInfo, {
     Function(double progress)? onProgress,
   }) async {
     try {
-      final tempDir = await getTemporaryDirectory();
       final fileName = updateInfo.downloadUrl.split('/').last;
-      final filePath = '${tempDir.path}/$fileName';
+      final filePath = '${getTempDir()}${Platform.pathSeparator}$fileName';
 
       // Delete existing file if it exists
       final file = File(filePath);
       if (await file.exists()) {
-        await file.delete();
+        await file.delete(recursive: true);
+      } else {
+        await file.create(recursive: true);
       }
 
       // Download with progress tracking
@@ -140,8 +150,8 @@ class UpdateService {
       final sink = file.openWrite();
       int downloadedBytes = 0;
 
-      await response.stream.listen(
-        (chunk) {
+      try {
+        await for (final chunk in response.stream) {
           sink.add(chunk);
           downloadedBytes += chunk.length;
 
@@ -149,10 +159,11 @@ class UpdateService {
             final progress = downloadedBytes / contentLength;
             onProgress(progress.clamp(0.0, 1.0));
           }
-        },
-        onDone: () => sink.close(),
-        onError: (error) => sink.close(),
-      ).asFuture();
+        }
+      } finally {
+        // Ensure sink is properly closed and flushed
+        await sink.close();
+      }
 
       return filePath;
     } catch (e) {
@@ -171,7 +182,8 @@ class UpdateService {
       if (Platform.isWindows) {
         return await _installWindows(filePath);
       } else if (Platform.isMacOS) {
-        return await _installMacOS(filePath);
+        throw Exception('Platform not supported for auto-installation');
+        // return await _installMacOS(filePath);
       } else {
         throw Exception('Platform not supported for auto-installation');
       }
@@ -186,6 +198,16 @@ class UpdateService {
     final url = 'https://github.com/$_repoOwner/$_repoName/releases/latest';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
+    }
+  }
+
+  /// open URL of the latest release
+  Future<void> downloadLatestRelease(UpdateInfo updateInfo) async {
+    final url = updateInfo.downloadUrl;
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      throw Exception('Failed to launch URL: $url');
     }
   }
 
@@ -251,18 +273,19 @@ class UpdateService {
   /// Install on Windows (Inno Setup .exe installer)
   Future<bool> _installWindows(String exePath) async {
     try {
-      // Launch Inno Setup installer with silent mode
-      final result = await Process.run(
-        exePath,
-        // ['/SILENT', '/NORESTART'],
-        [],
-        runInShell: false,
-      );
-
-      return result.exitCode == 0;
+      final res = await ShellDriver.openFile(exePath);
+      return res;
     } catch (e) {
-      print('Windows installation failed: $e');
+      logError('Windows installation failed: $e');
       return false;
+    }
+  }
+
+  String _normalizePath(String path) {
+    if (Platform.isWindows) {
+      return path.replaceAll('\\', '/');
+    } else {
+      return path;
     }
   }
 
@@ -311,7 +334,7 @@ class UpdateService {
 
       return copyResult.exitCode == 0;
     } catch (e) {
-      print('macOS installation failed: $e');
+      logError('macOS installation failed: $e');
       return false;
     }
   }

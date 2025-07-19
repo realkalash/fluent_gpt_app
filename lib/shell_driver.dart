@@ -7,6 +7,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:file/local.dart';
 import 'package:shell/shell.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class ShellDriver {
   static const tempDirTrim = 'temp';
@@ -138,6 +139,7 @@ class ShellDriver {
     try {
       log('Password from env: $password');
       log('Running shell command: "$commandName" with args: $commandArgs');
+      log(command);
       var shellProcess = await shell.start(commandName,
           arguments: commandArgs.map((e) => e.replaceAll('"', '')));
       message = await shellProcess.stdout.readAsString();
@@ -302,5 +304,12 @@ class ShellDriver {
     currentFileIndex = 0;
     await AppCache.currentFileIndex.set(currentFileIndex);
     await AppCache.quickPrompts.remove();
+  }
+
+  static Future<bool> openFile(String path) async {
+    return await launchUrlString(
+      'file:$path',
+      mode: LaunchMode.externalNonBrowserApplication,
+    );
   }
 }

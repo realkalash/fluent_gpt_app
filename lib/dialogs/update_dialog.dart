@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import '../services/update_service.dart';
 
@@ -212,10 +213,12 @@ class _UpdateDialogState extends State<UpdateDialog>
             child: Text('Later'.tr),
           ),
           FilledButton(
-            onPressed: () => _openDownloadPage(),
+            onPressed: () =>
+                UpdateService.instance.downloadLatestRelease(widget.updateInfo),
             child: Text('Download Manually'.tr),
           ),
-          if (Platform.isWindows || Platform.isMacOS)
+          // TODO: add macOS/linux support
+          if (Platform.isWindows)
             FilledButton(
               onPressed: () => _downloadAndInstall(),
               child: Text('Install Now'.tr),
@@ -249,7 +252,7 @@ class _UpdateDialogState extends State<UpdateDialog>
       );
 
       if (filePath == null) {
-        throw Exception('Download failed'.tr);
+        throw Exception('${'Download failed'.tr}. Empty file');
       }
 
       setState(() {
@@ -273,13 +276,6 @@ class _UpdateDialogState extends State<UpdateDialog>
       });
 
       _showErrorDialog(e.toString());
-    }
-  }
-
-  Future<void> _openDownloadPage() async {
-    await UpdateService.instance.openDownloadPage();
-    if (mounted) {
-      Navigator.of(context).pop();
     }
   }
 
@@ -343,7 +339,7 @@ class _UpdateDialogState extends State<UpdateDialog>
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _openDownloadPage();
+              UpdateService.instance.downloadLatestRelease(widget.updateInfo);
             },
             child: Text('Download Manually'.tr),
           ),
