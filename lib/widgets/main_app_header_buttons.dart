@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
@@ -275,13 +277,19 @@ class CollapseAppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Hide window',
+      message: Platform.isLinux ? 'Close window' : 'Collapse',
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(
-          semanticLabel: 'Collapse',
+          semanticLabel: 'Close window',
           checked: false,
-          onChanged: (v) => windowManager.hide(),
+          onChanged: (v) {
+            if (Platform.isLinux) {
+              windowManager.close();
+              return;
+            }
+            windowManager.hide();
+          },
           child: const Icon(
             FluentIcons.chrome_close,
             size: 20,
