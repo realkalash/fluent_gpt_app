@@ -1263,15 +1263,35 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           isAnswering = false;
           notifyListeners();
         },
+        cancelOnError: true,
         onError: (e, stack) {
           logError('Error while answering: $e', stack);
-          addBotErrorMessageToList(
-            FluentChatMessage.ai(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              content: '$e',
-              creator: 'error',
-            ),
-          );
+          if (e is OpenAIClientException) {
+            var errorMessage = e.message;
+            final bodyJsonStr = e.body;
+            if (bodyJsonStr is String) {
+              final bodyJson = jsonDecode(bodyJsonStr);
+              var jsonErrorMessage = bodyJson['error']['message'];
+              if (jsonErrorMessage != null) {
+                errorMessage = jsonErrorMessage;
+              }
+            }
+            addBotErrorMessageToList(
+              FluentChatMessage.ai(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: '$errorMessage. Status code: ${e.code}',
+                creator: 'error',
+              ),
+            );
+          } else {
+            addBotErrorMessageToList(
+              FluentChatMessage.ai(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: '$e',
+                creator: 'error',
+              ),
+            );
+          }
           isAnswering = false;
           notifyListeners();
         },
@@ -2123,6 +2143,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     notifyListeners();
     notifyRoomsStream();
     selectedChatRoomId = id;
+    AppCache.selectedChatRoomId.value = id;
     messages.add({});
 
     saveToDisk([selectedChatRoom]);
@@ -2146,6 +2167,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future<void> selectChatRoom(ChatRoom room) async {
     stopAnswering(StopReason.switch_chat);
     selectedChatRoomId = room.id;
+    AppCache.selectedChatRoomId.value = room.id;
     initModelsApi();
 
     messages.add({});
@@ -2154,7 +2176,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     totalSentTokens = room.totalSentTokens ?? 0;
     totalReceivedTokens = room.totalReceivedTokens ?? 0;
     totalReceivedForCurrentChat.add(totalReceivedTokens);
-    AppCache.selectedChatRoomId.value = room.id;
     countTokensFromMessagesCached([
       //add system message
       if (room.systemMessage != null)
