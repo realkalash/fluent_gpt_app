@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get version from parameter or use default
-VERSION=${1:-"1.0.71"}
+VERSION=${1:-"1.0.73"}
 # Remove 'v' prefix if present
 VERSION=${VERSION#v}
 
