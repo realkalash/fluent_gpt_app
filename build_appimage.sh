@@ -31,13 +31,16 @@ cat > linux-temp-installer/AppDir/FluentGPT.desktop << 'EOF'
 [Desktop Entry]
 Name=FluentGPT
 Exec=FluentGPT
-Icon=app_icon512
+Icon=fluent_gpt
 Type=Application
 Categories=Utility;
 EOF
 
-# Copy the app icon
-cp assets/app_icon512.png linux-temp-installer/AppDir/app_icon512.png
+# Copy the app icon as fluent_gpt.png to AppDir root
+cp assets/app_icon512.png linux-temp-installer/AppDir/fluent_gpt.png
+# Also copy to hicolor icons directory for desktop integration
+mkdir -p linux-temp-installer/AppDir/usr/share/icons/hicolor/512x512/apps/
+cp assets/app_icon512.png linux-temp-installer/AppDir/usr/share/icons/hicolor/512x512/apps/fluent_gpt.png
 
 # Create installers directory if it doesn't exist
 mkdir -p installers
