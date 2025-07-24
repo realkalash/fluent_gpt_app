@@ -16,6 +16,9 @@ WeatherDay? weatherNow;
 Timer? fetchTimer;
 Timer? updateTickTimer;
 
+/// Rate limiter for Nominatim API calls (max 1 request per second)
+DateTime? _lastNominatimRequest;
+
 class WeatherProvider extends ChangeNotifier {
   WeatherProvider(this.context) {
     init();
@@ -154,10 +157,29 @@ class WeatherProvider extends ChangeNotifier {
     }
   }
 
+  /// Gets coordinates for a city using Nominatim OpenStreetMap API
+  /// Complies with Nominatim usage policy:
+  /// - Rate limited to max 1 request per second
+  /// - Provides proper User-Agent header
+  /// - Data is under ODbL license (requires attribution in UI)
   Future<Map<String, double>> _getCoordinates(String cityName) async {
+    // Rate limiting: ensure at least 1 second between requests
+    if (_lastNominatimRequest != null) {
+      final timeSinceLastRequest = DateTime.now().difference(_lastNominatimRequest!);
+      if (timeSinceLastRequest.inMilliseconds < 1000) {
+        await Future.delayed(Duration(milliseconds: 1000 - timeSinceLastRequest.inMilliseconds));
+      }
+    }
+    _lastNominatimRequest = DateTime.now();
+
     final url = Uri.parse(
         'https://nominatim.openstreetmap.org/search?q=$cityName&format=json&addressdetails=1&limit=1');
-    final response = await http.get(url);
+    
+    // Proper User-Agent as required by Nominatim usage policy
+    final response = await http.get(url, headers: {
+      'User-Agent': 'FluentGPT/1.0 (https://github.com/realk/fluent_gpt_app)',
+      'Referer': 'https://github.com/realk/fluent_gpt_app',
+    });
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as List;
@@ -169,7 +191,8 @@ class WeatherProvider extends ChangeNotifier {
         throw Exception('No coordinates found for the city: $cityName');
       }
     } else {
-      throw Exception('Failed to fetch coordinates');
+      throw Exception(
+          'Failed to fetch coordinates. ${response.statusCode} ${response.body}');
     }
   }
 }
