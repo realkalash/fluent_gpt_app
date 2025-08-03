@@ -54,7 +54,7 @@ class ChatRoom {
     required this.topk,
     required this.promptBatchSize,
     required this.topP,
-    this.maxTokenLength = 2048,
+    this.maxTokenLength = 4096,
     this.maxTokensResponseLenght,
     this.repeatPenalty,
     this.systemMessage,

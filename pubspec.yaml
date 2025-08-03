@@ -51,7 +51,7 @@ dependencies:
   flutter_moving_background: ^0.0.5
   smooth_page_indicator: ^1.2.0+3
   adaptive_layout: ^0.1.7
-  flutter_local_notifications: ^19.0.0
+  flutter_local_notifications: ^19.4.0
   cryptography: ^2.7.0
   cryptography_flutter: ^2.3.2
   keypress_simulator: ^0.2.0

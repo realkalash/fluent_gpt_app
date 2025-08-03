@@ -20,7 +20,7 @@ class ShellDriver {
   static Stream<bool> get isRunningStream => _isRunningStreamController.stream;
 
   /// Should be called after SharedPrefs are initialized
-  init() {
+  void init() {
     currentFileIndex = prefs?.getInt('currentFileIndex') ?? 0;
   }
 
@@ -37,8 +37,7 @@ class ShellDriver {
     log('Wrote hello.txt to ${fs.currentDirectory}');
   }
 
-  static Future<String> runShellSearchFileCommand(
-      String fileName, Map<String, dynamic> args) async {
+  static Future<String> runShellSearchFileCommand(String fileName, Map<String, dynamic> args) async {
     var fs = const LocalFileSystem();
     var shell = Shell();
     var password = Platform.environment['PASSWORD'];
@@ -118,10 +117,7 @@ class ShellDriver {
     if (containsString) {
       final regexQuery = RegExp(r'\"(.*?)\"');
       final searchQuery = regexQuery.firstMatch(command)?.group(1) ?? '';
-      String newArgsString = command
-          .replaceAll(searchQuery, '')
-          .replaceAll(commandName, '')
-          .replaceAll('""', '');
+      String newArgsString = command.replaceAll(searchQuery, '').replaceAll(commandName, '').replaceAll('""', '');
       for (var arg in newArgsString.split(' ')) {
         if (arg.isNotEmpty) {
           commandArgs.add(arg);
@@ -140,8 +136,7 @@ class ShellDriver {
       log('Password from env: $password');
       log('Running shell command: "$commandName" with args: $commandArgs');
       log(command);
-      var shellProcess = await shell.start(commandName,
-          arguments: commandArgs.map((e) => e.replaceAll('"', '')));
+      var shellProcess = await shell.start(commandName, arguments: commandArgs.map((e) => e.replaceAll('"', '')));
       message = await shellProcess.stdout.readAsString();
 
       await shellProcess.stderr.drain();
@@ -265,8 +260,7 @@ class ShellDriver {
     return files;
   }
 
-  static Future<List<FileSystemEntity>> getTempFilesFromFolder(
-      String folder) async {
+  static Future<List<FileSystemEntity>> getTempFilesFromFolder(String folder) async {
     var fs = const LocalFileSystem();
     List<FileSystemEntity> files = [];
     final tempDir = fs.directory(folder);

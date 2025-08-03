@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 
@@ -68,6 +69,8 @@ class ChatModelAi {
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       );
+    } if (ownedBy == OwnedByEnum.localServer.name) {
+      return const Icon(FluentIcons.developer_board_16_regular);
     }
     return const Icon(FluentIcons.chat_24_regular);
   }
@@ -153,7 +156,7 @@ class ChatModelAi {
   }
 
   ChatModelProviderBase getChatModelProviderBase() {
-    for (var element in ChatModelProviderBase.providersList) {
+    for (var element in ChatModelProviderBase.providersList()) {
       if (element.ownedBy.name == ownedBy) {
         return element;
       }
@@ -189,7 +192,7 @@ class ChatModelProviderBase {
   String toString() =>
       'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
 
-  static const List<ChatModelProviderBase> providersList = [
+  static List<ChatModelProviderBase> providersList() => [
     ChatModelProviderBase(
       'OpenAI',
       'https://api.openai.com/v1',
@@ -209,6 +212,7 @@ class ChatModelProviderBase {
     // ChatModelProviderBase('Gemini', '', OwnedByEnum.custom, priceUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing'),
     ChatModelProviderBase('Custom', 'http://localhost:1234/v1',
         ownedBy: OwnedByEnum.custom),
+    ChatModelProviderBase('Local', ServerProvider.serverUrl, ownedBy: OwnedByEnum.localServer),
   ];
 }
 
@@ -219,4 +223,5 @@ enum OwnedByEnum {
   deepinfra,
   claude,
   custom,
+  localServer,
 }

@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
@@ -170,6 +171,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                         text: selectedChatRoom.chatRoomName),
                                     onChanged: (value) {
                                       selectedChatRoom.chatRoomName = value;
+                                      saveChatRoom();
                                     },
                                   ),
                                 ),
@@ -272,6 +274,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                           selectedChatRoom.maxTokenLength =
                               int.tryParse(value) ??
                                   selectedChatRoom.maxTokenLength;
+                          saveChatRoom();
                         },
                         onEditingComplete: () => setState(() {}),
                         onTapOutside: (event) => setState(() {}),
@@ -310,6 +313,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                             selectedChatRoom.maxTokensResponseLenght =
                                 int.tryParse(value);
                           }
+                          saveChatRoom();
                         },
                       ),
                     ],
@@ -329,6 +333,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                         onChanged: (value) {
                           selectedChatRoom.repeatPenalty =
                               double.tryParse(value);
+                          saveChatRoom();
                         },
                       ),
                     ],
@@ -346,6 +351,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
                           selectedChatRoom.topP = double.tryParse(value);
+                          saveChatRoom();
                         },
                       ),
                     ],
@@ -365,6 +371,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
                           selectedChatRoom.temp = double.tryParse(value);
+                          saveChatRoom();
                         },
                         onEditingComplete: () {
                           setState(() {});
@@ -406,6 +413,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                           } else {
                             selectedChatRoom.seed = int.tryParse(value);
                           }
+                          saveChatRoom();
                         },
                       ),
                     ],
@@ -415,6 +423,11 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
             ],
           );
         });
+  }
+  
+  Future<void> saveChatRoom() async {
+    final provider = context.read<ChatProvider>();
+    provider.saveChatWithoutMessages(selectedChatRoom, chatRoomsPath: await FileUtils.getChatRoomsPath());
   }
 }
 

@@ -60,14 +60,14 @@ ChatRoom get selectedChatRoom {
   return chatRooms.values.first;
 }
 
-double get temp => chatRooms[selectedChatRoomId]?.temp ?? 0.9;
-int get topk => chatRooms[selectedChatRoomId]?.topk ?? 40;
-int get promptBatchSize =>
-    chatRooms[selectedChatRoomId]?.promptBatchSize ?? 128;
-double get topP => chatRooms[selectedChatRoomId]?.topP ?? 0.4;
-int get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 2048;
-double get repeatPenalty =>
-    chatRooms[selectedChatRoomId]?.repeatPenalty ?? 1.18;
+double? get temp => chatRooms[selectedChatRoomId]?.temp;
+int? get topk => chatRooms[selectedChatRoomId]?.topk;
+int? get promptBatchSize =>
+    chatRooms[selectedChatRoomId]?.promptBatchSize;
+double? get topP => chatRooms[selectedChatRoomId]?.topP;
+int get maxTokenLenght => chatRooms[selectedChatRoomId]?.maxTokenLength ?? 4096;
+double? get repeatPenalty =>
+    chatRooms[selectedChatRoomId]?.repeatPenalty;
 
 /// the key is id or DateTime.now() (chatcmpl-9QZ8C6NhBc5MBrFCVQRZ2uNhAMAW2)  the answer is message
 BehaviorSubject<Map<String, FluentChatMessage>> messages =

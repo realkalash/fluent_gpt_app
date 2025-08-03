@@ -165,6 +165,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
   final autoSuggestController = TextEditingController();
   final modelUriController = TextEditingController();
   final apiKeyController = TextEditingController();
+  final customNameController = TextEditingController();
   bool isTesting = false;
 
   @override
@@ -175,7 +176,9 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
       autoSuggestController.text = model.modelName;
       modelUriController.text = model.uri ?? 'https://';
       apiKeyController.text = model.apiKey;
+      customNameController.text = model.customName;
     } else {
+      customNameController.text = 'ChatGPT';
       autoSuggestController.text = 'gpt-4.1';
       modelUriController.text = 'https://api.openai.com/v1';
     }
@@ -196,7 +199,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
           children: [
             Text('Custom Name'.tr),
             TextFormBox(
-              initialValue: model.customName,
+              controller: customNameController,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a name'.tr;
@@ -288,7 +291,7 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
               ),
               title: Text(ownedBy.isEmpty ? 'Select'.tr : ownedBy),
               items: [
-                for (final item in ChatModelProviderBase.providersList)
+                for (final item in ChatModelProviderBase.providersList())
                   MenuFlyoutItem(
                     text: Text(item.providerName),
                     trailing: SizedBox.square(
@@ -441,6 +444,8 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
 
   void _selectFirstModel() {
     autoSuggestController.text = autosuggestAdditionalItems.first;
+    final name = autosuggestAdditionalItems.first.split('\\').last;
+    customNameController.text = name;
     _testModel();
   }
 
