@@ -127,25 +127,36 @@ class _LocalServerPageState extends State<LocalServerPage> {
                               Expanded(
                                 child: Row(
                                   children: [
-                                    Text(
-                                      isRunning
-                                          ? 'Ready to process requests at ${ServerProvider.serverUrl}'
-                                          : 'Configure and start server at ${ServerProvider.serverUrl}',
-                                      style: theme.typography.body?.copyWith(
-                                        color:
-                                            isDarkMode ? Colors.white.withOpacity(0.7) : Colors.black.withOpacity(0.7),
+                                    Expanded(
+                                      child: Text.rich(
+                                        TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: isRunning
+                                                  ? 'Ready to process requests at ${ServerProvider.serverUrl}'
+                                                  : 'Configure and start server at ${ServerProvider.serverUrl}',
+                                            ),
+                                            WidgetSpan(
+                                              child: SqueareIconButtonSized(
+                                                height: 24,
+                                                width: 24,
+                                                onTap: () {
+                                                  Clipboard.setData(ClipboardData(text: ServerProvider.serverUrl));
+                                                  displayCopiedToClipboard();
+                                                },
+                                                icon: Icon(FluentIcons.copy_16_filled),
+                                                tooltip: 'Copy to clipboard',
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                        style: theme.typography.body?.copyWith(
+                                          color: isDarkMode
+                                              ? Colors.white.withOpacity(0.7)
+                                              : Colors.black.withOpacity(0.7),
+                                        ),
                                       ),
                                     ),
-                                    SqueareIconButtonSized(
-                                      height: 24,
-                                      width: 24,
-                                      onTap: () {
-                                        Clipboard.setData(ClipboardData(text: ServerProvider.serverUrl));
-                                        displayCopiedToClipboard();
-                                      },
-                                      icon: Icon(FluentIcons.copy_16_filled),
-                                      tooltip: 'Copy to clipboard',
-                                    )
                                   ],
                                 ),
                               ),
@@ -449,6 +460,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                         /// if exists then it is a local model
                         bool isHfModel = !file.existsSync();
                         final res = await ServerProvider.startLlamaServer(
+                          context: context,
                           modelPath: isHfModel ? null : ServerProvider.modelPath,
                           hfModelPath: isHfModel ? ServerProvider.modelPath : null,
                           ctxSize: serverProvider.ctxSize,
@@ -496,14 +508,13 @@ class _LocalServerPageState extends State<LocalServerPage> {
                   ),
                   SizedBox(
                     width: 100,
-                    child: NumberFormBox<num>(
-                      initialValue: (AppCache.autoStopServerAfter.value ?? 10).toString(),
-                      allowExpressions: false,
+                    child: NumberBox(
+                      value: AppCache.autoStopServerAfter.value,
                       clearButton: false,
                       min: 1,
-                      precision: 0,
                       onChanged: (value) {
-                        final parsed = value?.toInt() ?? 1;
+                        final val = value?.toString();
+                        final parsed = int.tryParse(val ?? '10');
                         ServerProvider.autoStopServerValueChanged(parsed);
                         setState(() {});
                       },

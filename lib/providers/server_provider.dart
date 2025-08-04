@@ -5,9 +5,13 @@ import 'dart:io';
 import 'package:file/local.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart' as fluentlog;
+import 'package:fluent_gpt/providers/server_provider_mixin.dart';
+import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class ServerProvider extends ChangeNotifier {
   /// Hugging face model path or local model path
@@ -54,7 +58,8 @@ class ServerProvider extends ChangeNotifier {
   static String getServerPath() {
     var fs = const LocalFileSystem();
     final currentDir = fs.currentDirectory.path;
-    return '$currentDir\\plugins\\cpp_build_win\\llama-server.exe';
+    return '$currentDir\\plugins\\${ServerProviderUtil.getPlatformCppBuildDir()}\\${ServerProviderUtil.getPlatformCppExecutable()}'
+        .replaceAll('\\', Platform.pathSeparator);
   }
 
   static void log(String message, {bool logToDebugger = false}) {
@@ -74,6 +79,7 @@ class ServerProvider extends ChangeNotifier {
 
   /// Start the llama server with the specified model
   static Future<bool> startLlamaServer({
+    required BuildContext context,
     String? modelPath,
     String? hfModelPath,
 
@@ -122,6 +128,19 @@ class ServerProvider extends ChangeNotifier {
 
       // Get the absolute path to the cpp_build directory
       final serverPath = getServerPath();
+      if (Platform.isMacOS) {
+        if (AppCache.serverFilesTouched.value != true) {
+          final res = await showDialog(context: context, builder: (context) => ServerTouchFilesPromptDialog());
+          if (res == true) {
+            log('Getting permission to run files');
+            await _touchFiles();
+            AppCache.serverFilesTouched.value = true;
+          } else {
+            log('User did not grant permission to run files');
+            return false;
+          }
+        }
+      }
 
       // Check if server executable exists
       if (!await File(serverPath).exists()) {
@@ -345,5 +364,42 @@ class ServerProvider extends ChangeNotifier {
     _autoStopServerTimer = Timer.periodic(Duration(minutes: AppCache.autoStopServerAfter.value ?? 10), (timer) {
       stopLlamaServer();
     });
+  }
+
+  static Future<void> _touchFiles() async {
+    // open privacy and security settings
+    launchUrlString('x-apple.systempreferences:com.apple.preference.security');
+    var fs = const LocalFileSystem();
+    final currentDir = fs.currentDirectory.path;
+    final macosCppDirPath = '$currentDir\\plugins\\${ServerProviderUtil.getPlatformCppBuildDir()}';
+    final dir = Directory(macosCppDirPath.replaceAll('\\', Platform.pathSeparator));
+    if (!await dir.exists()) {
+      throw Exception('Cpp build directory not found: $macosCppDirPath');
+    }
+    final files = dir.listSync();
+    final List<Process> processes = [];
+    final listIgnoredFiles = [
+      'LICENSE',
+      'LICENSE-curl',
+      'LICENSE-httplib',
+      'LICENSE-jsonhpp',
+      'LICENSE-linenoise',
+      'ggml-common.h',
+      'ggml-metal-impl.h',
+      'ggml-metal.metal',
+      '.DS_Store',
+    ];
+    for (var file in files) {
+      if (file is File) {
+        final fileName = file.path.split(Platform.pathSeparator).last;
+        if (listIgnoredFiles.contains(fileName)) {
+          continue;
+        }
+        final process = await Process.start(file.path, ['-h']);
+        processes.add(process);
+        await Future.delayed(const Duration(seconds: 2));
+        process.kill();
+      }
+    }
   }
 }

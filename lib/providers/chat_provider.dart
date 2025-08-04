@@ -3128,6 +3128,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       /// if exists then it is a local model
       bool isHfModel = !file.existsSync();
       final res = await ServerProvider.startLlamaServer(
+        context: context!,
         modelPath: isHfModel ? null : ServerProvider.modelPath,
         hfModelPath: isHfModel ? ServerProvider.modelPath : null,
         ctxSize: 4096,
