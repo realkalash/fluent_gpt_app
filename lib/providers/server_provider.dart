@@ -7,15 +7,13 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart' as fluentlog;
 import 'package:fluent_gpt/providers/server_provider_mixin.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class ServerProvider extends ChangeNotifier {
   /// Hugging face model path or local model path
-  static String modelPath = 'Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q5_K_M';
+  static String modelPath = 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K';
 
   // Server configuration parameters
   int? ctxSize = AppCache.localServerCtxSize.value;

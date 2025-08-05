@@ -84,9 +84,9 @@ class _ModelsListDialog extends State<ModelsListDialog> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (model.imageSupported) Icon(FluentIcons.image_24_filled),
-                    if (model.reasoningSupported) Icon(FluentIcons.brain_sparkle_20_filled),
-                    if (model.toolSupported) Icon(FluentIcons.code_16_filled),
+                    if (model.imageSupported) IconImagesSupported(),
+                    if (model.reasoningSupported) IconReasoningSupported(),
+                    if (model.toolSupported) IconToolsSupported(),
                     Button(
                       child: Text('Select'.tr),
                       onPressed: () async {
@@ -138,6 +138,33 @@ class _ModelsListDialog extends State<ModelsListDialog> {
         ),
       ],
     );
+  }
+}
+
+class IconToolsSupported extends StatelessWidget {
+  const IconToolsSupported({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(FluentIcons.code_16_filled, color: Colors.blue);
+  }
+}
+
+class IconReasoningSupported extends StatelessWidget {
+  const IconReasoningSupported({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(FluentIcons.brain_sparkle_20_filled, color: Colors.green);
+  }
+}
+
+class IconImagesSupported extends StatelessWidget {
+  const IconImagesSupported({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(FluentIcons.image_24_filled, color: Colors.yellow);
   }
 }
 

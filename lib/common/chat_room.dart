@@ -112,7 +112,7 @@ class ChatRoom {
       topk: topk,
       promptBatchSize: promptBatchSize,
       topP: topP,
-      maxTokenLength: maxLength ?? 2048,
+      maxTokenLength: maxLength ?? 4096,
       maxTokensResponseLenght: maxTokensResponseLenght,
       systemMessageTokensCount: systemMessageTokensCount,
       repeatPenalty: repeatPenalty,

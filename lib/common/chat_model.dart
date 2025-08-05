@@ -24,9 +24,9 @@ class ChatModelAi {
     this.uri,
     this.customName = '',
     this.imageSupported = false,
-    this.index = 0,
     this.reasoningSupported = false,
     this.toolSupported = false,
+    this.index = 0,
   });
 
   @override
