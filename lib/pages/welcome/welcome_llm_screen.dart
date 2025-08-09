@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/cities_list.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/llm_model_common.dart';
@@ -124,42 +126,45 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                                 },
                               ),
                               const SizedBox(width: 8),
-                              Button(
-                                child: Text('Use offline model'.tr),
-                                onPressed: () async {
-                                  final model = await showDialog<LlmModelCommon?>(
-                                    context: context,
-                                    builder: (context) => const ChooseHfModelDialog(),
-                                  );
-                                  if (model != null &&
-                                      allModels.value.any(
-                                            (e) =>
-                                                e.modelName == model.modelName &&
-                                                e.ownedBy == OwnedByEnum.localServer.name &&
-                                                e.uri == model.modelUri,
-                                          ) ==
-                                          false) {
-                                    AppCache.localApiModelPath.value = model.modelPath;
-                                    // add model to allModels
-                                    allModels.value = [
-                                      ChatModelAi(
-                                        modelName: model.modelName,
-                                        ownedBy: OwnedByEnum.localServer.name,
-                                        uri: ServerProvider.serverUrl,
-                                        apiKey: '',
-                                        customName: model.modelName,
-                                        imageSupported: model.imageSupported,
-                                        reasoningSupported: model.reasoningSupported,
-                                        toolSupported: model.toolSupported,
-                                        index: 0,
-                                      ),
-                                      ...allModels.value,
-                                    ];
-                                    selectedChatRoom.model = allModels.value.first;
-                                    selectedChatRoomIdStream.add(selectedChatRoom.id);
-                                  }
-                                },
-                              ),
+
+                              /// TODO: add support for linux
+                              if (!Platform.isLinux)
+                                Button(
+                                  child: Text('Use offline model'.tr),
+                                  onPressed: () async {
+                                    final model = await showDialog<LlmModelCommon?>(
+                                      context: context,
+                                      builder: (context) => const ChooseHfModelDialog(),
+                                    );
+                                    if (model != null &&
+                                        allModels.value.any(
+                                              (e) =>
+                                                  e.modelName == model.modelName &&
+                                                  e.ownedBy == OwnedByEnum.localServer.name &&
+                                                  e.uri == model.modelUri,
+                                            ) ==
+                                            false) {
+                                      AppCache.localApiModelPath.value = model.modelPath;
+                                      // add model to allModels
+                                      allModels.value = [
+                                        ChatModelAi(
+                                          modelName: model.modelName,
+                                          ownedBy: OwnedByEnum.localServer.name,
+                                          uri: ServerProvider.serverUrl,
+                                          apiKey: '',
+                                          customName: model.modelName,
+                                          imageSupported: model.imageSupported,
+                                          reasoningSupported: model.reasoningSupported,
+                                          toolSupported: model.toolSupported,
+                                          index: 0,
+                                        ),
+                                        ...allModels.value,
+                                      ];
+                                      selectedChatRoom.model = allModels.value.first;
+                                      selectedChatRoomIdStream.add(selectedChatRoom.id);
+                                    }
+                                  },
+                                ),
                             ],
                           ),
                         ),

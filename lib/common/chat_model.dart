@@ -1,5 +1,7 @@
 // ignore_for_file: constant_identifier_names
 
+import 'dart:io';
+
 import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
@@ -42,10 +44,7 @@ class ChatModelAi {
 
   @override
   int get hashCode {
-    return apiKey.hashCode ^
-        modelName.hashCode ^
-        ownedBy.hashCode ^
-        uri.hashCode;
+    return apiKey.hashCode ^ modelName.hashCode ^ ownedBy.hashCode ^ uri.hashCode;
   }
 
   Widget get modelIcon {
@@ -69,7 +68,8 @@ class ChatModelAi {
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       );
-    } if (ownedBy == OwnedByEnum.localServer.name) {
+    }
+    if (ownedBy == OwnedByEnum.localServer.name) {
       return const Icon(FluentIcons.developer_board_16_regular);
     }
     return const Icon(FluentIcons.chat_24_regular);
@@ -161,8 +161,7 @@ class ChatModelAi {
         return element;
       }
     }
-    return ChatModelProviderBase('Custom', 'http://localhost:1234/v1',
-        ownedBy: OwnedByEnum.custom);
+    return ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom);
   }
 }
 
@@ -172,48 +171,43 @@ class ChatModelProviderBase {
   final OwnedByEnum ownedBy;
   final String? priceUrl;
 
-  const ChatModelProviderBase(this.providerName, this.apiUrl,
-      {this.ownedBy = OwnedByEnum.custom, this.priceUrl});
+  const ChatModelProviderBase(this.providerName, this.apiUrl, {this.ownedBy = OwnedByEnum.custom, this.priceUrl});
 
   // equals
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is ChatModelProviderBase &&
-        other.providerName == providerName &&
-        other.apiUrl == apiUrl;
+    return other is ChatModelProviderBase && other.providerName == providerName && other.apiUrl == apiUrl;
   }
 
   @override
   int get hashCode => providerName.hashCode ^ apiUrl.hashCode;
 
   @override
-  String toString() =>
-      'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
+  String toString() => 'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
 
   static List<ChatModelProviderBase> providersList() => [
-    ChatModelProviderBase(
-      'OpenAI',
-      'https://api.openai.com/v1',
-      ownedBy: OwnedByEnum.openai,
-      priceUrl:
-          'https://help.openai.com/en/articles/7127956-how-much-does-gpt-4-cost',
-    ),
-    ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1',
-        ownedBy: OwnedByEnum.lm_studio),
-    ChatModelProviderBase(
-      'Deepinfra',
-      'https://api.deepinfra.com/v1/openai',
-      ownedBy: OwnedByEnum.deepinfra,
-      priceUrl: 'https://deepinfra.com/pricing',
-    ),
-    // ChatModelProviderBase('Claude', 'https://api.openai.com/v1', OwnedByEnum.claude),
-    // ChatModelProviderBase('Gemini', '', OwnedByEnum.custom, priceUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing'),
-    ChatModelProviderBase('Custom', 'http://localhost:1234/v1',
-        ownedBy: OwnedByEnum.custom),
-    ChatModelProviderBase('Local', ServerProvider.serverUrl, ownedBy: OwnedByEnum.localServer),
-  ];
+        ChatModelProviderBase(
+          'OpenAI',
+          'https://api.openai.com/v1',
+          ownedBy: OwnedByEnum.openai,
+          priceUrl: 'https://help.openai.com/en/articles/7127956-how-much-does-gpt-4-cost',
+        ),
+        ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.lm_studio),
+        ChatModelProviderBase(
+          'Deepinfra',
+          'https://api.deepinfra.com/v1/openai',
+          ownedBy: OwnedByEnum.deepinfra,
+          priceUrl: 'https://deepinfra.com/pricing',
+        ),
+        // ChatModelProviderBase('Claude', 'https://api.openai.com/v1', OwnedByEnum.claude),
+        // ChatModelProviderBase('Gemini', '', OwnedByEnum.custom, priceUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing'),
+        ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom),
+        /// TODO: add support for linux
+        if (!Platform.isLinux)
+          ChatModelProviderBase('Local', ServerProvider.serverUrl, ownedBy: OwnedByEnum.localServer),
+      ];
 }
 
 enum OwnedByEnum {

@@ -3121,6 +3121,8 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   }
 
   Future<bool> autoStartServer() async {
+    /// TODO: add support for linux
+    if (Platform.isLinux) return false;
     if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
       if (ServerProvider.isServerRunning || ServerProvider.modelPath.isEmpty) return false;
       final File file = File(ServerProvider.modelPath);
