@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/dialogs/chat_room_dialog.dart';
 import 'package:fluent_gpt/dialogs/deleted_chats_dialog.dart';
@@ -6,11 +8,13 @@ import 'package:fluent_gpt/dialogs/storage_usage.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/navigation_provider.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
+import 'package:fluent_gpt/pages/local_server_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/link.dart';
 import 'package:window_manager/window_manager.dart';
@@ -68,8 +72,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     Tooltip(
                       message: 'Create new chat'.tr,
                       child: IconButton(
-                          icon: const Icon(FluentIcons.compose_24_regular,
-                              size: 20),
+                          icon: const Icon(FluentIcons.compose_24_regular, size: 20),
                           onPressed: () {
                             final provider = context.read<ChatProvider>();
                             provider.createNewChatRoom();
@@ -78,8 +81,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     Tooltip(
                       message: 'Create folder'.tr,
                       child: IconButton(
-                        icon: const Icon(FluentIcons.folder_add_24_regular,
-                            size: 20),
+                        icon: const Icon(FluentIcons.folder_add_24_regular, size: 20),
                         onPressed: () {
                           final provider = context.read<ChatProvider>();
                           provider.createChatRoomFolder();
@@ -90,28 +92,23 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     Tooltip(
                       message: 'Deleted chats'.tr,
                       child: IconButton(
-                        icon: const Icon(FluentIcons.bin_recycle_24_regular,
-                            size: 20),
+                        icon: const Icon(FluentIcons.bin_recycle_24_regular, size: 20),
                         onPressed: () => DeletedChatsDialog.show(context),
                       ),
                     ),
                     Tooltip(
                       message: 'Storage usage'.tr,
                       child: IconButton(
-                        icon: const Icon(FluentIcons.storage_24_regular,
-                            size: 20),
+                        icon: const Icon(FluentIcons.storage_24_regular, size: 20),
                         onPressed: () => StorageUsage.show(context),
                       ),
                     ),
                     Tooltip(
                       message: 'Refresh from disk'.tr,
                       child: IconButton(
-                        icon: const Icon(FluentIcons.arrow_clockwise_24_regular,
-                            size: 20),
+                        icon: const Icon(FluentIcons.arrow_clockwise_24_regular, size: 20),
                         onPressed: () async {
-                          await Provider.of<ChatProvider>(context,
-                                  listen: false)
-                              .initChatsFromDisk();
+                          await Provider.of<ChatProvider>(context, listen: false).initChatsFromDisk();
                           selectedChatRoomIdStream.add(selectedChatRoomId);
                         },
                       ),
@@ -136,8 +133,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   },
                 ),
               ],
-              autoSuggestBoxReplacement:
-                  const Icon(FluentIcons.search_24_regular),
+              autoSuggestBoxReplacement: const Icon(FluentIcons.search_24_regular),
               footerItems: [
                 PaneItem(
                   key: const ValueKey('/settings'),
@@ -145,8 +141,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   title: Text('Settings'.tr),
                   body: const NewSettingsPage(),
                   onTap: () => Navigator.of(context).push(
-                    FluentPageRoute(
-                        builder: (context) => const NewSettingsPage()),
+                    FluentPageRoute(builder: (context) => const NewSettingsPage()),
                   ),
                 ),
                 PaneItem(
@@ -158,16 +153,16 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                     FluentPageRoute(builder: (context) => const AboutPage()),
                   ),
                 ),
-                // if (kDebugMode)
-                //   PaneItem(
-                //     key: const ValueKey('/local'),
-                //     icon: const Icon(FluentIcons.developer_board_16_filled),
-                //     title: Text('Local'.tr),
-                //     body: const AboutPage(),
-                //     onTap: () => Navigator.of(context).push(
-                //       FluentPageRoute(builder: (context) => const AboutPage()),
-                //     ),
-                //   ),
+                if (Platform.isWindows || Platform.isMacOS)
+                  PaneItem(
+                    key: const ValueKey('/local_server'),
+                    icon: const Icon(FluentIcons.developer_board_16_filled),
+                    title: Text('Local server'.tr),
+                    body: const LocalServerPage(),
+                    onTap: () => Navigator.of(context).push(
+                      FluentPageRoute(builder: (context) => const LocalServerPage()),
+                    ),
+                  ),
                 PaneItem(
                   key: const ValueKey('/log'),
                   icon: const Icon(FluentIcons.bug_24_regular),
@@ -220,17 +215,14 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
   @override
   Widget build(BuildContext context) {
     final maybeBody = InheritedNavigationView.maybeOf(context);
-    final mode = maybeBody?.displayMode ??
-        maybeBody?.pane?.displayMode ??
-        PaneDisplayMode.minimal;
+    final mode = maybeBody?.displayMode ?? maybeBody?.pane?.displayMode ?? PaneDisplayMode.minimal;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (mode != PaneDisplayMode.compact && widget.group.key != '')
           Padding(
             padding: const EdgeInsets.only(top: 8.0, left: 8.0),
-            child:
-                Text(widget.group.key, style: widget.theme.typography.subtitle),
+            child: Text(widget.group.key, style: widget.theme.typography.subtitle),
           ),
         ...List.generate(widget.group.value.length, (i) {
           final chatRoom = widget.group.value[i];
@@ -245,18 +237,12 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                 child: GestureDetector(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: selected
-                          ? widget.theme.accentColor
-                          : widget.theme.cardColor,
-                      border: mode != PaneDisplayMode.open
-                          ? Border.all(color: Colors.white.withAlpha(25))
-                          : null,
+                      color: selected ? widget.theme.accentColor : widget.theme.cardColor,
+                      border: mode != PaneDisplayMode.open ? Border.all(color: Colors.white.withAlpha(25)) : null,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -301,8 +287,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               Expanded(
                                 child: Text(
                                   chatRoom.chatRoomName,
-                                  style: TextStyle(
-                                      overflow: TextOverflow.ellipsis),
+                                  style: TextStyle(overflow: TextOverflow.ellipsis),
                                   maxLines: 2,
                                 ),
                               ),
@@ -310,13 +295,10 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 message: 'Pin/unpin chat'.tr,
                                 child: IconButton(
                                     icon: chatRoom.isPinned
-                                        ? const Icon(FluentIcons.pin_24_filled,
-                                            size: 18)
-                                        : const Icon(FluentIcons.pin_24_regular,
-                                            size: 18),
+                                        ? const Icon(FluentIcons.pin_24_filled, size: 18)
+                                        : const Icon(FluentIcons.pin_24_regular, size: 18),
                                     onPressed: () {
-                                      final provider =
-                                          context.read<ChatProvider>();
+                                      final provider = context.read<ChatProvider>();
                                       if (chatRoom.isPinned)
                                         provider.unpinChatRoom(chatRoom);
                                       else
@@ -343,14 +325,11 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               Tooltip(
                                 message: 'Delete chat'.tr,
                                 child: IconButton(
-                                    icon: Icon(FluentIcons.delete_24_filled,
-                                        color: Colors.red, size: 18),
+                                    icon: Icon(FluentIcons.delete_24_filled, color: Colors.red, size: 18),
                                     onPressed: () {
-                                      final provider =
-                                          context.read<ChatProvider>();
+                                      final provider = context.read<ChatProvider>();
                                       if (widget.parentFolderId != null) {
-                                        provider.moveChatRoomToParentFolder(
-                                            chatRoom);
+                                        provider.moveChatRoomToParentFolder(chatRoom);
                                       } else {
                                         provider.archiveChatRoom(chatRoom);
                                       }
@@ -401,8 +380,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             const SizedBox(height: 4),
                             Divider(),
                             FlyoutListTile(
-                              text:
-                                  Text('Pin/unpin chat'.tr, style: TextStyle()),
+                              text: Text('Pin/unpin chat'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.pin_24_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
@@ -428,8 +406,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             // if root we can create folder
                             if (widget.parentFolderId == null)
                               FlyoutListTile(
-                                text: Text('Create folder'.tr,
-                                    style: TextStyle()),
+                                text: Text('Create folder'.tr, style: TextStyle()),
                                 icon: Icon(FluentIcons.folder_24_filled),
                                 onPressed: () {
                                   final provider = context.read<ChatProvider>();
@@ -442,8 +419,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 },
                               ),
                             FlyoutListTile(
-                              text:
-                                  Text('Move to Folder'.tr, style: TextStyle()),
+                              text: Text('Move to Folder'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.folder_24_filled),
                               onPressed: () {
                                 Navigator.of(context).pop();
@@ -468,8 +444,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text:
-                                  Text('Duplicate chat'.tr, style: TextStyle()),
+                              text: Text('Duplicate chat'.tr, style: TextStyle()),
                               icon: Icon(FluentIcons.document_copy_20_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
@@ -480,10 +455,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text: Text('Delete chat'.tr,
-                                  style: TextStyle(color: Colors.red)),
-                              icon: Icon(FluentIcons.delete_20_filled,
-                                  color: Colors.red),
+                              text: Text('Delete chat'.tr, style: TextStyle(color: Colors.red)),
+                              icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
                               onPressed: () {
                                 final provider = context.read<ChatProvider>();
                                 Navigator.of(context).pop();
@@ -501,9 +474,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                     if (chatRoom.isFolder) {
                       if (mode != PaneDisplayMode.compact) {
                         setState(() {
-                          openedFolderId = openedFolderId == chatRoom.id
-                              ? null
-                              : chatRoom.id;
+                          openedFolderId = openedFolderId == chatRoom.id ? null : chatRoom.id;
                         });
                       } else {
                         // if compact we should show overlay flyout
@@ -526,8 +497,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                   (i) {
                                     final child = chatRoom.children![i];
                                     return FlyoutListTile(
-                                      text: Text(child.chatRoomName,
-                                          style: TextStyle()),
+                                      text: Text(child.chatRoomName, style: TextStyle()),
                                       icon: Icon(FluentIcons.chat_20_regular),
                                       onPressed: () {
                                         provider.selectChatRoom(child);
@@ -565,13 +535,11 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
     return allFolders;
   }
 
-  void _showMoveToFolderMenu(BuildContext context, ChatRoom chatRoom,
-      {String? parentFolderId}) {
+  void _showMoveToFolderMenu(BuildContext context, ChatRoom chatRoom, {String? parentFolderId}) {
     final provider = context.read<ChatProvider>();
     // provider.createChatRoomFolder([chatRoom]);
     // _updateUI();
-    final chatRoomFolders =
-        getChatRoomsFoldersRecursive(chatRooms.values.toList());
+    final chatRoomFolders = getChatRoomsFoldersRecursive(chatRooms.values.toList());
     flyoutController.showFlyout(builder: (ctx) {
       return FlyoutContent(
         constraints: BoxConstraints(maxWidth: 200),

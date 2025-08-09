@@ -1,11 +1,15 @@
+import 'dart:io';
+
 import 'package:fluent_gpt/cities_list.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/llm_model_common.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
-import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/pages/welcome/choose_hf_model_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart'
@@ -83,10 +87,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                   ],
                 ),
               ),
-              const VerticalDivider(
-                color: Colors.white,
-                thickness: 1,
-              ),
+              const VerticalDivider(color: Colors.white, thickness: 1),
               Expanded(
                 flex: 3,
                 child: Card(
@@ -99,28 +100,72 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                       children: [
                         const NerdySelectorDropdown(),
                         ListTile(
-                          title: Text('Add your models'.tr),
+                          title: Text('Choose your AI'.tr),
                           trailing: _ChooseModelButton(),
                         ),
                         const SizedBox(height: 24),
                         Padding(
                           padding: const EdgeInsets.only(left: 8.0),
-                          child: Button(
-                            child: Text('Add'.tr),
-                            onPressed: () async {
-                              final chatProvider = context.read<ChatProvider>();
-                              final isListWasEmpty = allModels.value.isEmpty;
-                              final model = await showDialog<ChatModelAi>(
-                                context: context,
-                                builder: (context) => const AddAiModelDialog(),
-                              );
-                              if (model != null) {
-                                await chatProvider.addNewCustomModel(model);
-                                if (isListWasEmpty) {
-                                  chatProvider.selectNewModel(model);
-                                }
-                              }
-                            },
+                          child: Row(
+                            children: [
+                              Button(
+                                child: Text('Add new AI'.tr),
+                                onPressed: () async {
+                                  final chatProvider = context.read<ChatProvider>();
+                                  final isListWasEmpty = allModels.value.isEmpty;
+                                  final model = await showDialog<ChatModelAi>(
+                                    context: context,
+                                    builder: (context) => const AddAiModelDialog(),
+                                  );
+                                  if (model != null) {
+                                    await chatProvider.addNewCustomModel(model);
+                                    if (isListWasEmpty) {
+                                      chatProvider.selectNewModel(model);
+                                    }
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+
+                              /// TODO: add support for linux
+                              if (!Platform.isLinux)
+                                Button(
+                                  child: Text('Use offline model'.tr),
+                                  onPressed: () async {
+                                    final model = await showDialog<LlmModelCommon?>(
+                                      context: context,
+                                      builder: (context) => const ChooseHfModelDialog(),
+                                    );
+                                    if (model != null &&
+                                        allModels.value.any(
+                                              (e) =>
+                                                  e.modelName == model.modelName &&
+                                                  e.ownedBy == OwnedByEnum.localServer.name &&
+                                                  e.uri == model.modelUri,
+                                            ) ==
+                                            false) {
+                                      AppCache.localApiModelPath.value = model.modelPath;
+                                      // add model to allModels
+                                      allModels.value = [
+                                        ChatModelAi(
+                                          modelName: model.modelName,
+                                          ownedBy: OwnedByEnum.localServer.name,
+                                          uri: ServerProvider.serverUrl,
+                                          apiKey: '',
+                                          customName: model.modelName,
+                                          imageSupported: model.imageSupported,
+                                          reasoningSupported: model.reasoningSupported,
+                                          toolSupported: model.toolSupported,
+                                          index: 0,
+                                        ),
+                                        ...allModels.value,
+                                      ];
+                                      selectedChatRoom.model = allModels.value.first;
+                                      selectedChatRoomIdStream.add(selectedChatRoom.id);
+                                    }
+                                  },
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -274,19 +319,21 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
-    final ChatProvider provider = context.watch<ChatProvider>();
-    if (selectedModel.modelName == 'Unknown' || allModels.value.isEmpty) {
-      return SizedBox.shrink();
-    }
-    return FlyoutTarget(
-      controller: flyoutController,
-      child: ElevatedButton.icon(
-        onPressed: () => openFlyout(context),
-        icon: SizedBox.square(dimension: 24, child: getModelIcon(selectedModel.modelName)),
-        label: Text(selectedModel.modelName),
-      ),
-    );
+    return StreamBuilder(
+        stream: selectedChatRoomIdStream,
+        builder: (context, asyncSnapshot) {
+          if (selectedModel.modelName == 'Unknown' || allModels.value.isEmpty) {
+            return SizedBox.shrink();
+          }
+          return FlyoutTarget(
+            controller: flyoutController,
+            child: ElevatedButton.icon(
+              onPressed: () => openFlyout(context),
+              icon: SizedBox.square(dimension: 24, child: getModelIcon(selectedModel.modelName)),
+              label: Text(selectedModel.modelName),
+            ),
+          );
+        });
   }
 
   void openFlyout(BuildContext context) {

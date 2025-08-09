@@ -96,8 +96,7 @@ class AiLibraryButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(4.0),
       child: Button(
-        style:
-            ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
+        style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
         onPressed: onPressed,
         child: isSmall
             ? const Text('AI', style: TextStyle(color: Colors.white))
@@ -125,8 +124,7 @@ class ImproveTextSparkleButton extends StatefulWidget {
   /// if null [customPromptToImprove] will be used.
   /// You need to use "`{{input}}`" to indicate where the input should be placed.
   final String? customPromptToImprove;
-  static const String promptToImprove =
-      '''You are very smart prompt generator for ChatGPT.
+  static const String promptToImprove = '''You are very smart prompt generator for ChatGPT.
 Do: improve user input to create a better prompt. It should be clear, concise, and comprehendible.
 Don't: write anything except the prompt.
 Optional: You can use  brackets like \${this} to indicate a variable. Example "Act as \${character}". Currently supported variables are: \${input}, \${lang}, but you can create your own.
@@ -134,8 +132,7 @@ User input to improve: """{{input}}"""
 ''';
 
   @override
-  State<ImproveTextSparkleButton> createState() =>
-      _ImproveTextSparkleButtonState();
+  State<ImproveTextSparkleButton> createState() => _ImproveTextSparkleButtonState();
 }
 
 class _ImproveTextSparkleButtonState extends State<ImproveTextSparkleButton> {
@@ -161,9 +158,7 @@ class _ImproveTextSparkleButtonState extends State<ImproveTextSparkleButton> {
             final input = await widget.input();
 
             final improvedText = await provider.retrieveResponseFromPrompt(
-              (widget.customPromptToImprove ??
-                      ImproveTextSparkleButton.promptToImprove)
-                  .replaceAll('{{input}}', input),
+              (widget.customPromptToImprove ?? ImproveTextSparkleButton.promptToImprove).replaceAll('{{input}}', input),
             );
             if (improvedText.isNotEmpty) {
               widget.onTextImproved(improvedText);
@@ -237,6 +232,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
     final controller = FlyoutController();
     return Tooltip(
       message: tooltip,
+      style: const TooltipThemeData(waitDuration: Duration(milliseconds: 100)),
       child: FlyoutTarget(
         controller: controller,
         child: GestureDetector(
@@ -275,8 +271,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(icon, size: 20),
-                if (contextItems.isNotEmpty)
-                  const Icon(FluentIcons.chevron_down_20_regular),
+                if (contextItems.isNotEmpty) const Icon(FluentIcons.chevron_down_20_regular),
               ],
             ),
           ),
@@ -310,6 +305,7 @@ class FlyoutButton extends StatelessWidget {
     final controller = FlyoutController();
     return Tooltip(
       message: tooltip,
+      style: const TooltipThemeData(waitDuration: Duration(milliseconds: 100)),
       child: FlyoutTarget(
         controller: controller,
         child: IconButton(
@@ -334,8 +330,7 @@ class FlyoutButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 20),
-              if (contextItems.isNotEmpty)
-                const Icon(FluentIcons.chevron_down_20_regular),
+              if (contextItems.isNotEmpty) const Icon(FluentIcons.chevron_down_20_regular),
             ],
           ),
         ),

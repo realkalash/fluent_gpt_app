@@ -169,6 +169,14 @@ class AppCache {
   static const useSouceNao = BoolPref("useSouceNao", false);
   static const useYandexImageSearch = BoolPref("useYandexImageSearch", false);
 
+  /* Local server */
+  static const localServerCtxSize = IntPref("localServerCtxSize", 4096);
+  static const localServerPort = IntPref("localServerPort", 1235);
+  static const autoStopServerAfter = IntPref("autoStopServerAfter", 10);
+  static const autoStopServerEnabled = BoolPref("autoStopServerEnabled", true);
+  static const localServerDevice = StringPref("localServerDevice");
+  static const serverFilesTouched = BoolPref("serverFilesTouched", false);
+
   static const List<Pref> settingsToExportList = [
     azureSpeechApiKey,
     azureSpeechRegion,
@@ -200,4 +208,7 @@ class AppCache {
     speechLanguage,
     textToSpeechService,
   ];
+
+
+
 }

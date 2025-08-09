@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:docx_to_text/docx_to_text.dart';
@@ -42,6 +43,7 @@ import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_folders_mixin.dart';
 import 'package:fluent_gpt/providers/chat_utils.dart';
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
@@ -963,9 +965,13 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     }
 
     await processFilesBeforeSendingMessage();
+    updateServerTimer();
 
     if (messageContent.isNotEmpty) isAnswering = true;
     notifyListeners();
+    if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
+      await autoStartServer();
+    }
     final messagesToSend = <ChatMessage>[];
 
     if (includeConversationGlobal) {
@@ -1200,10 +1206,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           }
           // print('function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
-            /// TODO: add more logic here
-            updateChatRoomTimestamp();
             saveToDisk([selectedChatRoom]);
-            notifyListeners();
             onResponseEnd(messageContent, responseId);
             if (functionCallString.isNotEmpty) {
               final lastChar = functionCallString[functionCallString.length - 1];
@@ -1213,8 +1216,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
               }
             }
           } else if (chunk.finishReason == FinishReason.length) {
-            /// Maximum tokens reached
-            saveToDisk([selectedChatRoom]);
             isAnswering = false;
             notifyListeners();
           } else if (chunk.finishReason == FinishReason.toolCalls) {
@@ -1262,6 +1263,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
           ]);
           isAnswering = false;
           notifyListeners();
+          saveToDisk([selectedChatRoom]);
         },
         cancelOnError: true,
         onError: (e, stack) {
@@ -1981,12 +1983,12 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
       displayCopiedToClipboard();
       final newId = DateTime.now().millisecondsSinceEpoch.toString();
       addBotMessageToList(
-        FluentChatMessage.ai(id: newId, content: "```Clipboard\n$textToCopy\n```\n$text"),
+        FluentChatMessage.ai(id: newId, content: "$text\n```Clipboard\n$textToCopy\n```"),
       );
     } else if (toolName == 'auto_open_urls_tool' && AppCache.gptToolAutoOpenUrls.value!) {
       final url = toolArgs['url'];
       final text = toolArgs['responseMessage'];
-      final appendedText = text + '```func\n$url\n```';
+      final appendedText = text + '\n```func\n$url\n```';
       final time = DateTime.now().millisecondsSinceEpoch;
       addBotMessageToList(
         FluentChatMessage.ai(
@@ -2688,9 +2690,10 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     saveChatWithoutMessages(chatRoom);
   }
 
-  Future<void> saveChatWithoutMessages(ChatRoom chatRoom) async {
+  /// Warning! use [chatRoomsPath] only for optimization purposes. Use FileUtils.getChatRoomsPath() to get the path
+  Future<void> saveChatWithoutMessages(ChatRoom chatRoom, {String? chatRoomsPath}) async {
     final chatRoomRaw = chatRoom.toJson();
-    final path = await FileUtils.getChatRoomsPath();
+    final path = chatRoomsPath ?? await FileUtils.getChatRoomsPath();
     await FileUtils.saveFile('$path/${chatRoom.id}.json', jsonEncode(chatRoomRaw));
   }
 
@@ -3109,6 +3112,39 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
         break;
     }
     notifyListeners();
+  }
+
+  void updateServerTimer() {
+    if (AppCache.autoStopServerEnabled.value == true) {
+      ServerProvider.resetAutoStopTimer();
+    }
+  }
+
+  Future<bool> autoStartServer() async {
+    /// TODO: add support for linux
+    if (Platform.isLinux) return false;
+    if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
+      if (ServerProvider.isServerRunning || ServerProvider.modelPath.isEmpty) return false;
+      final File file = File(ServerProvider.modelPath);
+
+      /// if exists then it is a local model
+      bool isHfModel = !file.existsSync();
+      final res = await ServerProvider.startLlamaServer(
+        context: context!,
+        modelPath: isHfModel ? null : ServerProvider.modelPath,
+        hfModelPath: isHfModel ? ServerProvider.modelPath : null,
+        ctxSize: 4096,
+        // nPredict: SelectedModel.nPredict,
+        // flashAttention: serverProvider.flashAttention,
+        // numberOfThreads: serverProvider.numberOfThreads,
+        device: AppCache.localServerDevice.value,
+        // batchSize: serverProvider.batchSize,
+        gpuLayers: 999,
+        // disableLogging: true,
+      );
+      return res;
+    }
+    return false;
   }
 }
 

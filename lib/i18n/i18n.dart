@@ -38,8 +38,10 @@ class I18n {
       'dalleGenerator': 'DALL-E 3',
       'deepinfraGenerator': 'DeepInfra',
       'disable_tools_btn': 'Disable tools',
+      'privacy_download_hf_models': 'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
     },
     'ru': {
+      'privacy_download_hf_models': 'FluentGPT не является создателем, создателем или владельцем любой модели, представленной в программе сообщества. Каждая модель сообщества создается и предоставляется третьими лицами',
       '% overflow. Click here to go to the last visible to AI message':
           '% переполнение. Нажмите здесь, чтобы перейти к последнему видимому ИИ сообщению',
       'Archive this prompt': 'Архивировать этот промпт',
@@ -47,6 +49,7 @@ class I18n {
       'Context menu': 'Контекстное меню',
       'Chat field': 'Поле чата',
       'Add new sub-prompt': 'Добавить новый суб-промпт',
+      'Add new AI': 'Добавить новый ИИ',
       'Sub-prompts': 'Суб-промпты',
       'Archived prompts': 'Архивированные промпты',
       'Add new prompt': 'Добавить новый промпт',
@@ -118,6 +121,7 @@ class I18n {
       'Configure your AI to work as you want':
           'Настройте ваш ИИ так, как вы хотите',
       'Add your models': 'Добавьте свои модели',
+      'Choose your AI': 'Выберите ваш ИИ',
       'Add': 'Добавить',
       'Permissions': 'Разрешения',
       'Granting these permissions ensures all features work seamlessly from the get-go.':
@@ -392,6 +396,7 @@ class I18n {
       'What\'s New': 'Что нового',
     },
     'es': {
+      'privacy_download_hf_models': 'FluentGPT no es el creador, creador o propietario de ningún Modelo presentado en el Programa de Modelos Comunitarios. Cada Modelo Comunitario es creado y proporcionado por terceros',
       'What\'s New': 'Novedades',
       'days ago': 'hace días',
       'Yesterday': 'Ayer',
@@ -505,6 +510,7 @@ class I18n {
       'Configure your AI to work as you want':
           'Configura tu IA para que funcione como quieras',
       'Add your models': 'Añade tus modelos',
+      'Choose your AI': 'Elige tu IA',
       'Add': 'Añadir',
       'Permissions': 'Permisos',
       'Granting these permissions ensures all features work seamlessly from the get-go.':
