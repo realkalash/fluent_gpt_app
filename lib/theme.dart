@@ -41,13 +41,14 @@ class AppTheme extends ChangeNotifier {
     final resolutionWidth = prefs?.getString('resolution')?.split('x')[0];
     final resolutionHeight = prefs?.getString('resolution')?.split('x')[1];
     if (resolutionWidth != null && resolutionHeight != null) {
-      resolution =
-          Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
+      resolution = Size(double.parse(resolutionWidth), double.parse(resolutionHeight));
     }
     currentThemeStyle = ThemeStyle.values.firstWhere(
       (element) => element.name == AppCache.appThemeStyle.value,
       orElse: () => ThemeStyle.dark,
-    ) ;
+    );
+    windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
+    isPinned = AppCache.alwaysOnTop.value!;
   }
 
   Future postInit() async {
@@ -93,8 +94,7 @@ class AppTheme extends ChangeNotifier {
 
   bool get isDark => mode == ThemeMode.dark;
 
-  WindowEffect _windowEffect =
-      Platform.isLinux ? WindowEffect.disabled : WindowEffect.acrylic;
+  WindowEffect _windowEffect = Platform.isLinux ? WindowEffect.disabled : WindowEffect.acrylic;
   WindowEffect get windowEffect => _windowEffect;
 
   /// By default is blue with 5% opacity
@@ -122,11 +122,9 @@ class AppTheme extends ChangeNotifier {
     } else {
       /// if the effect is transperent or blur
       if (isDark) {
-        darkBackgroundColor = defaultDarkBackgroundColor
-            .withAlpha((255 * windowEffectOpacity).round());
+        darkBackgroundColor = defaultDarkBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
       } else {
-        lightBackgroundColor = defaultLightBackgroundColor
-            .withAlpha((255 * windowEffectOpacity).round());
+        lightBackgroundColor = defaultLightBackgroundColor.withAlpha((255 * windowEffectOpacity).round());
       }
     }
     _windowEffect = effect;
@@ -226,11 +224,9 @@ class AppTheme extends ChangeNotifier {
         borderRadius: BorderRadius.circular(8.0),
       );
     } else if (severity == InfoBarSeverity.error) {
-      return BoxDecoration(
-          color: Colors.red, borderRadius: BorderRadius.circular(8.0));
+      return BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8.0));
     }
-    return BoxDecoration(
-        color: Colors.black, borderRadius: BorderRadius.circular(8.0));
+    return BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8.0));
   }
 
   void toggleShowInDock() {
@@ -242,9 +238,7 @@ class AppTheme extends ChangeNotifier {
   void toggleHideTitleBar() {
     AppCache.hideTitleBar.value = !AppCache.hideTitleBar.value!;
     windowManager.setTitleBarStyle(
-      AppCache.hideTitleBar.value!
-          ? TitleBarStyle.hidden
-          : TitleBarStyle.normal,
+      AppCache.hideTitleBar.value! ? TitleBarStyle.hidden : TitleBarStyle.normal,
       windowButtonVisibility: false,
     );
     notifyListeners();
@@ -263,9 +257,7 @@ class AppTheme extends ChangeNotifier {
 }
 
 AccentColor get systemAccentColor {
-  if ((defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.android) &&
-      !kIsWeb) {
+  if ((defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.android) && !kIsWeb) {
     return AccentColor.swatch({
       'darkest': SystemTheme.accentColor.darkest,
       'darker': SystemTheme.accentColor.darker,

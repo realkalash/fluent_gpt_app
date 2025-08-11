@@ -20,12 +20,11 @@ class NativeChannelUtils {
   }
 
   static Future<String?> getSelectedText() async {
-    if (Platform.isLinux) return null;
+    // Skip selected text retrieval for Linux and macOS since accessibility features are disabled
+    if (Platform.isLinux || Platform.isMacOS) return null;
     try {
-      final String? selectedText =
-          await overlayChannel.invokeMethod('getSelectedText');
-      print(
-          '[Dart] Selected text from clipboard: ${selectedText ?? "No text selected"}');
+      final String? selectedText = await overlayChannel.invokeMethod('getSelectedText');
+      print('[Dart] Selected text from clipboard: ${selectedText ?? "No text selected"}');
       if (selectedText == null || selectedText.isEmpty) {
         return null;
       }
@@ -37,7 +36,8 @@ class NativeChannelUtils {
   }
 
   static void showOverlay() async {
-    if (Platform.isLinux) return null;
+    // Skip overlay functionality for Linux and macOS since accessibility features are disabled
+    if (Platform.isLinux || Platform.isMacOS) return;
     try {
       await overlayChannel.invokeMethod('showOverlay');
     } on PlatformException catch (e) {
@@ -46,7 +46,8 @@ class NativeChannelUtils {
   }
 
   static void requestNativePermissions() async {
-    if (Platform.isLinux) return null;
+    // Skip permission requests for Linux and macOS since accessibility features are disabled
+    if (Platform.isLinux || Platform.isMacOS) return;
     try {
       await overlayChannel.invokeMethod('requestNativePermissions');
     } on PlatformException catch (e) {
@@ -55,10 +56,10 @@ class NativeChannelUtils {
   }
 
   static Future<bool> isAccessibilityGranted() async {
-    if (Platform.isLinux) return true;
+    // Always return true for Linux and macOS since we're not using accessibility features
+    if (Platform.isLinux || Platform.isMacOS) return true;
     try {
-      final bool isGranted =
-          await overlayChannel.invokeMethod('isAccessabilityGranted');
+      final bool isGranted = await overlayChannel.invokeMethod('isAccessabilityGranted');
       return isGranted;
     } on PlatformException catch (e) {
       print("Failed to check if accessibility is granted: '${e.message}'.");
@@ -67,7 +68,8 @@ class NativeChannelUtils {
   }
 
   static Future<void> initAccessibility() async {
-    if (Platform.isLinux) return;
+    // Skip accessibility initialization for Linux and macOS since we're not using accessibility features
+    if (Platform.isLinux || Platform.isMacOS) return;
     try {
       await overlayChannel.invokeMethod('initAccessibility');
       print('[Dart] initAccessibility called');
@@ -83,8 +85,7 @@ class NativeChannelUtils {
   static Future<Map<String, num>?> getScreenSize() async {
     if (Platform.isLinux) return null;
     try {
-      final Map<String, num>? screenSize =
-          await overlayChannel.invokeMapMethod('getScreenSize');
+      final Map<String, num>? screenSize = await overlayChannel.invokeMapMethod('getScreenSize');
       return screenSize;
     } on PlatformException catch (e) {
       print("Failed to get screen size: '${e.message}'.");
@@ -96,11 +97,9 @@ class NativeChannelUtils {
   static Future<Offset?> getMousePosition() async {
     if (Platform.isLinux) return null;
     try {
-      final mousePosition =
-          await overlayChannel.invokeMethod('getMousePosition');
+      final mousePosition = await overlayChannel.invokeMethod('getMousePosition');
       return mousePosition != null
-          ? Offset(mousePosition['positionX']!.toDouble(),
-              mousePosition['positionY']!.toDouble())
+          ? Offset(mousePosition['positionX']!.toDouble(), mousePosition['positionY']!.toDouble())
           : null;
     } on PlatformException catch (e) {
       print("Failed to get mouse position: '${e.message}'.");
@@ -112,8 +111,7 @@ class NativeChannelUtils {
   static Future<bool> requestMicrophonePermissions() async {
     if (Platform.isLinux) return true;
     try {
-      final result =
-          await overlayChannel.invokeMethod('requestMicrophonePermissions');
+      final result = await overlayChannel.invokeMethod('requestMicrophonePermissions');
       if (result == true) {
         return true;
       }
@@ -129,9 +127,7 @@ class NativeChannelUtils {
 Future<void> simulateCtrlCKeyPress() async {
   if (Platform.isLinux) return;
   const key = PhysicalKeyboardKey.keyC;
-  final modifiers = Platform.isMacOS
-      ? [ModifierKey.metaModifier]
-      : [ModifierKey.controlModifier];
+  final modifiers = Platform.isMacOS ? [ModifierKey.metaModifier] : [ModifierKey.controlModifier];
   await keyPressSimulator.simulateKeyDown(key, modifiers);
   await keyPressSimulator.simulateKeyUp(key, modifiers);
 }
@@ -140,9 +136,7 @@ Future<void> simulateCtrlCKeyPress() async {
 Future<void> simulateCtrlVKeyPress() async {
   if (Platform.isLinux) return;
   const key = PhysicalKeyboardKey.keyV;
-  final modifiers = Platform.isMacOS
-      ? [ModifierKey.metaModifier]
-      : [ModifierKey.controlModifier];
+  final modifiers = Platform.isMacOS ? [ModifierKey.metaModifier] : [ModifierKey.controlModifier];
   await keyPressSimulator.simulateKeyDown(key, modifiers);
   await keyPressSimulator.simulateKeyUp(key, modifiers);
   log('Simulated Ctrl+V key press');

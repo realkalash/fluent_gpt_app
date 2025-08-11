@@ -43,17 +43,18 @@ class AppDelegate: FlutterAppDelegate {
 
     methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt", binaryMessenger: controller.engine.binaryMessenger)
     
-    // First check if accessibility is already granted without showing prompt
-    if !checkAccessibilityPermissions() {
-      print("[Swift] please allow accessibility API access to this app.")
-      // Only show prompt if permissions are not granted
-      requestAccessibilityPermissions()
-      // open the accessibility settings in macos
-      NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Library/PreferencePanes/Security.prefPane"))
-    }
-
     setupMethodCallHandler()
-    setupEventMonitoring()
+    
+    // TODO: Uncomment when accessibility features are needed
+    // First check if accessibility is already granted without showing prompt
+    // if !checkAccessibilityPermissions() {
+    //   print("[Swift] please allow accessibility API access to this app.")
+    //   // Only show prompt if permissions are not granted
+    //   requestAccessibilityPermissions()
+    //   // open the accessibility settings in macos
+    //   NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Library/PreferencePanes/Security.prefPane"))
+    // }
+    // setupEventMonitoring()
 
     // customTimer.startTimer(interval: 3.0) {
     // print("[Swift] Timer fired")
@@ -70,15 +71,13 @@ class AppDelegate: FlutterAppDelegate {
       case "testResultFromSwift":
         result(["Result from Swift": "Hello from Swift"])
       case "getSelectedText":
-        getSelectedTextOverrideClipboard { selectedText in
-          print("[Swift] Selected text from clipboard: \(selectedText ?? "No text selected")")
-          result(selectedText)
-        }
+        // Return nil since accessibility features are disabled
         result(nil)
       case "showOverlay":
         self.handleShowOverlay(call: call, result: result)
       case "requestNativePermissions":
-        self.requestAccessibilityPermissions()
+        // Accessibility features are disabled, return without requesting permissions
+        print("[Swift] Accessibility features are disabled. Skipping permission request.")
         result(nil)
       case "requestMicrophonePermissions":
         print("[Swift] requestMicrophonePermissions called")
@@ -87,10 +86,12 @@ class AppDelegate: FlutterAppDelegate {
         result(granted)
       }
       case "isAccessabilityGranted":
-        result(self.checkAccessibilityPermissions())
+        // Return false since accessibility features are disabled
+        result(false)
       case "initAccessibility":
-        print("[Swift] initAccessibility called")
-        self.handleInitAccessibility(result: result)
+        print("[Swift] initAccessibility called - accessibility features disabled")
+        // Return that accessibility is not available since features are disabled
+        result(["isAccessible": false])
       case "getScreenSize":
         self.handleGetScreenSize(result: result)
       case "getMousePosition":

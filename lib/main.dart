@@ -45,7 +45,7 @@ const defaultMinimumWindowSize = Size(500, 600);
 Offset mouseLocalPosition = Offset(0, 0);
 Future<void> initWindow() async {
   if (AppCache.frameless.value!) {
-    await windowManager.setAsFrameless();
+    windowManager.setAsFrameless();
   }
   if (AppCache.hideTitleBar.value!) {
     windowManager.setTitleBarStyle(
@@ -54,29 +54,37 @@ Future<void> initWindow() async {
     );
   }
 
-  await windowManager.setTitle('fluent_gpt');
-  await windowManager.setMinimumSize(defaultMinimumWindowSize);
-  await windowManager.show();
+  windowManager.setTitle('fluent_gpt');
+  windowManager.setMinimumSize(defaultMinimumWindowSize);
+  // windowManager.show();
   windowManager.removeListener(AppWindowListener());
-  windowManager.addListener(AppWindowListener());
-  await windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
   final lastWindowWidth = AppCache.windowWidth.value;
   final lastWindowHeight = AppCache.windowHeight.value;
-  if (lastWindowWidth != null && lastWindowHeight != null) {
-    await windowManager.setSize(
-      Size(lastWindowWidth.toDouble(), lastWindowHeight.toDouble()),
-    );
-  }
   final lastWindowX = AppCache.windowX.value;
   final lastWindowY = AppCache.windowY.value;
-  if (lastWindowX != null && lastWindowY != null) {
-    await windowManager.setPosition(
-      Offset(lastWindowX.toDouble(), lastWindowY.toDouble()),
+  if (lastWindowWidth != null && lastWindowHeight != null && lastWindowX != null && lastWindowY != null) {
+    await windowManager.setBounds(
+      null,
+      size: Size(lastWindowWidth.toDouble(), lastWindowHeight.toDouble()),
+      position: Offset(lastWindowX.toDouble(), lastWindowY.toDouble()),
+      animate: false,
     );
+  } else {
+    if (lastWindowWidth != null && lastWindowHeight != null) {
+      await windowManager.setSize(
+        Size(lastWindowWidth.toDouble(), lastWindowHeight.toDouble()),
+      );
+    }
+    if (lastWindowX != null && lastWindowY != null) {
+      await windowManager.setPosition(
+        Offset(lastWindowX.toDouble(), lastWindowY.toDouble()),
+      );
+    }
   }
   if (Platform.isMacOS) {
     await windowManager.setSkipTaskbar(AppCache.showAppInDock.value == false);
   }
+  windowManager.addListener(AppWindowListener());
 }
 
 String appVersion = '-';
