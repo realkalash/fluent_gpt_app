@@ -829,6 +829,9 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
   void initState() {
     super.initState();
     systemPromptController.text = AppCache.globalSystemPrompt.value!;
+    if (systemPromptController.text.isEmpty) {
+      systemPromptController.text = defaultGlobalSystemMessage;
+    }
   }
 
   @override

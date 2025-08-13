@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -27,8 +28,7 @@ class OverlayUI extends StatefulWidget {
   static const _maxWidth = 6 * (50 + 8 + 8);
 
   /// stream to trigger changing chat ui
-  static BehaviorSubject<bool> isChatVisible =
-      BehaviorSubject<bool>.seeded(false);
+  static BehaviorSubject<bool> isChatVisible = BehaviorSubject<bool>.seeded(false);
 
   static Size defaultWindowSize() {
     var elementsLength = 5;
@@ -57,21 +57,28 @@ class OverlayUI extends StatefulWidget {
 
 class _OverlayUIState extends State<OverlayUI> {
   bool isSuperCompact = false;
+  StreamSubscription? _chatVisibilitySubscription;
 
   @override
   void initState() {
     super.initState();
-    OverlayUI.isChatVisible.listen((value) {
-      toggleShowChatUI();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _chatVisibilitySubscription = OverlayUI.isChatVisible.listen((value) {
+        toggleShowChatUI();
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _chatVisibilitySubscription?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final appTheme = context.read<AppTheme>();
-    final backgroundColor = appTheme.isDark
-        ? appTheme.darkBackgroundColor
-        : appTheme.lightBackgroundColor;
+    final backgroundColor = appTheme.isDark ? appTheme.darkBackgroundColor : appTheme.lightBackgroundColor;
     final openWindowIconSize = isSuperCompact ? 20.0 : 30.0;
     return StreamBuilder(
         stream: OverlayUI.isChatVisible,
@@ -106,8 +113,7 @@ class _OverlayUIState extends State<OverlayUI> {
                             ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
-                            icon:
-                                const Icon(Icons.align_horizontal_left_rounded),
+                            icon: const Icon(Icons.align_horizontal_left_rounded),
                             onPressed: _toggleSuperCompactMode,
                           )
                         ],
@@ -129,8 +135,7 @@ class _OverlayUIState extends State<OverlayUI> {
                                 SqueareIconButtonSized(
                                   height: openWindowIconSize,
                                   width: openWindowIconSize,
-                                  onTap: () =>
-                                      OverlayManager.switchToMainWindow(),
+                                  onTap: () => OverlayManager.switchToMainWindow(),
                                   icon: const Icon(FluentIcons.open_20_filled),
                                   tooltip: 'Open main app'.tr,
                                 ),
@@ -149,23 +154,17 @@ class _OverlayUIState extends State<OverlayUI> {
                             if (isSuperCompact == false) ...[
                               ...customPrompts.value
                                   .where((element) => element.showInOverlay)
-                                  .map((prompt) =>
-                                      _buildTextOption(prompt, 'custom')),
+                                  .map((prompt) => _buildTextOption(prompt, 'custom')),
                             ],
-                            if (AppCache.showSettingsInOverlay.value == true &&
-                                isSuperCompact == false)
+                            if (AppCache.showSettingsInOverlay.value == true && isSuperCompact == false)
                               IconButton(
                                 visualDensity: VisualDensity.compact,
-                                icon:
-                                    const Icon(FluentIcons.settings_28_filled),
+                                icon: const Icon(FluentIcons.settings_28_filled),
                                 onPressed: () async {
                                   await OverlayManager.switchToMainWindow();
                                   // ignore: use_build_context_synchronously
-                                  Navigator.of(navigatorKey.currentContext!)
-                                      .push(
-                                    fluent.FluentPageRoute(
-                                        builder: (context) =>
-                                            const NewSettingsPage()),
+                                  Navigator.of(navigatorKey.currentContext!).push(
+                                    fluent.FluentPageRoute(builder: (context) => const NewSettingsPage()),
                                   );
                                 },
                               ),
@@ -239,8 +238,7 @@ class _OverlayUIState extends State<OverlayUI> {
                 child: IconButton(
                   onPressed: () => _showSubPrompts(prompt, context),
                   icon: const Icon(FluentIcons.caret_down_16_filled),
-                  constraints:
-                      const BoxConstraints(maxWidth: 24, maxHeight: 24),
+                  constraints: const BoxConstraints(maxWidth: 24, maxHeight: 24),
                   padding: const EdgeInsets.all(0),
                 ),
               ),
@@ -259,8 +257,7 @@ class _OverlayUIState extends State<OverlayUI> {
         OverlayUI.isChatVisible.add(false);
         isSuperCompact = true;
       });
-      await windowManager.setSize(OverlayUI.superCompactWindowSize,
-          animate: true);
+      await windowManager.setSize(OverlayUI.superCompactWindowSize, animate: true);
       // Delays because of window animations
       await Future.delayed(const Duration(milliseconds: 250));
       // Move position a little to the left to create effect aligning from the right to the left
@@ -285,9 +282,7 @@ class _OverlayUIState extends State<OverlayUI> {
   }
 
   void toggleChatVisibilityStream() {
-    OverlayUI.isChatVisible.value == false
-        ? OverlayUI.isChatVisible.add(true)
-        : OverlayUI.isChatVisible.add(false);
+    OverlayUI.isChatVisible.value == false ? OverlayUI.isChatVisible.add(true) : OverlayUI.isChatVisible.add(false);
   }
 
   bool get isShowChatUI => OverlayUI.isChatVisible.value;
@@ -297,9 +292,7 @@ class _OverlayUIState extends State<OverlayUI> {
     final defaultWindowSize = OverlayUI.defaultWindowSize();
     final resolutionStr = AppCache.resolution.value ?? '500x700';
     final resolutionHeight = double.parse(resolutionStr.split('x')[1]);
-    final currentWidth = isSuperCompact
-        ? OverlayUI.superCompactWindowSize.width
-        : defaultWindowSize.width;
+    final currentWidth = isSuperCompact ? OverlayUI.superCompactWindowSize.width : defaultWindowSize.width;
     final newHeight = isShowChatUI
         ? 400.0
         : isSuperCompact
@@ -315,9 +308,7 @@ class _OverlayUIState extends State<OverlayUI> {
     } else {
       // if near bottom we should move the window down
       if (currentPosition.dy >= resolutionHeight - windowSize.height) {
-        await windowManager.setPosition(
-            Offset(currentPosition.dx, currentPosition.dy + 350),
-            animate: true);
+        await windowManager.setPosition(Offset(currentPosition.dx, currentPosition.dy + 350), animate: true);
       }
     }
     await Future.delayed(const Duration(milliseconds: 300));
@@ -354,8 +345,7 @@ class _OverlayUIState extends State<OverlayUI> {
                   onPressed: () async {
                     final clipboard = await Clipboard.getData('text/plain');
                     final selectedText = clipboard?.text;
-                    if (selectedText != null &&
-                        selectedText.trim().isNotEmpty) {
+                    if (selectedText != null && selectedText.trim().isNotEmpty) {
                       _onButtonTap(child.getPromptText(selectedText), 'custom');
                       // ignore: use_build_context_synchronously
                       Navigator.of(context).pop();
@@ -396,9 +386,8 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                 builder: (context, snapshot) {
                   final reverseList = messagesReversedList;
                   if (reverseList.isEmpty) {
-                    final randWelcome = OverlayManager.welcomesForEmptyList[
-                        Random().nextInt(
-                            OverlayManager.welcomesForEmptyList.length)];
+                    final randWelcome = OverlayManager
+                        .welcomesForEmptyList[Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
                     return Center(
                       child: TextAnimator(
                         randWelcome,

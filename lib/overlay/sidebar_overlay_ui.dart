@@ -66,12 +66,21 @@ class SidebarOverlayUI extends StatefulWidget {
 }
 
 class _OverlayUIState extends State<SidebarOverlayUI> {
+  StreamSubscription? _chatVisibilitySubscription;
   @override
   void initState() {
     super.initState();
-    SidebarOverlayUI.isChatVisible.listen((value) {
-      toggleShowChatUI();
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _chatVisibilitySubscription = SidebarOverlayUI.isChatVisible.listen((value) {
+        toggleShowChatUI();
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _chatVisibilitySubscription?.cancel();
+    super.dispose();
   }
 
   @override

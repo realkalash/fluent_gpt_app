@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
@@ -17,48 +18,54 @@ class AppWindowListener extends WindowListener {
   }
 
   AppWindowListener._internal();
+  final resizeDebounce = Debouncer(milliseconds: 100);
+  final moveDebounce = Debouncer(milliseconds: 100);
 
   @override
   Future<void> onWindowMoved() async {
-    if (overlayVisibility.value.isEnabled) {
-      return;
-    }
-    if (windowVisibilityStream.value == false) {
-      return;
-    }
-    final offset = await windowManager.getPosition();
-    if (overlayVisibility.value.isEnabled) {
-      return;
-    }
-    if (windowVisibilityStream.value == false) {
-      return;
-    }
-    log('Window moved. Position: $offset');
-    AppCache.windowX.set(offset.dx.toInt());
-    AppCache.windowY.set(offset.dy.toInt());
+    moveDebounce.run(() async {
+      if (overlayVisibility.value.isEnabled) {
+        return;
+      }
+      if (windowVisibilityStream.value == false) {
+        return;
+      }
+      final offset = await windowManager.getPosition();
+      if (overlayVisibility.value.isEnabled) {
+        return;
+      }
+      if (windowVisibilityStream.value == false) {
+        return;
+      }
+      log('Window moved. Position: $offset');
+      AppCache.windowX.set(offset.dx.toInt());
+      AppCache.windowY.set(offset.dy.toInt());
+    });
   }
 
   @override
   Future<void> onWindowResized() async {
-    if (overlayVisibility.value.isEnabled) {
-      return;
-    }
-    if (windowVisibilityStream.value == false) {
-      return;
-    }
-    final size = await windowManager.getSize();
-    if (overlayVisibility.value.isEnabled) {
-      return;
-    }
-    if (windowVisibilityStream.value == false) {
-      return;
-    }
-    log('Window resized. Size: $size');
-    if (size.width < defaultMinimumWindowSize.width || size.height < defaultMinimumWindowSize.height) {
-      return;
-    }
-    AppCache.windowWidth.set(size.width.toInt());
-    AppCache.windowHeight.set(size.height.toInt());
+    resizeDebounce.run(() async {
+      if (overlayVisibility.value.isEnabled) {
+        return;
+      }
+      if (windowVisibilityStream.value == false) {
+        return;
+      }
+      final size = await windowManager.getSize();
+      if (overlayVisibility.value.isEnabled) {
+        return;
+      }
+      if (windowVisibilityStream.value == false) {
+        return;
+      }
+      log('Window resized. Size: $size');
+      if (size.width < defaultMinimumWindowSize.width || size.height < defaultMinimumWindowSize.height) {
+        return;
+      }
+      AppCache.windowWidth.set(size.width.toInt());
+      AppCache.windowHeight.set(size.height.toInt());
+    });
   }
 
   // @override

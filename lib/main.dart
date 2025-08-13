@@ -357,6 +357,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
           },
           child: StreamBuilder<OverlayStatus>(
               stream: overlayVisibility,
+              initialData: overlayVisibility.value,
               builder: (context, snapshot) {
                 if (snapshot.data?.isShowingOverlay == true) {
                   return const OverlayUI();

@@ -29,10 +29,7 @@ AppTrayListener appTrayListener = AppTrayListener();
 final List<MenuItem> trayMenuFooterItems = [
   MenuItem(label: 'Show', onClick: (_) => showWindow()),
   MenuItem(label: 'Hide', onClick: (_) => windowManager.hide()),
-  MenuItem(
-      label: 'Exit',
-      onClick: (_) =>
-          Platform.isMacOS ? windowManager.destroy() : windowManager.close()),
+  MenuItem(label: 'Exit', onClick: (_) => Platform.isMacOS ? windowManager.destroy() : windowManager.close()),
 ];
 
 final List<MenuItem> trayMenuItems = [];
@@ -73,8 +70,7 @@ Future<void> initTrayMenuItems() async {
       submenu: Menu(items: [
         MenuItem(
           label: 'Search by Image SauceNao (Clipboard)',
-          toolTip:
-              'The image will be uploaded to Imgur and searched on SauceNao',
+          toolTip: 'The image will be uploaded to Imgur and searched on SauceNao',
           icon: 'assets/saucenao_favicon.png',
           onClick: (menuItem) async {
             if (ImgurIntegration.isClientIdValid() == false) {
@@ -110,7 +106,7 @@ Future<void> initTrayMenuItems() async {
 }
 
 @Deprecated('Use onTrayButtonTapCommand instead')
-onTrayButtonTap(String item) {
+void onTrayButtonTap(String item) {
   trayButtonStream.add(item);
   showWindow();
 }
@@ -118,8 +114,7 @@ onTrayButtonTap(String item) {
 /// You can use [TrayCommand] enum to send commands to the app.
 ///
 /// Example: `onTrayButtonTapCommand('Hello World', TrayCommand.paste.name);`
-Future<void> onTrayButtonTapCommand(String promptText,
-    [String? command, Map<String, dynamic>? data]) async {
+Future<void> onTrayButtonTapCommand(String promptText, [String? command, Map<String, dynamic>? data]) async {
   /// generate a command with prompt uri
   const urlScheme = 'fluentgpt';
   final uri = Uri(scheme: urlScheme, path: '///', queryParameters: {
@@ -214,8 +209,7 @@ Future<void> initShortcuts() async {
   await hotKeyManager.register(
     openSearchOverlayHotkey,
     keyDownHandler: (hotKey) async {
-      final isAppVisible = await windowManager.isVisible() &&
-          overlayVisibility.value.isShowingSearchOverlay;
+      final isAppVisible = await windowManager.isVisible() && overlayVisibility.value.isShowingSearchOverlay;
       if (isAppVisible) {
         await hideWindow();
       } else {
@@ -278,8 +272,7 @@ Future<void> initCachedHotKeys() async {
         if (_isHotKeyRegistering) return;
         _isHotKeyRegistering = true;
 
-        final isAppVisible =
-            await windowManager.isVisible() && await windowManager.isVisible();
+        final isAppVisible = await windowManager.isVisible() && await windowManager.isVisible();
         final isInputFieldFocused = promptTextFocusNode.hasFocus;
         if (isAppVisible && isInputFieldFocused) {
           promptTextFocusNode.unfocus();
@@ -442,17 +435,17 @@ class AppTrayListener extends TrayListener {
         // overlayVisibility.add(OverlayStatus.disabled);
       } else {
         final cursorPos = await NativeChannelUtils.getMousePosition();
-        await showWindow();
+        showWindow();
+        overlayVisibility.add(OverlayStatus.enabled);
+        OverlayUI.isChatVisible.add(true);
         if (cursorPos != null) {
           final screen = await NativeChannelUtils.getScreenSize();
-          // dy is 961 instead of 38. We need to calc based on the height of the window
-          OverlayUI.isChatVisible.add(true);
-          overlayVisibility.add(OverlayStatus.enabled);
+
           final height = screen?['height'] ?? 720;
           final modifCursorPos = Offset(cursorPos.dx, cursorPos.dy - height);
           await windowManager.setPosition(modifCursorPos, animate: false);
 
-          /// because focus node is linked to both widgets we need to unfocus from the old one
+          /// because focus node is linked to both textinput widgets we need to unfocus from the old one
           promptTextFocusNode.unfocus();
           await Future.delayed(const Duration(milliseconds: 100));
           promptTextFocusNode.requestFocus();
