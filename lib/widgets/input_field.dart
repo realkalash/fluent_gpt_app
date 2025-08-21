@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:cross_file/cross_file.dart';
-import 'package:fluent_gpt/common/attachment.dart';
+
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -28,12 +28,14 @@ import 'package:fluent_gpt/pages/settings_page.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/custom_list_tile.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 // ignore: unused_import
@@ -48,6 +50,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import '../providers/chat_provider.dart';
+import '../utils/custom_spellcheck_service.dart';
 
 final promptTextFocusNode = FocusNode();
 
@@ -436,6 +439,13 @@ class _InputFieldState extends State<InputField> {
                   expands: false,
                   minLines: 2,
                   maxLines: 30,
+                  spellCheckConfiguration: chatProvider.spellCheck != null
+                      ? SpellCheckConfiguration(
+                          spellCheckService: CustomSpellCheckService(
+                            spellCheck: chatProvider.spellCheck!,
+                          ),
+                        )
+                      : null,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) => onSubmit(value, chatProvider),
                   placeholder: 'Use "/" or type your message here'.tr,
@@ -455,11 +465,12 @@ class _InputFieldState extends State<InputField> {
                         child: TextBox(
                           autofocus: true,
                           focusNode: promptTextFocusNode,
-                          prefixMode: OverlayVisibilityMode.always,
+                          // prefixMode: OverlayVisibilityMode.always,
                           controller: chatProvider.messageController,
                           minLines: 3,
                           maxLines: 30,
                           onChanged: (_) => countTokensInInputField(),
+                          contextMenuBuilder: ContextMenuBuilders.spellCheckContextMenuBuilder,
                           suffix: Row(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -522,6 +533,19 @@ class _InputFieldState extends State<InputField> {
                               ],
                             ),
                           ),
+                          spellCheckConfiguration: chatProvider.spellCheck != null
+                              ? SpellCheckConfiguration(
+                                  spellCheckService: CustomSpellCheckService(
+                                    spellCheck: chatProvider.spellCheck!,
+                                  ),
+                                  misspelledTextStyle: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.red,
+                                    decorationStyle: TextDecorationStyle.wavy,
+                                    decorationThickness: 1.75,
+                                  ),
+                                )
+                              : null,
                           textInputAction: TextInputAction.done,
                           onSubmitted: (value) => onSubmit(value, chatProvider),
                           placeholder: 'Use "/" or type your message here'.tr,

@@ -48,6 +48,7 @@ import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
+
 import 'package:fluent_gpt/widgets/command_request_answer_overlay.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/input_field.dart';
@@ -64,12 +65,32 @@ import 'package:record/record.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:collection/collection.dart';
+import 'package:spell_check_on_client/spell_check_on_client.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+// import 'package:simple_spell_checker/simple_spell_checker.dart' as spell_checker;
 
 import '../common/last_deleted_message.dart';
 
 class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
+  ChatProvider() {
+    init();
+    listenTray();
+
+    // spellChecker = spell_checker.SimpleSpellChecker(
+    //   language: AppCache.locale.value ?? 'en',
+    //   whiteList: <String>[],
+    //   caseSensitive: false,
+    // );
+    // messageControllerGlobal = SpellCheckerController(spellchecker: spellChecker);
+    // messageControllerGlobal = TextEditingController();
+    initSpellCheck();
+    _messageTextSize = AppCache.messageTextSize.value ?? 14;
+    selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
+  }
+
   final listItemsScrollController = AutoScrollController();
+  // late spell_checker.SimpleSpellChecker spellChecker;
+
   static final TextEditingController messageControllerGlobal = TextEditingController();
   TextEditingController get messageController => ChatProvider.messageControllerGlobal;
   late AgentGetMessageActions agentMessageActions;
@@ -95,6 +116,13 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   void closeQuickOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
+  }
+
+  SpellCheck? spellCheck;
+  Future<void> initSpellCheck() async {
+    String language = 'en';
+    String content = await rootBundle.loadString('assets/spellcheck/${language}_words.txt');
+    spellCheck = SpellCheck.fromWordsContent(content, letters: LanguageLetters.getLanguageForLanguage(language));
   }
 
   Future<void> sendToQuickOverlay(String title, String prompt) async {
@@ -150,13 +178,6 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     autoScrollSpeed = v;
     AppCache.autoScrollSpeed.set(v);
     notifyListeners();
-  }
-
-  ChatProvider() {
-    _messageTextSize = AppCache.messageTextSize.value ?? 14;
-    selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
-    init();
-    listenTray();
   }
 
   Future<void> init() async {
