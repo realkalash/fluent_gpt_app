@@ -1,14 +1,56 @@
 import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, SelectableRegion;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
+import 'package:provider/provider.dart';
 
 class ContextMenuBuilders {
   static String? previousClipboardData;
   static String selectedText = '';
 
-  static Widget defaultContextMenuBuilder(
-      BuildContext context, EditableTextState editableTextState) {
+  static Widget spellCheckContextMenuBuilder(BuildContext context, EditableTextState editableTextState) {
+    final chatProvider = context.read<ChatProvider>();
+    final undoController = editableTextState.widget.undoController;
+    final correctSpell = chatProvider.spellCheck?.isCorrect(editableTextState.textEditingValue.text);
+    Map<String, String> listSuggestions = {};
+    List<String> words = [];
+    if (correctSpell == false) {
+      words = editableTextState.textEditingValue.text.split(' ');
+      for (var word in words) {
+        /// replace all special characters + space + new line + tab + etc + , . : ;
+        final cleanWord = word.replaceAll(RegExp(r'[^\w\s]'), '');
+        final String correctWord = chatProvider.spellCheck!.didYouMean(cleanWord);
+        if (correctWord != cleanWord && correctWord.isNotEmpty) {
+          listSuggestions[word] = correctWord;
+        }
+      }
+    }
+
+    return FluentTextSelectionToolbar(
+      buttonItems: [
+        if (correctSpell == false)
+          ...listSuggestions.entries.map((entry) => ContextMenuButtonItem(
+                label: entry.value,
+                onPressed: () {
+                  editableTextState.hideToolbar(false);
+                  final text = editableTextState.textEditingValue.text;
+                  final newText = text.replaceAll(entry.key, entry.value);
+                  editableTextState.userUpdateTextEditingValue(
+                      TextEditingValue(text: newText), SelectionChangedCause.toolbar);
+                },
+              )),
+        ...editableTextState.contextMenuButtonItems,
+        if (undoController != null)
+          UndoContextMenuButtonItem(
+            onPressed: () => undoController.undo(),
+          ),
+      ],
+      anchors: editableTextState.contextMenuAnchors,
+    );
+  }
+
+  static Widget defaultContextMenuBuilder(BuildContext context, EditableTextState editableTextState) {
     return AdaptiveTextSelectionToolbar.editableText(
       editableTextState: editableTextState,
     );
@@ -24,8 +66,7 @@ class ContextMenuBuilders {
   }) {
     final anchor = editableTextState.contextMenuAnchors.primaryAnchor;
     final fullText = editableTextState.textEditingValue.text;
-    selectedText =
-        editableTextState.textEditingValue.selection.textInside(fullText);
+    selectedText = editableTextState.textEditingValue.selection.textInside(fullText);
 
     return Stack(
       children: [
@@ -45,8 +86,7 @@ class ContextMenuBuilders {
                     icon: Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
-                      editableTextState
-                          .copySelection(SelectionChangedCause.tap);
+                      editableTextState.copySelection(SelectionChangedCause.tap);
                       editableTextState.hideToolbar();
                     },
                   ),
@@ -64,8 +104,7 @@ class ContextMenuBuilders {
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('${'Improve'.tr} "$selectedText"',
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    text: Text('${'Improve'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
                       onImproveSelectedText(selectedText);
@@ -74,8 +113,7 @@ class ContextMenuBuilders {
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('${'Quote'.tr} "$selectedText"',
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    text: Text('${'Quote'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
                       onQuoteSelectedText(selectedText);
@@ -116,10 +154,8 @@ class ContextMenuBuilders {
     );
   }
 
-  static void _updateSelectedText(
-      EditableTextState editableTextState, String fullText) {
-    editableTextState.userUpdateTextEditingValue(
-        TextEditingValue(text: fullText), SelectionChangedCause.toolbar);
+  static void _updateSelectedText(EditableTextState editableTextState, String fullText) {
+    editableTextState.userUpdateTextEditingValue(TextEditingValue(text: fullText), SelectionChangedCause.toolbar);
   }
 
   static Widget markdownChatMessageContextMenuBuilder(
@@ -132,8 +168,7 @@ class ContextMenuBuilders {
     required void Function(String text) onQuoteSelectedText,
   }) {
     final anchor = editableTextState.contextMenuAnchors.primaryAnchor;
-    selectedText =
-        editableTextState.currentSelectable?.getSelectedContent()?.plainText ?? '';
+    selectedText = editableTextState.currentSelectable?.getSelectedContent()?.plainText ?? '';
     return Stack(
       fit: StackFit.passthrough,
       children: [
@@ -153,8 +188,7 @@ class ContextMenuBuilders {
                     icon: Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
-                      editableTextState
-                          .copySelection(SelectionChangedCause.tap);
+                      editableTextState.copySelection(SelectionChangedCause.tap);
                       editableTextState.hideToolbar();
                     },
                   ),
@@ -172,8 +206,7 @@ class ContextMenuBuilders {
                     child: Divider(),
                   ),
                   FlyoutListTile(
-                    text: Text('${'Improve'.tr} "$selectedText"',
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    text: Text('${'Improve'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
                       onImproveSelectedText(selectedText);
@@ -182,8 +215,7 @@ class ContextMenuBuilders {
                     },
                   ),
                   FlyoutListTile(
-                    text: Text('${'Quote'.tr} "$selectedText"',
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    text: Text('${'Quote'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
                     icon: Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
                       onQuoteSelectedText(selectedText);
@@ -284,7 +316,5 @@ class ContextMenuBuilders {
     //     ]);
     //   },
     // );
-
-    
   }
 }

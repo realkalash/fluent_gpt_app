@@ -1689,6 +1689,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.1"
+  spell_check_on_client:
+    dependency: "direct main"
+    description:
+      name: spell_check_on_client
+      sha256: "8a3182eee5483918ceada47fc55d6b69b263c944d60e44487ac486b5d910da39"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   sprintf:
     dependency: transitive
     description:

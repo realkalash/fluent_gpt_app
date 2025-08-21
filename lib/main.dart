@@ -30,6 +30,8 @@ import 'package:protocol_handler/protocol_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:simple_spell_checker_en_lan/simple_spell_checker_en_lan.dart';
+// import 'package:simple_spell_checker_ru_lan/simple_spell_checker_ru_lan.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:window_manager/window_manager.dart';
 import 'navigation_provider.dart';
@@ -114,7 +116,8 @@ void setupMethodChannel() {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  WidgetsFlutterBinding.ensureInitialized();
+  // SimpleSpellCheckerRuRegister.registerLan();
+  // SimpleSpellCheckerEnRegister.registerLan();
   await windowManager.ensureInitialized();
 
   if (await FlutterSingleInstance().isFirstInstance() == false) {

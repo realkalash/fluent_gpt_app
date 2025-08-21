@@ -11,6 +11,8 @@ import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/utils/custom_spellcheck_service.dart';
+import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/wiget_constants.dart';
@@ -45,9 +47,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
       tokensInMessage = 0;
       return;
     }
-    final tokens = await context
-        .read<ChatProvider>()
-        .countTokensString(systemMessageContr.text);
+    final tokens = await context.read<ChatProvider>().countTokensString(systemMessageContr.text);
     setState(() {
       tokensInMessage = tokens;
     });
@@ -61,7 +61,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
 
   @override
   Widget build(BuildContext context) {
-    // final provider = context.read<ChatProvider>();
+    final chatProvider = context.read<ChatProvider>();
 
     return StreamBuilder<Object>(
         stream: selectedChatRoomIdStream,
@@ -80,8 +80,8 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
                         onTap: () async {
-                          final result = await FilePicker.platform.pickFiles(
-                              type: FileType.image, allowMultiple: false);
+                          final result =
+                              await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
                           if (result == null) return;
                           final path = result.files.single.path;
                           setState(() {
@@ -97,21 +97,18 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                 clipBehavior: Clip.antiAlias,
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                    color:
-                                        context.theme.scaffoldBackgroundColor,
+                                    color: context.theme.scaffoldBackgroundColor,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child:
-                                    selectedChatRoom.characterAvatarPath == null
-                                        ? const SizedBox.shrink()
-                                        : Image.file(
-                                            File(selectedChatRoom
-                                                .characterAvatarPath!),
-                                            fit: BoxFit.cover,
-                                            alignment: Alignment.center,
-                                            isAntiAlias: true,
-                                          ),
+                                child: selectedChatRoom.characterAvatarPath == null
+                                    ? const SizedBox.shrink()
+                                    : Image.file(
+                                        File(selectedChatRoom.characterAvatarPath!),
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.center,
+                                        isAntiAlias: true,
+                                      ),
                               ),
                               if (selectedChatRoom.characterAvatarPath == null)
                                 Icon(FluentIcons.camera_20_regular)
@@ -132,8 +129,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                   child: GestureDetector(
                                     onTap: () {
                                       setState(() {
-                                        selectedChatRoom.characterAvatarPath =
-                                            null;
+                                        selectedChatRoom.characterAvatarPath = null;
                                       });
                                     },
                                     child: Container(
@@ -142,8 +138,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                         shape: BoxShape.circle,
                                       ),
                                       padding: const EdgeInsets.all(2.0),
-                                      child: Icon(FluentIcons.delete_20_regular,
-                                          size: 16),
+                                      child: Icon(FluentIcons.delete_20_regular, size: 16),
                                     ),
                                   ),
                                 ),
@@ -167,8 +162,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                               children: [
                                 Expanded(
                                   child: TextBox(
-                                    controller: TextEditingController(
-                                        text: selectedChatRoom.chatRoomName),
+                                    controller: TextEditingController(text: selectedChatRoom.chatRoomName),
                                     onChanged: (value) {
                                       selectedChatRoom.chatRoomName = value;
                                       saveChatRoom();
@@ -179,8 +173,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                             ),
                             const Text('Character name'),
                             TextBox(
-                              controller: TextEditingController(
-                                  text: selectedChatRoom.characterName),
+                              controller: TextEditingController(text: selectedChatRoom.characterName),
                               maxLines: 1,
                               onChanged: (value) {
                                 selectedChatRoom.characterName = value;
@@ -204,12 +197,9 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   Spacer(),
                   SqueareIconButton(
                     onTap: () async {
-                      final currentStrippedPrompt =
-                          (systemMessageContr.text).isEmpty
-                              ? defaultGlobalSystemMessage
-                              : systemMessageContr.text
-                                  .split(contextualInfoDelimeter)
-                                  .first;
+                      final currentStrippedPrompt = (systemMessageContr.text).isEmpty
+                          ? defaultGlobalSystemMessage
+                          : systemMessageContr.text.split(contextualInfoDelimeter).first;
                       final newPrompt = await getFormattedSystemPrompt(
                         basicPrompt: currentStrippedPrompt,
                       );
@@ -237,6 +227,21 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                 controller: systemMessageContr,
                 maxLines: _expandSystemMessage ? 40 : 15,
                 minLines: 3,
+                contextMenuBuilder: ContextMenuBuilders.spellCheckContextMenuBuilder,
+                spellCheckConfiguration: chatProvider.spellCheck != null
+                    ? SpellCheckConfiguration(
+                        spellCheckService: CustomSpellCheckService(
+                          spellCheck: chatProvider.spellCheck!,
+                        ),
+                        misspelledSelectionColor: Colors.red,
+                        misspelledTextStyle: TextStyle(
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.red,
+                          decorationStyle: TextDecorationStyle.wavy,
+                          decorationThickness: 1.75,
+                        ),
+                      )
+                    : null,
                 onChanged: (value) {
                   debouncer.run(() {
                     countTokens();
@@ -265,15 +270,11 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   children: [
                     Text('Max tokens to include'.tr),
                     Tooltip(
-                      message:
-                          "The maximum length of tokens to be sent to the model",
+                      message: "The maximum length of tokens to be sent to the model",
                       child: TextBox(
-                        controller: TextEditingController(
-                            text: '${selectedChatRoom.maxTokenLength}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.maxTokenLength}'),
                         onChanged: (value) {
-                          selectedChatRoom.maxTokenLength =
-                              int.tryParse(value) ??
-                                  selectedChatRoom.maxTokenLength;
+                          selectedChatRoom.maxTokenLength = int.tryParse(value) ?? selectedChatRoom.maxTokenLength;
                           saveChatRoom();
                         },
                         onEditingComplete: () => setState(() {}),
@@ -281,13 +282,10 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                       ),
                     ),
                     Slider(
-                      value: selectedChatRoom.maxTokenLength < 0.0
-                          ? 0.0
-                          : selectedChatRoom.maxTokenLength.toDouble(),
+                      value: selectedChatRoom.maxTokenLength < 0.0 ? 0.0 : selectedChatRoom.maxTokenLength.toDouble(),
                       onChanged: (value) {
                         setState(() {
-                          selectedChatRoom.maxTokenLength =
-                              int.parse(value.toStringAsFixed(0));
+                          selectedChatRoom.maxTokenLength = int.parse(value.toStringAsFixed(0));
                         });
                       },
                       min: 0.0,
@@ -297,21 +295,17 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   ],
                 ),
                 second: Tooltip(
-                  message:
-                      "Try to limit model response length. Set to 0 or remove for no limit",
+                  message: "Try to limit model response length. Set to 0 or remove for no limit",
                   child: Column(
                     children: [
                       const Text('Response length in tokens'),
                       TextBox(
-                        controller: TextEditingController(
-                            text:
-                                '${selectedChatRoom.maxTokensResponseLenght ?? ''}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.maxTokensResponseLenght ?? ''}'),
                         onChanged: (value) {
                           if (value.trim().isEmpty || value == '0') {
                             selectedChatRoom.maxTokensResponseLenght = null;
                           } else {
-                            selectedChatRoom.maxTokensResponseLenght =
-                                int.tryParse(value);
+                            selectedChatRoom.maxTokensResponseLenght = int.tryParse(value);
                           }
                           saveChatRoom();
                         },
@@ -322,17 +316,14 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
               ),
               _GridChildRow(
                 first: Tooltip(
-                  message:
-                      "How much to discourage repeating the same token. Number between -2.0 and 2.0",
+                  message: "How much to discourage repeating the same token. Number between -2.0 and 2.0",
                   child: Column(
                     children: [
                       const Text('Repeat penalty'),
                       TextBox(
-                        controller: TextEditingController(
-                            text: '${selectedChatRoom.repeatPenalty ?? ''}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.repeatPenalty ?? ''}'),
                         onChanged: (value) {
-                          selectedChatRoom.repeatPenalty =
-                              double.tryParse(value);
+                          selectedChatRoom.repeatPenalty = double.tryParse(value);
                           saveChatRoom();
                         },
                       ),
@@ -340,14 +331,12 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   ),
                 ),
                 second: Tooltip(
-                  message:
-                      "Minimum cumulative probability for the possible next tokens. Acts similarly to temperature",
+                  message: "Minimum cumulative probability for the possible next tokens. Acts similarly to temperature",
                   child: Column(
                     children: [
                       const Text('Top P sampling'),
                       TextBox(
-                        controller: TextEditingController(
-                            text: '${selectedChatRoom.topP ?? ''}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.topP ?? ''}'),
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
                           selectedChatRoom.topP = double.tryParse(value);
@@ -366,8 +355,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                       message:
                           "How much randomness to introduce. 0 will yield the same result every time, while higher values will increase creativity and variance. Recommended 0.7",
                       child: TextBox(
-                        controller: TextEditingController(
-                            text: '${selectedChatRoom.temp ?? ''}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.temp ?? ''}'),
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
                           selectedChatRoom.temp = double.tryParse(value);
@@ -383,13 +371,10 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                     ),
                     if (selectedChatRoom.temp != null)
                       Slider(
-                        value: selectedChatRoom.temp! < 0.0
-                            ? 0.0
-                            : selectedChatRoom.temp!,
+                        value: selectedChatRoom.temp! < 0.0 ? 0.0 : selectedChatRoom.temp!,
                         onChanged: (value) {
                           setState(() {
-                            selectedChatRoom.temp =
-                                double.parse(value.toStringAsFixed(2));
+                            selectedChatRoom.temp = double.parse(value.toStringAsFixed(2));
                           });
                         },
                         min: 0.0,
@@ -405,8 +390,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                     children: [
                       const Text('Seed'),
                       TextBox(
-                        controller: TextEditingController(
-                            text: '${selectedChatRoom.seed ?? ''}'),
+                        controller: TextEditingController(text: '${selectedChatRoom.seed ?? ''}'),
                         onChanged: (value) {
                           if (value.trim().isEmpty || value == '-1') {
                             selectedChatRoom.seed = null;
@@ -424,7 +408,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
           );
         });
   }
-  
+
   Future<void> saveChatRoom() async {
     final provider = context.read<ChatProvider>();
     provider.saveChatWithoutMessages(selectedChatRoom, chatRoomsPath: await FileUtils.getChatRoomsPath());
