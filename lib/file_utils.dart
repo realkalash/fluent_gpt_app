@@ -59,8 +59,7 @@ extension XFileUint8ListExtension on Uint8List {
     // copy from decodeImageFromList of package:flutter/painting.dart
     final codec = await instantiateImageCodec(bytes);
     final frameInfo = await codec.getNextFrame();
-    final newImageByte =
-        await frameInfo.image.toByteData(format: ImageByteFormat.png);
+    final newImageByte = await frameInfo.image.toByteData(format: ImageByteFormat.png);
     return XFile.fromData(
       newImageByte!.buffer.asUint8List(),
       length: newImageByte.lengthInBytes,
@@ -84,14 +83,23 @@ extension XFileBaseExtension on XFile {
 }
 
 class FileUtils {
+  /// Directory for storing app configuration, user data and chats
   static String? documentDirectoryPath;
+
+  /// Directory for storing generated images
   static String? imageDirectoryPath;
+
+  /// Directory for storing temporary files
   static String? temporaryDirectoryPath;
+
+  /// Directory for storing temporary audio files
   static String? temporaryAudioDirectoryPath;
 
-  static String? get appTemporaryDirectoryPath => temporaryDirectoryPath == null
-      ? null
-      : '$temporaryDirectoryPath${Platform.pathSeparator}fluent_gpt';
+  /// Directory of the current running app
+  static String get currentAppDirectorypath => Directory.current.path;
+
+  static String? get appTemporaryDirectoryPath =>
+      temporaryDirectoryPath == null ? null : '$temporaryDirectoryPath${Platform.pathSeparator}fluent_gpt';
 
   /// ${documentDirectoryPath}${Platform.pathSeparator}external_tools
   static String? externalToolsPath;
@@ -104,14 +112,11 @@ class FileUtils {
         : AppCache.appDocumentsDirectory.value!.isNotEmpty
             ? AppCache.appDocumentsDirectory.value
             : (await getApplicationDocumentsDirectory()).path;
-    imageDirectoryPath =
-        '$documentDirectoryPath${separatior}fluent_gpt${separatior}generated_images';
+    imageDirectoryPath = '$documentDirectoryPath${separatior}fluent_gpt${separatior}generated_images';
 
     temporaryDirectoryPath = (await getTemporaryDirectory()).path;
-    temporaryAudioDirectoryPath =
-        '$temporaryDirectoryPath${separatior}fluent_gpt${separatior}audio';
-    externalToolsPath =
-        '$documentDirectoryPath${separatior}fluent_gpt${separatior}external_tools';
+    temporaryAudioDirectoryPath = '$temporaryDirectoryPath${separatior}fluent_gpt${separatior}audio';
+    externalToolsPath = '$documentDirectoryPath${separatior}fluent_gpt${separatior}external_tools';
     log('externalToolsPath: $externalToolsPath');
     log('documentDirectoryPath: $documentDirectoryPath');
     log('imageDirectoryPath: $imageDirectoryPath');
@@ -227,15 +232,13 @@ class FileUtils {
   }
 
   static Future<String> getChatRoomsPath() async {
-    final dir = documentDirectoryPath ??
-        (await getApplicationDocumentsDirectory()).path;
+    final dir = documentDirectoryPath ?? (await getApplicationDocumentsDirectory()).path;
     final sep = Platform.pathSeparator;
     return '$dir${sep}fluent_gpt${sep}chat_rooms';
   }
 
   static Future<String> getChatRoomFilePath(String chatRoomId) async {
-    final dir = documentDirectoryPath ??
-        (await getApplicationDocumentsDirectory()).path;
+    final dir = documentDirectoryPath ?? (await getApplicationDocumentsDirectory()).path;
     final sep = Platform.pathSeparator;
     return '$dir${sep}fluent_gpt${sep}chat_rooms$sep$chatRoomId.json';
   }
@@ -312,8 +315,7 @@ class FileUtils {
   }
 
   static Future<String> getArchivedChatRoomPath() async {
-    final dir =
-        documentDirectoryPath ?? await getApplicationDocumentsDirectory();
+    final dir = documentDirectoryPath ?? await getApplicationDocumentsDirectory();
     final separ = Platform.pathSeparator;
     return '$dir${separ}fluent_gpt${separ}archived${separ}chat_rooms';
   }
@@ -368,9 +370,7 @@ class FileUtils {
 
   /// Shows OS prompt to choose where to save a file
   static Future<String?> saveFileOsPrompt(Uint8List bytes,
-      {List<String>? allowedExtensions,
-      FileType type = FileType.any,
-      String? fileName}) async {
+      {List<String>? allowedExtensions, FileType type = FileType.any, String? fileName}) async {
     final path = await FilePicker.platform.saveFile(
       allowedExtensions: allowedExtensions,
       type: type,

@@ -120,9 +120,36 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
 
   SpellCheck? spellCheck;
   Future<void> initSpellCheck() async {
+    if (AppCache.useLocalSpellCheck.value != true) {
+      spellCheck = null;
+      return;
+    }
     String language = 'en';
-    String content = await rootBundle.loadString('assets/spellcheck/${language}_words.txt');
-    spellCheck = SpellCheck.fromWordsContent(content, letters: LanguageLetters.getLanguageForLanguage(language));
+    final localeFiles = FileUtils.getFilesRecursive(FileUtils.currentAppDirectorypath);
+    for (final file in localeFiles) {
+      final name = file.path.split(Platform.pathSeparator).last;
+      if (name.contains('${language}_words.txt')) {
+        String content = await file.readAsString();
+        spellCheck = SpellCheck.fromWordsContent(content, letters: LanguageLetters.getLanguageForLanguage(language));
+        break;
+      }
+    }
+  }
+
+  Future<void> addWordToDictionary(String word, String locale) async {
+    final localeFiles = FileUtils.getFilesRecursive(FileUtils.currentAppDirectorypath);
+    for (final file in localeFiles) {
+      final name = file.path.split(Platform.pathSeparator).last;
+      if (name.contains('${locale}_words.txt')) {
+        String content = await file.readAsString();
+        content = '$content\n${word.toLowerCase()}';
+        await file.writeAsString(content);
+        spellCheck = SpellCheck.fromWordsContent(content, letters: LanguageLetters.getLanguageForLanguage(locale));
+        spellCheck?.words;
+        notifyListeners();
+        break;
+      }
+    }
   }
 
   Future<void> sendToQuickOverlay(String title, String prompt) async {
@@ -138,7 +165,7 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     _overlayEntry?.remove();
     // var posX = mouseLocalPosition.dx;
     var posY = mouseLocalPosition.dy;
-    final screen = MediaQuery.of(context!).size; // '1920x1080'
+    final screen = MediaQuery.sizeOf(context!); // '1920x1080'
     // final screenX = double.parse(screen.first);
     // ensure we don't go out of the screen
     // if (posX + 400 > screenX) {

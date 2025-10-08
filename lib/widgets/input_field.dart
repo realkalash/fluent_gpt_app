@@ -335,7 +335,7 @@ class _InputFieldState extends State<InputField> {
   void countTokensInInputField() {
     debouncer.run(() async {
       final text = ChatProvider.messageControllerGlobal.text;
-      final tokens = await countTokensString(text);
+      final tokens = await countTokensString(text).onError((error, stack) => 0);
       tokensInInputField = tokens;
       if (mounted) setState(() {});
     });
@@ -430,6 +430,7 @@ class _InputFieldState extends State<InputField> {
               ),
               Expanded(
                 child: TextBox(
+                  key: ValueKey(chatProvider.spellCheck),
                   autofocus: true,
                   autocorrect: true,
                   focusNode: promptTextFocusNode,
@@ -439,13 +440,7 @@ class _InputFieldState extends State<InputField> {
                   expands: false,
                   minLines: 2,
                   maxLines: 30,
-                  spellCheckConfiguration: chatProvider.spellCheck != null
-                      ? SpellCheckConfiguration(
-                          spellCheckService: CustomSpellCheckService(
-                            spellCheck: chatProvider.spellCheck!,
-                          ),
-                        )
-                      : null,
+                  spellCheckConfiguration: CustomSpellCheckService.getSpellCheckConfiguration(chatProvider.spellCheck),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (value) => onSubmit(value, chatProvider),
                   placeholder: 'Use "/" or type your message here'.tr,
@@ -463,6 +458,7 @@ class _InputFieldState extends State<InputField> {
                         duration: const Duration(milliseconds: 600),
                         color: context.theme.accentColor,
                         child: TextBox(
+                          key: ValueKey(chatProvider.spellCheck),
                           autofocus: true,
                           focusNode: promptTextFocusNode,
                           // prefixMode: OverlayVisibilityMode.always,
@@ -533,19 +529,8 @@ class _InputFieldState extends State<InputField> {
                               ],
                             ),
                           ),
-                          spellCheckConfiguration: chatProvider.spellCheck != null
-                              ? SpellCheckConfiguration(
-                                  spellCheckService: CustomSpellCheckService(
-                                    spellCheck: chatProvider.spellCheck!,
-                                  ),
-                                  misspelledTextStyle: TextStyle(
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Colors.red,
-                                    decorationStyle: TextDecorationStyle.wavy,
-                                    decorationThickness: 1.75,
-                                  ),
-                                )
-                              : null,
+                          spellCheckConfiguration:
+                              CustomSpellCheckService.getSpellCheckConfiguration(chatProvider.spellCheck),
                           textInputAction: TextInputAction.done,
                           onSubmitted: (value) => onSubmit(value, chatProvider),
                           placeholder: 'Use "/" or type your message here'.tr,

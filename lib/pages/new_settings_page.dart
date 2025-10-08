@@ -945,6 +945,17 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           ),
         ),
         spacer,
+        CheckBoxTile(
+          isChecked: AppCache.useLocalSpellCheck.value == true,
+          onChanged: (value) async {
+            AppCache.useLocalSpellCheck.value = value;
+            if (value == true) {
+              await context.read<ChatProvider>().initSpellCheck();
+            }
+            setState(() {});
+          },
+          child: Text('${'Use spell check'.tr} (${'Consumes additional RAM'.tr})'),
+        ),
         // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
         if (!Platform.isMacOS)
           CheckBoxTile(
