@@ -1,9 +1,11 @@
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons, SelectableRegion;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:provider/provider.dart';
+import 'package:spell_check_on_client/spell_check_on_client.dart';
 
 class ContextMenuBuilders {
   static String? previousClipboardData;
@@ -12,17 +14,43 @@ class ContextMenuBuilders {
   static Widget spellCheckContextMenuBuilder(BuildContext context, EditableTextState editableTextState) {
     final chatProvider = context.read<ChatProvider>();
     final undoController = editableTextState.widget.undoController;
-    final correctSpell = chatProvider.spellCheck?.isCorrect(editableTextState.textEditingValue.text);
+    final correctSpell = AppCache.useLocalSpellCheck.value == true
+        ? chatProvider.spellCheck?.isCorrect(editableTextState.textEditingValue.text)
+        : null;
     Map<String, String> listSuggestions = {};
-    List<String> words = [];
+    List<String> unknownWords = [];
     if (correctSpell == false) {
-      words = editableTextState.textEditingValue.text.split(' ');
-      for (var word in words) {
-        /// replace all special characters + space + new line + tab + etc + , . : ;
-        final cleanWord = word.replaceAll(RegExp(r'[^\w\s]'), '');
-        final String correctWord = chatProvider.spellCheck!.didYouMean(cleanWord);
-        if (correctWord != cleanWord && correctWord.isNotEmpty) {
-          listSuggestions[word] = correctWord;
+      final List<String> words = WordTokenizer.tokenize(editableTextState.textEditingValue.text);
+
+      if (words.isNotEmpty) {
+        int currentIndex = 0;
+
+        for (final String word in words) {
+          // Find the word's position in the original text
+          final int wordStartIndex = editableTextState.textEditingValue.text.indexOf(word, currentIndex);
+
+          if (wordStartIndex == -1) {
+            // Word not found, skip
+            continue;
+          }
+
+          // Check if the word is spelled correctly
+          final bool isCorrect = chatProvider.spellCheck?.isCorrect(word.toLowerCase()) ?? false;
+
+          if (!isCorrect) {
+            // Get suggestions for the misspelled word
+            final List<String> suggestions = chatProvider.spellCheck?.didYouMeanAny(word, maxWords: 5) ?? [];
+
+            if (suggestions.isNotEmpty) {
+              unknownWords.add(word);
+              // listSuggestions[word] = suggestions.first;
+              for (final suggestion in suggestions) {
+                listSuggestions['$word -> $suggestion'] = suggestion;
+              }
+            }
+          }
+
+          currentIndex = wordStartIndex + word.length;
         }
       }
     }
@@ -31,15 +59,22 @@ class ContextMenuBuilders {
       buttonItems: [
         if (correctSpell == false)
           ...listSuggestions.entries.map((entry) => ContextMenuButtonItem(
-                label: entry.value,
+                label: entry.key,
                 onPressed: () {
                   editableTextState.hideToolbar(false);
                   final text = editableTextState.textEditingValue.text;
-                  final newText = text.replaceAll(entry.key, entry.value);
+                  final newText = text.replaceAll(entry.key.split(' -> ').first, entry.value);
                   editableTextState.userUpdateTextEditingValue(
                       TextEditingValue(text: newText), SelectionChangedCause.toolbar);
                 },
               )),
+        ...unknownWords.map((word) => ContextMenuButtonItem(
+              label: '${'Add to dictionary'.tr} $word',
+              onPressed: () {
+                editableTextState.hideToolbar(false);
+                chatProvider.addWordToDictionary(word, AppCache.locale.value ?? 'en');
+              },
+            )),
         ...editableTextState.contextMenuButtonItems,
         if (undoController != null)
           UndoContextMenuButtonItem(

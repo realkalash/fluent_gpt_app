@@ -228,20 +228,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                 maxLines: _expandSystemMessage ? 40 : 15,
                 minLines: 3,
                 contextMenuBuilder: ContextMenuBuilders.spellCheckContextMenuBuilder,
-                spellCheckConfiguration: chatProvider.spellCheck != null
-                    ? SpellCheckConfiguration(
-                        spellCheckService: CustomSpellCheckService(
-                          spellCheck: chatProvider.spellCheck!,
-                        ),
-                        misspelledSelectionColor: Colors.red,
-                        misspelledTextStyle: TextStyle(
-                          decoration: TextDecoration.underline,
-                          decorationColor: Colors.red,
-                          decorationStyle: TextDecorationStyle.wavy,
-                          decorationThickness: 1.75,
-                        ),
-                      )
-                    : null,
+                spellCheckConfiguration: CustomSpellCheckService.getSpellCheckConfiguration(chatProvider.spellCheck),
                 onChanged: (value) {
                   debouncer.run(() {
                     countTokens();
@@ -270,7 +257,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   children: [
                     Text('Max tokens to include'.tr),
                     Tooltip(
-                      message: "The maximum length of tokens to be sent to the model",
+                      message: "The maximum length of tokens to be sent to AI".tr,
                       child: TextBox(
                         controller: TextEditingController(text: '${selectedChatRoom.maxTokenLength}'),
                         onChanged: (value) {
@@ -298,7 +285,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                   message: "Try to limit model response length. Set to 0 or remove for no limit",
                   child: Column(
                     children: [
-                      const Text('Response length in tokens'),
+                      Text('Response length in tokens'.tr),
                       TextBox(
                         controller: TextEditingController(text: '${selectedChatRoom.maxTokensResponseLenght ?? ''}'),
                         onChanged: (value) {

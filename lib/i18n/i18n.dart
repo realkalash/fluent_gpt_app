@@ -5,13 +5,11 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 
-BehaviorSubject<Map<String, String?>> currentLocalization =
-    BehaviorSubject.seeded(I18n._localizations['en']!);
+BehaviorSubject<Map<String, String?>> currentLocalization = BehaviorSubject.seeded(I18n._localizations['en']!);
 BehaviorSubject<Locale> localeSubject = BehaviorSubject<Locale>.seeded(Locale('en'));
 
 class I18n {
-  static Stream<Map<String, String?>> get currentLocalizationStream =>
-      currentLocalization.stream;
+  static Stream<Map<String, String?>> get currentLocalizationStream => currentLocalization.stream;
 
   static Locale get currentLocale => localeSubject.value;
   static void init() {
@@ -38,10 +36,22 @@ class I18n {
       'dalleGenerator': 'DALL-E 3',
       'deepinfraGenerator': 'DeepInfra',
       'disable_tools_btn': 'Disable tools',
-      'privacy_download_hf_models': 'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
+      'privacy_download_hf_models':
+          'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
     },
     'ru': {
-      'privacy_download_hf_models': 'FluentGPT не является создателем, создателем или владельцем любой модели, представленной в программе сообщества. Каждая модель сообщества создается и предоставляется третьими лицами',
+      'Select your level': 'Выберите ваш уровень',
+      'newbie': 'новичок',
+      'advanced': 'продвинутый',
+      'developer': 'разработчик',
+      'Hide showing system prompt in home page': 'Скрыть системное сообщение на главной странице',
+      'privacy_download_hf_models':
+          'FluentGPT не является создателем, создателем или владельцем любой модели, представленной в программе сообщества. Каждая модель сообщества создается и предоставляется третьими лицами',
+      'The maximum length of tokens to be sent to AI': 'Максимальная длина токенов для отправки в AI',
+      'Consumes additional RAM': 'Потребляет дополнительную ОЗУ',
+      'Use spell check': 'Использовать проверку орфографии',
+      'Add to dictionary': 'Добавить в словарь',
+      'Response length in tokens': 'Длина ответа в токенах',
       '% overflow. Click here to go to the last visible to AI message':
           '% переполнение. Нажмите здесь, чтобы перейти к последнему видимому ИИ сообщению',
       'Archive this prompt': 'Архивировать этот промпт',
@@ -61,15 +71,13 @@ class I18n {
       'Select': 'Выбрать',
       'Provider': 'Провайдер',
       'Support images?': 'Поддерживает ли изображения?',
-      'Model Name (Important. Case sensetive)':
-          'Название модели (Важно. Чувствительно к регистру)',
+      'Model Name (Important. Case sensetive)': 'Название модели (Важно. Чувствительно к регистру)',
       'Please enter a name': 'Пожалуйста, введите имя',
       'Custom Name': 'Собственное название',
       'Models List': 'Список моделей',
       'Use voice input': 'Использовать голосовой ввод',
       'Pinned messages': 'Закрепленные сообщения',
-      'AI have access to pinned messages':
-          'ИИ имеет доступ к закрепленным сообщениям',
+      'AI have access to pinned messages': 'ИИ имеет доступ к закрепленным сообщениям',
       'Are you sure?': 'Вы уверены?',
       'This action cannot be undone.': 'Это действие нельзя отменить.',
       'Cancel': 'Отмена',
@@ -89,16 +97,14 @@ class I18n {
           'Нажмите сочетание клавиш, чтобы установить новую привязку клавиш (escape для отмены)',
       'Current hotkey:': 'Текущая привязка клавиш:',
       'This hotkey is already in use': 'Эта привязка клавиш уже используется',
-      'Hotkeys in use (click for details)':
-          'Горячие клавиши в использовании (нажмите для деталей)',
+      'Hotkeys in use (click for details)': 'Горячие клавиши в использовании (нажмите для деталей)',
       'Hotkeys in use': 'Горячие клавиши в использовании',
       'No microphone found': 'Микрофон не найден',
       'History enabled': 'История чата включена',
       'History disabled': 'История чата отключена',
       'Type your message here': 'Введите ваше сообщение здесь',
       'Style': 'Стиль',
-      'Scroll to bottom on new message':
-          'Прокручивать вниз при новом сообщении',
+      'Scroll to bottom on new message': 'Прокручивать вниз при новом сообщении',
       'disable_tools_btn': 'Отключить инструменты',
       'Tools disabled': 'Инструменты отключены',
       'Images in chat': 'Изображения в чате',
@@ -118,8 +124,7 @@ class I18n {
       'Configure your AI': 'Настройте ваш ИИ',
       'We will ask for some permissions to make sure you have the best experience':
           'Мы попросим некоторые разрешения, чтобы обеспечить вам лучший опыт',
-      'Configure your AI to work as you want':
-          'Настройте ваш ИИ так, как вы хотите',
+      'Configure your AI to work as you want': 'Настройте ваш ИИ так, как вы хотите',
       'Add your models': 'Добавьте свои модели',
       'Choose your AI': 'Выберите ваш ИИ',
       'Add': 'Добавить',
@@ -130,27 +135,20 @@ class I18n {
       'Allows you to save chats history and temprorarily python files generated by LLM':
           'Позволяет сохранять историю чатов и временные файлы python, созданные LLM',
       'Microphone': 'Микрофон',
-      'Allows you to record your voice and send it to LLM':
-          'Позволяет записывать ваш голос и отправлять его в LLM',
+      'Allows you to record your voice and send it to LLM': 'Позволяет записывать ваш голос и отправлять его в LLM',
       'Accessibility': 'Доступность',
       'Allows you to use overlay, resize windows and more.':
           'Позволяет использовать наложение, изменять размер окон и многое другое.',
       'Notifications': 'Уведомления',
-      'Allows you to receive notifications from the app.':
-          'Позволяет получать уведомления от приложения.',
+      'Allows you to receive notifications from the app.': 'Позволяет получать уведомления от приложения.',
       'Create new chat (only in chat)': 'Создать новый чат (только в чате)',
-      'Escape/Cancel selection (only in chat)':
-          'Выход/Отмена выбора (только в чате)',
+      'Escape/Cancel selection (only in chat)': 'Выход/Отмена выбора (только в чате)',
       'Reset chat (only in chat)': 'Сбросить чат (только в чате)',
-      'Copy last message to clipboard (only in chat)':
-          'Скопировать последнее сообщение в буфер обмена (только в чате)',
-      'Include current chat history in conversation':
-          'Включить текущую историю чата в разговор',
-      'Search in chat (only when input field is focused)':
-          'Поиск в чате (только когда поле ввода в фокусе)',
+      'Copy last message to clipboard (only in chat)': 'Скопировать последнее сообщение в буфер обмена (только в чате)',
+      'Include current chat history in conversation': 'Включить текущую историю чата в разговор',
+      'Search in chat (only when input field is focused)': 'Поиск в чате (только когда поле ввода в фокусе)',
       'Open/Focus/Hide window': 'Открыть/Сфокусировать/Скрыть окно',
-      'Show overlay for selected text':
-          'Показать наложение для выбранного текста',
+      'Show overlay for selected text': 'Показать наложение для выбранного текста',
       'Shortcuts': 'Ярлыки',
       'This is your quick shortcuts you can use anytime':
           'Это ваши быстрые ярлыки, которые вы можете использовать в любое время',
@@ -172,8 +170,7 @@ class I18n {
       'Info about user': 'Информация о пользователе',
       'Timestamp': 'Метка времени',
       'System info': 'Информация о системе',
-      'Tags (Use ; to separate tags)':
-          'Теги (используйте ; для разделения тегов)',
+      'Tags (Use ; to separate tags)': 'Теги (используйте ; для разделения тегов)',
       'Tags': 'Теги',
       'Do not show the main window after the prompt is run. The result will be shown in a push notification.\nUseful when you just want to copy the result to clipboard':
           'Не показывать главное окно после выполнения промпта. Результат будет показан в push-уведомлении.\nПолезно, когда вы просто хотите скопировать результат в буфер обмена',
@@ -216,8 +213,7 @@ class I18n {
       'Med': 'Сред',
       'Hight': 'Выс',
       'Max': 'Макс',
-      'Select items to include in system prompt':
-          'Выберите элементы для системного промпта',
+      'Select items to include in system prompt': 'Выберите элементы для системного промпта',
       'Knowledge about user': 'Знания о пользователе',
       'City name': 'Название города',
       'Weather': 'Погода',
@@ -227,18 +223,15 @@ class I18n {
       'Summarize conversation and populate the knowledge about the user':
           'Суммируйте разговор и заполните знания о пользователе',
       'Use memory about the user': 'Использовать память о пользователе',
-      'Auto play messages from ai':
-          'Автоматическое воспроизведение сообщений от ИИ',
+      'Auto play messages from ai': 'Автоматическое воспроизведение сообщений от ИИ',
       'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions':
           'Попросит ИИ создать кнопки для каждого ответа. Это потребует дополнительных токенов для генерации предложений',
-      'Do you want to enable suggestion helpers?':
-          'Хотите включить помощников по предложениям?',
+      'Do you want to enable suggestion helpers?': 'Хотите включить помощников по предложениям?',
       'Enable': 'Включить',
       'No. Don\'t show again': 'Нет. Больше не показывать',
       'Choose code block': 'Выберите блок кода',
       'Dismiss': 'Закрыть',
-      'Use "/" or type your message here':
-          'Используйте "/" введите ваше сообщение здесь',
+      'Use "/" or type your message here': 'Используйте "/" введите ваше сообщение здесь',
       'Settings': 'Настройки',
       'General': 'Общие',
       'Appearance': 'Внешний вид',
@@ -265,42 +258,33 @@ class I18n {
       'Enable overlay': 'Включить наложение',
       'Show settings icon in overlay': 'Показать значок настроек в наложении',
       'Adaptive': 'Адаптивный',
-      'Show suggestions after ai response':
-          'Показывать предложения после ответа ИИ',
-      'Brave API key (search engine) \$':
-          'Ключ API Brave (поисковая система) \$',
+      'Show suggestions after ai response': 'Показывать предложения после ответа ИИ',
+      'Brave API key (search engine) \$': 'Ключ API Brave (поисковая система) \$',
       'Text-to-Speech service:': 'Служба преобразования текста в речь:',
       'Global system prompt': 'Глобальная системный промпт',
       'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below':
           'Глобавльный системный промпт будет использоваться для всех НОВЫХ чатов. Чтобы проверить весь системный промпт, нажмите кнопку ниже',
-      'Click here to check the whole system prompt':
-          'Нажмите здесь, чтобы посмотреть весь промпт',
+      'Click here to check the whole system prompt': 'Нажмите здесь, чтобы посмотреть весь промпт',
       'Use ai to name chat': 'Использовать ИИ для названия чата',
       'Can cause additional charges!': 'Может вызвать дополнительные расходы!',
       'Audio and Microphone': 'Аудио и микрофон',
-      'Locale': 'Локаль',
+      'Locale': 'Язык',
       'Launch at startup': 'Запуск при старте',
       'Prevent close app': 'Предотвратить закрытие приложения',
       'Show app in dock': 'Показать приложение в доке',
       'Hide window title': 'Скрыть заголовок окна',
       'User city': 'Город пользователя',
-      'Your name that will be used in the chat':
-          'Ваше имя, которое будет использоваться в чате',
+      'Your name that will be used in the chat': 'Ваше имя, которое будет использоваться в чате',
       'Your city name that will be used in the chat and to get weather':
           'Название вашего города, которое будет использоваться в чате и для получения погоды',
       'Include knowledge about user': 'Включить знания о пользователе',
       'Open info about User': 'Открыть информацию о пользователе',
-      'Include user city name in system prompt':
-          'Включить название города пользователя в системный промпт',
+      'Include user city name in system prompt': 'Включить название города пользователя в системный промпт',
       'Include weather in system prompt': 'Включить погоду в системный промпт',
-      'Include user name in system prompt':
-          'Включить имя пользователя в системный промпт',
-      'Include current date and time in system prompt':
-          'Включить текущую дату и время в системный промпт',
-      'Include system info in system prompt':
-          'Включить информацию о системе в системный промпт',
-      'Learn about the user after creating new chat \$\$':
-          'Узнать о пользователе после создания нового чата \$\$',
+      'Include user name in system prompt': 'Включить имя пользователя в системный промпт',
+      'Include current date and time in system prompt': 'Включить текущую дату и время в системный промпт',
+      'Include system info in system prompt': 'Включить информацию о системе в системный промпт',
+      'Learn about the user after creating new chat \$\$': 'Узнать о пользователе после создания нового чата \$\$',
       'Function tools \$\$': 'Функциональные инструменты \$\$',
       'Toggle All': 'Переключить все',
       'Auto copy to clipboard': 'Автоматическое копирование в буфер обмена',
@@ -324,8 +308,7 @@ class I18n {
       'Use mica': 'Использовать Mica',
       'Transparency': 'Прозрачность',
       'Set window as frameless': 'Установить окно без рамки',
-      'Restart the app to apply changes':
-          'Перезапустите приложение, чтобы применить изменения',
+      'Restart the app to apply changes': 'Перезапустите приложение, чтобы применить изменения',
       'Message Text size': 'Размер текста сообщения',
       'Basic Message Text Size': 'Базовый размер текста сообщения',
       'Compact Message Text Size': 'Компактный размер текста сообщения',
@@ -352,8 +335,7 @@ class I18n {
       'Storage usage': 'Использование хранилища',
       'Refresh from disk': 'Обновить с диска',
       'Add new': 'Добавить',
-      'AI will be able to remember things about you':
-          'ИИ сможет запоминать вещи о вас',
+      'AI will be able to remember things about you': 'ИИ сможет запоминать вещи о вас',
       'Archive chats after (days)': 'Архивировать чаты после (дней)',
       'Delete chats after (days)': 'Удалить чаты после (дней)',
       'Move up': 'Вверх',
@@ -365,10 +347,8 @@ class I18n {
       'Delete chat': 'Удалить чат',
       'Delete': 'Удалить',
       'Pin/unpin chat': 'Закрепить/открепить чат',
-      "Everything below will be deleted in current chat":
-          "Всё что ниже будет удалено в текущем чате",
-      "Everything above will be deleted in current chat":
-          "Всё что выше будет удалено в текущем чате",
+      "Everything below will be deleted in current chat": "Всё что ниже будет удалено в текущем чате",
+      "Everything above will be deleted in current chat": "Всё что выше будет удалено в текущем чате",
       'Check for Updates': 'Проверить обновления',
       'Published': 'Опубликовано',
       'Size': 'Размер',
@@ -380,8 +360,7 @@ class I18n {
       'Today': 'Сегодня',
       '• Try again later': '• Попробуйте позже',
       '• Download manually from GitHub': '• Скачать вручную с GitHub',
-      'The automatic update failed. You can:':
-          'Автоматическое обновление не удалось. Вы можете:',
+      'The automatic update failed. You can:': 'Автоматическое обновление не удалось. Вы можете:',
       'Update Failed': 'Обновление не удалось',
       'The update has been installed successfully. Please restart the application to use the new version.':
           'Обновление успешно установлено. Пожалуйста, перезапустите приложение, чтобы использовать новую версию.',
@@ -396,15 +375,24 @@ class I18n {
       'What\'s New': 'Что нового',
     },
     'es': {
-      'privacy_download_hf_models': 'FluentGPT no es el creador, creador o propietario de ningún Modelo presentado en el Programa de Modelos Comunitarios. Cada Modelo Comunitario es creado y proporcionado por terceros',
+      'Select your level': 'Selecciona tu nivel',
+      'newbie': 'novato',
+      'advanced': 'avanzado',
+      'developer': 'desarrollador',
+      'privacy_download_hf_models':
+          'FluentGPT no es el creador, creador o propietario de ningún Modelo presentado en el Programa de Modelos Comunitarios. Cada Modelo Comunitario es creado y proporcionado por terceros',
+      'Consumes additional RAM': 'Consume RAM adicional',
+      'Use spell check': 'Usar spell check',
+      'The maximum length of tokens to be sent to AI': 'Максимальная длина токенов для отправки в AI',
+      'Response length in tokens': 'Longitud de respuesta en tokens',
+      'Add to dictionary': 'Agregar a diccionario',
       'What\'s New': 'Novedades',
       'days ago': 'hace días',
       'Yesterday': 'Ayer',
       'Today': 'Hoy',
       '• Try again later': '• Intenta de nuevo más tarde',
       '• Download manually from GitHub': '• Descarga manualmente desde GitHub',
-      'The automatic update failed. You can:':
-          'La actualización automática falló. Puedes:',
+      'The automatic update failed. You can:': 'La actualización automática falló. Puedes:',
       'Update Failed': 'Actualización fallida',
       'The update has been installed successfully. Please restart the application to use the new version.':
           'La actualización se ha instalado correctamente. Por favor, reinicia la aplicación para usar la nueva versión.',
@@ -421,10 +409,8 @@ class I18n {
       'New Version': 'Nueva versión',
       'Published': 'Publicado',
       'Size': 'Tamaño',
-      "Everything below will be deleted in current chat":
-          "Todo lo que está debajo se eliminará en el chat actual",
-      "Everything above will be deleted in current chat":
-          "Todo lo que está arriba se eliminará en el chat actual",
+      "Everything below will be deleted in current chat": "Todo lo que está debajo se eliminará en el chat actual",
+      "Everything above will be deleted in current chat": "Todo lo que está arriba se eliminará en el chat actual",
       'Tokens in field': 'Tokens en el campo',
       '% overflow. Click here to go to the last visible to AI message':
           '% desbordamiento. Haga clic aquí para ir al último mensaje visible para la IA',
@@ -451,14 +437,12 @@ class I18n {
       'Select': 'Seleccionar',
       'Provider': 'Proveedor',
       'Support images?': '¿Soporte de imágenes?',
-      'Model Name (Important. Case sensetive)':
-          'Nombre del modelo (Importante. Sensible a mayúsculas y minúsculas)',
+      'Model Name (Important. Case sensetive)': 'Nombre del modelo (Importante. Sensible a mayúsculas y minúsculas)',
       'Please enter a name': 'Por favor, introduce un nombre',
       'Custom Name': 'Nombre personalizado',
       'Models List': 'Lista de Modelos',
       'Use voice input': 'Usar entrada de voz',
-      'AI have access to pinned messages':
-          'La IA tiene acceso a mensajes fijados',
+      'AI have access to pinned messages': 'La IA tiene acceso a mensajes fijados',
       'Pinned messages': 'Mensajes fijados',
       'Are you sure?': '¿Estás seguro?',
       'This action cannot be undone.': 'Esta acción no se puede deshacer.',
@@ -468,8 +452,7 @@ class I18n {
       'Select all': 'Seleccionar todo',
       'Delete everything above': 'Eliminar todo lo que está arriba',
       'Delete everything below': 'Eliminar todo lo que está debajo',
-      'New conversation branch from here':
-          'Nueva rama de conversación desde aquí',
+      'New conversation branch from here': 'Nueva rama de conversación desde aquí',
       'Copy image': 'Copiar imagen',
       'Save image to file': 'Guardar imagen en archivo',
       'Commands': 'Comandos',
@@ -479,10 +462,8 @@ class I18n {
       'History enabled': 'Historial activado',
       'History disabled': 'Historial desactivado',
       'Type your message here': 'Escribe tu mensaje aquí',
-      'Scroll to bottom on new message':
-          'Desplazarse al final con un nuevo mensaje',
-      'No results found for your query':
-          'No se encontraron resultados para su consulta',
+      'Scroll to bottom on new message': 'Desplazarse al final con un nuevo mensaje',
+      'No results found for your query': 'No se encontraron resultados para su consulta',
       'Clear current chat?': '¿Borrar el chat actual?',
       'disable_tools_btn': 'Deshabilitar herramientas',
       'Tools disabled': 'Herramientas desactivadas',
@@ -507,8 +488,7 @@ class I18n {
       'Configure your AI': 'Configura tu IA',
       'We will ask for some permissions to make sure you have the best experience':
           'Pediremos algunos permisos para asegurarnos de que tengas la mejor experiencia',
-      'Configure your AI to work as you want':
-          'Configura tu IA para que funcione como quieras',
+      'Configure your AI to work as you want': 'Configura tu IA para que funcione como quieras',
       'Add your models': 'Añade tus modelos',
       'Choose your AI': 'Elige tu IA',
       'Add': 'Añadir',
@@ -519,27 +499,21 @@ class I18n {
       'Allows you to save chats history and temprorarily python files generated by LLM':
           'Te permite guardar el historial de chats y los archivos temporales de python generados por LLM',
       'Microphone': 'Micrófono',
-      'Allows you to record your voice and send it to LLM':
-          'Te permite grabar tu voz y enviarla a LLM',
+      'Allows you to record your voice and send it to LLM': 'Te permite grabar tu voz y enviarla a LLM',
       'Accessibility': 'Accesibilidad',
       'Allows you to use overlay, resize windows and more.':
           'Te permite usar superposiciones, cambiar el tamaño de las ventanas y más.',
       'Notifications': 'Notificaciones',
-      'Allows you to receive notifications from the app.':
-          'Te permite recibir notificaciones de la aplicación.',
+      'Allows you to receive notifications from the app.': 'Te permite recibir notificaciones de la aplicación.',
       'Create new chat (only in chat)': 'Crear nuevo chat (solo en el chat)',
-      'Escape/Cancel selection (only in chat)':
-          'Escape/Cancelar selección (solo en el chat)',
+      'Escape/Cancel selection (only in chat)': 'Escape/Cancelar selección (solo en el chat)',
       'Reset chat (only in chat)': 'Restablecer chat (solo en el chat)',
-      'Copy last message to clipboard (only in chat)':
-          'Copiar el último mensaje al portapapeles (solo en el chat)',
-      'Include current chat history in conversation':
-          'Incluir el historial de chat actual en la conversación',
+      'Copy last message to clipboard (only in chat)': 'Copiar el último mensaje al portapapeles (solo en el chat)',
+      'Include current chat history in conversation': 'Incluir el historial de chat actual en la conversación',
       'Search in chat (only when input field is focused)':
           'Buscar en el chat (solo cuando el campo de entrada está enfocado)',
       'Open/Focus/Hide window': 'Abrir/Enfocar/Ocultar ventana',
-      'Show overlay for selected text':
-          'Mostrar superposición para el texto seleccionado',
+      'Show overlay for selected text': 'Mostrar superposición para el texto seleccionado',
       'Shortcuts': 'Atajos',
       'This is your quick shortcuts you can use anytime':
           'Estos son tus atajos rápidos que puedes usar en cualquier momento',
@@ -561,8 +535,7 @@ class I18n {
       'Info about user': 'Información sobre el usuario',
       'Timestamp': 'Marca de tiempo',
       'System info': 'Información del sistema',
-      'Tags (Use ; to separate tags)':
-          'Etiquetas (Usa ; para separar las etiquetas)',
+      'Tags (Use ; to separate tags)': 'Etiquetas (Usa ; para separar las etiquetas)',
       'Tags': 'Etiquetas',
       'Do not show the main window after the prompt is run. The result will be shown in a push notification.\nUseful when you just want to copy the result to clipboard':
           'No mostrar la ventana principal después de ejecutar el prompt. El resultado se mostrará en una notificación push.\nÚtil cuando solo quieres copiar el resultado al portapapeles',
@@ -606,8 +579,7 @@ class I18n {
       'Med': 'Med',
       'Hight': 'Alto',
       'Max': 'Máx',
-      'Select items to include in system prompt':
-          'Selecciona los elementos a incluir en el prompt del sistema',
+      'Select items to include in system prompt': 'Selecciona los elementos a incluir en el prompt del sistema',
       'Knowledge about user': 'Conocimiento sobre el usuario',
       'City name': 'Nombre de la ciudad',
       'Weather': 'Clima',
@@ -617,18 +589,15 @@ class I18n {
       'Summarize conversation and populate the knowledge about the user':
           'Resume la conversación y completa el conocimiento sobre el usuario',
       'Use memory about the user': 'Usar memoria sobre el usuario',
-      'Auto play messages from ai':
-          'Reproducir automáticamente los mensajes de la IA',
+      'Auto play messages from ai': 'Reproducir automáticamente los mensajes de la IA',
       'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions':
           'Pedirá a la IA que genere botones para cada respuesta. Consumirá tokens adicionales para generar sugerencias',
-      'Do you want to enable suggestion helpers?':
-          '¿Quieres activar los ayudantes de sugerencias?',
+      'Do you want to enable suggestion helpers?': '¿Quieres activar los ayudantes de sugerencias?',
       'Enable': 'Activar',
       'No. Don\'t show again': 'No. No mostrar de nuevo',
       'Choose code block': 'Elegir bloque de código',
       'Dismiss': 'Cerrar',
-      'Use "/" or type your message here':
-          'Usa "/" para comandos o escribe tu mensaje aquí',
+      'Use "/" or type your message here': 'Usa "/" para comandos o escribe tu mensaje aquí',
       'Settings': 'Ajustes',
       'General': 'General',
       'Appearance': 'Apariencia',
@@ -642,33 +611,26 @@ class I18n {
       'About': 'Acerca de',
       'Open the window keybinding': 'Atajo de teclado para abrir la ventana',
       'Open the window': 'Abrir la ventana',
-      'Take a screenshot keybinding':
-          'Atajo de teclado para hacer una captura de pantalla',
+      'Take a screenshot keybinding': 'Atajo de teclado para hacer una captura de pantalla',
       'Use visual AI': 'Usar IA visual',
       '[Not set]': '[No establecido]',
-      'Push-to-talk with screenshot':
-          'Pulsar para hablar con captura de pantalla',
+      'Push-to-talk with screenshot': 'Pulsar para hablar con captura de pantalla',
       'Push-to-talk': 'Pulsar para hablar',
       'Show all keybindings': 'Mostrar todos los atajos de teclado',
-      'Application storage location':
-          'Ubicación del almacenamiento de la aplicación',
+      'Application storage location': 'Ubicación del almacenamiento de la aplicación',
       'Delete temp cache? Size:': '¿Borrar caché temporal? Tamaño:',
       'Clear all data': 'Borrar todos los datos',
       'Overlay settings': 'Ajustes de la superposición',
       'Enable overlay': 'Activar superposición',
-      'Show settings icon in overlay':
-          'Mostrar icono de ajustes en la superposición',
+      'Show settings icon in overlay': 'Mostrar icono de ajustes en la superposición',
       'Adaptive': 'Adaptativo',
-      'Show suggestions after ai response':
-          'Mostrar sugerencias después de la respuesta de la IA',
-      'Brave API key (search engine) \$':
-          'Clave API de Brave (motor de búsqueda) \$',
+      'Show suggestions after ai response': 'Mostrar sugerencias después de la respuesta de la IA',
+      'Brave API key (search engine) \$': 'Clave API de Brave (motor de búsqueda) \$',
       'Text-to-Speech service:': 'Servicio de texto a voz:',
       'Global system prompt': 'Prompt global del sistema',
       'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below':
           'El prompt global del sistema personalizable se utilizará para todos los chats NUEVOS. Para comprobar todo el prompt del sistema, pulse el botón de abajo',
-      'Click here to check the whole system prompt':
-          'Pulse aquí para comprobar todo el prompt del sistema',
+      'Click here to check the whole system prompt': 'Pulse aquí para comprobar todo el prompt del sistema',
       'Use ai to name chat': 'Usar la IA para nombrar el chat',
       'Can cause additional charges!': '¡Puede causar cargos adicionales!',
       'Audio and Microphone': 'Audio y micrófono',
@@ -678,22 +640,16 @@ class I18n {
       'Show app in dock': 'Mostrar la aplicación en el dock',
       'Hide window title': 'Ocultar el título de la ventana',
       'User city': 'Ciudad del usuario',
-      'Your name that will be used in the chat':
-          'Tu nombre que se usará en el chat',
+      'Your name that will be used in the chat': 'Tu nombre que se usará en el chat',
       'Your city name that will be used in the chat and to get weather':
           'El nombre de tu ciudad que se usará en el chat y para obtener el clima',
       'Include knowledge about user': 'Incluir conocimiento sobre el usuario',
       'Open info about User': 'Abrir información sobre el usuario',
-      'Include user city name in system prompt':
-          'Incluir el nombre de la ciudad del usuario en el prompt del sistema',
-      'Include weather in system prompt':
-          'Incluir el clima en el prompt del sistema',
-      'Include user name in system prompt':
-          'Incluir el nombre de usuario en el prompt del sistema',
-      'Include current date and time in system prompt':
-          'Incluir la fecha y hora actuales en el prompt del sistema',
-      'Include system info in system prompt':
-          'Incluir información del sistema en el prompt del sistema',
+      'Include user city name in system prompt': 'Incluir el nombre de la ciudad del usuario en el prompt del sistema',
+      'Include weather in system prompt': 'Incluir el clima en el prompt del sistema',
+      'Include user name in system prompt': 'Incluir el nombre de usuario en el prompt del sistema',
+      'Include current date and time in system prompt': 'Incluir la fecha y hora actuales en el prompt del sistema',
+      'Include system info in system prompt': 'Incluir información del sistema en el prompt del sistema',
       'Learn about the user after creating new chat \$\$':
           'Aprender sobre el usuario después de crear un nuevo chat \$\$',
       'Function tools \$\$': 'Herramientas de función \$\$',
@@ -719,8 +675,7 @@ class I18n {
       'Use mica': 'Usar Mica',
       'Transparency': 'Transparencia',
       'Set window as frameless': 'Establecer la ventana sin marco',
-      'Restart the app to apply changes':
-          'Reinicia la aplicación para aplicar los cambios',
+      'Restart the app to apply changes': 'Reinicia la aplicación para aplicar los cambios',
       'Message Text size': 'Tamaño del texto del mensaje',
       'Basic Message Text Size': 'Tamaño básico del texto del mensaje',
       'Compact Message Text Size': 'Tamaño compacto del texto del mensaje',
@@ -745,8 +700,8 @@ class I18n {
       'Storage usage': 'Uso del almacenamiento',
       'Refresh from disk': 'Actualizar desde el disco',
       'Add new': 'Añadir nuevo',
-      'AI will be able to remember things about you':
-          'La IA podrá recordar cosas sobre ti',
+      'AI will be able to remember things about you': 'La IA podrá recordar cosas sobre ti',
+      'Hide showing system prompt in home page': 'Ocultar el sistema de mensajes en la página de inicio',
     },
   };
 }
