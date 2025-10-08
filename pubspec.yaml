@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  fluent_ui: ^4.11.3
+  fluent_ui: ^4.13.0
   system_theme: ^3.0.0
   flutter_acrylic: ^1.1.3
   go_router: ^16.0.0
@@ -34,7 +34,7 @@ dependencies:
   easy_image_viewer: ^1.4.1
   path_provider: ^2.1.3
   protocol_handler: ^0.2.0
-  package_info_plus: ^8.0.0
+  package_info_plus: ^9.0.0
   flutter_gpt_tokenizer: ^0.1.1
   # super_drag_and_drop: ^0.9.1
   drag_and_drop_windows: ^0.0.3
@@ -59,16 +59,13 @@ dependencies:
   langchain_openai: ^0.7.1
   langchain_ollama: ^0.3.1
   html: ^0.15.4
-  # googleapis: ^13.2.0
-  # googleapis_auth: ^1.6.0
-  # google_sign_in: ^6.2.1
   system_info2: ^4.0.0
   intl: ^0.20.2
   entry: ^1.0.0
   record: ^6.0.0
-  deepgram_speech_to_text: ^3.0.4
+  deepgram_speech_to_text: ^4.1.0
   audioplayers: ^6.1.0
-  launch_at_startup: ^0.3.1
+  launch_at_startup: ^0.5.1
   shimmer_animation: ^2.2.1
   # elevenlabs_flutter: ^0.0.1
   elevenlabs_flutter:
@@ -85,31 +82,7 @@ dependencies:
   flutter_single_instance: ^1.1.2
   screen_retriever: ^0.2.0
   printing: ^5.14.2
-  # simple_spell_checker:
-  #   path: forked-plugins/simple_spell_checker
-  # simple_spell_checker_ar_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_ar_lan
-  # simple_spell_checker_ca_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_ca_lan
-  # simple_spell_checker_en_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_en_lan
-  # simple_spell_checker_es_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_es_lan
-  # simple_spell_checker_fr_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_fr_lan
-  # simple_spell_checker_it_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_it_lan
-  # simple_spell_checker_ko_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_ko_lan
-  # simple_spell_checker_pt_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_pt_lan
-  # simple_spell_checker_ru_lan:
-  #   path: forked-plugins/simple_spell_checker/simple_spell_checker_ru_lan
-  # simple_spell_checker: ^1.3.1
   spell_check_on_client: ^1.0.0
-
-  # llama_library_flutter: ^0.0.3
-  # ggml_library_flutter: ^0.0.10
   
 
 dev_dependencies:
@@ -120,6 +93,7 @@ dev_dependencies:
 dependency_overrides:
   intl: ^0.20.2
   uuid: ^4.1.0
+  win32_registry: ^2.1.0
 
 flutter:
   assets:

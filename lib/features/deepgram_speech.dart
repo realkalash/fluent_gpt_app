@@ -21,15 +21,19 @@ class DeepgramSpeech {
     if (deepgramKey.isEmpty) {
       return;
     }
-    _deepgram = Deepgram(deepgramKey, baseQueryParams: {
-      'model': 'nova-2-general',
-      'language': 'en-US',
-      'detect_language': false,
-      'filler_words': false,
-      'punctuation': true,
-      'punctuate': true,
+    _deepgram = Deepgram(
+      deepgramKey,
+
+      // baseQueryParams: {
+      // 'model': 'nova-2-general',
+      // 'language': 'en-US',
+      // 'detect_language': false,
+      // 'filler_words': false,
+      // 'punctuation': true,
+      // 'punctuate': true,
       // more options here : https://developers.deepgram.com/reference/listen-file
-    });
+      // }
+    );
   }
 
   static const listModels = [
