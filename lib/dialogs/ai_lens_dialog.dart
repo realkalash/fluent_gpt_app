@@ -87,9 +87,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
   AiLensSelectedFeature? selectedFeature;
 
   Color getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature feature) {
-    return selectedFeature == feature
-        ? context.theme.accentColor
-        : context.theme.cardColor;
+    return selectedFeature == feature ? context.theme.accentColor : context.theme.cardColor;
   }
 
   final flyoutTargetTranslateFrom = FlyoutController();
@@ -208,9 +206,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                           if (kDebugMode)
                             GestureDetector(
                               onTap: () async {
-                                final newBytes =
-                                    await ImageUtil.resizeAndCompressImage(
-                                        imageBytes!);
+                                final newBytes = await ImageUtil.resizeAndCompressImage(imageBytes!);
 
                                 // choose path
                                 final res = await FileUtils.saveFileOsPrompt(
@@ -225,42 +221,33 @@ class _AiLensDialogState extends State<AiLensDialog> {
                                 );
                               },
                               child: Container(
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 4),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
-                                    FluentIcons.arrow_download_32_filled,
-                                    size: 24),
+                                child: Icon(FluentIcons.arrow_download_32_filled, size: 24),
                               ),
                             ),
                           GestureDetector(
-                            onTap: () => _selectedFeature(
-                                AiLensSelectedFeature.translate),
+                            onTap: () => _selectedFeature(AiLensSelectedFeature.translate),
                             child: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: getSelectedFeatureBackgroundColorButton(
-                                    AiLensSelectedFeature.translate),
+                                color: getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature.translate),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(FluentIcons.translate_24_regular,
-                                  size: 24),
+                              child: Icon(FluentIcons.translate_24_regular, size: 24),
                             ),
                           ),
                           GestureDetector(
-                            onTap: () =>
-                                _selectedFeature(AiLensSelectedFeature.scan),
+                            onTap: () => _selectedFeature(AiLensSelectedFeature.scan),
                             child: Container(
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
-                                color: getSelectedFeatureBackgroundColorButton(
-                                    AiLensSelectedFeature.scan),
+                                color: getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature.scan),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(FluentIcons.scan_camera_20_filled,
-                                  size: 24),
+                              child: Icon(FluentIcons.scan_camera_20_filled, size: 24),
                             ),
                           ),
                         ],
@@ -324,10 +311,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
                                 child: GestureDetector(
                                   onTap: selectTranslateTo,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 2),
-                                    decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(8)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
                                     child: Text(languageTo),
                                   ),
                                 ),
@@ -348,10 +333,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
                           child: GestureDetector(
                             onTap: () => viewAllAnnotations(),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
                               child: Text('Transcript points'),
                             ),
                           ),
@@ -385,8 +368,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                           enabled: isLoading,
                           duration: const Duration(seconds: 1),
                           child: AnnotatedImageOverlay(
-                            image: Image.memory(imageBytes!,
-                                filterQuality: FilterQuality.high),
+                            image: Image.memory(imageBytes!, filterQuality: FilterQuality.high),
                             annotations: points,
                             originalHeight: imageDimensions!.height,
                             originalWidth: imageDimensions!.width,
@@ -426,9 +408,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       _rightClickSendMessage(context);
                     },
                     child: SqueareIconButton(
-                      onTap: selectedChatRoom.model.imageSupported
-                          ? sendMessage
-                          : null,
+                      onTap: selectedChatRoom.model.imageSupported ? sendMessage : null,
                       icon: const Icon(ic.FluentIcons.send_24_filled),
                       tooltip: 'Send message',
                     ),
@@ -489,8 +469,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                       return MenuFlyout(
                         items: [
                           MenuFlyoutItem(
-                            text: const Text(
-                                'Send not in real-time (can help with some LLM providers)'),
+                            text: const Text('Send not in real-time (can help with some LLM providers)'),
                             onPressed: () {
                               // close flyout
                               Navigator.of(context).pop();
@@ -540,8 +519,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
 
   void sendMessage([bool asStream = true]) {
     final provider = context.read<ChatProvider>();
-    provider.sendMessage(textContr.text,
-        hidePrompt: false, sendStream: asStream);
+    provider.sendMessage(textContr.text, hidePrompt: false, sendStream: asStream);
     Navigator.of(context).pop(true);
   }
 
@@ -551,13 +529,38 @@ class _AiLensDialogState extends State<AiLensDialog> {
       return MenuFlyout(
         items: [
           MenuFlyoutItem(
-            text: const Text(
-                'Send not in real-time (can help with some LLM providers)'),
+            text: Text('Send with waiting for response'.tr),
             onPressed: () {
               Navigator.of(context).pop();
               sendMessage(false);
             },
-          )
+          ),
+          MenuFlyoutItem(
+            text: Text('Add to chat as USER'.tr),
+            onPressed: () {
+              Navigator.of(context).pop();
+              final chatProvider = context.read<ChatProvider>();
+              if (textContr.text.isNotEmpty) {
+                chatProvider.addHumanMessageToList(
+                  FluentChatMessage.humanText(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    content: textContr.text,
+                    timestamp: DateTime.now().millisecondsSinceEpoch,
+                    creator: AppCache.userName.value ?? 'User',
+                  ),
+                );
+              }
+              chatProvider.addHumanMessageToList(
+                FluentChatMessage.image(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  content: base64Encode(widget.bytes),
+                  timestamp: DateTime.now().millisecondsSinceEpoch,
+                  creator: AppCache.userName.value ?? 'User',
+                ),
+              );
+              Navigator.of(context).pop();
+            },
+          ),
         ],
       );
     });
@@ -592,8 +595,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     String instruction =
         'Translate what\'s on the image to "$languageTo" language. The answer should follow the json format: "$format". Use coordinates based on the image and "label" for the text! . DON\'T WRITE ANYTHING ELSE!';
     final finalizedPrompt = instruction;
-    final response = await provider
-        .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
+    final response = await provider.retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
       FluentChatMessage.image(
         id: "0",
         content: base64Encode(widget.bytes),
@@ -604,8 +606,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     final normalizedText = response.trim().removeWrappedQuotes;
     try {
       final json = jsonDecode(normalizedText) as List;
-      final annotationsResponseList =
-          json.map((e) => AnnotationPoint.fromJson(e)).toList();
+      final annotationsResponseList = json.map((e) => AnnotationPoint.fromJson(e)).toList();
 
       points.clear();
       points.addAll(annotationsResponseList);
@@ -638,8 +639,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     String instruction =
         'Point to the items/objects/persons with no more than 10 items. The answer should follow the json format: $format, ...]. DON\'T WRITE ANYTHING ELSE!';
     final finalizedPrompt = '$youAre\n\n$instruction';
-    final response = await provider
-        .retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
+    final response = await provider.retrieveResponseFromPrompt(finalizedPrompt, additionalPreMessages: [
       FluentChatMessage.image(
         id: "0",
         content: base64Encode(widget.bytes),
@@ -650,12 +650,9 @@ class _AiLensDialogState extends State<AiLensDialog> {
     final normalizedText = response.trim().removeWrappedQuotes;
     try {
       final isContainsMarkdown = normalizedText.contains('```json');
-      final jsonText = isContainsMarkdown
-          ? extractCodeFromMarkdown(normalizedText)
-          : normalizedText;
+      final jsonText = isContainsMarkdown ? extractCodeFromMarkdown(normalizedText) : normalizedText;
       final json = jsonDecode(jsonText) as List;
-      final annotationsResponseList =
-          json.map((e) => AnnotationPoint.fromJson(e)).toList();
+      final annotationsResponseList = json.map((e) => AnnotationPoint.fromJson(e)).toList();
 
       points.clear();
       points.addAll(annotationsResponseList);
@@ -729,8 +726,7 @@ class _HoverListTileState extends State<HoverListTile> {
   bool isHovering = false;
   @override
   Widget build(BuildContext context) {
-    final tileColor =
-        widget.backgroundColor ?? context.theme.scaffoldBackgroundColor;
+    final tileColor = widget.backgroundColor ?? context.theme.scaffoldBackgroundColor;
     return MouseRegion(
       cursor: widget.cursor ?? SystemMouseCursors.none,
       onEnter: (_) {

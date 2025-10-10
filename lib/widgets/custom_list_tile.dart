@@ -25,6 +25,8 @@ class BasicListTile extends StatelessWidget {
   final void Function()? onTap;
   final void Function()? onLongPress;
 
+  static EdgeInsetsGeometry? defaultPadding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4);
+
   @override
   Widget build(BuildContext context) {
     return Semantics(

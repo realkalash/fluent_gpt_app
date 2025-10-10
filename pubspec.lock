@@ -980,6 +980,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
+  lucide_icons_flutter:
+    dependency: "direct main"
+    description:
+      name: lucide_icons_flutter
+      sha256: b413c4249c816a8dc34f445e57ce04cbfb0760ea8e39d11c688857c023d30c59
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.1"
   macos_window_utils:
     dependency: transitive
     description:

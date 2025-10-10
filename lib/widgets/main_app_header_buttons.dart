@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/theme.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as icons;
@@ -30,38 +32,42 @@ class MainAppHeaderButtons extends StatelessWidget {
             const RevertMessageHeaderButton(),
             const AddChatButton(),
             const ClearChatButton(),
+            SizedBox(width: 8.0),
+            if (AppCache.enableOverlay.value == true) const ToggleOverlaySqueareButton(),
+
+            const SizedBox(width: 4.0),
             const PinAppButton(),
-            if (AppCache.enableOverlay.value == true)
-              const ToggleOverlaySqueareButton(),
-            Padding(
-              padding: const EdgeInsets.all(4.0),
+            Tooltip(
+              message: 'Theme'.tr,
+              child: ToggleButton(
+                checked: isDark,
+                onChanged: (v) {
+                  if (isDark) {
+                    appTheme.applyLightTheme();
+                  } else {
+                    appTheme.applyDarkTheme();
+                  }
+                },
+                child: const Icon(
+                  icons.FluentIcons.weather_sunny_24_regular,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8.0),
+            Tooltip(
+              message: 'Settings'.tr,
               child: ToggleButton(
                 checked: false,
                 onChanged: (_) {
                   Navigator.of(context).push(
-                    FluentPageRoute(
-                        builder: (context) => const NewSettingsPage()),
+                    FluentPageRoute(builder: (context) => const NewSettingsPage()),
                   );
                 },
                 child: const Icon(
                   icons.FluentIcons.settings_24_regular,
                   size: 20,
                 ),
-              ),
-            ),
-            const SizedBox(width: 4.0),
-            ToggleButton(
-              checked: isDark,
-              onChanged: (v) {
-                if (isDark) {
-                  appTheme.applyLightTheme();
-                } else {
-                  appTheme.applyDarkTheme();
-                }
-              },
-              child: const Icon(
-                icons.FluentIcons.weather_sunny_24_regular,
-                size: 20,
               ),
             ),
             const SizedBox(width: 8.0),
@@ -83,15 +89,12 @@ class RevertMessageHeaderButton extends StatelessWidget {
     if (chatProvider.lastDeletedMessage.isNotEmpty)
       return Tooltip(
         message: 'Revert deleted message',
-        child: Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: ToggleButton(
-            checked: false,
-            onChanged: (v) => chatProvider.revertDeletedMessage(),
-            child: const Icon(
-              icons.FluentIcons.arrow_undo_24_regular,
-              size: 20,
-            ),
+        child: ToggleButton(
+          checked: false,
+          onChanged: (v) => chatProvider.revertDeletedMessage(),
+          child: const Icon(
+            icons.FluentIcons.arrow_undo_24_regular,
+            size: 20,
           ),
         ),
       );
@@ -105,29 +108,24 @@ class EnableOverlaySqueareButton extends StatefulWidget {
   const EnableOverlaySqueareButton({super.key});
 
   @override
-  State<EnableOverlaySqueareButton> createState() =>
-      _ToggleOverlaySqueareButtonState();
+  State<EnableOverlaySqueareButton> createState() => _ToggleOverlaySqueareButtonState();
 }
 
-class _ToggleOverlaySqueareButtonState
-    extends State<EnableOverlaySqueareButton> {
+class _ToggleOverlaySqueareButtonState extends State<EnableOverlaySqueareButton> {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
       message: 'Show overlay on tap',
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: ToggleButton(
-          checked: AppCache.enableOverlay.value ?? false,
-          onChanged: (v) {
-            setState(() {
-              AppCache.enableOverlay.value = v;
-            });
-          },
-          child: const Icon(
-            icons.FluentIcons.cursor_hover_24_regular,
-            size: 20,
-          ),
+      child: ToggleButton(
+        checked: AppCache.enableOverlay.value ?? false,
+        onChanged: (v) {
+          setState(() {
+            AppCache.enableOverlay.value = v;
+          });
+        },
+        child: const Icon(
+          icons.FluentIcons.cursor_hover_24_regular,
+          size: 20,
         ),
       ),
     );
@@ -136,53 +134,35 @@ class _ToggleOverlaySqueareButtonState
 
 class ToggleOverlaySqueareButton extends StatelessWidget {
   const ToggleOverlaySqueareButton({super.key});
-
+  static const double _height = 16;
+  static const double _width = 48;
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Tooltip(
-          message: 'Switch to overlay',
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ToggleButton(
-              checked: overlayVisibility.value.isShowingOverlay,
-              onChanged: (v) {
-                if (v == true) {
-                  if (AppCache.enableOverlay.value == false) {
-                    AppCache.enableOverlay.value = true;
-                  }
-                  OverlayManager.showOverlay(context);
-                }
-              },
-              child: const Icon(
-                icons.FluentIcons.cursor_hover_24_regular,
-                size: 20,
-              ),
-            ),
-          ),
+        SqueareIconButtonSized(
+          height: _height,
+          width: _width,
+          onTap: () {
+            AppCache.enableOverlay.value = true;
+            OverlayManager.showOverlay(context);
+          },
+          icon: const Icon(icons.FluentIcons.cursor_hover_24_regular, size: 16),
+          tooltip: 'Switch to overlay'.tr,
         ),
-        Tooltip(
-          message: 'Switch to sidebar',
-          child: Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: ToggleButton(
-              checked: overlayVisibility.value.isShowingSidebarOverlay,
-              onChanged: (v) {
-                if (v == true) {
-                  if (AppCache.enableOverlay.value == false) {
-                    AppCache.enableOverlay.value = true;
-                  }
-                  OverlayManager.showSidebarOverlay(context);
-                }
-              },
-              child: const Icon(
-                icons.FluentIcons.panel_right_32_filled,
-                size: 20,
-              ),
-            ),
-          ),
+        const SizedBox(height: 1),
+        SqueareIconButtonSized(
+          height: _height,
+          width: _width,
+          tooltip: 'Switch to sidebar'.tr,
+          onTap: () {
+            if (AppCache.enableOverlay.value == false) {
+              AppCache.enableOverlay.value = true;
+            }
+            OverlayManager.showSidebarOverlay(context);
+          },
+          icon: const Icon(icons.FluentIcons.panel_right_32_filled, size: _height),
         ),
       ],
     );
@@ -198,7 +178,7 @@ class AddChatButton extends StatelessWidget {
     // var navProvider = context.read<NavigationProvider>();
 
     return Tooltip(
-      message: 'Add new chat (Ctrl + T)',
+      message: 'Add new chat (Ctrl + T)'.tr,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(
@@ -224,19 +204,16 @@ class ClearChatButton extends StatelessWidget {
     var chatProvider = context.read<ChatProvider>();
 
     return Tooltip(
-      message: 'Clear conversation (Ctrl + R)',
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: ToggleButton(
-          checked: false,
-          child: const Icon(
-            icons.FluentIcons.arrow_counterclockwise_24_regular,
-            size: 20,
-          ),
-          onChanged: (v) {
-            chatProvider.clearChatMessages();
-          },
+      message: 'Clear conversation (Ctrl + R)'.tr,
+      child: ToggleButton(
+        checked: false,
+        child: const Icon(
+          icons.FluentIcons.arrow_counterclockwise_24_regular,
+          size: 20,
         ),
+        onChanged: (v) {
+          chatProvider.clearChatMessages();
+        },
       ),
     );
   }
@@ -250,7 +227,7 @@ class PinAppButton extends StatelessWidget {
     var appTheme = context.watch<AppTheme>();
 
     return Tooltip(
-      message: appTheme.isPinned ? 'Unpin window' : 'Pin window',
+      message: appTheme.isPinned ? 'Unpin window'.tr : 'Pin window'.tr,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(
@@ -277,11 +254,11 @@ class CollapseAppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: Platform.isLinux ? 'Close window' : 'Collapse',
+      message: Platform.isLinux ? 'Close window'.tr : 'Collapse'.tr,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: ToggleButton(
-          semanticLabel: 'Close window',
+          semanticLabel: 'Close window'.tr,
           checked: false,
           onChanged: (v) {
             if (Platform.isLinux) {

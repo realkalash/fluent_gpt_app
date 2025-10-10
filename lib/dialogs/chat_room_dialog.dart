@@ -5,6 +5,7 @@ import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -118,13 +119,13 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             Navigator.of(context).pop();
             widget.onOkPressed();
           },
-          child: const Text('Save'),
+          child: Text('Save'.tr),
         ),
         Button(
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text('Cancel'),
+          child: Text('Cancel'.tr),
         ),
       ],
       content: ListView(
@@ -133,7 +134,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
           // date created and date modified
           Row(
             children: [
-              Text('Created $dateCreatedString | Modified $dateModifiedString'),
+              Text('${'Created'.tr} $dateCreatedString | ${'Modified'.tr} $dateModifiedString'),
             ],
           ),
           const SizedBox(height: 8),
@@ -214,7 +215,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 ),
               ),
             ),
-          const Text('Chat room name'),
+           Text('Chat name'.tr),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -230,7 +231,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             ],
           ),
           if (!widget.room.isFolder) ...[
-            const Text('Character name'),
+            Text('Character name'.tr),
             TextBox(
               controller:
                   TextEditingController(text: widget.room.characterName),
@@ -241,7 +242,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             ),
             Row(
               children: [
-                const Text('System message'),
+                Text('System message'.tr),
                 Spacer(),
                 SqueareIconButton(
                   onTap: () async {
@@ -257,7 +258,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                     systemMessageContr.text = newPrompt;
                   },
                   icon: Icon(FluentIcons.arrow_counterclockwise_16_regular),
-                  tooltip: 'Update variables',
+                  tooltip: 'Update variables'.tr,
                 ),
                 AiLibraryButton(onPressed: () async {
                   final prompt = await showDialog<CustomPrompt?>(
