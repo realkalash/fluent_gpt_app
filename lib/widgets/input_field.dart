@@ -755,28 +755,26 @@ class ModelsTooltipContainer extends StatelessWidget {
               itemCount: models.length,
               itemBuilder: (context, index) {
                 final model = models[index];
-                return Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      BasicListTile(
-                        padding: BasicListTile.defaultPadding,
-                        leading: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: SizedBox.square(
-                            dimension: 24,
-                            child: model.modelIcon,
-                          ),
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    BasicListTile(
+                      padding: BasicListTile.defaultPadding,
+                      leading: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: SizedBox.square(
+                          dimension: 24,
+                          child: model.modelIcon,
                         ),
-                        title: Text(model.customName),
-                        // subtitle: Text(model.modelName),
-                        trailing: selectedModel == model ? const Icon(ic.FluentIcons.checkmark_16_filled) : null,
-                        color: Colors.transparent,
                       ),
-                      // if not last element add divider
-                      if (index < models.length - 1) const Divider(),
-                    ],
-                  ),
+                      title: Text(model.customName),
+                      // subtitle: Text(model.modelName),
+                      trailing: selectedModel == model ? const Icon(ic.FluentIcons.checkmark_16_filled) : null,
+                      color: Colors.transparent,
+                    ),
+                    // if not last element add divider
+                    if (index < models.length - 1) const Divider(),
+                  ],
                 );
               },
             ),
