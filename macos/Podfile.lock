@@ -38,7 +38,7 @@ PODS:
     - FlutterMacOS
   - protocol_handler_macos (0.0.1):
     - FlutterMacOS
-  - record_macos (1.0.0):
+  - record_macos (1.1.0):
     - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
@@ -138,7 +138,7 @@ SPEC CHECKSUMS:
   FluentIcons: 7d6e501bf569ebd7257261fdcf20f359b4267e79
   flutter_gpt_tokenizer: 0d9e224c1ff3bc0ae48f802fc87258c08057350c
   flutter_local_notifications: 4bf37a31afde695b56091b4ae3e4d9c7a7e6cda0
-  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   HotKey: 400beb7caa29054ea8d864c96f5ba7e5b4852277
   hotkey_manager_macos: a4317849af96d2430fa89944d3c58977ca089fbe
   keypress_simulator_macos: b5c87294b03ab5a2e743873a7dabe1ff5589129d
@@ -148,7 +148,7 @@ SPEC CHECKSUMS:
   path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   printing: c4cf83c78fd684f9bc318e6aadc18972aa48f617
   protocol_handler_macos: f9cd7b13bcaf6b0425f7410cbe52376cb843a936
-  record_macos: 295d70bd5fb47145df78df7b80e6697cd18403c0
+  record_macos: 43194b6c06ca6f8fa132e2acea72b202b92a0f5b
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   system_theme: ed74293ad07d3a05e3e2d0059ff342360346f1a0
