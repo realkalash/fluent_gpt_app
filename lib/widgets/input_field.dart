@@ -35,12 +35,12 @@ import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 // ignore: unused_import
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:pasteboard/pasteboard.dart';
 import 'package:provider/provider.dart';
@@ -618,7 +618,7 @@ class _InputFieldState extends State<InputField> {
       return MenuFlyout(
         items: [
           MenuFlyoutItem(
-              text: const Text('Send silently as assistant'),
+              text: Text('Add to chat as SYSTEM'.tr),
               trailing: Text('(alt+enter)'),
               onPressed: () async {
                 if (text.isNotEmpty)
@@ -636,7 +636,7 @@ class _InputFieldState extends State<InputField> {
                 clearFieldAndFocus();
               }),
           MenuFlyoutItem(
-              text: const Text('Send silently as user'),
+              text: Text('Add to chat as USER'.tr),
               trailing: Text('(alt+u)'),
               onPressed: () async {
                 final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -655,7 +655,8 @@ class _InputFieldState extends State<InputField> {
                 clearFieldAndFocus();
               }),
           MenuFlyoutItem(
-              text: Text('Send silently as ${selectedChatRoom.characterName.toUpperCase()} answer'),
+              text:
+                  Text('Add to chat as {name}'.tr.replaceAll('{{name}}', selectedChatRoom.characterName.toUpperCase())),
               trailing: Text('(alt+i)'),
               onPressed: () async {
                 final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -676,7 +677,7 @@ class _InputFieldState extends State<InputField> {
               }),
           MenuFlyoutSeparator(),
           MenuFlyoutItem(
-            text: const Text('Send not in real-time (can help with some LLM providers)'),
+            text: Text('Send with waiting for response'.tr),
             onPressed: () {
               provider.sendMessage(controller.text, hidePrompt: false, sendStream: false);
               clearFieldAndFocus();
@@ -745,34 +746,43 @@ class ModelsTooltipContainer extends StatelessWidget {
     final selectedModel = selectedChatRoom.model;
     return SizedBox(
       width: 200,
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: models.length,
-        itemBuilder: (context, index) {
-          final model = models[index];
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: BasicListTile(
-                  leading: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: SizedBox.square(
-                      dimension: 24,
-                      child: model.modelIcon,
-                    ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: models.length,
+              itemBuilder: (context, index) {
+                final model = models[index];
+                return Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      BasicListTile(
+                        padding: BasicListTile.defaultPadding,
+                        leading: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: SizedBox.square(
+                            dimension: 24,
+                            child: model.modelIcon,
+                          ),
+                        ),
+                        title: Text(model.customName),
+                        // subtitle: Text(model.modelName),
+                        trailing: selectedModel == model ? const Icon(ic.FluentIcons.checkmark_16_filled) : null,
+                        color: Colors.transparent,
+                      ),
+                      // if not last element add divider
+                      if (index < models.length - 1) const Divider(),
+                    ],
                   ),
-                  title: Text(model.customName),
-                  // subtitle: Text(model.modelName),
-                  trailing: selectedModel == model ? const Icon(ic.FluentIcons.checkmark_16_filled) : null,
-                  color: Colors.transparent,
-                ),
-              ),
-              // if not last element add divider
-              if (index < models.length - 1) const Divider(),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+          Icon(LucideIcons.mouse, size: 16),
+        ],
       ),
     );
   }
@@ -1109,6 +1119,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
     // ignore: unused_local_variable
     final provider = context.watch<ChatProvider>();
     final models = allModels.value;
+    final cardColor = FluentTheme.of(context).cardColor;
     return Focus(
       canRequestFocus: false,
       descendantsAreTraversable: false,
@@ -1140,13 +1151,12 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: FluentTheme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(4),
+              color: cardColor,
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
             ),
             width: 30,
             height: 30,
-            margin: const EdgeInsets.only(left: 8),
-            padding: const EdgeInsets.all(2),
+            margin: const EdgeInsets.only(left: 4),
             child: SizedBox.square(
               dimension: 20,
               child: selectedModel.modelIcon,
@@ -1157,9 +1167,29 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
     );
   }
 
+  Future<void> createFirstModel() async {
+    final chatProvider = context.read<ChatProvider>();
+    final isListWasEmpty = allModels.value.isEmpty;
+    final model = await showDialog<ChatModelAi>(
+      context: context,
+      builder: (context) => const AddAiModelDialog(),
+    );
+    if (model != null) {
+      await chatProvider.addNewCustomModel(model);
+      if (isListWasEmpty) {
+        chatProvider.selectNewModel(model);
+      }
+    }
+  }
+
   void openFlyout(BuildContext context) {
     final provider = context.read<ChatProvider>();
     final models = allModels.value;
+    if (models.isEmpty) {
+      createFirstModel();
+      return;
+    }
+
     final selectedModel = selectedChatRoom.model;
     flyoutController.showFlyout(builder: (ctx) {
       return StatefulBuilder(

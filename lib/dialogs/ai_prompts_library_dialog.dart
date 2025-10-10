@@ -101,6 +101,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
             children: [
               Expanded(
                 child: TextBox(
+                  autofocus: true,
                   controller: textController,
                   expands: false,
                   minLines: 1,

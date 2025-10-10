@@ -83,6 +83,7 @@ dependencies:
   screen_retriever: ^0.2.0
   printing: ^5.14.2
   spell_check_on_client: ^1.0.0
+  lucide_icons_flutter: ^3.1.1
   
 
 dev_dependencies:
