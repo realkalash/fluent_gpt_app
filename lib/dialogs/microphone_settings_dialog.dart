@@ -1,7 +1,7 @@
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:record/record.dart';
 

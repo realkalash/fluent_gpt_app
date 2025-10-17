@@ -40,6 +40,9 @@ class I18n {
           'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
     },
     'ru': {
+      'Download': 'Скачать',
+      'Downloading...': 'Загрузка...',
+      'Downloaded': 'Загружено',
       'Update variables': 'Обновить переменные',
       'Chat name': 'Название чата',
       'Character name': 'Имя персонажа',
@@ -67,7 +70,7 @@ class I18n {
       'developer': 'разработчик',
       'Hide showing system prompt in home page': 'Скрыть системное сообщение на главной странице',
       'privacy_download_hf_models':
-          'FluentGPT не является создателем, создателем или владельцем любой модели, представленной в программе сообщества. Каждая модель сообщества создается и предоставляется третьими лицами',
+          'FluentGPT не является создателем или владельцем любой модели, представленной в программе сообщества. Каждая модель сообщества создается и предоставляется третьими лицами',
       'The maximum length of tokens to be sent to AI': 'Максимальная длина токенов для отправки в AI',
       'Consumes additional RAM': 'Потребляет дополнительную ОЗУ',
       'Use spell check': 'Использовать проверку орфографии',
@@ -396,6 +399,9 @@ class I18n {
       'What\'s New': 'Что нового',
     },
     'es': {
+      'Download': 'Descargar',
+      'Downloading...': 'Descargando...',
+      'Downloaded': 'Descargado',
       'Update variables': 'Actualizar variables',
       'Chat name': 'Nombre del chat',
       'Character name': 'Nombre del personaje',
@@ -422,7 +428,7 @@ class I18n {
       'advanced': 'avanzado',
       'developer': 'desarrollador',
       'privacy_download_hf_models':
-          'FluentGPT no es el creador, creador o propietario de ningún Modelo presentado en el Programa de Modelos Comunitarios. Cada Modelo Comunitario es creado y proporcionado por terceros',
+          'FluentGPT no es el creador o propietario de ningún Modelo presentado en el Programa de Modelos Comunitarios. Cada Modelo Comunitario es creado y proporcionado por terceros',
       'Consumes additional RAM': 'Consume RAM adicional',
       'Use spell check': 'Usar spell check',
       'The maximum length of tokens to be sent to AI': 'Максимальная длина токенов для отправки в AI',

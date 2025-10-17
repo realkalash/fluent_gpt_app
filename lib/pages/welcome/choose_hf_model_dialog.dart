@@ -7,6 +7,12 @@ import 'package:fluent_ui/fluent_ui.dart';
 
 class ChooseHfModelDialog extends StatefulWidget {
   const ChooseHfModelDialog({super.key});
+  static Future<LlmModelCommon?> show(BuildContext context) async {
+    return showDialog<LlmModelCommon?>(
+      context: context,
+      builder: (context) => const ChooseHfModelDialog(),
+    );
+  }
 
   @override
   State<ChooseHfModelDialog> createState() => _ChooseHfModelDialogState();

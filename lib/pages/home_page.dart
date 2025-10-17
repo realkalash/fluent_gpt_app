@@ -21,7 +21,7 @@ import 'package:fluent_gpt/dialogs/search_chat_dialog.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/utils.dart';

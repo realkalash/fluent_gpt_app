@@ -12,6 +12,7 @@ import 'package:fluent_gpt/pages/local_server_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
@@ -153,12 +154,15 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   ),
                 ),
                 if (Platform.isWindows || Platform.isMacOS)
-                  PaneItem(
+                  PaneItemServerStatus(
                     key: const ValueKey('/local_server'),
-                    icon: const Icon(FluentIcons.developer_board_16_filled),
+                    icon: Icon(
+                      FluentIcons.developer_board_16_filled,
+                      color: ServerProvider.isServerRunning ? Colors.green : null,
+                    ),
                     title: Text('Local server'.tr),
                     body: const LocalServerPage(),
-                    onTap: () => Navigator.of(context).push(
+                    onPressed: () => Navigator.of(context).push(
                       FluentPageRoute(builder: (context) => const LocalServerPage()),
                     ),
                   ),
@@ -182,6 +186,69 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
             onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
           );
         });
+  }
+}
+
+class PaneItemServerStatus extends PaneItem {
+  PaneItemServerStatus({required super.icon, required super.body, super.key, super.title, this.onPressed});
+  VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context, bool selected, VoidCallback? _,
+      {PaneDisplayMode? displayMode, bool showTextOnTop = true, int? itemIndex, bool? autofocus}) {
+    final maybeBody = InheritedNavigationView.maybeOf(context);
+    final mode = displayMode ?? maybeBody?.displayMode ?? maybeBody?.pane?.displayMode ?? PaneDisplayMode.minimal;
+    final padding = EdgeInsets.only(top: 12.0, bottom: 12.0, right: 3.0);
+    Widget icon = _buildIcon(padding);
+    if (mode == PaneDisplayMode.compact) {
+      return icon;
+    }
+    return super.build(
+      context,
+      selected,
+      onPressed,
+      displayMode: displayMode,
+      showTextOnTop: showTextOnTop,
+      itemIndex: itemIndex,
+      autofocus: autofocus,
+    );
+  }
+
+  StreamBuilder<bool> _buildIcon(EdgeInsets padding) {
+    return StreamBuilder(
+      stream: ServerProvider.serverStatusStream,
+      initialData: ServerProvider.isServerRunning,
+      builder: (context, asyncSnapshot) {
+        bool isRunning = asyncSnapshot.data ?? false;
+        final workColor = isRunning ? Colors.green : Colors.transparent;
+        return HoverButton(
+          onPressed: onPressed,
+          builder: (BuildContext p1, Set<WidgetState> state) {
+            if (state.contains(WidgetState.hovered)) {
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: workColor.withAlpha(127),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: padding,
+                  child: Icon(FluentIcons.developer_board_16_filled, color: Colors.white, size: 16),
+                ),
+              );
+            }
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: workColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: padding,
+                child: Icon(FluentIcons.developer_board_16_filled, color: Colors.white, size: 16),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 

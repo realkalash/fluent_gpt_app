@@ -18,44 +18,33 @@ class AppCache {
   static const compactMessageTextSize = IntPref("compactMessageTextSize", 10);
   static const showSettingsInOverlay = BoolPref("showSettingsInOverlay", true);
   static const frameless = BoolPref("frameless", false);
-  static const StringPref backgroundEffect =
-      StringPref("backgroundEffect", 'disabled');
+  static const StringPref backgroundEffect = StringPref("backgroundEffect", 'disabled');
   static const speechLanguage = StringPref("speechLanguage", 'en');
   static const appThemeStyle = StringPref("appThemeStyle", 'dark');
-  static const textToSpeechService =
-      StringPref("textToSpeechService", 'deepgram');
-  static const deepgramVoiceModel =
-      StringPref("deepgramVoiceModel", 'aura-asteria-en');
-  static const azureVoiceModel =
-      StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
-  static const elevenlabsVoiceModelName =
-      StringPref("elevenlabsVoiceModel", 'Aria');
+  static const textToSpeechService = StringPref("textToSpeechService", 'deepgram');
+  static const deepgramVoiceModel = StringPref("deepgramVoiceModel", 'aura-asteria-en');
+  static const azureVoiceModel = StringPref("azureVoiceModel", 'en-US-AvaMultilingualNeural');
+  static const elevenlabsVoiceModelName = StringPref("elevenlabsVoiceModel", 'Aria');
   static const elevenlabsModel = StringPref("elevenlabsModel", '');
-  static const elevenlabsVoiceModelId =
-      StringPref("elevenlabsVoiceModelId", '9BWtsMINqrJLrRacOk9x');
+  static const elevenlabsVoiceModelId = StringPref("elevenlabsVoiceModelId", '9BWtsMINqrJLrRacOk9x');
   static const autoScrollSpeed = DoublePref("autoScrollSpeed", 0.1);
   static const selectedChatRoomId = StringPref("selectedChatRoomName");
   static const micrpohoneDeviceId = StringPref("micrpohoneDeviceId");
   static const micrpohoneDeviceName = StringPref("micrpohoneDeviceName");
   static const scrapOnlyDecription = BoolPref("scrapOnlyDecription", true);
-  static const fetchChatsPeriodically =
-      BoolPref("fetchChatsPeriodically", false);
+  static const fetchChatsPeriodically = BoolPref("fetchChatsPeriodically", false);
   static const fetchChatsPeriodMin = IntPref("fetchChatsPeriodMin", 10);
   static const pricePer1MSent = StringPref("pricePer1MSent", '1.0');
   static const pricePer1MReceived = StringPref("pricePer1MReceived", '1.0');
   static const costCalcNotes = StringPref("costCalcNotes", '');
   static const locale = StringPref("locale", 'en');
   static const archiveOldChatsAfter = IntPref("deleteOldChatsAfter", 45);
-  static const deleteOldArchivedChatsAfter =
-      IntPref("deleteOldArchivedChatsAfter", 60);
+  static const deleteOldArchivedChatsAfter = IntPref("deleteOldArchivedChatsAfter", 60);
   static const imageGenerator = IntPref("imageGenerator", 0);
   static const imageGeneratorApiKey = StringPref("imageGeneratorApiKey", null);
-  static const imageGeneratorSize =
-      StringPref("imageGeneratorSize", '1024x1024');
-  static const imageGeneratorQuality =
-      StringPref("imageGeneratorQuality", "hd");
-  static const imageGeneratorStyle =
-      StringPref("imageGeneratorStyle", "natural");
+  static const imageGeneratorSize = StringPref("imageGeneratorSize", '1024x1024');
+  static const imageGeneratorQuality = StringPref("imageGeneratorQuality", "hd");
+  static const imageGeneratorStyle = StringPref("imageGeneratorStyle", "natural");
   static const imageGeneratorModel = StringPref("imageGeneratorModel", null);
   static const useRAG = BoolPref("useRag", false);
   static const ragThreshold = DoublePref("ragThreshold", 0.5);
@@ -70,19 +59,18 @@ class AppCache {
   ///  "key": "value"
   /// }
   /// ```
-  static const exportedGlobalSettings =
-      FileStringPref("fluent_gpt/exportedGlobalSettings.json");
+  static const exportedGlobalSettings = FileStringPref("fluent_gpt/exportedGlobalSettings.json");
 
   /* Directories */
   static const appDocumentsDirectory = StringPref("appDocumentsDirectory", '');
+  static const modelsDirectoryPath = StringPref("modelsDirectoryPath");
 
   /* One time banners/tutors */
   /// related to the very first welcome screen
   static const isWelcomeShown = BoolPref("isWelcomeShown", false);
 
   /* Permissions */
-  static const isStorageAccessGranted =
-      BoolPref("isFoldersAccessGranted", false);
+  static const isStorageAccessGranted = BoolPref("isFoldersAccessGranted", false);
   static const isMicAccessGranted = BoolPref("isMicAccessGranted", false);
 
   /* Global Hotkeys */
@@ -94,8 +82,7 @@ class AppCache {
   /* Window pos */
   static const windowX = IntPref("windowX");
   static const windowY = IntPref("windowY");
-  static const previousCompactOffset =
-      OffsetPref("previousCompactOffset", Offset.zero);
+  static const previousCompactOffset = OffsetPref("previousCompactOffset", Offset.zero);
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
 
@@ -108,8 +95,7 @@ class AppCache {
   static const quickPrompts = FileStringPref("fluent_gpt/customPrompts.json");
 
   /// Contains all the prompts from the library like system messages, helpers etc.
-  static const promptsLibrary =
-      FileStringPref("fluent_gpt/promptsLibrary.json");
+  static const promptsLibrary = FileStringPref("fluent_gpt/promptsLibrary.json");
   static const customActions = FileStringPref("fluent_gpt/customActions.json");
   static const savedModels = FileStringPref("fluent_gpt/savedModels.json");
   static const userInfo = UserInfoFilePref("fluent_gpt/userInfo.json");
@@ -133,32 +119,22 @@ class AppCache {
   static const elevenLabsApiKey = StringPref("elevenLabsApiKey", '');
 
   /* Tools enabled/disabled */
-  static const gptToolCopyToClipboardEnabled =
-      BoolPref("copyToClipboardEnabled", true);
+  static const gptToolCopyToClipboardEnabled = BoolPref("copyToClipboardEnabled", true);
   static const gptToolAutoOpenUrls = BoolPref("gptToolAutoOpenUrls", true);
   static const gptToolGenerateImage = BoolPref("gptToolGenerateImage", true);
   static const gptToolRememberInfo = BoolPref("rememberInfo", true);
-  static const useAiToNameChat =
-      BoolPref("useSecondRequestForNamingChats", false);
+  static const useAiToNameChat = BoolPref("useSecondRequestForNamingChats", false);
   static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
-  static const annoyModeTimerMinMinutes =
-      IntPref("annoyModeTimerMinMinutes", 100);
-  static const annoyModeTimerMaxMinutes =
-      IntPref("annoyModeTimerMaxMinutes", 120);
-  static const includeUserNameToSysPrompt =
-      BoolPref("includeUserNameToSysPrompt", true);
-  static const includeUserCityNamePrompt =
-      BoolPref("includeUserCityNamePrompt", false);
+  static const annoyModeTimerMinMinutes = IntPref("annoyModeTimerMinMinutes", 100);
+  static const annoyModeTimerMaxMinutes = IntPref("annoyModeTimerMaxMinutes", 120);
+  static const includeUserNameToSysPrompt = BoolPref("includeUserNameToSysPrompt", true);
+  static const includeUserCityNamePrompt = BoolPref("includeUserCityNamePrompt", false);
   static const includeWeatherPrompt = BoolPref("includeWeatherPrompt", false);
-  static const includeSysInfoToSysPrompt =
-      BoolPref("includeSysInfoToSysPrompt", false);
-  static const includeKnowledgeAboutUserToSysPrompt =
-      BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
-  static const includeTimeToSystemPrompt =
-      BoolPref("includeTimeToSystemPrompt", true);
+  static const includeSysInfoToSysPrompt = BoolPref("includeSysInfoToSysPrompt", false);
+  static const includeKnowledgeAboutUserToSysPrompt = BoolPref("includeKnowledgeAboutUserToSysPrompt", false);
+  static const includeTimeToSystemPrompt = BoolPref("includeTimeToSystemPrompt", true);
   @Deprecated('Use gptToolRememberInfo')
-  static const learnAboutUserAfterCreateNewChat =
-      BoolPref("learnAboutUserAfterCreateNewChat", false);
+  static const learnAboutUserAfterCreateNewChat = BoolPref("learnAboutUserAfterCreateNewChat", false);
   static const autoPlayMessagesFromAi = BoolPref("autoPlayMessagesFromAi", false);
   static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
   static const enableQuestionHelpers = BoolPref("enableQuestionHelpers");
@@ -209,8 +185,4 @@ class AppCache {
     speechLanguage,
     textToSpeechService,
   ];
-
-
-
-
 }

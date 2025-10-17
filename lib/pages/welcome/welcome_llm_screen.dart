@@ -6,7 +6,7 @@ import 'package:fluent_gpt/common/llm_model_common.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/pages/welcome/choose_hf_model_dialog.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/server_provider.dart';

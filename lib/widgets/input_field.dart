@@ -24,7 +24,7 @@ import 'package:fluent_gpt/pages/edit_prompt_dialog.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/pages/prompts_settings_page.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/utils.dart';

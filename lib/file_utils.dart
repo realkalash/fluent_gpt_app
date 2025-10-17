@@ -98,6 +98,13 @@ class FileUtils {
   /// Directory of the current running app
   static String get currentAppDirectorypath => Directory.current.path;
 
+  static String get modelsDirectoryPath {
+    if (AppCache.modelsDirectoryPath.value != null && AppCache.modelsDirectoryPath.value!.isNotEmpty) {
+      return AppCache.modelsDirectoryPath.value!;
+    }
+    return '${Directory.current.path}${Platform.pathSeparator}models';
+  }
+
   static String? get appTemporaryDirectoryPath =>
       temporaryDirectoryPath == null ? null : '$temporaryDirectoryPath${Platform.pathSeparator}fluent_gpt';
 

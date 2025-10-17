@@ -15,8 +15,8 @@ import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-import '../theme.dart';
-import 'new_settings_page.dart';
+import '../../theme.dart';
+import '../../pages/new_settings_page.dart';
 
 bool isLaunchAtStartupEnabled = false;
 

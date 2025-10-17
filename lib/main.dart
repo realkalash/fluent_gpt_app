@@ -11,7 +11,7 @@ import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/theme.dart';

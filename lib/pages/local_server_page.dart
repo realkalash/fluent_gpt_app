@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/dialogs/llm_models_dialogs/list_hf_models_dialog.dart';
+import 'package:fluent_gpt/pages/preview_hf_model_dialog.dart';
+import 'package:fluent_gpt/pages/welcome/choose_hf_model_dialog.dart';
 import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -23,9 +26,11 @@ class _LocalServerPageState extends State<LocalServerPage> {
   Map<String, String> availableDevices = {};
   bool isLoadingDevices = false;
   bool disableLogging = false;
+  final TextEditingController modelPathController = TextEditingController();
   @override
   void initState() {
     super.initState();
+    modelPathController.text = ServerProvider.modelPath;
     _loadAvailableDevices().then((_) {
       if (availableDevices.isNotEmpty) {
         // ignore: use_build_context_synchronously
@@ -87,12 +92,12 @@ class _LocalServerPageState extends State<LocalServerPage> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isRunning
-                        ? [Colors.green.withOpacity(0.1), Colors.teal.withOpacity(0.1)]
-                        : [Colors.orange.withOpacity(0.1), Colors.red.withOpacity(0.1)],
+                        ? [Colors.green.withAlpha(26), Colors.teal.withAlpha(26)]
+                        : [Colors.orange.withAlpha(26), Colors.red.withAlpha(26)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isRunning ? Colors.green.withOpacity(0.3) : Colors.orange.withOpacity(0.3),
+                    color: isRunning ? Colors.green.withAlpha(77) : Colors.orange.withAlpha(77),
                   ),
                 ),
                 child: Row(
@@ -151,9 +156,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                                           ],
                                         ),
                                         style: theme.typography.body?.copyWith(
-                                          color: isDarkMode
-                                              ? Colors.white.withOpacity(0.7)
-                                              : Colors.black.withOpacity(0.7),
+                                          color: isDarkMode ? Colors.white.withAlpha(179) : Colors.black.withAlpha(179),
                                         ),
                                       ),
                                     ),
@@ -190,10 +193,10 @@ class _LocalServerPageState extends State<LocalServerPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.02),
+                  color: isDarkMode ? Colors.white.withAlpha(13) : Colors.black.withAlpha(5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    color: isDarkMode ? Colors.white.withAlpha(26) : Colors.black.withAlpha(26),
                   ),
                 ),
                 child: Column(
@@ -205,7 +208,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                     ),
                     const SizedBox(height: 12),
                     TextFormBox(
-                      initialValue: ServerProvider.modelPath,
+                      controller: modelPathController,
                       onChanged: (value) => ServerProvider.modelPath = value,
                       placeholder: 'Enter or choose a model file path or Hugging face URL...',
                     ),
@@ -223,6 +226,25 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       },
                       child: const Text('Choose Model File'),
                     ),
+                    Button(
+                      child: Text('Select trusty model'),
+                      onPressed: () async {
+                        final model = await ChooseHfModelDialog.show(context);
+                        if (model != null) {
+                          modelPathController.text = model.modelPath;
+                        }
+                      },
+                    ),
+                    Button(
+                      child: Text('List HF models'),
+                      onPressed: () async {
+                        final selected = await ListHuggingFaceModelsDialog.show(context);
+                        if (selected != null) {
+                          modelPathController.text = selected.modelPath;
+                          ServerProvider.modelPath = selected.modelPath;
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -233,10 +255,10 @@ class _LocalServerPageState extends State<LocalServerPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.02),
+                  color: isDarkMode ? Colors.white.withAlpha(13) : Colors.black.withAlpha(5),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    color: isDarkMode ? Colors.white.withAlpha(26) : Colors.black.withAlpha(26),
                   ),
                 ),
                 child: Column(
@@ -455,11 +477,26 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       icon: FluentIcons.play_24_filled,
                       color: Colors.green,
                       onPressed: () async {
-                        final File file = File(ServerProvider.modelPath);
+                        File file = modelPathController.text.isNotEmpty
+                            ? File(modelPathController.text)
+                            : File(ServerProvider.modelPath);
 
                         /// if exists then it is a local model
                         bool isHfModel = !file.existsSync();
+                        if (isHfModel) {
+                          final isDownloaded = PreviewHuggingFaceModel.isDownloaded(modelPathController.text);
+                          if (!isDownloaded) {
+                            final model = await PreviewHuggingFaceModel.show(context, modelPathController.text);
+                            if (model != null) {
+                              ServerProvider.modelPath = model.modelPath;
+                            }
+                          } else {
+                            ServerProvider.modelPath = PreviewHuggingFaceModel.getModelPath(modelPathController.text);
+                            isHfModel = false;
+                          }
+                        }
                         final res = await ServerProvider.startLlamaServer(
+                          // ignore: use_build_context_synchronously
                           context: context,
                           modelPath: isHfModel ? null : ServerProvider.modelPath,
                           hfModelPath: isHfModel ? ServerProvider.modelPath : null,
@@ -542,7 +579,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                   color: isDarkMode ? const Color(0xFF1E1E1E) : const Color(0xFF2D2D30),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                    color: isDarkMode ? Colors.white.withAlpha(26) : Colors.black.withAlpha(26),
                   ),
                 ),
                 child: Column(

@@ -5,6 +5,7 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -29,6 +30,7 @@ class MainAppHeaderButtons extends StatelessWidget {
         child: Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            const ServerInitializingIcon(),
             const RevertMessageHeaderButton(),
             const AddChatButton(),
             const ClearChatButton(),
@@ -273,6 +275,40 @@ class CollapseAppButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class ServerInitializingIcon extends StatelessWidget {
+  const ServerInitializingIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: ServerProvider.isInitializingStreamController.stream,
+      builder: (context, snapshot) {
+        bool isInitializing = snapshot.data ?? false;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 1000),
+          child: isInitializing
+              ? DecoratedBox(
+                  key: Key('starting-server'),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withAlpha(86),
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Starting server',
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        );
+      },
     );
   }
 }
