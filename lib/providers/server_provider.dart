@@ -13,7 +13,13 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 class ServerProvider extends ChangeNotifier {
   /// Hugging face model path or local model path
-  static String modelPath = 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K';
+  static String _modelPath = 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K';
+  static set modelPath(String value) {
+    _modelPath = value;
+    AppCache.localApiModelPath.value = value;
+  }
+
+  static String get modelPath => _modelPath;
 
   // Server configuration parameters
   int? ctxSize = AppCache.localServerCtxSize.value;
@@ -24,6 +30,7 @@ class ServerProvider extends ChangeNotifier {
   int? batchSize;
   int? gpuLayers;
   static final _isRunningStreamController = StreamController<bool>.broadcast();
+  static final isInitializingStreamController = StreamController<bool>.broadcast();
 
   // Llama server related shell process
   static Process? _llamaServerProcess;
@@ -107,6 +114,8 @@ class ServerProvider extends ChangeNotifier {
       log('Server is already running');
       return true;
     }
+
+    isInitializingStreamController.add(true);
 
     if (modelPath == null && hfModelPath == null) {
       log('No model path provided');
@@ -207,9 +216,11 @@ class ServerProvider extends ChangeNotifier {
         if (!isHealthy) {
           log('Server failed health check');
           await stopLlamaServer();
+          isInitializingStreamController.add(false);
+
           return false;
         }
-
+        isInitializingStreamController.add(false);
         log('Llama server started successfully');
         return true;
       }
@@ -217,6 +228,7 @@ class ServerProvider extends ChangeNotifier {
       log('Error starting llama server: $e');
       _isServerRunning = false;
       _serverStatusStrController.add(false);
+      isInitializingStreamController.add(false);
     }
 
     return false;
@@ -232,8 +244,8 @@ class ServerProvider extends ChangeNotifier {
     );
     final output = await newProcess.stdout.transform(utf8.decoder).join();
     final clearString = output.replaceAll("Available devices:", '');
-    // Vulkan0: NVIDIA GeForce RTX 3070 Ti (8018 MiB, 8018 MiB free)
-    // Vulkan1: NVIDIA GeForce RTX 2070 Ti (8018 MiB, 8018 MiB free)
+    // Vulkan0: NVIDIA GeForce RTX 3070 Ti (1 MiB, 1 MiB free)
+    // Vulkan1: NVIDIA GeForce RTX 2070 Ti (1 MiB, 1 MiB free)
     final listStrings = clearString.split('\n');
     // remove empty lines
     listStrings.removeWhere((element) => element.trimLeft().isEmpty);
@@ -274,57 +286,6 @@ class ServerProvider extends ChangeNotifier {
     } catch (e) {
       log('Health check failed: $e');
       return false;
-    }
-  }
-
-  /// Send a chat completion request to the llama server
-  static Future<String> sendChatMessage(String message, {List<Map<String, String>>? conversationHistory}) async {
-    if (!_isServerRunning) {
-      throw Exception('Llama server is not running');
-    }
-
-    try {
-      // Build messages array
-      final messages = <Map<String, String>>[];
-
-      // Add conversation history if provided
-      if (conversationHistory != null) {
-        messages.addAll(conversationHistory);
-      }
-
-      // Add current user message
-      messages.add({'role': 'user', 'content': message});
-
-      final requestBody = {
-        'messages': messages,
-        'temperature': 0.7,
-        'max_tokens': 2048,
-        'stream': false,
-      };
-
-      log('Sending chat request: $message');
-
-      final response = await http
-          .post(
-            Uri.parse('$serverUrl/v1/chat/completions'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(requestBody),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        final content = responseData['choices']?[0]?['message']?['content'] ?? '';
-        log('Chat response received: ${content.length} characters');
-        return content;
-      } else {
-        log('Chat request failed with status: ${response.statusCode}');
-        log('Response body: ${response.body}');
-        throw Exception('Chat request failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      log('Error sending chat message: $e');
-      throw Exception('Failed to send message: $e');
     }
   }
 

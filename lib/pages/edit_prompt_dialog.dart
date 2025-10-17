@@ -4,7 +4,7 @@ import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/dialogs/icon_chooser_dialog.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
-import 'package:fluent_gpt/pages/settings_page.dart';
+import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/keybinding_dialog.dart';

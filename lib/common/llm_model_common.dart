@@ -18,6 +18,36 @@ class LlmModelCommon {
     this.toolSupported = false,
     this.minMemoryUsageBytes,
   });
+  factory LlmModelCommon.fromHuggingFaceModel(Map<String, dynamic> model) {
+    final id = (model['modelId'] ?? model['id'] ?? '').toString();
+    final pipeline = _extractPipelineTag(model);
+    return LlmModelCommon(
+      modelName: id,
+      modelPath: model['saved_path'] ?? id,
+      modelDescription: pipeline.isNotEmpty ? 'task: $pipeline' : 'Hugging Face model',
+      modelUri: 'https://huggingface.co/$id',
+      imageSupported: false,
+      reasoningSupported: false,
+      toolSupported: false,
+      minMemoryUsageBytes: null,
+    );
+  }
+}
+
+String _extractPipelineTag(dynamic model) {
+  if (model is Map<String, dynamic>) {
+    final tag = model['pipeline_tag'];
+    if (tag is String && tag.isNotEmpty) return tag;
+    final tags = model['tags'];
+    if (tags is List && tags.isNotEmpty) {
+      final first = tags.firstWhere(
+        (t) => t is String && t.toString().isNotEmpty,
+        orElse: () => null,
+      );
+      if (first is String) return first;
+    }
+  }
+  return '';
 }
 
 class LlmModelCommonUtils {
@@ -33,7 +63,7 @@ class LlmModelCommonUtils {
         toolSupported: true,
         minMemoryUsageBytes: 1024 * 1024 * 1024 * 1,
       ),
-       LlmModelCommon(
+      LlmModelCommon(
         modelName: 'Qwen2.5-7B',
         modelPath: 'lmstudio-community/Qwen3-8B-GGUF:Q4_K_M',
         modelDescription: """Medium model for basic tasks. Great for chat, tasks and everyday use.
@@ -58,7 +88,8 @@ Excels at creative writing, role-playing, multi-turn dialogues, and instruction 
       LlmModelCommon(
         modelName: 'gemma-3-12b-it-GGUF',
         modelPath: 'Qwen/Qwen2.5-14B-Instruct-GGUF:Q4_K_M',
-        modelDescription: """State-of-the-art image + text input models from Google, built from the same research and tech used to create the Gemini models.
+        modelDescription:
+            """State-of-the-art image + text input models from Google, built from the same research and tech used to create the Gemini models.
         
 Supports a context length of 128k tokens, with a max output of 8192.
 Multimodal supporting images normalized to 896 x 896 resolution.

@@ -39,6 +39,7 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
+import 'package:fluent_gpt/pages/preview_hf_model_dialog.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_llm_screen.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_folders_mixin.dart';
@@ -3173,10 +3174,22 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     if (Platform.isLinux) return false;
     if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
       if (ServerProvider.isServerRunning || ServerProvider.modelPath.isEmpty) return false;
-      final File file = File(ServerProvider.modelPath);
+      File file = File(ServerProvider.modelPath);
 
       /// if exists then it is a local model
       bool isHfModel = !file.existsSync();
+      if (isHfModel) {
+        final isDownloaded = PreviewHuggingFaceModel.isDownloaded(ServerProvider.modelPath);
+        if (!isDownloaded) {
+          final model = await PreviewHuggingFaceModel.show(context!, ServerProvider.modelPath);
+          if (model != null) {
+            ServerProvider.modelPath = model.modelPath;
+          }
+        } else {
+          ServerProvider.modelPath = PreviewHuggingFaceModel.getModelPath(ServerProvider.modelPath);
+          isHfModel = false;
+        }
+      }
       final res = await ServerProvider.startLlamaServer(
         context: context!,
         modelPath: isHfModel ? null : ServerProvider.modelPath,

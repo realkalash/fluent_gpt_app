@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
@@ -57,6 +58,7 @@ class ServerTouchFilesPromptDialog extends StatelessWidget {
       actions: [
         FilledButton(
             onPressed: () {
+              AppCache.serverFilesTouched.value = true;
               Navigator.of(context).pop(true);
             },
             child: Text('Grant access'.tr)),

@@ -55,7 +55,7 @@ import 'package:system_info2/system_info2.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 
-import 'settings_page.dart';
+import '../widgets/settings_page/settings_page_widgets.dart';
 
 class NewSettingsPage extends StatefulWidget {
   const NewSettingsPage({super.key, this.initialIndex});
