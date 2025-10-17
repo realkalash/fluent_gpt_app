@@ -154,15 +154,30 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   ),
                 ),
                 if (Platform.isWindows || Platform.isMacOS)
-                  PaneItemServerStatus(
+                  PaneItem(
                     key: const ValueKey('/local_server'),
-                    icon: Icon(
-                      FluentIcons.developer_board_16_filled,
-                      color: ServerProvider.isServerRunning ? Colors.green : null,
-                    ),
+                    icon: Icon(FluentIcons.developer_board_16_filled),
                     title: Text('Local server'.tr),
                     body: const LocalServerPage(),
-                    onPressed: () => Navigator.of(context).push(
+                    infoBadge: StreamBuilder(
+                      stream: ServerProvider.serverStatusStream,
+                      initialData: ServerProvider.isServerRunning,
+                      builder: (context, snapshot) {
+                        final isRunning = snapshot.data ?? false;
+                        if (isRunning)
+                          return SizedBox.square(
+                            dimension: 8,
+                            child: DecoratedBox(
+                              decoration: const BoxDecoration(
+                                color: Color(0xff6aad6a),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          );
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    onTap: () => Navigator.of(context).push(
                       FluentPageRoute(builder: (context) => const LocalServerPage()),
                     ),
                   ),
@@ -186,69 +201,6 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
             onOpenSearch: navigationProvider.searchFocusNode.requestFocus,
           );
         });
-  }
-}
-
-class PaneItemServerStatus extends PaneItem {
-  PaneItemServerStatus({required super.icon, required super.body, super.key, super.title, this.onPressed});
-  VoidCallback? onPressed;
-  @override
-  Widget build(BuildContext context, bool selected, VoidCallback? _,
-      {PaneDisplayMode? displayMode, bool showTextOnTop = true, int? itemIndex, bool? autofocus}) {
-    final maybeBody = InheritedNavigationView.maybeOf(context);
-    final mode = displayMode ?? maybeBody?.displayMode ?? maybeBody?.pane?.displayMode ?? PaneDisplayMode.minimal;
-    final padding = EdgeInsets.only(top: 12.0, bottom: 12.0, right: 3.0);
-    Widget icon = _buildIcon(padding);
-    if (mode == PaneDisplayMode.compact) {
-      return icon;
-    }
-    return super.build(
-      context,
-      selected,
-      onPressed,
-      displayMode: displayMode,
-      showTextOnTop: showTextOnTop,
-      itemIndex: itemIndex,
-      autofocus: autofocus,
-    );
-  }
-
-  StreamBuilder<bool> _buildIcon(EdgeInsets padding) {
-    return StreamBuilder(
-      stream: ServerProvider.serverStatusStream,
-      initialData: ServerProvider.isServerRunning,
-      builder: (context, asyncSnapshot) {
-        bool isRunning = asyncSnapshot.data ?? false;
-        final workColor = isRunning ? Colors.green : Colors.transparent;
-        return HoverButton(
-          onPressed: onPressed,
-          builder: (BuildContext p1, Set<WidgetState> state) {
-            if (state.contains(WidgetState.hovered)) {
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: workColor.withAlpha(127),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: padding,
-                  child: Icon(FluentIcons.developer_board_16_filled, color: Colors.white, size: 16),
-                ),
-              );
-            }
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: workColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: padding,
-                child: Icon(FluentIcons.developer_board_16_filled, color: Colors.white, size: 16),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }
 

@@ -3,7 +3,6 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_shortcuts_helper_screen.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
-import 'package:window_manager/window_manager.dart';
 
 import 'pages/welcome/welcome_llm_screen.dart';
 import 'pages/welcome/welcome_permissions_page.dart';

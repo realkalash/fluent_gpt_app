@@ -2,12 +2,11 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
-import 'package:fluent_gpt/widgets/custom_buttons.dart';
 import 'package:fluent_gpt/widgets/text_link.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 class ServerProviderUtil {
-  static String getPlatformCppBuildDir() {
+  static String getPlatformCppBuildDirName() {
     if (Platform.isWindows) {
       return 'cpp_build_win';
     } else if (Platform.isLinux) {

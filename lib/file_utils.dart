@@ -96,13 +96,15 @@ class FileUtils {
   static String? temporaryAudioDirectoryPath;
 
   /// Directory of the current running app
-  static String get currentAppDirectorypath => Directory.current.path;
+  static String get currentAppDirectorypath {
+    return File(Platform.resolvedExecutable).parent.path;
+  }
 
   static String get modelsDirectoryPath {
     if (AppCache.modelsDirectoryPath.value != null && AppCache.modelsDirectoryPath.value!.isNotEmpty) {
       return AppCache.modelsDirectoryPath.value!;
     }
-    return '${Directory.current.path}${Platform.pathSeparator}models';
+    return '$currentAppDirectorypath${Platform.pathSeparator}models';
   }
 
   static String? get appTemporaryDirectoryPath =>

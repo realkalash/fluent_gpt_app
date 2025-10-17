@@ -30,15 +30,18 @@ class _LocalServerPageState extends State<LocalServerPage> {
   @override
   void initState() {
     super.initState();
-    modelPathController.text = ServerProvider.modelPath;
-    _loadAvailableDevices().then((_) {
-      if (availableDevices.isNotEmpty) {
-        // ignore: use_build_context_synchronously
-        final serverProvider = context.read<ServerProvider>();
-        serverProvider.device = availableDevices.keys.first;
-        serverProvider.gpuLayers = 999;
-        if (mounted) setState(() {});
-      }
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      _loadAvailableDevices().then((_) {
+        if (availableDevices.isNotEmpty) {
+          // ignore: use_build_context_synchronously
+          final serverProvider = context.read<ServerProvider>();
+          serverProvider.device = availableDevices.keys.first;
+          serverProvider.gpuLayers = 999;
+          if (mounted) setState(() {});
+        }
+      });
+      modelPathController.text = ServerProvider.modelPath;
     });
   }
 
@@ -74,7 +77,6 @@ class _LocalServerPageState extends State<LocalServerPage> {
     );
     return StreamBuilder(
         stream: ServerProvider.serverStatusStream,
-        initialData: ServerProvider.isServerRunning,
         builder: (context, asyncSnapshot) {
           final isRunning = asyncSnapshot.data ?? false;
           return ScaffoldPage.scrollable(
@@ -95,7 +97,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                         ? [Colors.green.withAlpha(26), Colors.teal.withAlpha(26)]
                         : [Colors.orange.withAlpha(26), Colors.red.withAlpha(26)],
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: const BorderRadius.all(Radius.circular(12)),
                   border: Border.all(
                     color: isRunning ? Colors.green.withAlpha(77) : Colors.orange.withAlpha(77),
                   ),
@@ -107,7 +109,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       height: 40,
                       decoration: BoxDecoration(
                         color: isRunning ? Colors.green : Colors.orange,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: const BorderRadius.all(Radius.circular(20)),
                       ),
                       child: Icon(
                         isRunning ? FluentIcons.play_24_filled : FluentIcons.stop_24_filled,

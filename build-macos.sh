@@ -25,6 +25,21 @@ cp -R "$APP_PATH" "$TMP_DIR"
 # Copy everything in 'external_files' to the .app file
 # cp -r external_files/* "$TMP_DIR/${APP_NAME}.app/Contents/MacOS"
 
+# Bundle llama.cpp binaries into the app (so installed app can start local server)
+PLUGINS_SRC="plugins/cpp_build_macos_arm64"
+PLUGINS_DST="$TMP_DIR/${APP_NAME}.app/Contents/MacOS/plugins"
+if [ -d "$PLUGINS_SRC" ]; then
+  echo "Copying local server binaries from $PLUGINS_SRC to app bundle..."
+  mkdir -p "$PLUGINS_DST"
+  cp -R "$PLUGINS_SRC" "$PLUGINS_DST/"
+  # Ensure all files are executable where needed (safe to set for all)
+  find "$PLUGINS_DST" -type f -exec chmod +x {} \; || true
+  # Remove quarantine attributes to reduce Gatekeeper prompts (users may still need to allow at first run)
+  xattr -dr com.apple.quarantine "$TMP_DIR/${APP_NAME}.app" || true
+else
+  echo "WARNING: $PLUGINS_SRC not found. DMG will not contain local server binaries."
+fi
+
 # Create DMG
 create-dmg \
   --volname "${APP_NAME}" \

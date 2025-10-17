@@ -213,7 +213,6 @@ class UpdateCheckResultDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = FluentTheme.of(context);
     
     return ContentDialog(
       title: Row(

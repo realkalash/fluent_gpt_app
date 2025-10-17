@@ -1,5 +1,4 @@
 import 'package:fluent_gpt/common/prefs/prefs_types.dart';
-import 'package:fluent_gpt/system_messages.dart';
 import 'package:flutter/gestures.dart';
 
 class AppCache {

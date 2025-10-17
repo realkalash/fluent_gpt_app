@@ -1,13 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 class UpdateInfo {
   final String version;

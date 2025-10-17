@@ -1,8 +1,7 @@
 import 'package:rxdart/rxdart.dart';
 import 'dart:developer' as dev;
 
-BehaviorSubject<List<String>> logMessages =
-    BehaviorSubject<List<String>>.seeded([]);
+BehaviorSubject<List<String>> logMessages = BehaviorSubject<List<String>>.seeded([]);
 
 void log(String message, [StackTrace? stackTrace]) {
   final value = '${timeStamp()}: $message';

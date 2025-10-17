@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:fluent_gpt/i18n/i18n.dart';
-import 'package:fluent_gpt/log.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import '../services/update_service.dart';
 

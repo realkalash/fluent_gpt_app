@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file/local.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart' as fluentlog;
 import 'package:fluent_gpt/providers/server_provider_mixin.dart';
@@ -61,10 +60,15 @@ class ServerProvider extends ChangeNotifier {
   }
 
   static String getServerPath() {
-    var fs = const LocalFileSystem();
-    final currentDir = fs.currentDirectory.path;
-    return '$currentDir\\plugins\\${ServerProviderUtil.getPlatformCppBuildDir()}\\${ServerProviderUtil.getPlatformCppExecutable()}'
-        .replaceAll('\\', Platform.pathSeparator);
+    // /Applications/FluentGPT.app/Contents/MacOS
+    final baseDir = File(Platform.resolvedExecutable).parent.path;
+    final path = [
+      baseDir,
+      'plugins',
+      ServerProviderUtil.getPlatformCppBuildDirName(),
+      ServerProviderUtil.getPlatformCppExecutable(),
+    ].join(Platform.pathSeparator);
+    return path;
   }
 
   static void log(String message, {bool logToDebugger = false}) {
@@ -328,10 +332,14 @@ class ServerProvider extends ChangeNotifier {
   static Future<void> _touchFiles() async {
     // open privacy and security settings
     launchUrlString('x-apple.systempreferences:com.apple.preference.security');
-    var fs = const LocalFileSystem();
-    final currentDir = fs.currentDirectory.path;
-    final macosCppDirPath = '$currentDir\\plugins\\${ServerProviderUtil.getPlatformCppBuildDir()}';
-    final dir = Directory(macosCppDirPath.replaceAll('\\', Platform.pathSeparator));
+    // Resolve to the app bundle's executable directory: .../Contents/MacOS
+    final baseDir = File(Platform.resolvedExecutable).parent.path;
+    final macosCppDirPath = [
+      baseDir,
+      'plugins',
+      ServerProviderUtil.getPlatformCppBuildDirName(),
+    ].join(Platform.pathSeparator);
+    final dir = Directory(macosCppDirPath);
     if (!await dir.exists()) {
       throw Exception('Cpp build directory not found: $macosCppDirPath');
     }

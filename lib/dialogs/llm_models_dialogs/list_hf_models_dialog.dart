@@ -143,14 +143,14 @@ class _ListHuggingFaceModelsDialogState extends State<ListHuggingFaceModelsDialo
 
               /// We dont support safetensors models yet
               // const SizedBox(width: 12),
-              Checkbox(
-                checked: _filterGguf,
-                onChanged: (value) {
-                  setState(() => _filterGguf = value ?? false);
-                  _fetchModels();
-                },
-                content: Text('Filter GGUF models'.tr),
-              ),
+              // Checkbox(
+              //   checked: _filterGguf,
+              //   onChanged: (value) {
+              //     setState(() => _filterGguf = value ?? false);
+              //     _fetchModels();
+              //   },
+              //   content: Text('Filter GGUF models'.tr),
+              // ),
             ],
           ),
           const SizedBox(height: 12),
