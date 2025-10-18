@@ -104,6 +104,18 @@ class FileUtils {
     if (AppCache.modelsDirectoryPath.value != null && AppCache.modelsDirectoryPath.value!.isNotEmpty) {
       return AppCache.modelsDirectoryPath.value!;
     }
+    // Update default only on Windows to avoid writing under Program Files
+    if (Platform.isWindows) {
+      final sep = Platform.pathSeparator;
+      // Prefer the app documents directory if initialized
+      if (documentDirectoryPath != null && documentDirectoryPath!.isNotEmpty) {
+        return '$documentDirectoryPath${sep}fluent_gpt${sep}models';
+      }
+      final baseDir =
+          Platform.environment['LOCALAPPDATA'] ?? Platform.environment['APPDATA'] ?? Directory.systemTemp.path;
+      return '$baseDir${sep}FluentGPT${sep}models';
+    }
+    // Non-Windows: keep existing behavior (bundle-side models directory)
     return '$currentAppDirectorypath${Platform.pathSeparator}models';
   }
 

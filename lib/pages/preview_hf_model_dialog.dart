@@ -6,6 +6,7 @@ import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/common/llm_model_common.dart';
 import 'package:fluent_gpt/dialogs/models_list_dialog.dart' show IconToolsSupported;
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:flutter/material.dart' show Material;
 import 'package:gen_art_bg/gen_art_bg.dart';
@@ -372,29 +373,37 @@ class _PreviewHuggingFaceModelState extends State<PreviewHuggingFaceModel> {
   }
 
   Future<void> _startDownload(Map<String, dynamic> model) async {
-    final id = (model['modelId'] ?? model['id'] ?? '').toString();
-    final fileName =
-        _selectedQuantization.isNotEmpty ? _selectedQuantization : _pickBestFilename(model, _selectedQuantization);
-    if (fileName == null) {
-      setState(() => _errorMessage = 'No downloadable files found');
-      return;
-    }
-    final suffix = fileName.split('.').last;
+    try {
+      final id = (model['modelId'] ?? model['id'] ?? '').toString();
+      final fileName =
+          _selectedQuantization.isNotEmpty ? _selectedQuantization : _pickBestFilename(model, _selectedQuantization);
+      if (fileName == null) {
+        setState(() => _errorMessage = 'No downloadable files found');
+        return;
+      }
+      final suffix = fileName.split('.').last;
 
-    final url = 'https://huggingface.co/$id/resolve/main/$fileName?download=true';
-    final modelsRoot = FileUtils.modelsDirectoryPath;
-    final savePath = '$modelsRoot${Platform.pathSeparator}$id.$suffix';
+      final url = 'https://huggingface.co/$id/resolve/main/$fileName?download=true';
+      final modelsRoot = FileUtils.modelsDirectoryPath;
+      final savePath = '$modelsRoot${Platform.pathSeparator}$id.$suffix';
 
-    final saved = await showDialog<String?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => DownloadAnimatedSplashDialog(url: url, savePath: savePath),
-    );
+      final saved = await showDialog<String?>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => DownloadAnimatedSplashDialog(url: url, savePath: savePath),
+      );
 
-    if (saved != null && saved.isNotEmpty) {
-      model['saved_path'] = saved;
-      final result = LlmModelCommon.fromHuggingFaceModel(model);
-      if (mounted) Navigator.of(context).pop(result);
+      if (saved != null && saved.isNotEmpty) {
+        model['saved_path'] = saved;
+        final result = LlmModelCommon.fromHuggingFaceModel(model);
+        if (mounted) Navigator.of(context).pop(result);
+      }
+    } catch (e, stack) {
+      logError(e.toString(), stack);
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -509,7 +518,9 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
       }
 
       if (mounted) Navigator.of(context).pop(widget.savePath);
-    } catch (e) {
+    } catch (e, stack) {
+      logError(e.toString(), stack);
+     
       if (mounted) Navigator.of(context).pop(null);
     }
   }
