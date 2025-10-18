@@ -156,6 +156,7 @@ class ServerProvider extends ChangeNotifier {
       // Check if server executable exists
       if (!await File(serverPath).exists()) {
         log('Llama server executable not found at: $serverPath');
+        log('Downloading llama.cpp from');
         return false;
       }
 
