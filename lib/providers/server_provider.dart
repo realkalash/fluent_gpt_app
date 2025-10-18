@@ -59,7 +59,7 @@ class ServerProvider extends ChangeNotifier {
     }
   }
 
-  static String getServerPath() {
+  static String getServerExecPath() {
     // /Applications/FluentGPT.app/Contents/MacOS
     final baseDir = File(Platform.resolvedExecutable).parent.path;
     final path = [
@@ -67,6 +67,17 @@ class ServerProvider extends ChangeNotifier {
       'plugins',
       ServerProviderUtil.getPlatformCppBuildDirName(),
       ServerProviderUtil.getPlatformCppExecutable(),
+    ].join(Platform.pathSeparator);
+    return path;
+  }
+
+  static String getServerBuildDirPath() {
+    // /Applications/FluentGPT.app/Contents/MacOS
+    final baseDir = File(Platform.resolvedExecutable).parent.path;
+    final path = [
+      baseDir,
+      'plugins',
+      ServerProviderUtil.getPlatformCppBuildDirName(),
     ].join(Platform.pathSeparator);
     return path;
   }
@@ -138,7 +149,7 @@ class ServerProvider extends ChangeNotifier {
       }
 
       // Get the absolute path to the cpp_build directory
-      final serverPath = getServerPath();
+      final serverExecPath = getServerExecPath();
       if (Platform.isMacOS) {
         if (AppCache.serverFilesTouched.value != true) {
           final res = await showDialog(context: context, builder: (context) => ServerTouchFilesPromptDialog());
@@ -154,14 +165,15 @@ class ServerProvider extends ChangeNotifier {
       }
 
       // Check if server executable exists
-      if (!await File(serverPath).exists()) {
-        log('Llama server executable not found at: $serverPath');
+      if (!await File(serverExecPath).exists()) {
+        log('Llama server executable not found at: $serverExecPath');
+        log('Downloading llama.cpp from');
         return false;
       }
 
       // Start the server process
       _llamaServerProcess = await Process.start(
-        serverPath,
+        serverExecPath,
         [
           if (modelPath != null) '-m',
           if (modelPath != null) modelPath,
@@ -240,7 +252,7 @@ class ServerProvider extends ChangeNotifier {
 
   Future<Map<String, String>> getListDevices() async {
     final newProcess = await Process.start(
-      getServerPath(),
+      getServerExecPath(),
       [
         '--list-devices',
         '--offline',
