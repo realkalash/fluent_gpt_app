@@ -360,14 +360,23 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
     final listModelsJsonString = await AppCache.savedModels.value();
     if (listModelsJsonString.isNotEmpty == true) {
       final listModelsJson = jsonDecode(listModelsJsonString) as List;
-      final listModels = listModelsJson.map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>)).toList();
+      var listModels = listModelsJson.map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>)).toList();
+      // Sort by index and reassign sequential indices
+      listModels.sort((a, b) => a.index.compareTo(b.index));
+      for (int i = 0; i < listModels.length; i++) {
+        listModels[i] = listModels[i].copyWith(index: i);
+      }
       allModels.add(listModels);
     }
   }
 
   Future<void> addNewCustomModel(ChatModelAi model) async {
     final allModelsList = allModels.value;
-    allModelsList.add(model);
+    final maxIndex = allModelsList.isEmpty 
+        ? -1 
+        : allModelsList.map((e) => e.index).reduce((a, b) => a > b ? a : b);
+    final newModel = model.copyWith(index: maxIndex + 1);
+    allModelsList.add(newModel);
     allModels.add(allModelsList);
     await saveModelsToDisk();
   }
@@ -375,6 +384,31 @@ class ChatProvider with ChangeNotifier, ChatProviderFoldersMixin {
   Future removeCustomModel(ChatModelAi model) async {
     final allModelsList = allModels.value;
     allModelsList.remove(model);
+    // Reassign indices sequentially after removal
+    allModelsList.sort((a, b) => a.index.compareTo(b.index));
+    for (int i = 0; i < allModelsList.length; i++) {
+      allModelsList[i] = allModelsList[i].copyWith(index: i);
+    }
+    allModels.add(allModelsList);
+    await saveModelsToDisk();
+  }
+
+  Future<void> reorderModels(int oldIndex, int newIndex) async {
+    final allModelsList = List<ChatModelAi>.from(allModels.value);
+    // Sort by index first to ensure correct order
+    allModelsList.sort((a, b) => a.index.compareTo(b.index));
+    
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final item = allModelsList.removeAt(oldIndex);
+    allModelsList.insert(newIndex, item);
+    
+    // Update indices to match new positions
+    for (int i = 0; i < allModelsList.length; i++) {
+      allModelsList[i] = allModelsList[i].copyWith(index: i);
+    }
+    
     allModels.add(allModelsList);
     await saveModelsToDisk();
   }
