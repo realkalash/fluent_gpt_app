@@ -31,7 +31,6 @@ class _UpdateDialogState extends State<UpdateDialog>
   String _statusText = '';
 
   late AnimationController _progressController;
-  late Animation<double> _progressAnimation;
 
   @override
   void initState() {
@@ -40,13 +39,6 @@ class _UpdateDialogState extends State<UpdateDialog>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _progressAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeInOut,
-    ));
   }
 
   @override

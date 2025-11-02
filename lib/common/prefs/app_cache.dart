@@ -122,6 +122,12 @@ class AppCache {
   static const gptToolAutoOpenUrls = BoolPref("gptToolAutoOpenUrls", true);
   static const gptToolGenerateImage = BoolPref("gptToolGenerateImage", true);
   static const gptToolRememberInfo = BoolPref("rememberInfo", true);
+  static bool get isAnyToolsEnabled =>
+      gptToolCopyToClipboardEnabled.value == true ||
+      gptToolAutoOpenUrls.value == true ||
+      gptToolGenerateImage.value == true ||
+      gptToolRememberInfo.value == true;
+
   static const useAiToNameChat = BoolPref("useSecondRequestForNamingChats", false);
   static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
   static const annoyModeTimerMinMinutes = IntPref("annoyModeTimerMinMinutes", 100);

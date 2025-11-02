@@ -5,12 +5,13 @@ import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
+import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
-mixin ChatProviderFoldersMixin on ChangeNotifier {
+mixin ChatProviderFoldersMixin on ChangeNotifier, ChatProviderBaseMixin {
   Future<void> createNewBranchFromLastMessage(String id) async {
     final listNewMessages = <String, FluentChatMessage>{};
     for (var message in messages.value.entries) {
@@ -38,7 +39,8 @@ mixin ChatProviderFoldersMixin on ChangeNotifier {
     saveToDisk([newChatRoom]);
   }
 
-  Future loadMessagesFromDisk(String id) async {
+  @override
+  Future<void> loadMessagesFromDisk(String id) async {
     final roomId = id;
     final fileContent = await FileUtils.getChatRoomMessagesFileById(roomId);
     final fileContentString = await fileContent.readAsString();
@@ -119,6 +121,7 @@ mixin ChatProviderFoldersMixin on ChangeNotifier {
   }
 
   /// if [rooms] list is 1 element and it's current chat room, it will save messages to disk
+  @override
   Future<void> saveToDisk(List<ChatRoom> rooms) async {
     if (rooms.length == 1) {
       if (rooms.first.id == selectedChatRoomId) {
