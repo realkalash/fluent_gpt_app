@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:animated_list_plus/animated_list_plus.dart';
+import 'package:animated_list_plus/transitions.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -56,77 +58,106 @@ class _ModelsListDialog extends State<ModelsListDialog> {
       content: StreamBuilder(
         stream: allModels.stream,
         builder: (ctx, snap) {
-          final models = allModels.value;
-          return ListView.builder(
+          final models = List<ChatModelAi>.from(allModels.value)
+            ..sort((a, b) => a.index.compareTo(b.index));
+          return ImplicitlyAnimatedReorderableList<ChatModelAi>(
             shrinkWrap: true,
-            itemCount: models.length,
-            itemBuilder: (context, index) {
-              final model = models[index];
-              return ListTile(
-                leading: SizedBox.square(dimension: 24, child: model.modelIcon),
-                title: Text('${model.customName} | ${model.modelName}'),
-                onPressed: () async {
-                  final isThisModelWasSelected = model == selectedModel;
-                  final changedModel = await showDialog<ChatModelAi>(
-                    context: context,
-                    builder: (context) => AddAiModelDialog(initialModel: model),
-                  );
-                  if (changedModel != null) {
-                    chatProvider.removeCustomModel(model);
-                    chatProvider.addNewCustomModel(changedModel);
-                    if (isThisModelWasSelected) {
-                      await Future.delayed(const Duration(milliseconds: 100));
-                      chatProvider.selectNewModel(changedModel);
-                    }
-                  }
-                },
-                subtitle: Text(model.uri ?? 'no path'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (model.imageSupported) IconImagesSupported(),
-                    if (model.reasoningSupported) IconReasoningSupported(),
-                    if (model.toolSupported) IconToolsSupported(),
-                    Button(
-                      child: Text('Select'.tr),
-                      onPressed: () async {
-                        chatProvider.selectNewModel(model);
-                        Navigator.of(context).pop();
-                      },
+            items: models,
+            areItemsTheSame: (oldItem, newItem) =>
+                oldItem.modelName == newItem.modelName &&
+                oldItem.uri == newItem.uri,
+            itemBuilder: (context, anim, item, index) {
+              final model = models.length <= index ? item : models[index];
+              return Reorderable(
+                key: ValueKey('${model.modelName}_${model.index}_${model.uri}'),
+                child: Handle(
+                  child: SizeFadeTransition(
+                    animation: anim,
+                    curve: Curves.easeInOut,
+                    child: Row(
+                      children: [
+                        Icon(FluentIcons.re_order_16_filled),
+                        Expanded(
+                          child: ListTile(
+                            leading: SizedBox.square(dimension: 24, child: model.modelIcon),
+                            title: Text('${model.customName} | ${model.modelName}'),
+                            onPressed: () async {
+                              final isThisModelWasSelected = model == selectedModel;
+                              final changedModel = await showDialog<ChatModelAi>(
+                                context: context,
+                                builder: (context) => AddAiModelDialog(initialModel: model),
+                              );
+                              if (changedModel != null) {
+                                chatProvider.removeCustomModel(model);
+                                chatProvider.addNewCustomModel(changedModel);
+                                if (isThisModelWasSelected) {
+                                  await Future.delayed(const Duration(milliseconds: 100));
+                                  chatProvider.selectNewModel(changedModel);
+                                }
+                              }
+                            },
+                            subtitle: Text(model.uri ?? 'no path'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (model.imageSupported) IconImagesSupported(),
+                                if (model.reasoningSupported) IconReasoningSupported(),
+                                if (model.toolSupported) IconToolsSupported(),
+                                Button(
+                                  child: Text('Select'.tr),
+                                  onPressed: () async {
+                                    chatProvider.selectNewModel(model);
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                SqueareIconButtonSized(
+                                  icon: Icon(FluentIcons.edit_20_regular),
+                                  tooltip: 'Edit'.tr,
+                                  height: 29,
+                                  width: 29,
+                                  onTap: () async {
+                                    final isThisModelWasSelected = model == selectedModel;
+                                    final changedModel = await showDialog<ChatModelAi>(
+                                      context: context,
+                                      builder: (context) => AddAiModelDialog(initialModel: model),
+                                    );
+                                    if (changedModel != null) {
+                                      chatProvider.removeCustomModel(model);
+                                      chatProvider.addNewCustomModel(changedModel);
+                                      if (isThisModelWasSelected) {
+                                        await Future.delayed(const Duration(milliseconds: 100));
+                                        chatProvider.selectNewModel(changedModel);
+                                      }
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(FluentIcons.delete_24_filled),
+                                  onPressed: () => showDialog(
+                                      context: context,
+                                      builder: (ctx) => ConfirmationDialog(
+                                            onAcceptPressed: () => chatProvider.removeCustomModel(model),
+                                          )),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    SqueareIconButtonSized(
-                      icon: Icon(FluentIcons.edit_20_regular),
-                      tooltip: 'Edit'.tr,
-                      height: 29,
-                      width: 29,
-                      onTap: () async {
-                        final isThisModelWasSelected = model == selectedModel;
-                        final changedModel = await showDialog<ChatModelAi>(
-                          context: context,
-                          builder: (context) => AddAiModelDialog(initialModel: model),
-                        );
-                        if (changedModel != null) {
-                          chatProvider.removeCustomModel(model);
-                          chatProvider.addNewCustomModel(changedModel);
-                          if (isThisModelWasSelected) {
-                            await Future.delayed(const Duration(milliseconds: 100));
-                            chatProvider.selectNewModel(changedModel);
-                          }
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(FluentIcons.delete_24_filled),
-                      onPressed: () => showDialog(
-                          context: context,
-                          builder: (ctx) => ConfirmationDialog(
-                                onAcceptPressed: () => chatProvider.removeCustomModel(model),
-                              )),
-                    ),
-                  ],
+                  ),
                 ),
               );
+            },
+            onReorderFinished: (ChatModelAi item, int from, int to, List<ChatModelAi> newItems) async {
+              // Update indices to match new positions
+              final updatedItems = <ChatModelAi>[];
+              for (int i = 0; i < newItems.length; i++) {
+                updatedItems.add(newItems[i].copyWith(index: i));
+              }
+              allModels.add(updatedItems);
+              await chatProvider.saveModelsToDisk();
             },
           );
         },
