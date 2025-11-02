@@ -582,8 +582,8 @@ class ChatProvider
   }) async {
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
-    final isToolsEnabled = AppCache.gptToolCopyToClipboardEnabled.value == true;
     final shouldForceDisableReasoning =
+
         AppCache.enableReasoning.value == false && selectedModel.reasoningSupported == true;
 
     String? ragPart;
@@ -767,6 +767,7 @@ class ChatProvider
     }
     onMessageSent?.call();
     String responseId = '';
+    bool isToolsEnabled = AppCache.isAnyToolsEnabled;
     final options = ChatOpenAIOptions(
       model: selectedChatRoom.model.modelName,
       user: AppCache.userName.value,
