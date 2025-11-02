@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 class SearchAllMessagesDialog extends StatefulWidget {
   const SearchAllMessagesDialog({super.key});
 
-  static show(BuildContext context) {
+  static void show(BuildContext context) {
     showDialog(
       barrierDismissible: true,
       context: context,

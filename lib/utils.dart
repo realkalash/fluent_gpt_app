@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:fluent_gpt/common/custom_messages/image_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages_src.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/weather_provider.dart';
@@ -290,6 +291,7 @@ Future<void> displayTextInfoBar(
 }
 
 Future<void> displayErrorInfoBar({String? title, String? message, Widget? action}) {
+  logError('displayErrorInfoBar: $title, $message');
   return displayInfoBar(
     appContext!,
     alignment: Alignment(0.0, 0.9),

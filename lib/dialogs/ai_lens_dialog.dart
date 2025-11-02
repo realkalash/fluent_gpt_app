@@ -568,7 +568,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
 
   bool isLoading = false;
 
-  _selectedFeature(AiLensSelectedFeature feature) {
+  void _selectedFeature(AiLensSelectedFeature feature) {
     if (selectedFeature == feature) {
       selectedFeature = null;
       points.clear();
@@ -586,7 +586,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     }
   }
 
-  _translateImage() async {
+  Future<void> _translateImage() async {
     final provider = context.read<ChatProvider>();
     setState(() {
       isLoading = true;
@@ -629,7 +629,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     return match?.group(1) ?? '';
   }
 
-  _scanImage() async {
+  Future<void> _scanImage() async {
     final provider = context.read<ChatProvider>();
     setState(() {
       isLoading = true;
@@ -670,7 +670,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
     }
   }
 
-  viewAllAnnotations() {
+  void viewAllAnnotations() {
     showDialog(
       context: context,
       builder: (context) {

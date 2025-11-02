@@ -35,7 +35,8 @@ class _ListHuggingFaceModelsDialogState extends State<ListHuggingFaceModelsDialo
   bool _isLoading = false;
   String? _errorMessage;
   List<dynamic> _models = [];
-  bool _filterGguf = true;
+  // ignore: unused_field
+  final bool _filterGguf = true;
 
   @override
   void initState() {
