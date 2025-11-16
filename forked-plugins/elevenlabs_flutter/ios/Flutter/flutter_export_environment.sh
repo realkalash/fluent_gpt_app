@@ -1,9 +1,9 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=C:\Users\alex\repos\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\Users\alex\repos\fluent_gpt_app\forked-plugins\elevenlabs_flutter"
+export "FLUTTER_ROOT=/home/alex/flutter_sdk/flutter"
+export "FLUTTER_APPLICATION_PATH=/home/alex/repos/fluent_gpt_app/forked-plugins/elevenlabs_flutter"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
-export "FLUTTER_TARGET=lib\main.dart"
+export "FLUTTER_TARGET=lib/main.dart"
 export "FLUTTER_BUILD_DIR=build"
 export "FLUTTER_BUILD_NAME=0.0.1"
 export "FLUTTER_BUILD_NUMBER=0.0.1"
