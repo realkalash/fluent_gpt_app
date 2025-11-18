@@ -216,6 +216,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
     this.maxWidthContextMenu = 200,
     this.maxHeightContextMenu = 300,
     this.shrinkWrapActions = false,
+    this.showOnBasicTap = false,
   });
   final bool checked;
   final IconData icon;
@@ -226,6 +227,25 @@ class ToggleButtonAdvenced extends StatelessWidget {
   final double maxWidthContextMenu;
   final double maxHeightContextMenu;
   final bool shrinkWrapActions;
+  final bool showOnBasicTap;
+
+  void showContextMenu(BuildContext context, FlyoutController controller) {
+    if (contextItems.isEmpty) return;
+    controller.showFlyout(builder: (context) {
+      return FlyoutContent(
+        constraints: BoxConstraints(
+          minWidth: 64,
+          minHeight: 64,
+          maxWidth: maxWidthContextMenu,
+          maxHeight: maxHeightContextMenu,
+        ),
+        child: ListView(
+          shrinkWrap: shrinkWrapActions,
+          children: contextItems,
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -237,25 +257,16 @@ class ToggleButtonAdvenced extends StatelessWidget {
         controller: controller,
         child: GestureDetector(
           onSecondaryTap: () {
-            if (contextItems.isEmpty) return;
-            controller.showFlyout(builder: (context) {
-              return FlyoutContent(
-                constraints: BoxConstraints(
-                  minWidth: 64,
-                  minHeight: 64,
-                  maxWidth: maxWidthContextMenu,
-                  maxHeight: maxHeightContextMenu,
-                ),
-                child: ListView(
-                  shrinkWrap: shrinkWrapActions,
-                  children: contextItems,
-                ),
-              );
-            });
+            showContextMenu(context, controller);
           },
           child: ToggleButton(
             checked: checked,
-            onChanged: onChanged,
+            onChanged: showOnBasicTap
+                ? (value) {
+                    onChanged(value);
+                    showContextMenu(context, controller);
+                  }
+                : onChanged,
             style: ToggleButtonThemeData(
               checkedButtonStyle: ButtonStyle(
                 padding: WidgetStateProperty.all(padding),

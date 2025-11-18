@@ -547,25 +547,6 @@ class PageHeaderText extends StatelessWidget {
   }
 }
 
-class IncludeConversationSwitcher extends StatelessWidget {
-  const IncludeConversationSwitcher({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final ChatProvider chatProvider = context.watch<ChatProvider>();
-    return FlyoutListTile(
-      text: const Icon(FluentIcons.full_history),
-      tooltip: '${'Include conversation'.tr} ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
-      trailing: Checkbox(
-        checked: chatProvider.includeConversationGlobal,
-        onChanged: (value) {
-          chatProvider.setIncludeWholeConversation(value ?? false);
-        },
-      ),
-    );
-  }
-}
-
 class AddSystemMessageField extends StatefulWidget {
   const AddSystemMessageField({super.key});
 
@@ -1163,12 +1144,13 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               tooltip: chatProvider.isWebSearchEnabled ? 'Disable web search'.tr : 'Enable web search'.tr,
             ),
             ToggleButtonAdvenced(
-              checked: chatProvider.includeConversationGlobal,
+              checked: true,
               icon: ic.FluentIcons.history_20_filled,
-              onChanged: chatProvider.setIncludeWholeConversation,
-              tooltip: 'Include conversation'.tr + ' ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}'.tr,
+              onChanged: (_) {}, // No-op since we only use this for the context menu
+              tooltip: 'Max tokens to include'.tr,
               maxWidthContextMenu: 350,
               maxHeightContextMenu: 96,
+              showOnBasicTap: true,
               contextItems: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1198,7 +1180,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                     ),
                   ],
                 ),
-                spacer,
+                const SizedBox(height: 8),
                 StatefulBuilder(builder: (context, updateSlider) {
                   return Slider(
                     value: selectedChatRoom.maxTokenLength < 0.0 ? 0.0 : selectedChatRoom.maxTokenLength.toDouble(),

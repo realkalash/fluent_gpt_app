@@ -29,8 +29,10 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
     'pdf': true,
   };
 
-  void addFilesToInput(List<XFile> files) {
-    fileInputs?.clear();
+  void addFilesToInput(List<XFile> files, {bool clearExisting = true}) {
+    if (clearExisting) {
+      fileInputs?.clear();
+    }
     fileInputs ??= <Attachment>[];
     for (var file in files) {
       final fileExt = file.path.split('.').last;
@@ -74,7 +76,12 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
       await Future.delayed(const Duration(milliseconds: 10));
       if (file.isImage == true) {
         final bytes = await file.readAsBytes();
-        final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
+        final newBytes = await ImageUtil.resizeAndCompressImage(
+          bytes,
+          maxHeight: AppCache.imageShrinkerHeight.value!,
+          maxWidth: AppCache.imageShrinkerWidth.value!,
+          maxSizeInBytes: AppCache.imageShrinkerMaxSizeInBytes.value!,
+        );
         final base64 = base64Encode(newBytes);
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         addCustomMessageToList(
@@ -83,6 +90,8 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
             content: base64,
             creator: AppCache.userName.value!,
             timestamp: timestamp,
+            path: file.path,
+            fileName: file.name,
           ),
         );
       } else if (file.isText == true) {
@@ -165,10 +174,30 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
     notifyListeners();
   }
 
+  void removeAttachmentFromInput(Attachment attachment) {
+    if (fileInputs == null || fileInputs!.isEmpty) return;
+
+    // Delete internal screenshot files if needed
+    if (attachment.isInternalScreenshot) {
+      FileUtils.deleteFile(attachment.path);
+    }
+
+    final index = fileInputs!.indexOf(attachment);
+    if (index != -1) {
+      fileInputs!.removeAt(index);
+    }
+
+    // If list is empty, set to null
+    if (fileInputs!.isEmpty) {
+      fileInputs = null;
+    }
+
+    notifyListeners();
+  }
+
   Future<void> sendAllAttachmentsToChatSilently() async {
     if (fileInputs == null || fileInputs!.isEmpty) return;
     await processFilesBeforeSendingMessage();
     removeFilesFromInput();
   }
 }
-

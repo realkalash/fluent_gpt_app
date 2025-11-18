@@ -1257,12 +1257,13 @@ class _ToolsSettingsState extends State<ToolsSettings> {
   @override
   Widget build(BuildContext context) {
     // final gptProvider = context.watch<ChatProvider>();
+    final theme = FluentTheme.of(context);
 
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         children: [
-          Text('Function tools'.tr, style: FluentTheme.of(context).typography.subtitle),
+          Text('Function tools'.tr, style: theme.typography.subtitle),
           spacer,
           Wrap(
             spacing: 15.0,
@@ -1331,7 +1332,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ],
           ),
           biggerSpacer,
-          Text('Additional tools'.tr, style: FluentTheme.of(context).typography.subtitle),
+          Text('Additional tools'.tr, style: theme.typography.subtitle),
           spacer,
           Checkbox(
             content: Expanded(
@@ -1370,7 +1371,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ),
           ],
           spacer,
-          Text('Image Search engines'.tr, style: FluentTheme.of(context).typography.subtitle),
+          Text('Image Search engines'.tr, style: theme.typography.subtitle),
           Checkbox(
             content: const Text('SouceNao'),
             checked: AppCache.useSouceNao.value,
@@ -1402,6 +1403,57 @@ class _ToolsSettingsState extends State<ToolsSettings> {
               }
               setState(() {});
             },
+          ),
+          Text('Image Shrinker'.tr, style: theme.typography.subtitle),
+          Row(
+            children: [
+              Expanded(child: Text('Max height'.tr)),
+              Expanded(
+                flex: 2,
+                child: SliderResolutionsStatefull(
+                  initValue: AppCache.imageShrinkerHeight.value!,
+                  onChanged: (value) {
+                    setState(() {
+                      AppCache.imageShrinkerHeight.value = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(child: Text('Max width'.tr)),
+              Expanded(
+                flex: 2,
+                child: SliderResolutionsStatefull(
+                  initValue: AppCache.imageShrinkerWidth.value!,
+                  onChanged: (value) {
+                    setState(() {
+                      AppCache.imageShrinkerWidth.value = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(child: Text('Max size in MB'.tr)),
+              Expanded(
+                flex: 2,
+                child: NumberBox(
+                  value: AppCache.imageShrinkerMaxSizeInBytes.value! / 1048576,
+                  onChanged: (value) {
+                    var maxSizeInBytes = (value?.toInt() ?? 1) * 1048576;
+                    if (maxSizeInBytes < 1048576) {
+                      maxSizeInBytes = 1048576;
+                    }
+                    AppCache.imageShrinkerMaxSizeInBytes.value = maxSizeInBytes;
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

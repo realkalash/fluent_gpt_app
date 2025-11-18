@@ -7,6 +7,8 @@ import 'package:langchain/langchain.dart';
 class FluentChatMessage {
   /// Unique id of the message. For unknown IDs we use millisecondsSinceEpoch string
   final String id;
+
+  /// Either text of the message or image base64 string
   final String content;
 
   /// Only for image AI answer
@@ -26,7 +28,9 @@ class FluentChatMessage {
   final int tokens;
   final FluentChatMessageType type;
   final bool useLowResImage = false;
-  final List<String>? buttons;
+
+  /// key is button name, value is whether the button is enabled
+  final Map<String, bool>? buttons;
   final int? indexPin;
 
   bool get isTextMessage => type == FluentChatMessageType.textHuman || type == FluentChatMessageType.textAi;
@@ -80,7 +84,7 @@ class FluentChatMessage {
     String creator = 'ai',
     int? timestamp,
     int tokens = 0,
-    List<String>? buttons,
+    Map<String, bool>? buttons,
   }) {
     return FluentChatMessage(
       id: id,
@@ -88,6 +92,24 @@ class FluentChatMessage {
       creator: creator,
       timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
       type: FluentChatMessageType.textAi,
+      tokens: tokens,
+      buttons: buttons,
+    );
+  }
+  factory FluentChatMessage.header({
+    required String id,
+    required String content,
+    String creator = '',
+    int? timestamp,
+    int tokens = 0,
+    Map<String, bool>? buttons,
+  }) {
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.header,
       tokens: tokens,
       buttons: buttons,
     );
@@ -117,6 +139,8 @@ class FluentChatMessage {
     int? timestamp,
     // just a placeholder because we can't calc it yet
     int tokens = 256,
+    String? path,
+    String? fileName,
   }) {
     return FluentChatMessage(
       id: id,
@@ -125,6 +149,8 @@ class FluentChatMessage {
       timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
       type: FluentChatMessageType.image,
       tokens: tokens,
+      path: path,
+      fileName: fileName,
     );
   }
   factory FluentChatMessage.file({
@@ -181,7 +207,7 @@ class FluentChatMessage {
     List<WebSearchResult>? webResults,
     String? imagePrompt,
     int? indexPin,
-    List<String>? buttons,
+    Map<String, bool>? buttons,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
@@ -249,7 +275,7 @@ class FluentChatMessage {
       webResults:
           (json['webResults'] as List?)?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>)).toList(),
       imagePrompt: json['imagePrompt'] as String?,
-      buttons: (json['buttons'] as List?)?.map((e) => e as String).toList(),
+      buttons: (json['buttons'] as Map<String, dynamic>?)?.map((key, value) => MapEntry(key, value as bool)),
     );
   }
 
@@ -285,6 +311,8 @@ class FluentChatMessage {
         );
       case FluentChatMessageType.webResult:
         return WebResultCustomMessage(content: content, searchResults: webResults ?? []);
+      case FluentChatMessageType.header:
+        return SystemChatMessage(content: content);
       // ignore: unreachable_switch_default
       default:
         return HumanChatMessage(content: ChatMessageContentText(text: content));
@@ -378,6 +406,14 @@ class FluentChatMessage {
       indexPin: indexPin,
     );
   }
+
+  FluentChatMessage imageToHiddenText() {
+    return copyWith(
+      content:
+          'SYSTEM MESSAGE: [image ${path ?? fileName ?? ''} hidden due to your limitations. If you want to access the image content, use "grep_chat" tool with message id: "$id". It will enable agent and download image for you automatically and you will continue answering]',
+      type: type == FluentChatMessageType.image ? FluentChatMessageType.textHuman : type,
+    );
+  }
 }
 
 extension _FluentChatMessageTypeEnum on int? {
@@ -390,6 +426,7 @@ extension _FluentChatMessageTypeEnum on int? {
 enum FluentChatMessageType {
   textHuman,
   textAi,
+  header,
   system,
   image,
   imageAi,

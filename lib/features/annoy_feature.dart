@@ -30,7 +30,7 @@ class AnnoyFeature {
     }
   }
 
-  static showConfigureDialog() async {
+  static Future<void> showConfigureDialog() async {
     final context = appContext!;
     await showDialog(
       context: context,

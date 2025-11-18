@@ -33,17 +33,14 @@ class DensityModeDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<AppTheme>();
     final currentDensity = context.theme.visualDensity;
-    final name =
-        values.entries.firstWhere((e) => e.value == currentDensity).key;
+    final name = values.entries.firstWhere((e) => e.value == currentDensity).key;
     return DropDownButton(
       title: Text('Density mode: $name'),
       items: [
         for (var density in values.entries)
           MenuFlyoutItem(
             selected: currentDensity == density.value,
-            trailing: currentDensity == density.value
-                ? const Icon(FluentIcons.checkmark_20_filled)
-                : null,
+            trailing: currentDensity == density.value ? const Icon(FluentIcons.checkmark_20_filled) : null,
             onPressed: () {
               provider.setVisualDensity(density.value);
             },
@@ -95,8 +92,7 @@ class _DebugSection extends StatelessWidget {
             FilledRedButton(
                 child: const Text('is accessibility granted'),
                 onPressed: () async {
-                  final isGranted =
-                      await NativeChannelUtils.isAccessibilityGranted();
+                  final isGranted = await NativeChannelUtils.isAccessibilityGranted();
                   log('isAccessibilityGranted: $isGranted');
                 }),
             FilledRedButton(
@@ -108,8 +104,7 @@ class _DebugSection extends StatelessWidget {
             FilledRedButton(
                 child: const Text('get mouse position'),
                 onPressed: () async {
-                  final mousePosition =
-                      await NativeChannelUtils.getMousePosition();
+                  final mousePosition = await NativeChannelUtils.getMousePosition();
                   log('mousePosition: $mousePosition');
                 }),
           ],
@@ -140,8 +135,7 @@ class _AccessebilityStatusState extends State<AccessebilityStatus> {
           final isGranted = snapshot.data as bool? ?? false;
           return Button(
             onPressed: () {
-              const url =
-                  'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+              const url = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
               launchUrlString(url);
             },
             child: Row(
@@ -229,10 +223,7 @@ class _CheckBoxTileState extends State<CheckBoxTile> {
                 },
               ),
               const SizedBox(width: 8.0),
-              if (widget.expanded)
-                Expanded(child: widget.child)
-              else
-                widget.child,
+              if (widget.expanded) Expanded(child: widget.child) else widget.child,
             ],
           ),
         ),
@@ -332,9 +323,7 @@ class MessageSamplePreviewCard extends StatelessWidget {
             tokens: 1234,
           ),
           selectionMode: false,
-          textSize: isCompact
-              ? AppCache.compactMessageTextSize.value!
-              : provider.textSize,
+          textSize: isCompact ? AppCache.compactMessageTextSize.value! : provider.textSize,
           isCompactMode: isCompact,
         ),
       ),
@@ -393,10 +382,8 @@ class _LocaleSection extends StatelessWidget {
         Text('GPT Locale', style: FluentTheme.of(context).typography.subtitle),
         const CaptionText('Language LLM will use to generate answers'),
         spacer,
-        Text('Speech Language',
-            style: FluentTheme.of(context).typography.subtitle),
-        const CaptionText(
-            'Language you are using to talk to the AI (Used in Speech to Text)'),
+        Text('Speech Language', style: FluentTheme.of(context).typography.subtitle),
+        const CaptionText('Language you are using to talk to the AI (Used in Speech to Text)'),
         spacer,
         DropDownButton(
           leading: Text(AppCache.speechLanguage.value!),
@@ -463,6 +450,120 @@ class _SliderStatefullState extends State<SliderStatefull> {
           _value = value;
         });
         widget.onChanged.call(value);
+      },
+    );
+  }
+}
+
+class SliderResolutionsStatefull extends StatefulWidget {
+  const SliderResolutionsStatefull({
+    super.key,
+    required this.initValue,
+    required this.onChanged,
+    this.onChangeEnd,
+  });
+
+  /// Initial resolution value (will be mapped to nearest discrete value if not exact match)
+  final int initValue;
+
+  /// Callback when the value changes, receives the actual resolution value
+  final void Function(int value) onChanged;
+
+  /// Callback when the user finishes dragging
+  final void Function(int value)? onChangeEnd;
+
+  /// Supported discrete resolution values for stable diffusion and image processing
+  /// Common resolutions: 256, 384, 512, 640, 768, 1024, 1280, 1344, 1536, 1920, 2048, 2560, 3840
+  static const List<int> discreteValues = [
+    128,
+    256,
+    384,
+    512,
+    640,
+    768,
+    1024,
+    1280,
+    1344,
+    1536,
+    1920,
+    2048,
+    2560,
+    3840,
+  ];
+
+  /// Get the display label for a resolution value
+  static String getLabel(int value) {
+    return value.toString();
+  }
+
+  /// Find the index of the nearest discrete value
+  static int findNearestIndex(int value) {
+    int nearestIndex = 0;
+    int minDiff = (value - discreteValues[0]).abs();
+    for (int i = 1; i < discreteValues.length; i++) {
+      final diff = (value - discreteValues[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearestIndex = i;
+      }
+    }
+    return nearestIndex;
+  }
+
+  @override
+  State<SliderResolutionsStatefull> createState() => _SliderResolutionsStatefullState();
+}
+
+class _SliderResolutionsStatefullState extends State<SliderResolutionsStatefull> {
+  late double _sliderValue;
+
+  @override
+  void initState() {
+    super.initState();
+    // Find the index of the current value or nearest value
+    int currentIndex = SliderResolutionsStatefull.discreteValues.indexWhere((v) => v == widget.initValue);
+    if (currentIndex == -1) {
+      currentIndex = SliderResolutionsStatefull.findNearestIndex(widget.initValue);
+    }
+    _sliderValue = currentIndex.toDouble();
+  }
+
+  @override
+  void didUpdateWidget(SliderResolutionsStatefull oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initValue != widget.initValue) {
+      // Update slider value when initValue changes externally
+      int currentIndex = SliderResolutionsStatefull.discreteValues.indexWhere((v) => v == widget.initValue);
+      if (currentIndex == -1) {
+        currentIndex = SliderResolutionsStatefull.findNearestIndex(widget.initValue);
+      }
+      _sliderValue = currentIndex.toDouble();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final discreteValues = SliderResolutionsStatefull.discreteValues;
+    final currentIndex = _sliderValue.round().clamp(0, discreteValues.length - 1);
+    final currentResolution = discreteValues[currentIndex];
+    final label = SliderResolutionsStatefull.getLabel(currentResolution);
+
+    return Slider(
+      value: _sliderValue,
+      label: label,
+      min: 0.0,
+      max: (discreteValues.length - 1).toDouble(),
+      divisions: discreteValues.length - 1,
+      onChangeEnd: (value) {
+        final index = value.round().clamp(0, discreteValues.length - 1);
+        widget.onChangeEnd?.call(discreteValues[index]);
+      },
+      onChanged: (value) {
+        final index = value.round().clamp(0, discreteValues.length - 1);
+        setState(() {
+          _sliderValue = value;
+        });
+        widget.onChanged.call(discreteValues[index]);
       },
     );
   }

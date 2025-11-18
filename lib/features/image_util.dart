@@ -62,7 +62,7 @@ class ImageUtil {
         final end = DateTime.now();
           print(
               'Image processing took: ${end.difference(start).inMilliseconds}ms');
-          print('Final image size: ${processedImage.length} bytes');
+          print('Final image size: ${processedImage.length} bytes. Res: ${decodedImage.width}x${decodedImage.height}');
         }
         return processedImage;
       }

@@ -188,7 +188,6 @@ class _InputFieldState extends State<_InputField> {
           SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
           SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, meta: true): toggleEnableHistory,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
@@ -205,7 +204,6 @@ class _InputFieldState extends State<_InputField> {
           SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
           SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, control: true): toggleEnableHistory,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
         const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {},
@@ -224,15 +222,6 @@ class _InputFieldState extends State<_InputField> {
     );
   }
 
-  Future<void> toggleEnableHistory() async {
-    final provider = context.read<ChatProvider>();
-    provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
-    if (provider.includeConversationGlobal) {
-      displayTextInfoBar('History enabled'.tr);
-    } else {
-      displayTextInfoBar('History disabled'.tr);
-    }
-  }
 
   Future<void> onSubmit(String text, ChatProvider chatProvider) async {
     if (shiftPressedStream.valueOrNull == true) {
