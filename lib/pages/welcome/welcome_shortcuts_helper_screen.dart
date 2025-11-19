@@ -50,17 +50,6 @@ class _WelcomePageState extends State<WelcomeShortcutsHelper> {
       textColor: Colors.white,
     ),
     KeyBindingText(
-      title:
-          'Include current chat history in conversation ${Platform.isWindows ? '(Ctrl+H)' : '(⌘+H)'}',
-      hotKey: HotKey(
-        key: LogicalKeyboardKey.keyH,
-        modifiers: [
-          Platform.isMacOS ? HotKeyModifier.meta : HotKeyModifier.control
-        ],
-      ),
-      textColor: Colors.white,
-    ),
-    KeyBindingText(
       title: 'Search in chat (only when input field is focused)',
       hotKey: HotKey(
         key: LogicalKeyboardKey.keyF,

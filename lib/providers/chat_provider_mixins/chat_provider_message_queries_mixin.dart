@@ -85,6 +85,7 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
     // int currentTokensStripped = 0;
     final result = <FluentChatMessage>[];
     final chatModel = selectedChatRoom.model;
+    bool isImageAdded = false;
 
     /// We need to count from the bottom to the top. We cant use messagesReversedList because it takes time to populate it
     for (var message in messages.value.values.toList().reversed) {
@@ -116,7 +117,18 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
         result.add(message);
       } else if (allowImages &&
           (message.type == FluentChatMessageType.image || message.type == FluentChatMessageType.imageAi)) {
-        if (chatModel.imageSupported) result.add(message);
+        if (chatModel.imageSupported) {
+          if (supportsMultipleHighresImages(chatModel.modelName))
+            result.add(message);
+          else {
+            if (!isImageAdded) {
+              result.add(message);
+              isImageAdded = true;
+            } else {
+              result.add(message.imageToHiddenText());
+            }
+          }
+        }
       }
     }
     // if allowOverflow is true and we didn't add any element, add only the last one
@@ -212,5 +224,10 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
     }).join('\n');
     return result;
   }
-}
 
+  bool supportsMultipleHighresImages(String modelName) {
+    if (modelName == 'google/gemini-2.5-flash') return false;
+    if (modelName == 'gemini-2.5-flash') return false;
+    return true;
+  }
+}

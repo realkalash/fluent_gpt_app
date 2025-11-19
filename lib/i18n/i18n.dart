@@ -36,10 +36,16 @@ class I18n {
       'dalleGenerator': 'DALL-E 3',
       'deepinfraGenerator': 'DeepInfra',
       'disable_tools_btn': 'Disable tools',
+      'send_with_waiting_for_response_btn': 'Send waiting for response',
+      'retry_btn': 'Retry',
       'privacy_download_hf_models':
           'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
     },
     'ru': {
+      'AI can see only the last image in this chat': 'ИИ может видеть только последнее изображение в этом чате',
+      'supports only one high-resolution image per chat': 'Поддерживает только одно высокое разрешение изображение в чате',
+      'send_with_waiting_for_response_btn': 'Отправить с ожиданием ответа',
+      'retry_btn': 'Повторить',
       'Download': 'Скачать',
       'Downloading...': 'Загрузка...',
       'Downloaded': 'Загружено',
@@ -399,6 +405,10 @@ class I18n {
       'What\'s New': 'Что нового',
     },
     'es': {
+      'AI can see only the last image in this chat': 'La IA puede ver solo la última imagen en este chat',
+      'supports only one high-resolution image per chat': 'Sólo admite una imagen de alta resolución por chat',
+      'retry_btn': 'Reintentar',
+      'send_with_waiting_for_response_btn': 'Enviar con espera de respuesta',
       'Download': 'Descargar',
       'Downloading...': 'Descargando...',
       'Downloaded': 'Descargado',

@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:cross_file/cross_file.dart';
 
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -213,16 +214,6 @@ class _InputFieldState extends State<InputField> {
     }
   }
 
-  Future<void> toggleEnableHistory() async {
-    final provider = context.read<ChatProvider>();
-    provider.setIncludeWholeConversation(!provider.includeConversationGlobal);
-    if (provider.includeConversationGlobal) {
-      displayTextInfoBar('History enabled'.tr);
-    } else {
-      displayTextInfoBar('History disabled'.tr);
-    }
-  }
-
   Future<void> arrowUpPressed() async {
     // Get the current text editing controller and selection
     final chatProvider = context.read<ChatProvider>();
@@ -366,7 +357,6 @@ class _InputFieldState extends State<InputField> {
           SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
           SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, meta: true): toggleEnableHistory,
           SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
@@ -385,7 +375,6 @@ class _InputFieldState extends State<InputField> {
           SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
           SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
           SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
-          SingleActivator(LogicalKeyboardKey.keyH, control: true): toggleEnableHistory,
           SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
@@ -412,6 +401,7 @@ class _InputFieldState extends State<InputField> {
                 return const SizedBox.shrink();
               },
             ),
+            if (chatProvider.fileInputs != null) _FileThumbnails(),
             if (widget.isMini) ...[
               Row(
                 children: [
@@ -1270,9 +1260,6 @@ class AddFileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
-    if (chatProvider.fileInputs != null) {
-      return _FileThumbnail();
-    }
     return Tooltip(
       message: 'Supports jpeg, png, docx, xlsx, txt, csv',
       child: SizedBox.square(
@@ -1307,104 +1294,35 @@ class AddFileButton extends StatelessWidget {
   }
 }
 
-class _FileThumbnail extends StatelessWidget {
-  const _FileThumbnail();
-  static const BorderRadius borderRadius = BorderRadius.all(Radius.circular(6));
+class _FileThumbnails extends StatelessWidget {
+  const _FileThumbnails();
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
-    final theme = FluentTheme.of(context);
-    bool containsMultiple = chatProvider.fileInputs?.length != null && chatProvider.fileInputs!.length > 1;
-    return SizedBox.square(
-      dimension: 48,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (containsMultiple)
-            Positioned.fill(
-              top: 0,
-              left: 0,
-              bottom: 0,
-              right: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: theme.inactiveColor),
-                  borderRadius: borderRadius,
-                ),
-              ),
-            ),
-          Positioned.fill(
-            top: 0,
-            left: containsMultiple ? 4 : 0,
-            bottom: containsMultiple ? 4 : 0,
-            right: 0,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(color: theme.inactiveColor),
-                borderRadius: borderRadius,
-              ),
-              child: Icon(ic.FluentIcons.document_16_regular),
-            ),
-          ),
-          if (chatProvider.fileInputs?.isNotEmpty == true &&
-              chatProvider.fileInputs!.first.mimeType?.contains('image') == true)
-            Positioned.fill(
-              bottom: 0,
-              right: containsMultiple ? 0 : 16,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(128),
-                  borderRadius: borderRadius,
-                ),
-                child: GestureDetector(
-                  onTap: () {
-                    showDialog(context: context, builder: (ctx) => ImagesDialog(images: chatProvider.fileInputs!));
-                  },
-                  child: FutureBuilder<Uint8List>(
-                      future: chatProvider.fileInputs!.first.readAsBytes(),
-                      builder: (context, snapshot) {
-                        if (snapshot.data == null) {
-                          return const SizedBox.shrink();
-                        }
-                        return ClipRRect(
-                          borderRadius: borderRadius,
-                          child: Image.memory(
-                            snapshot.data as Uint8List,
-                            fit: BoxFit.cover,
-                          ),
-                        );
-                      }),
-                ),
-              ),
-            ),
-          if (containsMultiple)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              left: 8,
-              top: 0,
-              child: GestureDetector(
-                onTap: () {
-                  showDialog(context: context, builder: (ctx) => ImagesDialog(images: chatProvider.fileInputs!));
-                },
-                child: Text(
-                  '${chatProvider.fileInputs!.length}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: IconButton(
-              style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.black.withAlpha(128)),
-              ),
-              onPressed: () => chatProvider.removeFilesFromInput(),
-              icon: Icon(FluentIcons.chrome_close, size: 12, color: Colors.red),
-            ),
-          ),
-        ],
+    final fileInputs = chatProvider.fileInputs;
+
+    if (fileInputs == null || fileInputs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: fileInputs.map((attachment) {
+          return attachment.toWidgetThumbnail(
+            onTap: (att) {
+              showDialog(
+                context: context,
+                builder: (ctx) => ImagesDialog(images: fileInputs),
+              );
+            },
+            onRemove: (att) {
+              chatProvider.removeAttachmentFromInput(att);
+            },
+          );
+        }).toList(),
       ),
     );
   }

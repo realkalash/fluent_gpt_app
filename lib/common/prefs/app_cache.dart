@@ -50,6 +50,12 @@ class AppCache {
   static const enableReasoning = BoolPref("enableReasoning", false);
   static const useLocalSpellCheck = BoolPref("useLocalSpellCheck", false);
 
+  /* Image shrinker to compress images before sending to the server */
+   static const imageShrinkerHeight = IntPref("imageShrinkerHeight", 720);
+  static const imageShrinkerWidth = IntPref("imageShrinkerWidth", 1280);
+  /// 1MB
+  static const imageShrinkerMaxSizeInBytes = IntPref("imageShrinkerMaxSizeInBytes", 1048576);
+
   /// Contains Strings that we can't migrate because they are used by StringPref, IntPref etc.
   /// the format is:
   ///

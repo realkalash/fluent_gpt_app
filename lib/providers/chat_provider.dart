@@ -475,99 +475,9 @@ class ChatProvider
     return result;
   }
 
-  @override
-  Future<void> processFilesBeforeSendingMessage() async {
-    if (fileInputs == null || fileInputs!.isEmpty) {
-      return;
-    }
-
-    for (var file in fileInputs!) {
-      await Future.delayed(const Duration(milliseconds: 10));
-      if (file.isImage == true) {
-        final bytes = await file.readAsBytes();
-        final newBytes = await ImageUtil.resizeAndCompressImage(bytes);
-        final base64 = base64Encode(newBytes);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage.image(
-            id: '$timestamp',
-            content: base64,
-            creator: AppCache.userName.value!,
-            timestamp: timestamp,
-          ),
-        );
-      } else if (file.isText == true) {
-        final fileName = file.name;
-        final bytes = await file.readAsBytes();
-        final contentString = utf8.decode(bytes);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage(
-            id: '$timestamp',
-            content: contentString,
-            creator: AppCache.userName.value!,
-            timestamp: timestamp,
-            type: FluentChatMessageType.file,
-            fileName: fileName,
-            path: file.path,
-          ),
-        );
-      } else if (file.isWord == true) {
-        final fileName = file.name;
-        final bytes = await file.readAsBytes();
-        final contentString = docxToText(bytes);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage(
-            id: '$timestamp',
-            content: contentString,
-            creator: AppCache.userName.value!,
-            timestamp: timestamp,
-            type: FluentChatMessageType.file,
-            fileName: fileName,
-            path: file.path,
-          ),
-        );
-      } else if (file.isExcel == true) {
-        final fileName = file.name;
-        final bytes = await file.readAsBytes();
-        final excelToJson = ExcelToJson();
-        final contentString = await excelToJson.convert(bytes);
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage(
-            id: '$timestamp',
-            content: contentString ?? '<No data available>',
-            creator: AppCache.userName.value!,
-            timestamp: timestamp,
-            type: FluentChatMessageType.file,
-            fileName: fileName,
-            path: file.path,
-          ),
-        );
-      } else if (file.isPdf == true) {
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addCustomMessageToList(
-          FluentChatMessage.file(
-            id: '$timestamp',
-            creator: AppCache.userName.value!,
-            timestamp: timestamp,
-            path: file.path,
-            fileName: file.name,
-            tokens: 256,
-            content: 'Uploaded file: "${file.path}". Analyse it before the answer',
-          ),
-        );
-      }
-    }
-    if (fileInputs != null) {
-      // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
-  }
-
   Stream<ChatResult>? responseStream;
   StreamSubscription<ChatResult>? listenerResponseStream;
+  bool aiCanSeeOnlyLastImageHintShown = false;
 
   Future<void> sendMessage(
     String messageContent, {
@@ -583,7 +493,6 @@ class ChatProvider
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final shouldForceDisableReasoning =
-
         AppCache.enableReasoning.value == false && selectedModel.reasoningSupported == true;
 
     String? ragPart;
@@ -681,89 +590,82 @@ class ChatProvider
       await autoStartServer();
     }
     final messagesToSend = <ChatMessage>[];
+    if (supportsMultipleHighresImages(selectedChatRoom.model.modelName) == false &&
+        aiCanSeeOnlyLastImageHintShown == false) {
+      aiCanSeeOnlyLastImageHintShown = true;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      addBotHeader(
+        FluentChatMessage.header(
+          id: timestamp.toString(),
+          content: 'AI can see only the last image in this chat'.tr,
+          timestamp: timestamp,
+          creator: selectedChatRoom.characterName,
+        ),
+      );
+    }
 
-    if (includeConversationGlobal) {
-      await Future.delayed(const Duration(milliseconds: 50));
-      if (includeConversationOnSend) {
-        final lastMessages = await getLastMessagesLimitToTokens(
-          selectedChatRoom.maxTokenLength - (selectedChatRoom.systemMessageTokensCount ?? 0),
-          allowImages: true,
-        );
-        // if false it will just skip all messages in chat for this case
-        final List<ChatMessage> lastMessagesLangChain = [];
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (includeConversationOnSend) {
+      final lastMessages = await getLastMessagesLimitToTokens(
+        selectedChatRoom.maxTokenLength - (selectedChatRoom.systemMessageTokensCount ?? 0),
+        allowImages: true,
+      );
+      // if false it will just skip all messages in chat for this case
+      final List<ChatMessage> lastMessagesLangChain = [];
 
-        for (var message in lastMessages) {
-          final langChainMessage =
-              message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
-          lastMessagesLangChain.add(langChainMessage);
-          if (message.path?.endsWith('.pdf') == true) {
-            final pdfImages = await PdfUtils.getImagesFromPdfPath(message.path!);
-            for (var image in pdfImages) {
-              lastMessagesLangChain.add(
-                HumanChatMessage(
-                  content: ChatMessageContentImage(
-                    data: base64Encode(image),
-                    detail: ChatMessageContentImageDetail.high,
-                    mimeType: 'image/png',
-                  ),
-                ),
-              );
-            }
+      for (var message in lastMessages) {
+        final langChainMessage =
+            message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
+        lastMessagesLangChain.add(langChainMessage);
+        if (message.path?.endsWith('.pdf') == true) {
+          final pdfImages = await PdfUtils.getImagesFromPdfPath(message.path!);
+          for (var image in pdfImages) {
             lastMessagesLangChain.add(
               HumanChatMessage(
-                content: ChatMessageContentText(text: 'End of the file.'),
+                content: ChatMessageContentImage(
+                  data: base64Encode(image),
+                  detail: ChatMessageContentImageDetail.high,
+                  mimeType: 'image/png',
+                ),
               ),
             );
           }
+          lastMessagesLangChain.add(
+            HumanChatMessage(
+              content: ChatMessageContentText(text: 'End of the file.'),
+            ),
+          );
         }
-
-        messagesToSend.addAll(lastMessagesLangChain);
-      } else {
-        messagesToSend.add(
-          sendAsUser
-              ? HumanChatMessage(
-                  content: ChatMessageContent.text(messageContent),
-                )
-              : AIChatMessage(content: messageContent),
-        );
       }
 
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
-        messagesToSend.insert(
-          0,
-          SystemChatMessage(
-            content: formatArgsInSystemPrompt(selectedChatRoom.systemMessage!),
-          ),
-        );
-      }
-
-      /// we modify it here because we don't want the messageContent to be shown in UI
-      if (shouldForceDisableReasoning) {
-        // modify the last message to append /no_think
-        messagesToSend[messagesToSend.length - 1] = messagesToSend[messagesToSend.length - 1].concat(
-          HumanChatMessage(
-            content: ChatMessageContent.text('/no_think'),
-          ),
-        );
-      }
+      messagesToSend.addAll(lastMessagesLangChain);
+    } else {
+      messagesToSend.add(
+        sendAsUser
+            ? HumanChatMessage(
+                content: ChatMessageContent.text(messageContent),
+              )
+            : AIChatMessage(content: messageContent),
+      );
     }
-    if (!includeConversationGlobal) {
-      if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
-        final systemMessage = await getFormattedSystemPrompt(
-          basicPrompt: selectedChatRoom.systemMessage!,
-        );
-        messagesToSend.add(SystemChatMessage(content: formatArgsInSystemPrompt(systemMessage)));
-      }
 
-      if (messageContent.isNotEmpty) {
-        messagesToSend.add(
-          sendAsUser
-              ? HumanChatMessage(
-                  content: ChatMessageContent.text(messageContent + (shouldForceDisableReasoning ? ' /no_think' : '')),
-                )
-              : AIChatMessage(content: messageContent + (shouldForceDisableReasoning ? ' /no_think' : '')),
-        );
-      }
+    if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
+      messagesToSend.insert(
+        0,
+        SystemChatMessage(
+          content: formatArgsInSystemPrompt(selectedChatRoom.systemMessage!),
+        ),
+      );
+    }
+
+    /// we modify it here because we don't want the messageContent to be shown in UI
+    if (shouldForceDisableReasoning) {
+      // modify the last message to append /no_think
+      messagesToSend[messagesToSend.length - 1] = messagesToSend[messagesToSend.length - 1].concat(
+        HumanChatMessage(
+          content: ChatMessageContent.text('/no_think'),
+        ),
+      );
     }
     onMessageSent?.call();
     String responseId = '';
@@ -805,6 +707,12 @@ class ChatProvider
                   description: 'Tool to remember info. Use it to store info about user or important notes',
                   inputJsonSchema: rememberInfoParameters,
                 ),
+              ToolSpec(
+                name: 'grep_chat',
+                description:
+                    'Agentic tool to grep the chat message using its id and use it to continue answering. Use it when you dont have access to a certain parts of the chat',
+                inputJsonSchema: grepChatFunctionParameters,
+              ),
             ]
           : null,
     );
@@ -951,11 +859,11 @@ class ChatProvider
                     content: 'Empty response. Try disabling tools',
                     creator: 'error',
                     timestamp: time,
-                    buttons: [
-                      MesssageListTileButtons.disable_tools_btn.name,
-                    ]),
+                    buttons: {
+                      MesssageListTileButtons.disable_tools_btn.name: true,
+                      MesssageListTileButtons.send_with_waiting_for_response_btn.name: true,
+                    }),
               );
-              return;
             }
           }
           totalTokensByMessages = await countTokensFromMessagesCached([
@@ -1005,13 +913,47 @@ class ChatProvider
       );
     } catch (e, stack) {
       logError('Error while answering: $e', stack);
-      addBotErrorMessageToList(
-        FluentChatMessage.ai(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: '$e',
-          creator: 'error',
-        ),
-      );
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (e is OpenAIClientException) {
+        var body = e.body;
+        String? detailsMessage;
+        if (body is String) {
+          final bodyJson = jsonDecode(body);
+          // {"error":{"message":"[{\n  \"error\": {\n    \"code\": 400,\n    \"message\": \"Unable to submit request because the model supports HIGH media resolution only for single images. Learn more: https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/gemini\",\n    \"status\": \"INVALID_ARGUMENT\"\n  }\n}\n]"}}
+          String? detailsMessageStringJson = bodyJson['error']['message'];
+          if (detailsMessageStringJson is String) {
+            final detailsMessageJson = jsonDecode(detailsMessageStringJson);
+            if (detailsMessageJson is List && detailsMessageJson.isNotEmpty) {
+              if (detailsMessageJson.first is Map)
+                detailsMessage = detailsMessageJson.first['error']['message'] as String?;
+            }
+          }
+        }
+        addBotErrorMessageToList(
+          FluentChatMessage.ai(
+              id: now.toString(),
+              content:
+                  'Error: ${e.message}.\nCode: ${e.code}.\nUri: ${e.uri}${detailsMessage != null ? '\n\n*Details: $detailsMessage*' : ''}',
+              creator: 'error',
+              tokens: await countTokensString(e.toString()),
+              timestamp: now,
+              buttons: {
+                MesssageListTileButtons.disable_tools_btn.name: true,
+                MesssageListTileButtons.send_with_waiting_for_response_btn.name: true,
+                MesssageListTileButtons.retry_btn.name: true,
+              }),
+        );
+      } else {
+        addBotErrorMessageToList(
+          FluentChatMessage.ai(
+            id: now.toString(),
+            content: '$e',
+            creator: 'error',
+            tokens: await countTokensString(e.toString()),
+            timestamp: now,
+          ),
+        );
+      }
       isAnswering = false;
       notifyListeners();
     }
@@ -1454,44 +1396,49 @@ class ChatProvider
     List<FluentChatMessage> additionalPreMessages = const [],
     int? maxTokens,
   }) async {
-    final messagesToSend = <ChatMessage>[];
+    try {
+      final messagesToSend = <ChatMessage>[];
 
-    if (systemMessage != null) {
-      messagesToSend.add(SystemChatMessage(content: systemMessage));
-    }
-    if (additionalPreMessages.isNotEmpty) {
-      messagesToSend.addAll(additionalPreMessages
-          .map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported)));
-    }
+      if (systemMessage != null) {
+        messagesToSend.add(SystemChatMessage(content: systemMessage));
+      }
+      if (additionalPreMessages.isNotEmpty) {
+        messagesToSend.addAll(additionalPreMessages
+            .map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported)));
+      }
 
-    messagesToSend.add(HumanChatMessage(content: ChatMessageContent.text(message)));
-    if (kDebugMode) {
-      log('messagesToSend: $messagesToSend');
-    }
+      messagesToSend.add(HumanChatMessage(content: ChatMessageContent.text(message)));
+      if (kDebugMode) {
+        log('messagesToSend: $messagesToSend');
+      }
 
-    AIChatMessage response;
-    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName, maxTokens: maxTokens);
-    var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
-    var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
-    if (selectedModel.ownedBy == 'openai') {
-      sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
-      response = await openAI!.call(messagesToSend, options: options);
-      respTokens += await openAI!.countTokens(PromptValue.string(response.content));
-    } else {
-      sentTokens += await localModel!.countTokens(PromptValue.chat(messagesToSend));
-      response = await localModel!.call(messagesToSend, options: options);
-      respTokens += await localModel!.countTokens(PromptValue.string(response.content));
+      AIChatMessage response;
+      final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName, maxTokens: maxTokens);
+      var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
+      var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
+      if (selectedModel.ownedBy == 'openai') {
+        sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
+        response = await openAI!.call(messagesToSend, options: options);
+        respTokens += await openAI!.countTokens(PromptValue.string(response.content));
+      } else {
+        sentTokens += await localModel!.countTokens(PromptValue.chat(messagesToSend));
+        response = await localModel!.call(messagesToSend, options: options);
+        respTokens += await localModel!.countTokens(PromptValue.string(response.content));
+      }
+      if (sentTokens != selectedChatRoom.totalSentTokens) {
+        selectedChatRoom.totalSentTokens = sentTokens;
+      }
+      if (respTokens != selectedChatRoom.totalReceivedTokens) {
+        selectedChatRoom.totalReceivedTokens = respTokens;
+      }
+      if (kDebugMode) {
+        log('response: $response');
+      }
+      return response.content;
+    } catch (e) {
+      logError('Error while retrieving response from prompt: $e');
+      return 'Error while retrieving response from prompt: $e';
     }
-    if (sentTokens != selectedChatRoom.totalSentTokens) {
-      selectedChatRoom.totalSentTokens = sentTokens;
-    }
-    if (respTokens != selectedChatRoom.totalReceivedTokens) {
-      selectedChatRoom.totalReceivedTokens = respTokens;
-    }
-    if (kDebugMode) {
-      log('response: $response');
-    }
-    return response.content;
   }
 
   @override
@@ -1512,6 +1459,12 @@ class ChatProvider
     // if (kDebugMode) print(newString);
     messages.add(values);
     autoScrollToEnd(withDelay: false);
+  }
+
+  void addBotHeader(FluentChatMessage message) {
+    final values = messages.value;
+    values[message.id] = message;
+    messages.add(values);
   }
 
   @override
@@ -1659,6 +1612,7 @@ class ChatProvider
       final time = DateTime.now().millisecondsSinceEpoch;
       final funcText = '```remember\n$info\n```';
       AppCache.userInfo.saveInfoToFile(info);
+
       addBotMessageToList(
         FluentChatMessage.ai(
           id: time.toString(),
@@ -1668,6 +1622,61 @@ class ChatProvider
           tokens: await countTokensString('$funcText\n$responseMessage'),
         ),
       );
+    } else if (toolName == 'grep_chat') {
+      final id = toolArgs['id'];
+      final message = messages.value[id];
+
+      final systemSuffix = '\nlast messages in your conversation were:';
+
+      final baseSystemMessage = (selectedChatRoom.systemMessage ?? '') + systemSuffix;
+      final additionalSuffix =
+          '(You are messaging to user after grepping tool was used. This is the result. Continue the conversation as usual)';
+      addBotHeader(
+        FluentChatMessage.header(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          content: '${selectedChatRoom.characterName} used grep_chat $id',
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      isAnswering = true;
+      notifyListeners();
+      final lenght = messagesReversedList.length;
+      final aiMessageString = await retrieveResponseFromPrompt(
+        additionalSuffix,
+        additionalPreMessages: [
+          FluentChatMessage.system(content: baseSystemMessage, id: '-1'),
+          // last AI messasge
+          messagesReversedList[0],
+          // last user prompt
+          if (lenght > 1) messagesReversedList[1],
+          if (lenght > 2) messagesReversedList[2],
+          if (lenght > 3) messagesReversedList[3],
+          if (lenght > 4) messagesReversedList[4],
+          if (lenght > 5) messagesReversedList[5],
+          if (lenght > 6) messagesReversedList[6],
+          if (lenght > 7) messagesReversedList[7],
+          if (lenght > 8) messagesReversedList[8],
+          if (lenght > 9) messagesReversedList[9],
+          // grepped result
+          message ??
+              FluentChatMessage.ai(
+                id: id,
+                content: 'System: Message not found',
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+                creator: 'system',
+              ),
+        ],
+      );
+      addBotMessageToList(
+        FluentChatMessage.ai(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          content: aiMessageString,
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          creator: selectedChatRoom.characterName,
+        ),
+      );
+      isAnswering = false;
+      notifyListeners();
     } else {
       logError('Unknown tool: $toolName');
       final time = DateTime.now().millisecondsSinceEpoch;
@@ -1993,11 +2002,6 @@ class ChatProvider
     }
   }
 
-  @override
-  void setIncludeWholeConversation(bool v) {
-    includeConversationGlobal = v;
-    notifyListeners();
-  }
 
   @override
   Future<void> scrollToEnd({bool withDelay = true}) async {
@@ -2508,7 +2512,7 @@ class ChatProvider
     saveToDisk([newChatRoom]);
   }
 
-  void onMessageButtonTap(String button) {
+  void onMessageButtonTap(String button, FluentChatMessage message) {
     if (button == MesssageListTileButtons.disable_tools_btn.name) {
       final allValues = [
         AppCache.gptToolCopyToClipboardEnabled,
@@ -2519,9 +2523,17 @@ class ChatProvider
       for (var value in allValues) {
         value.value = false;
       }
+
       displayTextInfoBar('Tools disabled'.tr);
       notifyListeners();
+    } else if (button == MesssageListTileButtons.send_with_waiting_for_response_btn.name) {
+      sendMessage(message.content, sendStream: false);
+    } else if (button == MesssageListTileButtons.retry_btn.name) {
+      sendMessage(message.content);
     }
+
+    // disable button from message
+    message.buttons?[button] = false;
   }
 
   void notifyUI() {

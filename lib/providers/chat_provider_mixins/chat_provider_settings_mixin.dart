@@ -6,7 +6,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 
 mixin ChatProviderSettingsMixin on ChangeNotifier, ChatProviderBaseMixin {
   int _messageTextSize = 14;
-  bool includeConversationGlobal = true;
   
   @override
   double autoScrollSpeed = 1.0;
@@ -33,11 +32,6 @@ mixin ChatProviderSettingsMixin on ChangeNotifier, ChatProviderBaseMixin {
 
   void toggleScrollToBottomOnAnswer() {
     scrollToBottomOnAnswer = !scrollToBottomOnAnswer;
-  }
-
-  void setIncludeWholeConversation(bool v) {
-    includeConversationGlobal = v;
-    notifyListeners();
   }
 
   void setNerdySelectorType(NerdySelectorType e) {

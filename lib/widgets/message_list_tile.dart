@@ -172,6 +172,27 @@ class _MessageCardState extends State<MessageCard> {
     Widget tileWidget;
     final isContentText = widget.message.isTextMessage;
 
+    if (widget.message.type == FluentChatMessageType.header) {
+      return GestureDetector(
+        onTap: () {
+          final provider = context.read<ChatProvider>();
+          provider.deleteMessage(widget.message.id);
+        },
+        child: Tooltip(
+          message: '"${selectedModel.modelName}" ${'supports only one high-resolution image per chat'.tr}',
+          style: TooltipThemeData(waitDuration: Duration.zero),
+          child: Text(
+            widget.message.content,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: FluentTheme.of(context).typography.caption?.color?.withAlpha(127),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (widget.message.type == FluentChatMessageType.system)
       return Focus(
         autofocus: false,
@@ -536,14 +557,18 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 if (widget.message.buttons != null)
                   Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
                     children: [
-                      for (final button in widget.message.buttons!)
+                      for (final button in widget.message.buttons!.entries)
                         Button(
-                          onPressed: () {
-                            final provider = context.read<ChatProvider>();
-                            provider.onMessageButtonTap(button);
-                          },
-                          child: Text(button.tr),
+                          onPressed: button.value
+                              ? () {
+                                  final provider = context.read<ChatProvider>();
+                                  provider.onMessageButtonTap(button.key, widget.message);
+                                }
+                              : null,
+                          child: Text(button.key.tr),
                         )
                     ],
                   ),
@@ -567,9 +592,18 @@ class _MessageCardState extends State<MessageCard> {
         LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.enter): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.escape): const DoNothingIntent(),
         LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyC): CopySelectionTextIntent.copy,
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyC): CopySelectionTextIntent.copy,
       },
       child: Actions(
         actions: {
+          CopySelectionTextIntent: CallbackAction<CopySelectionTextIntent>(
+            onInvoke: (intent) {
+              Clipboard.setData(ClipboardData(text: selectedContent ?? ''));
+              displayCopiedToClipboard();
+              return null;
+            },
+          ),
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (intent) async {
               if (isEditing) {
@@ -877,8 +911,12 @@ class _MessageCardState extends State<MessageCard> {
       // textEditingFocus = null;
       textEditingController = null;
       // focusScope.unfocus();
-      final focusScope = FocusScope.of(context);
-      focusScope.requestFocus(focusScope);
+      try {
+        final focusScope = FocusScope.of(context);
+
+        focusScope.requestFocus(focusScope);
+        // ignore: empty_catches
+      } catch (e) {}
     } else {
       textEditingFocus?.requestFocus();
     }
