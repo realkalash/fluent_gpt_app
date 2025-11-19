@@ -513,10 +513,7 @@ class ChatProvider
       }
     }
     if (messageContent.contains(TrayCommand.generate_image.name)) {
-      onTrayButtonTapCommand(
-        messageContent,
-        TrayCommand.generate_image.name,
-      );
+      onTrayButtonTapCommand(messageContent, TrayCommand.generate_image.name);
       return;
     }
     if (isThirdMessage && AppCache.useAiToNameChat.value == true) {
@@ -614,8 +611,7 @@ class ChatProvider
       final List<ChatMessage> lastMessagesLangChain = [];
 
       for (var message in lastMessages) {
-        final langChainMessage =
-            message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
+        final langChainMessage = message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
         lastMessagesLangChain.add(langChainMessage);
         if (message.path?.endsWith('.pdf') == true) {
           final pdfImages = await PdfUtils.getImagesFromPdfPath(message.path!);
@@ -2001,7 +1997,6 @@ class ChatProvider
       }
     }
   }
-
 
   @override
   Future<void> scrollToEnd({bool withDelay = true}) async {
