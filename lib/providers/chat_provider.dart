@@ -85,12 +85,12 @@ class ChatProvider
         ChatProviderModelsMixin,
         ChatProviderServerMixin,
         ChatProviderScrollingMixin,
-        ChatProviderAgentMixin,
         ChatProviderSpeechMixin,
         ChatProviderTokensMixin,
         ChatProviderMessageQueriesMixin,
         ChatProviderMemoryMixin,
         ChatProviderImageGenerationMixin,
+        ChatProviderAgentMixin,
         ChatProviderAttachmentsMixin,
         ChatProviderWebSearchMixin,
         ChatProviderInitializationMixin {
@@ -1961,6 +1961,17 @@ class ChatProvider
     return null;
   }
 
+  @override
+  bool removeMessage(String id) {
+    final _messages = messages.value;
+    final removed = _messages.remove(id);
+    if (removed == null) return false;
+    messages.add(_messages);
+    saveToDisk([selectedChatRoom]);
+    notifyListeners();
+    return true;
+  }
+
   void revertDeletedMessage() {
     if (lastDeletedMessage.isNotEmpty) {
       final lastDeleted = lastDeletedMessage.first;
@@ -2085,6 +2096,12 @@ class ChatProvider
   }
 
   void updateUI() {
+    notifyListeners();
+  }
+  bool isAutonomousMode = AppCache.enableAgentMode.value ?? false;
+  void updateAutonomousModeUI(bool value) {
+    isAutonomousMode = value;
+    AppCache.enableAgentMode.value = value;
     notifyListeners();
   }
 

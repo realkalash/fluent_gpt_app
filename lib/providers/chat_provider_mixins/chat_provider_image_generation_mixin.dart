@@ -32,6 +32,34 @@ mixin ChatProviderImageGenerationMixin on ChangeNotifier, ChatProviderBaseMixin 
     return apiKey;
   }
 
+  /// Generates image from tool and returns either success message for AI or error message for AI to use it in the next iteration
+  Future<String> generateImageFromTool({required String prompt, String? size}) async {
+    final apiKey = getImageGeneratorApiKey();
+    if (apiKey == null) {
+      isGeneratingImage = false;
+      notifyListeners();
+      return 'Error: No API key found in settings for image generation';
+    }
+    try {
+      isGeneratingImage = true;
+      notifyListeners();
+      final imageChatMessage = await ImageGeneratorFeature.generateImage(
+        prompt: prompt,
+        apiKey: apiKey,
+        n: 1,
+        size: size ?? AppCache.imageGeneratorSize.value!,
+        quality: AppCache.imageGeneratorQuality.value!,
+        style: AppCache.imageGeneratorStyle.value ?? 'natural',
+      );
+      return 'Successfully generated image: ${imageChatMessage.revisedPrompt ?? prompt}';
+    } catch (e) {
+      return 'Error generating image: $e';
+    } finally {
+      isGeneratingImage = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> onResponseEndGenerateImage(
     FluentChatMessage response,
     OnMessageAction action, {

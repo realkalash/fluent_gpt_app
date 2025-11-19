@@ -26,7 +26,10 @@ const pingFunction = {
     "parameters": {
       "type": "object",
       "properties": {
-        "responseMessage": {"type": "string", "description": "The response summary message from chatGPT. Answers only with 'pong' word."}
+        "responseMessage": {
+          "type": "string",
+          "description": "The response summary message from chatGPT. Answers only with 'pong' word."
+        }
       },
       "required": ["responseMessage"]
     }
@@ -66,28 +69,13 @@ const writePythonCodeFunction = {
     }
   }
 };
-const copyToClipboardFunction = {
-  "type": "function",
-  "function": {
-    "name": "copy_to_clipboard",
-    "description": "Copy the given text to the user's clipboard",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "clipboard": {"type": "string", "description": "Text to copy"},
-        "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
-      },
-      "required": ["code", "responseMessage"]
-    }
-  }
-};
 const copyToClipboardFunctionParameters = {
   "type": "object",
   "properties": {
     "clipboard": {"type": "string", "description": "Text to copy"},
-    "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
+    // "responseMessage": {"type": "string", "description": "The response summary message from chatGPT"}
   },
-  "required": ["clipboard", "responseMessage"]
+  "required": ["clipboard"]
 };
 const autoOpenUrlParameters = {
   "type": "object",
@@ -96,9 +84,12 @@ const autoOpenUrlParameters = {
       "type": "string",
       "description": "A valid URI with a scheme (e.g., https, tel, whatsapp, mailto, sms, geo)"
     },
-    "responseMessage": {"type": "string", "description": "Short response summary message from chatGPT"}
+    // "responseMessage": {"type": "string", "description": "Short response summary message from chatGPT"}
   },
-  "required": ["url", "responseMessage"]
+  "required": [
+    "url",
+    // "responseMessage",
+  ]
 };
 const generateImageParameters = {
   "type": "object",
@@ -136,10 +127,7 @@ const grepChatFunctionParameters = {
 const readFileToolParameters = {
   "type": "object",
   "properties": {
-    "path": {
-      "type": "string",
-      "description": "Absolute or relative path to the file to read"
-    },
+    "path": {"type": "string", "description": "Absolute or relative path to the file to read"},
   },
   "required": ["path"]
 };
@@ -166,14 +154,8 @@ const searchFilesToolParameters = {
       "type": "string",
       "description": "Filename pattern to search for (e.g., '*.dart', 'README.md', 'test_*')"
     },
-    "directory": {
-      "type": "string",
-      "description": "Directory to search in. Use '.' for current directory"
-    },
-    "maxResults": {
-      "type": "integer",
-      "description": "Maximum number of results to return. Default is 50"
-    },
+    "directory": {"type": "string", "description": "Directory to search in. Use '.' for current directory"},
+    "maxResults": {"type": "integer", "description": "Maximum number of results to return. Default is 50"},
   },
   "required": ["pattern", "directory"]
 };
@@ -181,18 +163,9 @@ const searchFilesToolParameters = {
 const writeFileToolParameters = {
   "type": "object",
   "properties": {
-    "path": {
-      "type": "string",
-      "description": "Absolute or relative path to the file to write"
-    },
-    "content": {
-      "type": "string",
-      "description": "Content to write to the file"
-    },
-    "append": {
-      "type": "boolean",
-      "description": "If true, append to file instead of overwriting. Default is false"
-    },
+    "path": {"type": "string", "description": "Absolute or relative path to the file to write"},
+    "content": {"type": "string", "description": "Content to write to the file"},
+    "append": {"type": "boolean", "description": "If true, append to file instead of overwriting. Default is false"},
   },
   "required": ["path", "content"]
 };
@@ -200,10 +173,7 @@ const writeFileToolParameters = {
 const executeShellCommandToolParameters = {
   "type": "object",
   "properties": {
-    "command": {
-      "type": "string",
-      "description": "The shell command to execute (e.g., 'ls -la', 'git status', 'dir')"
-    },
+    "command": {"type": "string", "description": "The shell command to execute (e.g., 'ls -la', 'git status', 'dir')"},
     "workingDirectory": {
       "type": "string",
       "description": "Optional working directory to execute command in. Default is current directory"
