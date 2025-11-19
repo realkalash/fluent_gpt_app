@@ -4,36 +4,46 @@ import 'dart:io';
 
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
+import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
+import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_image_generation_mixin.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
 import 'package:shell/shell.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 /// Mixin for agent mode functionality
 /// Provides autonomous task execution with planning and tool calling
-mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
+mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProviderImageGenerationMixin {
   // Members required from ChatProvider but not in base mixins
   void addBotHeader(FluentChatMessage message);
 
   // Stream subscription for cancellation support
   StreamSubscription<ChatResult>? get listenerResponseStream;
   set listenerResponseStream(StreamSubscription<ChatResult>? value);
+  void showPlanningStatus() {
+    addBotHeader(
+      FluentChatMessage.header(
+        id: 'planning',
+        content: 'Planning next moves...',
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+        creator: selectedChatRoom.characterName,
+      ),
+    );
+  }
 
-  // Note: The following are already available through parent classes:
-  // - initModelsApi() from ChatProviderBaseMixin
-  // - isAnswering from ChatProvider
-  // - totalSentTokens / totalReceivedTokens from ChatProviderTokensMixin
-  // - messages from ChatProvider
-  // - editMessage from ChatProvider
-  // - deleteMessage from ChatProvider
-  // - getLastMessagesLimitToTokens from ChatProviderMessageQueriesMixin
-  // - getSystemInfoString from ChatProviderSystemInfoMixin
+  void removePlanningStatus() {
+    removeMessage('planning');
+  }
 
   /// Agent mode: AI plans and executes tasks autonomously
   Future<void> sendAgentMessage(String messageContent) async {
@@ -49,14 +59,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
     );
 
     // Show planning status
-    addBotHeader(
-      FluentChatMessage.header(
-        id: '${timestamp}_planning',
-        content: 'Planning next moves...',
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-        creator: selectedChatRoom.characterName,
-      ),
-    );
+    showPlanningStatus();
 
     isAnswering = true;
     notifyListeners();
@@ -76,6 +79,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
       );
     } finally {
       isAnswering = false;
+      removePlanningStatus();
       notifyListeners();
       await saveToDisk([selectedChatRoom]);
     }
@@ -144,6 +148,32 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
         description: 'Execute a shell/terminal command and return the output',
         inputJsonSchema: executeShellCommandToolParameters,
       ),
+      // new tools
+      if (AppCache.gptToolCopyToClipboardEnabled.value!)
+        ToolSpec(
+          name: 'copy_to_clipboard_tool',
+          description: 'Tool to copy text to user clipboard',
+          inputJsonSchema: copyToClipboardFunctionParameters,
+        ),
+      if (AppCache.gptToolAutoOpenUrls.value!)
+        ToolSpec(
+          name: 'auto_open_urls_tool',
+          description: 'Tool to open urls in the browser',
+          inputJsonSchema: autoOpenUrlParameters,
+        ),
+      if (AppCache.gptToolGenerateImage.value!)
+        ToolSpec(
+          name: 'generate_image_tool',
+          description:
+              'Tool to generate image. Use it to generate images based on a prompt. Requires API key in settings',
+          inputJsonSchema: generateImageParameters,
+        ),
+      if (AppCache.gptToolRememberInfo.value!)
+        ToolSpec(
+          name: 'remember_info_tool',
+          description: 'Tool to remember info. Use it to store info about user or important notes',
+          inputJsonSchema: rememberInfoParameters,
+        ),
     ];
 
     initModelsApi();
@@ -166,6 +196,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
         String toolCallName = '';
         String toolCallId = '';
         int responseTokens = 0; // Track tokens for this response
+        bool hasDisplayedContent = false; // Track if we've shown content in UI
 
         final Stream<ChatResult> stream;
         if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
@@ -185,17 +216,22 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
             if (message.content.isNotEmpty) {
               fullContent += message.content;
 
-              // Add/update message (addBotMessageToList auto-concatenates by ID)
-              // Pass accumulated responseTokens for accurate total
-              addBotMessageToList(
-                FluentChatMessage.ai(
-                  id: messageId,
-                  content: message.content,
-                  timestamp: DateTime.now().millisecondsSinceEpoch,
-                  tokens: responseTokens, // Use accumulated total, not per-chunk
-                  creator: selectedChatRoom.characterName,
-                ),
-              );
+              // Only display content if we haven't detected any tool calls yet
+              // This prevents showing garbage like "3"}</function>" from Llama3.3
+              if (toolCallString.isEmpty && toolCallName.isEmpty) {
+                hasDisplayedContent = true;
+                // Add/update message (addBotMessageToList auto-concatenates by ID)
+                // Pass accumulated responseTokens for accurate total
+                addBotMessageToList(
+                  FluentChatMessage.ai(
+                    id: messageId,
+                    content: message.content,
+                    timestamp: DateTime.now().millisecondsSinceEpoch,
+                    tokens: responseTokens, // Use accumulated total, not per-chunk
+                    creator: selectedChatRoom.characterName,
+                  ),
+                );
+              }
             }
 
             // Handle tool calls streaming (when AI wants to use tools)
@@ -207,6 +243,14 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
               }
               if (toolCall.id.isNotEmpty) {
                 toolCallId = toolCall.id;
+              }
+
+              // If we previously displayed content but now have tool calls,
+              // we need to clear that erroneous content from the UI
+              if (hasDisplayedContent && fullContent.isNotEmpty) {
+                // Remove the message with garbage content
+                removeMessage(messageId);
+                hasDisplayedContent = false;
               }
             }
 
@@ -338,8 +382,12 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
           String? keyParam;
           if (toolArgs.containsKey('path')) {
             keyParam = toolArgs['path'];
+          } else if (toolArgs.containsKey('url')) {
+            keyParam = toolArgs['url'];
           } else if (toolArgs.containsKey('directory')) {
             keyParam = toolArgs['directory'];
+          } else if (toolArgs.containsKey('clipboard')) {
+            keyParam = toolArgs['clipboard'];
           } else if (toolArgs.containsKey('pattern')) {
             keyParam = '${toolArgs['pattern']} in ${toolArgs['directory'] ?? '.'}';
           }
@@ -395,7 +443,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
         }
 
         logError('Error in agent loop iteration $iteration: $e');
-        throw e;
+        rethrow;
       }
     }
 
@@ -414,8 +462,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
     }
   }
 
-  /// Execute a single agent tool and return the result
+  /// Execute a single agent tool and return the result for AI to use it in the next iteration
   Future<String> _executeAgentTool(String toolName, Map<String, dynamic> args) async {
+    log('Executing tool: $toolName, args: $args');
     try {
       switch (toolName) {
         case 'read_file_tool':
@@ -428,6 +477,14 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
           return await _handleWriteFileTool(args);
         case 'execute_shell_command_tool':
           return await _handleExecuteShellCommandTool(args);
+        case 'copy_to_clipboard_tool':
+          return await _handleCopyToClipboardTool(args);
+        case 'auto_open_urls_tool':
+          return await _handleAutoOpenUrlsTool(args);
+        case 'generate_image_tool':
+          return await _handleGenerateImageTool(args);
+        case 'remember_info_tool':
+          return await _handleRememberInfoTool(args);
         default:
           return 'Error: Unknown tool $toolName';
       }
@@ -715,5 +772,71 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin {
     }
 
     return parts;
+  }
+
+  Future<String> _handleCopyToClipboardTool(Map<String, dynamic> args) async {
+    // final text = args['responseMessage'];
+    final textToCopy = args['clipboard'];
+    await Clipboard.setData(ClipboardData(text: textToCopy));
+    displayCopiedToClipboard();
+    return 'Successfully copied to clipboard: $textToCopy';
+  }
+
+  Future<String> _handleAutoOpenUrlsTool(Map<String, dynamic> args) async {
+    final url = args['url'];
+    // final text = args['responseMessage'] as String?;
+    // we already post agent message in tool use
+    // final appendedText = text + '\n```func\n$url\n```';
+    // if (text?.isNotEmpty == true) {
+    //   final time = DateTime.now().millisecondsSinceEpoch;
+    //   final tokens = await countTokensString(text!);
+    //   addBotMessageToList(
+    //     FluentChatMessage.ai(
+    //       id: time.toString(),
+    //       content: text,
+    //       timestamp: time,
+    //       creator: selectedChatRoom.characterName,
+    //       tokens: tokens,
+    //     ),
+    //   );
+    //   // User need time to read XD
+    //   await Future.delayed(const Duration(milliseconds: 1200));
+    // }
+
+    if (await canLaunchUrlString(url)) {
+      final res = await launchUrlString(url);
+      if (res) {
+        return 'Successfully opened url: $url';
+      }
+    }
+    return 'Was not able to open url: $url';
+  }
+
+  Future<String> _handleGenerateImageTool(Map<String, dynamic> args) async {
+    final prompt = args['prompt'];
+    final size = args['size'];
+    // final responseMessage = args['responseMessage'];
+    // final time = DateTime.now().millisecondsSinceEpoch;
+    // final funcText = '```generate_image\n$prompt\n```';
+    return generateImageFromTool(prompt: prompt, size: size);
+  }
+
+  Future<String> _handleRememberInfoTool(Map<String, dynamic> args) async {
+    final info = args['info'];
+    final responseMessage = args['responseMessage'];
+    final time = DateTime.now().millisecondsSinceEpoch;
+    final funcText = '```remember\n$info\n```';
+    AppCache.userInfo.saveInfoToFile(info);
+
+    addBotMessageToList(
+      FluentChatMessage.ai(
+        id: time.toString(),
+        content: '$funcText\n$responseMessage',
+        timestamp: time,
+        creator: selectedChatRoom.characterName,
+        tokens: await countTokensString('$funcText\n$responseMessage'),
+      ),
+    );
+    return 'Successfully remembered info: $info';
   }
 }

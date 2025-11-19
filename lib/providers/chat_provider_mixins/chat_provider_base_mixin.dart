@@ -8,19 +8,20 @@ import 'package:rxdart/rxdart.dart';
 mixin ChatProviderBaseMixin on ChangeNotifier {
   // Core dependencies
   BuildContext? get context;
-  
+
   // Message controller
   TextEditingController get messageController;
-  
+
   // Message operations
   Future<void> addHumanMessageToList(FluentChatMessage message);
   void addCustomMessageToList(FluentChatMessage message);
   void addBotMessageToList(FluentChatMessage message);
   void addBotErrorMessageToList(FluentChatMessage message);
   Future<void> editMessage(String id, FluentChatMessage message);
+  bool removeMessage(String id);
   // Token operations
   Future<int> countTokensString(String text);
-  
+
   // Message queries
   Future<String> getLastFewMessagesForContextAsString({int maxTokensLenght = 1024});
   Future<String> retrieveResponseFromPrompt(
@@ -39,10 +40,10 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
     List<FluentChatMessage> messages, {
     bool includeSystemMessages = false,
   });
-  
+
   // Storage operations
   Future<void> saveToDisk(List<ChatRoom> rooms);
-  
+
   // Message sending
   Future<void> sendSingleMessage(
     String messageContent, {
@@ -52,20 +53,20 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
     bool showImageInChat = false,
     bool sendAsStream = true,
   });
-  
+
   // Scrolling
   Future<void> scrollToEnd({bool withDelay = true});
-  
+
   // State
   bool get isAnswering;
   set isAnswering(bool value);
-  
+
   // Initialization-specific dependencies
   Future<void> loadMessagesFromDisk(String id);
   Future<void> deleteChatRoom(String chatRoomId);
   Future<void> initChatModels();
   void initModelsApi();
-  
+
   // Token counters (from TokensMixin)
   double get autoScrollSpeed;
   set autoScrollSpeed(double value);
@@ -77,4 +78,3 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
   set totalReceivedTokens(int value);
   BehaviorSubject<int> get totalReceivedForCurrentChat;
 }
-

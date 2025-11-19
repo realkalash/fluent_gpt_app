@@ -58,14 +58,11 @@ class _ModelsListDialog extends State<ModelsListDialog> {
       content: StreamBuilder(
         stream: allModels.stream,
         builder: (ctx, snap) {
-          final models = List<ChatModelAi>.from(allModels.value)
-            ..sort((a, b) => a.index.compareTo(b.index));
+          final models = List<ChatModelAi>.from(allModels.value)..sort((a, b) => a.index.compareTo(b.index));
           return ImplicitlyAnimatedReorderableList<ChatModelAi>(
             shrinkWrap: true,
             items: models,
-            areItemsTheSame: (oldItem, newItem) =>
-                oldItem.modelName == newItem.modelName &&
-                oldItem.uri == newItem.uri,
+            areItemsTheSame: (oldItem, newItem) => oldItem.modelName == newItem.modelName && oldItem.uri == newItem.uri,
             itemBuilder: (context, anim, item, index) {
               final model = models.length <= index ? item : models[index];
               return Reorderable(
@@ -435,10 +432,12 @@ class _AddAiModelDialogState extends State<AddAiModelDialog> {
             if (ownedBy == OwnedByEnum.openai.name)
               const Align(
                 alignment: Alignment.centerLeft,
-                child: LinkTextButton(
-                  'https://platform.openai.com/api-keys',
-                  url: 'https://platform.openai.com/api-keys',
-                ),
+                child: LinkTextButton('https://platform.openai.com/api-keys'),
+              ),
+            if (ownedBy == OwnedByEnum.deepinfra.name)
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: LinkTextButton('https://deepinfra.com/dash/api_keys'),
               ),
           ],
         ),

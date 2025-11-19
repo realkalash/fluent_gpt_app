@@ -218,6 +218,9 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
   final scrollContr = ScrollController();
   @override
   Widget build(BuildContext context) {
+    // watch only autonomous mode
+    // final provider = context.select((ChatProvider p) => p.auto);
+
     return StreamBuilder(
       stream: conversationLenghtStyleStream,
       builder: (_, __) => StreamBuilder<Object>(
@@ -1090,7 +1093,7 @@ class ToggleButtonsRow extends StatefulWidget {
 class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
   @override
   Widget build(BuildContext context) {
-    final chatProvider = context.watch<ChatProvider>();
+    // final chatProvider = context.read<ChatProvider>();
     return SizedBox(
       width: double.infinity,
       child: Padding(
@@ -1099,16 +1102,20 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
           // alignment: WrapAlignment.start,
           spacing: 4,
           children: [
-            ToggleButtonAdvenced(
-              checked: AppCache.enableAgentMode.value ?? false,
-              icon: Text('A'),
-              onChanged: (value) {
-                AppCache.enableAgentMode.value = value;
-                chatProvider.updateUI();
+            Selector<ChatProvider, bool>(
+              selector: (context, provider) => provider.isAutonomousMode,
+              builder: (context, isAutonomousMode, child) {
+                return ToggleButtonAdvenced(
+                  checked: AppCache.enableAgentMode.value ?? false,
+                  icon: Text('A'),
+                  onChanged: (value) {
+                    context.read<ChatProvider>().updateAutonomousModeUI(value);
+                  },
+                  tooltip:
+                      'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools. Your system message will be ignored in order to use this mode'
+                          .tr,
+                );
               },
-              tooltip:
-                  'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools. Your system message will be ignored in order to use this mode'
-                      .tr,
             ),
             // Padding(
             //   padding: const EdgeInsets.only(bottom: 8),
@@ -1132,47 +1139,52 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             //   ),
             // ),
             if (selectedModel.imageSupported)
-              ToggleButtonAdvenced(
-                checked: false,
-                icon: Icon(ic.FluentIcons.eye_tracking_24_filled),
-                onChanged: (_) async {
-                  String? base64Result;
-                  base64Result = await ScreenshotTool.takeScreenshotReturnBase64Native();
+              Consumer<ChatProvider>(
+                builder: (context, chatProvider, child) => ToggleButtonAdvenced(
+                  checked: false,
+                  icon: Icon(ic.FluentIcons.eye_tracking_24_filled),
+                  onChanged: (_) async {
+                    String? base64Result;
+                    base64Result = await ScreenshotTool.takeScreenshotReturnBase64Native();
 
-                  if (base64Result != null && base64Result.isNotEmpty) {
-                    final bytes = base64Decode(base64Result);
-                    chatProvider.addAttachmentAiLens(bytes);
+                    if (base64Result != null && base64Result.isNotEmpty) {
+                      final bytes = base64Decode(base64Result);
+                      chatProvider.addAttachmentAiLens(bytes);
+                    }
+                  },
+                  tooltip: 'Capture screenshot'.tr,
+                ),
+              ),
+            Selector<ChatProvider, bool>(
+              selector: (context, provider) => provider.isWebSearchEnabled,
+              builder: (context, isWebSearchEnabled, child) => ToggleButtonAdvenced(
+                checked: isWebSearchEnabled,
+                icon: Icon(selectedModel.ownedBy == OwnedByEnum.openai.name
+                    ? ic.FluentIcons.search_sparkle_20_filled
+                    : ic.FluentIcons.globe_search_20_filled),
+                onChanged: (_) {
+                  if (AppCache.braveSearchApiKey.value?.isNotEmpty == true) {
+                    context.read<ChatProvider>().toggleWebSearch();
+                  } else {
+                    displayInfoBar(context, builder: (context, close) {
+                      return InfoBar(
+                        title: Text('You need to obtain Brave API key to use web search'.tr),
+                        severity: InfoBarSeverity.warning,
+                        action: Button(
+                          onPressed: () {
+                            close();
+                            Navigator.of(context).push(
+                              FluentPageRoute(builder: (context) => const NewSettingsPage()),
+                            );
+                          },
+                          child: Text('Settings->API and URLs'.tr),
+                        ),
+                      );
+                    });
                   }
                 },
-                tooltip: 'Capture screenshot'.tr,
+                tooltip: isWebSearchEnabled ? 'Disable web search'.tr : 'Enable web search'.tr,
               ),
-            ToggleButtonAdvenced(
-              checked: chatProvider.isWebSearchEnabled,
-              icon: Icon(selectedModel.ownedBy == OwnedByEnum.openai.name
-                  ? ic.FluentIcons.search_sparkle_20_filled
-                  : ic.FluentIcons.globe_search_20_filled),
-              onChanged: (_) {
-                if (AppCache.braveSearchApiKey.value?.isNotEmpty == true) {
-                  chatProvider.toggleWebSearch();
-                } else {
-                  displayInfoBar(context, builder: (context, close) {
-                    return InfoBar(
-                      title: Text('You need to obtain Brave API key to use web search'.tr),
-                      severity: InfoBarSeverity.warning,
-                      action: Button(
-                        onPressed: () {
-                          close();
-                          Navigator.of(context).push(
-                            FluentPageRoute(builder: (context) => const NewSettingsPage()),
-                          );
-                        },
-                        child: Text('Settings->API and URLs'.tr),
-                      ),
-                    );
-                  });
-                }
-              },
-              tooltip: chatProvider.isWebSearchEnabled ? 'Disable web search'.tr : 'Enable web search'.tr,
             ),
             ToggleButtonAdvenced(
               checked: true,
@@ -1203,7 +1215,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                             clearButton: false,
                             mode: SpinButtonPlacementMode.inline,
                             onChanged: (v) {
-                              chatProvider.setMaxTokensForChat(v);
+                              context.read<ChatProvider>().setMaxTokensForChat(v);
                             },
                           );
                         },
@@ -1217,7 +1229,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                     value: selectedChatRoom.maxTokenLength < 0.0 ? 0.0 : selectedChatRoom.maxTokenLength.toDouble(),
                     onChanged: (value) {
                       updateSlider(() {
-                        chatProvider.setMaxTokensForChat(value.toInt());
+                        context.read<ChatProvider>().setMaxTokensForChat(value.toInt());
                       });
                     },
                     min: 0.0,
@@ -1349,7 +1361,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               Button(
                 onPressed: () {
                   AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
-                  chatProvider.updateUI();
+                  context.read<ChatProvider>().updateUI();
                 },
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(
