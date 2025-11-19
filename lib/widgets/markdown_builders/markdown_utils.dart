@@ -1,12 +1,15 @@
 import 'package:fluent_gpt/i18n/i18n.dart';
+import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
+import 'package:flutter/services.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:markdown_widget/config/all.dart';
 import 'package:markdown_widget/widget/all.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:url_launcher/url_launcher_string.dart';
 
 import 'code_wrapper.dart';
 
@@ -45,6 +48,188 @@ class ThinkNode extends ElementNode {
           height: 1.4,
         ),
       );
+}
+
+///Custom Path/URL Link Node
+///
+/// Handles [path:...] and [url:...] syntax for clickable file paths and URLs
+/// Usage: [path:C:\Users\file.txt] or [url:https://example.com]
+class PathLinkNode extends ElementNode {
+  final String type; // 'path' or 'url'
+  final String content;
+
+  PathLinkNode({required this.type, required this.content});
+
+  @override
+  InlineSpan build() {
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: PathLinkWidget(type: type, content: content, style: style),
+    );
+  }
+
+  @override
+  TextStyle get style => parentStyle!.merge(
+        TextStyle(
+          color: type == 'path' ? Colors.blue.shade600 : Colors.purple.shade600,
+          fontFamily: 'Consolas',
+          fontSize: (parentStyle?.fontSize ?? 16) * 0.9,
+          decoration: TextDecoration.underline,
+          decorationStyle: TextDecorationStyle.dotted,
+        ),
+      );
+}
+
+class PathLinkWidget extends StatefulWidget {
+  final String type;
+  final String content;
+  final TextStyle style;
+
+  const PathLinkWidget({
+    super.key,
+    required this.type,
+    required this.content,
+    required this.style,
+  });
+
+  @override
+  State<PathLinkWidget> createState() => _PathLinkWidgetState();
+}
+
+class _PathLinkWidgetState extends State<PathLinkWidget> {
+  bool _isHovered = false;
+
+  Future<void> _openPath() async {
+    try {
+      // Convert path to file:// URI
+      final uri = Uri.file(widget.content).toString();
+      if (await canLaunchUrlString(uri)) {
+        await launchUrlString(uri);
+      } else {
+        // If can't open, show error and copy instead
+        await Clipboard.setData(ClipboardData(text: widget.content));
+        displayCopiedToClipboard();
+      }
+    } catch (e) {
+      // Fallback: copy to clipboard
+      await Clipboard.setData(ClipboardData(text: widget.content));
+      displayCopiedToClipboard();
+    }
+  }
+
+  void openFileDirectory(String filePath) {
+    // Open file explorer and select the file
+    ShellDriver.openExplorerAndSelectFile(filePath);
+  }
+
+  Future<void> _openUrl() async {
+    try {
+      if (await canLaunchUrlString(widget.content)) {
+        await launchUrlString(widget.content);
+      } else {
+        // If opening fails, copy to clipboard
+        await Clipboard.setData(ClipboardData(text: widget.content));
+        displayCopiedToClipboard();
+      }
+    } catch (e) {
+      // Fallback: copy to clipboard
+      await Clipboard.setData(ClipboardData(text: widget.content));
+      displayCopiedToClipboard();
+    }
+  }
+
+  Future<void> _copyToClipboard() async {
+    await Clipboard.setData(ClipboardData(text: widget.content));
+    displayCopiedToClipboard();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = widget.type == 'path' 
+        ? FluentIcons.folder_20_filled 
+        : FluentIcons.link_20_filled;
+    
+    return SelectionContainer.disabled(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: widget.type == 'path' ? _openPath : _openUrl,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _isHovered
+                      ? (widget.type == 'path' 
+                          ? Colors.blue.withAlpha(30) 
+                          : Colors.purple.withAlpha(30))
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: widget.type == 'path' 
+                        ? Colors.blue.withAlpha(100) 
+                        : Colors.purple.withAlpha(100),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () => openFileDirectory(widget.content),
+                      child: Icon(
+                        icon,
+                        size: 12,
+                        color: widget.type == 'path' ? Colors.blue : Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        widget.content,
+                        style: widget.style,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      FluentIcons.open_20_filled,
+                      size: 10,
+                      color: widget.type == 'path' ? Colors.blue : Colors.purple,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (widget.type == 'path') ...[
+              const SizedBox(width: 2),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _copyToClipboard,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: _isHovered ? Colors.blue.withAlpha(30) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      FluentIcons.copy_20_filled,
+                      size: 10,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ThinkBlockWidget extends StatefulWidget {
@@ -226,6 +411,28 @@ class ThinkBlockSyntax extends md.BlockSyntax {
   }
 }
 
+/// Custom inline syntax to parse [path:...] and [url:...] tags
+///
+/// Detects patterns like:
+/// - [path:C:\Users\alex\file.txt] - File paths (click to copy)
+/// - [url:https://example.com] - URLs (click to open)
+class PathLinkSyntax extends md.InlineSyntax {
+  PathLinkSyntax() : super(r'\[(path|url):([^\]]+)\]');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final type = match[1]!; // 'path' or 'url'
+    final content = match[2]!; // The actual path or URL
+    
+    final element = md.Element.text('pathlink', content);
+    element.attributes['type'] = type;
+    element.attributes['content'] = content;
+    
+    parser.addNode(element);
+    return true;
+  }
+}
+
 Widget buildMarkdown(
   BuildContext context,
   String data, {
@@ -255,7 +462,10 @@ Widget buildMarkdown(
             ThinkBlockSyntax(),
             ...md.ExtensionSet.commonMark.blockSyntaxes,
           ],
-          md.ExtensionSet.commonMark.inlineSyntaxes,
+          [
+            PathLinkSyntax(),
+            ...md.ExtensionSet.commonMark.inlineSyntaxes,
+          ],
         ),
         generators: [
           SpanNodeGeneratorWithTag(
@@ -269,6 +479,14 @@ Widget buildMarkdown(
               return ThinkNode(textContent: e.textContent);
             },
             tag: 'think',
+          ),
+          SpanNodeGeneratorWithTag(
+            generator: (e, config, visitor) {
+              final type = e.attributes['type'] ?? 'path';
+              final content = e.attributes['content'] ?? e.textContent;
+              return PathLinkNode(type: type, content: content);
+            },
+            tag: 'pathlink',
           ),
         ],
       ),

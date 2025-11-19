@@ -131,3 +131,83 @@ const grepChatFunctionParameters = {
   },
   "required": ["id"]
 };
+
+// Agent-specific tool parameters
+const readFileToolParameters = {
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Absolute or relative path to the file to read"
+    },
+  },
+  "required": ["path"]
+};
+
+const listDirectoryToolParameters = {
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Absolute or relative path to the directory to list. Use '.' for current directory"
+    },
+    "recursive": {
+      "type": "boolean",
+      "description": "Whether to list files recursively in subdirectories. Default is false"
+    },
+  },
+  "required": ["path"]
+};
+
+const searchFilesToolParameters = {
+  "type": "object",
+  "properties": {
+    "pattern": {
+      "type": "string",
+      "description": "Filename pattern to search for (e.g., '*.dart', 'README.md', 'test_*')"
+    },
+    "directory": {
+      "type": "string",
+      "description": "Directory to search in. Use '.' for current directory"
+    },
+    "maxResults": {
+      "type": "integer",
+      "description": "Maximum number of results to return. Default is 50"
+    },
+  },
+  "required": ["pattern", "directory"]
+};
+
+const writeFileToolParameters = {
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "Absolute or relative path to the file to write"
+    },
+    "content": {
+      "type": "string",
+      "description": "Content to write to the file"
+    },
+    "append": {
+      "type": "boolean",
+      "description": "If true, append to file instead of overwriting. Default is false"
+    },
+  },
+  "required": ["path", "content"]
+};
+
+const executeShellCommandToolParameters = {
+  "type": "object",
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "The shell command to execute (e.g., 'ls -la', 'git status', 'dir')"
+    },
+    "workingDirectory": {
+      "type": "string",
+      "description": "Optional working directory to execute command in. Default is current directory"
+    },
+  },
+  "required": ["command"]
+};

@@ -219,7 +219,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
     this.showOnBasicTap = false,
   });
   final bool checked;
-  final IconData icon;
+  final Widget icon;
   final void Function(bool) onChanged;
   final String tooltip;
   final List<Widget> contextItems;
@@ -281,7 +281,7 @@ class ToggleButtonAdvenced extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 20),
+                SizedBox(width: 20, height: 20, child: icon),
                 if (contextItems.isNotEmpty) const Icon(FluentIcons.chevron_down_20_regular),
               ],
             ),

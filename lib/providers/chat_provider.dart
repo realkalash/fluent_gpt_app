@@ -3,13 +3,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'package:docx_to_text/docx_to_text.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/enums.dart';
-import 'package:fluent_gpt/common/excel_to_json.dart';
 import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/scrapper/web_scrapper.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
@@ -22,7 +20,6 @@ import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/pdf_utils.dart';
 import 'package:fluent_gpt/features/rag_openai.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
-import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/open_ai_features.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
@@ -37,6 +34,7 @@ import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/pages/new_settings_page.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
+import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_agent_mixin.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_attachments_mixin.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_folders_mixin.dart';
@@ -87,6 +85,7 @@ class ChatProvider
         ChatProviderModelsMixin,
         ChatProviderServerMixin,
         ChatProviderScrollingMixin,
+        ChatProviderAgentMixin,
         ChatProviderSpeechMixin,
         ChatProviderTokensMixin,
         ChatProviderMessageQueriesMixin,
@@ -490,6 +489,12 @@ class ChatProvider
     bool includeConversationOnSend = true,
     int? seed,
   }) async {
+    // Check if agent mode is enabled
+    if (AppCache.enableAgentMode.value == true) {
+      await sendAgentMessage(messageContent);
+      return;
+    }
+
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final shouldForceDisableReasoning =
@@ -513,10 +518,7 @@ class ChatProvider
       }
     }
     if (messageContent.contains(TrayCommand.generate_image.name)) {
-      onTrayButtonTapCommand(
-        messageContent,
-        TrayCommand.generate_image.name,
-      );
+      onTrayButtonTapCommand(messageContent, TrayCommand.generate_image.name);
       return;
     }
     if (isThirdMessage && AppCache.useAiToNameChat.value == true) {
@@ -614,8 +616,7 @@ class ChatProvider
       final List<ChatMessage> lastMessagesLangChain = [];
 
       for (var message in lastMessages) {
-        final langChainMessage =
-            message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
+        final langChainMessage = message.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported);
         lastMessagesLangChain.add(langChainMessage);
         if (message.path?.endsWith('.pdf') == true) {
           final pdfImages = await PdfUtils.getImagesFromPdfPath(message.path!);
@@ -1467,6 +1468,15 @@ class ChatProvider
     messages.add(values);
   }
 
+  /// Update an existing message in the chat
+  void updateMessage(FluentChatMessage message) {
+    final values = messages.value;
+    values[message.id] = message;
+    messages.add(values);
+    saveToDisk([selectedChatRoom]);
+    notifyListeners();
+  }
+
   @override
   Future<void> addBotErrorMessageToList(FluentChatMessage message) async {
     final values = messages.value;
@@ -1999,9 +2009,9 @@ class ChatProvider
         totalReceivedForCurrentChat.add(totalReceivedTokens);
         editMessage(lastMessage.value.id, lastMessage.value);
       }
+      notifyListeners();
     }
   }
-
 
   @override
   Future<void> scrollToEnd({bool withDelay = true}) async {
@@ -2212,6 +2222,7 @@ class ChatProvider
   }
 
   /// Replace the message with the new one. Recover the tokens if textHuman or textAi
+  @override
   Future editMessage(String id, FluentChatMessage message) async {
     if (message.type == FluentChatMessageType.textHuman || message.type == FluentChatMessageType.textAi) {
       final lastTokenLenght = messages.value[id]?.tokens ?? 0;
@@ -2231,7 +2242,7 @@ class ChatProvider
     }
 
     saveToDisk([selectedChatRoom]);
-    notifyListeners();
+    // notifyListeners();
   }
 
   Future continueMessage(String id) async {

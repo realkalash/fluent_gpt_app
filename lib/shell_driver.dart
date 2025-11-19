@@ -103,6 +103,39 @@ class ShellDriver {
     }
   }
 
+  /// Opens file explorer and selects/highlights the specified file
+  static Future<void> openExplorerAndSelectFile(String filePath) async {
+    var shell = Shell();
+    var password = Platform.environment['PASSWORD'];
+    log('Password from env: $password');
+    
+    if (Platform.isWindows) {
+      // On Windows, use /select, parameter to highlight the file
+      // Note: /select, and the path must be separate arguments
+      log('Command:\nexplorer /select, "$filePath"');
+      var process = await shell.start('explorer', arguments: ['/select,', filePath]);
+      final output = await process.stdout.readAsString();
+      log('Explorer output: $output');
+      await process.stderr.drain();
+    } else if (Platform.isMacOS) {
+      // On macOS, use -R flag to reveal the file in Finder
+      log('Command:\nopen -R "$filePath"');
+      var process = await shell.start('open', arguments: ['-R', filePath]);
+      final output = await process.stdout.readAsString();
+      log('Explorer output: $output');
+      await process.stderr.drain();
+    } else if (Platform.isLinux) {
+      // On Linux, xdg-open doesn't support selecting files
+      // Fall back to opening the parent directory
+      final directory = Directory(filePath).parent.path;
+      log('Command:\nxdg-open "$directory" (Linux does not support file selection)');
+      var process = await shell.start('xdg-open', arguments: [directory]);
+      final output = await process.stdout.readAsString();
+      log('Explorer output: $output');
+      await process.stderr.drain();
+    }
+  }
+
   static Future<String> runShellCommand(String command) async {
     var fs = const LocalFileSystem();
     var shell = Shell();

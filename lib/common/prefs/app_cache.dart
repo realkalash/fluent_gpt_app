@@ -149,6 +149,7 @@ class AppCache {
   static const autoPlayMessagesFromAi = BoolPref("autoPlayMessagesFromAi", false);
   static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
   static const enableQuestionHelpers = BoolPref("enableQuestionHelpers");
+  static const enableAgentMode = BoolPref("enableAgentMode", false);
   static const nerdySelectorType = IntPref("nerdySelectorType", 0);
 
   /* Use API */

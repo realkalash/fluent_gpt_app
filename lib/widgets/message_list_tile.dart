@@ -29,6 +29,7 @@ import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
+import 'package:fluent_gpt/widgets/shell_execution_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -62,6 +63,7 @@ class MessageListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = FluentTheme.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -77,7 +79,7 @@ class MessageListTile extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(left: 16, top: 8),
                 child: DefaultTextStyle(
-                  style: FluentTheme.of(context).typography.title!,
+                  style: theme.typography.title!,
                   child: title,
                 ),
               ),
@@ -85,7 +87,7 @@ class MessageListTile extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 16, bottom: 8),
                   child: DefaultTextStyle(
-                    style: FluentTheme.of(context).typography.subtitle!,
+                    style: theme.typography.subtitle!,
                     child: subtitle!,
                   ),
                 ),
@@ -171,23 +173,31 @@ class _MessageCardState extends State<MessageCard> {
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     Widget tileWidget;
     final isContentText = widget.message.isTextMessage;
+    final theme = FluentTheme.of(context);
+
+    if (widget.message.type == FluentChatMessageType.shellExec || widget.message.type == FluentChatMessageType.shellProposal) {
+      return ShellExecutionWidget(message: widget.message);
+    }
 
     if (widget.message.type == FluentChatMessageType.header) {
-      return GestureDetector(
-        onTap: () {
-          final provider = context.read<ChatProvider>();
-          provider.deleteMessage(widget.message.id);
-        },
-        child: Tooltip(
-          message: '"${selectedModel.modelName}" ${'supports only one high-resolution image per chat'.tr}',
-          style: TooltipThemeData(waitDuration: Duration.zero),
-          child: Text(
-            widget.message.content,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: FluentTheme.of(context).typography.caption?.color?.withAlpha(127),
-            ),
+      return Text(
+        widget.message.content,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 14,
+          color: theme.typography.caption?.color?.withAlpha(127),
+        ),
+      );
+    }
+    if (widget.message.type == FluentChatMessageType.executionHeader) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          widget.message.content,
+          textAlign: TextAlign.left,
+          style: TextStyle(
+            fontSize: 14,
+            color: theme.typography.caption?.color?.withAlpha(127),
           ),
         ),
       );
@@ -535,7 +545,7 @@ class _MessageCardState extends State<MessageCard> {
                                   ),
                                 Text(
                                   result.title,
-                                  style: FluentTheme.of(context).typography.subtitle!,
+                                  style: theme.typography.subtitle!,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
                                   maxLines: 2,
@@ -544,7 +554,7 @@ class _MessageCardState extends State<MessageCard> {
                                 /// url short one line
                                 Text(
                                   result.url,
-                                  style: FluentTheme.of(context).typography.caption!,
+                                  style: theme.typography.caption!,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
                                   maxLines: 1,

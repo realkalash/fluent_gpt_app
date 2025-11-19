@@ -17,7 +17,7 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
   void addCustomMessageToList(FluentChatMessage message);
   void addBotMessageToList(FluentChatMessage message);
   void addBotErrorMessageToList(FluentChatMessage message);
-  
+  Future<void> editMessage(String id, FluentChatMessage message);
   // Token operations
   Future<int> countTokensString(String text);
   

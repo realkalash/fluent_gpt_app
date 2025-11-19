@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: An open-source, multi-platform desktop application that brings the power of LLM models to your fingertips. Designed with a sleek Fluent interface, it offers a unique and customizable chat experience on Windows, macOS, and Linux
 publish_to: "none"
-version: 1.0.77+1
+version: 1.0.78+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -103,4 +103,8 @@ flutter:
   assets:
     - assets/
     - assets/spellcheck/
+  fonts:
+    - family: Consolas
+      fonts:
+        - asset: assets/fonts/consolas.ttf
   uses-material-design: true
