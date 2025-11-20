@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/pages/home_page.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/shell_execution_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +50,19 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if this is a shell/terminal script
+    final isShellScript = _isShellLanguage(widget.language);
+    if (isShellScript) {
+      // Create a shell proposal message for this code block
+      final proposalMessage = FluentChatMessage.shellProposal(
+        id: 'proposal_${DateTime.now().millisecondsSinceEpoch}_${widget.content.hashCode}',
+        command: widget.content.trim(),
+        creator: 'ai',
+      );
+      
+      return ShellExecutionWidget(message: proposalMessage);
+    }
+
     if (widget.language == 'func') {
       return Material(
         color: Colors.transparent,
@@ -134,41 +149,6 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
               contextMenuBuilder: widget.contextMenuBuilder,
             ),
           ),
-          // child: fluent.Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          //   child: CustomSelectableRegion(
-          //     contextMenuBuilder: widget.contextMenuBuilder,
-          //     focusNode: widget.focusNode ?? FocusNode(),
-          //     selectionControls: materialTextSelectionHandleControls,
-          //     child: Column(
-          //       crossAxisAlignment: CrossAxisAlignment.start,
-          //       children: List.generate(splitContents.length, (index) {
-          //         final input = splitContents[index];
-          //         return ProxyRichText(
-          //           TextSpan(
-          //               children: convertHiNodes(
-          //                   hi.highlight
-          //                       .parse(input,
-          //                           language: widget.language,
-          //                           autoDetection: false)
-          //                       .nodes!,
-          //                   widget.preConfig.theme,
-          //                   widget.style,
-          //                   widget.preConfig.styleNotMatched)
-          //               // uses trimRight and we don't need trimming here
-          //               // children: highLightSpans(
-          //               //   currentContent,
-          //               //   language: widget.language,
-          //               //   theme: widget.preConfig.theme,
-          //               //   textStyle: widget.style,
-          //               //   styleNotMatched: widget.preConfig.styleNotMatched,
-          //               // ),
-          //               ),
-          //         );
-          //       }),
-          //     ),
-          //   ),
-          // ),
         ),
       ],
     );
@@ -286,6 +266,20 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
         await ShellDriver.runShellCommand("xdg-open \"$filePath\"");
       }
     }
+  }
+
+  // Helper method to check if language is a shell/terminal type
+  bool _isShellLanguage(String language) {
+    final lowerLang = language;
+    return lowerLang == 'shell' ||
+        lowerLang == 'bash' ||
+        lowerLang == 'sh' ||
+        lowerLang == 'zsh' ||
+        lowerLang == 'cmd' ||
+        lowerLang == 'batch' ||
+        lowerLang == 'powershell' ||
+        lowerLang == 'ps1' ||
+        lowerLang == 'pwsh';
   }
 
   // Helper method to determine file extension based on language

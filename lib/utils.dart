@@ -137,7 +137,6 @@ kernel: ${SysInfo.rawKernelArchitecture}
 KernelName: ${SysInfo.kernelName}
 OS version: ${SysInfo.kernelVersion}
 User directory: ${SysInfo.userDirectory}
-User system id: ${SysInfo.userId}
 User name in OS: ${SysInfo.userName}
 Current date: $formattedDate
 ''';

@@ -92,6 +92,8 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
       if (message.type == FluentChatMessageType.textAi ||
           message.type == FluentChatMessageType.textHuman ||
           message.type == FluentChatMessageType.system ||
+          message.type == FluentChatMessageType.executionHeader ||
+          message.type == FluentChatMessageType.shellExec ||
           message.type == FluentChatMessageType.file) {
         var tokensCount = message.tokens;
         // await modelCounter.countTokens(PromptValue.string(message.content));
@@ -164,6 +166,9 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
       if (e.type == FluentChatMessageType.textAi) {
         return '$characterName: ${e.content}';
       }
+      if (e.type == FluentChatMessageType.shellExec) {
+        return 'Shell execution: ${e.content}';
+      }
       if (e.type == FluentChatMessageType.webResult) {
         final results = e.webResults;
         return 'Web search results: ${results?.map((e) => '${e.title}->${e.description}').join(';')}';
@@ -193,6 +198,9 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
       if (includeSystemMessages && e.type == FluentChatMessageType.system) {
         return 'System: ${e.content}';
       }
+      if (e.type == FluentChatMessageType.shellExec) {
+        return 'Shell execution: ${e.content}';
+      }
       return '';
     }).join('\n');
     return result;
@@ -216,6 +224,9 @@ mixin ChatProviderMessageQueriesMixin on ChangeNotifier, ChatProviderBaseMixin {
       if (e.type == FluentChatMessageType.webResult) {
         final results = e.webResults;
         return 'Web search results: ${results?.map((e) => '${e.title}->${e.description}').join(';')}';
+      }
+      if (e.type == FluentChatMessageType.shellExec) {
+        return '$date: Shell execution: ${e.content}';
       }
       if (includeSystemMessages && e.type == FluentChatMessageType.system) {
         return 'System: ${e.content}';

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:animate_do/animate_do.dart';
@@ -1100,10 +1099,42 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
           // alignment: WrapAlignment.start,
           spacing: 4,
           children: [
+            ToggleButtonAdvenced(
+              checked: AppCache.enableAgentMode.value ?? false,
+              icon: Text('A'),
+              onChanged: (value) {
+                AppCache.enableAgentMode.value = value;
+                chatProvider.updateUI();
+              },
+              tooltip:
+                  'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools. Your system message will be ignored in order to use this mode'
+                      .tr,
+            ),
+            // Padding(
+            //   padding: const EdgeInsets.only(bottom: 8),
+            //   child: Row(
+            //     children: [
+            //       ToggleSwitch(
+            //         checked: AppCache.enableAgentMode.value ?? false,
+            //         onChanged: (value) {
+            //           AppCache.enableAgentMode.value = value;
+            //           chatProvider.updateUI();
+            //         },
+            //       ),
+            //       const SizedBox(width: 8),
+            //       Tooltip(
+            //         message:
+            //             'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools'
+            //                 .tr,
+            //         child: Text('Agent Mode'.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            //       ),
+            //     ],
+            //   ),
+            // ),
             if (selectedModel.imageSupported)
               ToggleButtonAdvenced(
                 checked: false,
-                icon: ic.FluentIcons.eye_tracking_24_filled,
+                icon: Icon(ic.FluentIcons.eye_tracking_24_filled),
                 onChanged: (_) async {
                   String? base64Result;
                   base64Result = await ScreenshotTool.takeScreenshotReturnBase64Native();
@@ -1117,9 +1148,9 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               ),
             ToggleButtonAdvenced(
               checked: chatProvider.isWebSearchEnabled,
-              icon: selectedModel.ownedBy == OwnedByEnum.openai.name
+              icon: Icon(selectedModel.ownedBy == OwnedByEnum.openai.name
                   ? ic.FluentIcons.search_sparkle_20_filled
-                  : ic.FluentIcons.globe_search_20_filled,
+                  : ic.FluentIcons.globe_search_20_filled),
               onChanged: (_) {
                 if (AppCache.braveSearchApiKey.value?.isNotEmpty == true) {
                   chatProvider.toggleWebSearch();
@@ -1145,7 +1176,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             ),
             ToggleButtonAdvenced(
               checked: true,
-              icon: ic.FluentIcons.history_20_filled,
+              icon: Icon(ic.FluentIcons.history_20_filled),
               onChanged: (_) {}, // No-op since we only use this for the context menu
               tooltip: 'Max tokens to include'.tr,
               maxWidthContextMenu: 350,
@@ -1198,7 +1229,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             ),
             ToggleButtonAdvenced(
               checked: AppCache.gptToolRememberInfo.value!,
-              icon: ic.FluentIcons.brain_circuit_20_regular,
+              icon: Icon(ic.FluentIcons.brain_circuit_20_regular),
               onChanged: (v) {
                 setState(() {
                   AppCache.gptToolRememberInfo.value = v;
@@ -1277,7 +1308,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                   },
                 ),
               ],
-              icon: ic.FluentIcons.person_info_20_regular,
+              icon: Icon(ic.FluentIcons.person_info_20_regular),
               onChanged: (v) async {
                 setState(() {
                   AppCache.includeKnowledgeAboutUserToSysPrompt.value = v;
@@ -1296,7 +1327,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             if (kDebugMode)
               ToggleButtonAdvenced(
                 checked: AppCache.useRAG.value!,
-                icon: ic.FluentIcons.book_24_regular,
+                icon: Icon(ic.FluentIcons.book_24_regular),
                 onChanged: (v) {
                   setState(() {
                     AppCache.useRAG.value = v;
@@ -1306,7 +1337,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               ),
             ToggleButtonAdvenced(
               checked: AppCache.autoPlayMessagesFromAi.value!,
-              icon: ic.FluentIcons.play_circle_16_filled,
+              icon: Icon(ic.FluentIcons.play_circle_16_filled),
               onChanged: (v) {
                 setState(() {
                   AppCache.autoPlayMessagesFromAi.value = v;
@@ -1341,7 +1372,6 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
     );
   }
 }
-
 
 class GeneratingImagesCard extends StatelessWidget {
   const GeneratingImagesCard({super.key});

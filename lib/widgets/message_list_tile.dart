@@ -29,6 +29,7 @@ import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/markdown_utils.dart';
+import 'package:fluent_gpt/widgets/shell_execution_widget.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
@@ -174,6 +175,10 @@ class _MessageCardState extends State<MessageCard> {
     final isContentText = widget.message.isTextMessage;
     final theme = FluentTheme.of(context);
 
+    if (widget.message.type == FluentChatMessageType.shellExec || widget.message.type == FluentChatMessageType.shellProposal) {
+      return ShellExecutionWidget(message: widget.message);
+    }
+
     if (widget.message.type == FluentChatMessageType.header) {
       return Text(
         widget.message.content,
@@ -181,6 +186,19 @@ class _MessageCardState extends State<MessageCard> {
         style: TextStyle(
           fontSize: 14,
           color: theme.typography.caption?.color?.withAlpha(127),
+        ),
+      );
+    }
+    if (widget.message.type == FluentChatMessageType.executionHeader) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          widget.message.content,
+          textAlign: TextAlign.left,
+          style: TextStyle(
+            fontSize: 14,
+            color: theme.typography.caption?.color?.withAlpha(127),
+          ),
         ),
       );
     }

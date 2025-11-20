@@ -1083,7 +1083,7 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
                 maxWidthContextMenu: 84,
                 checked: PushToTalkTool.isRecording,
                 padding: EdgeInsets.zero,
-                icon: ic.FluentIcons.mic_24_regular,
+                icon: Icon(ic.FluentIcons.mic_24_regular),
                 tooltip: 'Use voice input'.tr,
               ),
             ),
@@ -1372,7 +1372,7 @@ class HotShurtcutsWidget extends StatelessWidget {
                         txtController.clear();
                       }),
                   ToggleButtonAdvenced(
-                    icon: ic.FluentIcons.settings_20_regular,
+                    icon: Icon(ic.FluentIcons.settings_20_regular),
                     onChanged: (_) => showDialog(
                       context: context,
                       builder: (ctx) => const CustomPromptsSettingsDialog(),
@@ -1406,7 +1406,7 @@ class HotShurtcutsOneLineWidget extends StatelessWidget {
                 spacing: 4,
                 children: [
                   ToggleButtonAdvenced(
-                    icon: ic.FluentIcons.settings_20_regular,
+                    icon: Icon(ic.FluentIcons.settings_20_regular),
                     onChanged: (_) => showDialog(
                       context: context,
                       builder: (ctx) => const CustomPromptsSettingsDialog(),
@@ -1490,7 +1490,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
     );
   }
 
-  _onRightClick(BuildContext context) {
+  void _onRightClick(BuildContext context) {
     final item = widget.prompt;
 
     flyoutContr.showFlyout(builder: (ctx) {

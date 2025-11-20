@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/foundation.dart';
 import '../services/update_service.dart';
 import '../services/update_manager.dart';

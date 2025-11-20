@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fluent_gpt/common/custom_messages/text_file_custom_message.dart';
 import 'package:fluent_gpt/common/custom_messages/web_result_custom_message.dart';
 import 'package:fluent_gpt/common/scrapper/web_search_result.dart';
@@ -114,6 +116,24 @@ class FluentChatMessage {
       buttons: buttons,
     );
   }
+  factory FluentChatMessage.executionHeader({
+    required String id,
+    required String content,
+    String creator = '',
+    int? timestamp,
+    int tokens = 0,
+    Map<String, bool>? buttons,
+  }) {
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.executionHeader,
+      tokens: tokens,
+      buttons: buttons,
+    );
+  }
 
   factory FluentChatMessage.humanText({
     required String id,
@@ -172,6 +192,60 @@ class FluentChatMessage {
       tokens: tokens,
       fileName: fileName,
       path: path,
+    );
+  }
+
+  factory FluentChatMessage.shellExec({
+    required String id,
+    required String command,
+    required int exitCode,
+    required String stdout,
+    required String stderr,
+    String creator = 'agent',
+    int? timestamp,
+    int tokens = 0,
+  }) {
+    // Store as JSON in content
+    final content = jsonEncode({
+      'command': command,
+      'exitCode': exitCode,
+      'stdout': stdout,
+      'stderr': stderr,
+      'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
+    });
+    
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.shellExec,
+      tokens: tokens,
+    );
+  }
+
+  factory FluentChatMessage.shellProposal({
+    required String id,
+    required String command,
+    String? description,
+    String creator = 'ai',
+    int? timestamp,
+    int tokens = 0,
+  }) {
+    // Store as JSON in content
+    final content = jsonEncode({
+      'command': command,
+      'description': description,
+      'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
+    });
+    
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.shellProposal,
+      tokens: tokens,
     );
   }
 
@@ -313,6 +387,34 @@ class FluentChatMessage {
         return WebResultCustomMessage(content: content, searchResults: webResults ?? []);
       case FluentChatMessageType.header:
         return SystemChatMessage(content: content);
+      case FluentChatMessageType.shellExec:
+        // Parse the JSON content to get command output summary
+        try {
+          final data = jsonDecode(content) as Map<String, dynamic>;
+          final cmd = data['command'] as String;
+          final exitCode = data['exitCode'] as int;
+          final stdout = data['stdout'] as String;
+          final stderr = data['stderr'] as String;
+          
+          final summary = 'Shell command: $cmd\nExit code: $exitCode\n'
+              'Output: ${stdout.isEmpty ? '(empty)' : stdout.substring(0, stdout.length > 200 ? 200 : stdout.length)}'
+              '${stderr.isNotEmpty ? '\nError: $stderr' : ''}';
+          return AIChatMessage(content: summary);
+        } catch (e) {
+          return AIChatMessage(content: 'Shell execution result: $content');
+        }
+      case FluentChatMessageType.shellProposal:
+        // Parse the JSON content
+        try {
+          final data = jsonDecode(content) as Map<String, dynamic>;
+          final cmd = data['command'] as String;
+          final desc = data['description'] as String?;
+          return AIChatMessage(content: 'Proposed command: $cmd${desc != null ? '\n$desc' : ''}');
+        } catch (e) {
+          return AIChatMessage(content: 'Shell command proposal: $content');
+        }
+      case FluentChatMessageType.executionHeader:
+        return AIChatMessage(content: content);
       // ignore: unreachable_switch_default
       default:
         return HumanChatMessage(content: ChatMessageContentText(text: content));
@@ -427,9 +529,12 @@ enum FluentChatMessageType {
   textHuman,
   textAi,
   header,
+  executionHeader,
   system,
   image,
   imageAi,
   file,
   webResult,
+  shellExec,
+  shellProposal,
 }
