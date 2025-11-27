@@ -47,19 +47,21 @@ class _InfoAboutUserDialogState extends State<InfoAboutUserDialog> {
             'This information is stored locally on your device and is not shared with anyone.',
           ),
           const SizedBox(height: 10),
-          TextFormBox(
-            controller: textController,
-            placeholder: 'Information will appear here',
-            maxLines: 50,
-            onTapOutside: (_) {
-              FocusScope.of(context).unfocus();
-              words = textController.text.split(' ').length;
-              Tokenizer tokenizer = Tokenizer();
-              tokenizer.count(textController.text, modelName: 'gpt-4').then((value) {
-                tokens = value;
-                setState(() {});
-              });
-            },
+          Expanded(
+            child: TextFormBox(
+              controller: textController,
+              placeholder: 'Information will appear here',
+              maxLines: 50,
+              onTapOutside: (_) {
+                FocusScope.of(context).unfocus();
+                words = textController.text.split(' ').length;
+                Tokenizer tokenizer = Tokenizer();
+                tokenizer.count(textController.text, modelName: 'gpt-4').then((value) {
+                  tokens = value;
+                  setState(() {});
+                });
+              },
+            ),
           ),
           Row(
             children: [

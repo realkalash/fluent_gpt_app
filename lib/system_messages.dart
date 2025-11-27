@@ -15,8 +15,7 @@ final unknownCodeBlockRegex = RegExp(r'```(.*?)\n(.*?)\n```', dotAll: true);
 const String nameTopicPrompt =
     'You are an agent to name the chat room topic so DONT WRITE ANYTHING EXCEPT CHAT NAME. Please provide a name in 3-5 words for the chat room based on the following messages. Use "{lang}" language. Add 1 emoji at the start. Messages:';
 
-const String webSearchPrompt =
-    'Based on these messages generate a searchPrompt for a google search engine:';
+const String webSearchPrompt = 'Based on these messages generate a searchPrompt for a google search engine:';
 const String continuePrompt = 'Based on these messages continue the response:';
 
 const String summarizeConversationToRememberUser =
@@ -24,7 +23,8 @@ const String summarizeConversationToRememberUser =
 const String summarizeUserKnowledge =
     'This is knowladge about {user}. Reduce length by summarizing the most important info about {user}. Dont remove any important info. Just reduce lenght. You can remove duplicate items. Info: "{knowledge}"';
 
-const String agentSystemPrompt = '''You are an intelligent AI agent that helps users accomplish tasks by breaking them down into steps and executing them.
+const String agentSystemPrompt =
+    '''You are an intelligent AI agent that helps users accomplish tasks by breaking them down into steps and executing them.
 
 Your workflow:
 1. PLAN: Break down the user's request into clear, actionable steps
@@ -59,4 +59,9 @@ Formatting Guidelines:
 - When mentioning URLs, wrap them in special syntax: [url:https://example.com]
   Users can click to open links in their browser
 
+{system_info}
+{user_info}
+{lang}
+{conversation_lenght}
+{conversation_style}
 Remember: You are autonomous and should complete tasks without asking for permission at each step.''';
