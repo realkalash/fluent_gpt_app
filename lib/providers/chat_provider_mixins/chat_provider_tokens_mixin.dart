@@ -9,9 +9,10 @@ import 'package:rxdart/rxdart.dart';
 
 mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
   @Deprecated('Don not use it to set value. Only for StreamBuilder')
+
   /// Calculated by current messages in the chat.
   final BehaviorSubject<int> totalTokensForCurrentChatByMessages = BehaviorSubject.seeded(0);
-  
+
   @override
   set totalTokensByMessages(int value) =>
       // ignore: deprecated_member_use_from_same_package
@@ -25,7 +26,7 @@ mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
 
   @Deprecated('Don not use it to set value. Only for StreamBuilder')
   final BehaviorSubject<int> totalSentForCurrentChat = BehaviorSubject.seeded(0);
-  
+
   @override
   set totalSentTokens(int value) {
     // ignore: deprecated_member_use_from_same_package
@@ -40,7 +41,7 @@ mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
 
   @override
   BehaviorSubject<int> totalReceivedForCurrentChat = BehaviorSubject.seeded(0);
-  
+
   @override
   set totalReceivedTokens(int value) {
     totalReceivedForCurrentChat.add(value);
@@ -54,11 +55,7 @@ mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
   Future<int> countTokensString(String text) async {
     if (text.isEmpty) return 0;
     final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
-    if (selectedModel.ownedBy == 'openai') {
-      return openAI!.countTokens(PromptValue.string(text), options: options);
-    } else {
-      return (localModel ?? openAI)!.countTokens(PromptValue.string(text), options: options);
-    }
+    return openAI!.countTokens(PromptValue.string(text), options: options);
   }
 
   Future<int> countTokensFromMessages(List<ChatMessage> messages) async {
@@ -132,4 +129,3 @@ mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
     }
   }
 }
-

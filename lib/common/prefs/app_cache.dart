@@ -165,6 +165,8 @@ class AppCache {
   static const autoStopServerEnabled = BoolPref("autoStopServerEnabled", true);
   static const localServerDevice = StringPref("localServerDevice");
   static const serverFilesTouched = BoolPref("serverFilesTouched", false);
+  static const llamaServerExecPath = StringPref("llamaServerExecPath", '');
+
 
   static const List<Pref> settingsToExportList = [
     azureSpeechApiKey,
@@ -197,4 +199,5 @@ class AppCache {
     speechLanguage,
     textToSpeechService,
   ];
+
 }

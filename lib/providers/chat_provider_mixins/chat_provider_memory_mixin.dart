@@ -44,11 +44,7 @@ mixin ChatProviderMemoryMixin on ChangeNotifier, ChatProviderBaseMixin {
       maxTokens: 512,
     );
     AIChatMessage response;
-    if (selectedModel.ownedBy == 'openai') {
-      response = await openAI!.call([messageToSend], options: options);
-    } else {
-      response = await localModel!.call([messageToSend], options: options);
-    }
+    response = await openAI!.call([messageToSend], options: options);
 
     final personalKnowladge = await AppCache.userInfo.value();
     log('Generated user knowladge: "$response"');

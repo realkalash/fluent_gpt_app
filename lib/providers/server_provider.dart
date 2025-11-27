@@ -6,19 +6,22 @@ import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/log.dart' as fluentlog;
 import 'package:fluent_gpt/providers/server_provider_mixin.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class ServerProvider extends ChangeNotifier {
   /// Hugging face model path or local model path
-  static String _modelPath = 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K';
+  static String? _modelPath;
   static set modelPath(String value) {
     _modelPath = value;
     AppCache.localApiModelPath.value = value;
   }
 
-  static String get modelPath => _modelPath;
+  static String get modelPath {
+    return _modelPath ?? AppCache.localApiModelPath.value ?? 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K';
+  }
 
   // Server configuration parameters
   int? ctxSize = AppCache.localServerCtxSize.value;
@@ -29,7 +32,7 @@ class ServerProvider extends ChangeNotifier {
   int? batchSize;
   int? gpuLayers;
   static final _isRunningStreamController = StreamController<bool>.broadcast();
-  static final isInitializingStreamController = StreamController<bool>.broadcast();
+  static final isInitializingStreamController = BehaviorSubject<bool>();
 
   // Llama server related shell process
   static Process? _llamaServerProcess;
@@ -60,6 +63,9 @@ class ServerProvider extends ChangeNotifier {
   }
 
   static String getServerExecPath() {
+    if (!kReleaseMode) {
+      return AppCache.llamaServerExecPath.value ?? 'IN DEBUG MODE YOU NEED TO SPECIFY PATH TO llama-server';
+    }
     // /Applications/FluentGPT.app/Contents/MacOS
     final baseDir = File(Platform.resolvedExecutable).parent.path;
     final path = [
@@ -97,7 +103,7 @@ class ServerProvider extends ChangeNotifier {
     serverOutputStream.add(appendedOutput);
   }
 
-  /// Start the llama server with the specified model
+  /// Start the llama server with the specified model. Returns true only after the server is started and is healthy.
   static Future<bool> startLlamaServer({
     required BuildContext context,
     String? modelPath,
@@ -214,20 +220,13 @@ class ServerProvider extends ChangeNotifier {
           log(data, logToDebugger: false);
         });
 
-        // Wait a bit for server to start up
-        await Future.delayed(const Duration(seconds: 10));
+        // Poll for server health with exponential backoff
+        final isHealthy = await _waitForServerHealth(
+          maxWaitTime: const Duration(minutes: 5),
+          initialInterval: const Duration(milliseconds: 500),
+          maxInterval: const Duration(seconds: 3),
+        );
 
-        // Test server health
-        var isHealthy = await _checkServerHealth();
-
-        for (var i = 0; i < 100; i++) {
-          if (isHealthy) {
-            break;
-          } else {
-            await Future.delayed(const Duration(seconds: 3));
-            isHealthy = await _checkServerHealth();
-          }
-        }
         if (!isHealthy) {
           log('Server failed health check');
           await stopLlamaServer();
@@ -299,9 +298,50 @@ class ServerProvider extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
-      log('Health check failed: $e');
+      // Don't log connection refused errors during startup - they're expected
       return false;
     }
+  }
+
+  /// Wait for the server to become healthy using exponential backoff.
+  /// Returns true if the server becomes healthy within [maxWaitTime].
+  static Future<bool> _waitForServerHealth({
+    required Duration maxWaitTime,
+    required Duration initialInterval,
+    required Duration maxInterval,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    var currentInterval = initialInterval;
+
+    log('Waiting for server to become healthy...');
+
+    while (stopwatch.elapsed < maxWaitTime) {
+      // Check if the process has exited unexpectedly
+      if (_llamaServerProcess == null) {
+        log('Server process terminated unexpectedly');
+        return false;
+      }
+
+      final isHealthy = await _checkServerHealth();
+      if (isHealthy) {
+        log('Server is healthy after ${stopwatch.elapsed.inSeconds}s');
+        return true;
+      }
+
+      // Wait with current interval before next check
+      await Future.delayed(currentInterval);
+
+      // Exponential backoff: double the interval up to maxInterval
+      currentInterval = Duration(
+        milliseconds: (currentInterval.inMilliseconds * 1.5).toInt().clamp(
+              initialInterval.inMilliseconds,
+              maxInterval.inMilliseconds,
+            ),
+      );
+    }
+
+    log('Server health check timed out after ${maxWaitTime.inSeconds}s');
+    return false;
   }
 
   void clearOutput() {

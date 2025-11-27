@@ -10,12 +10,10 @@ class GlobalSystemPromptSampleDialog extends StatefulWidget {
   const GlobalSystemPromptSampleDialog({super.key});
 
   @override
-  State<GlobalSystemPromptSampleDialog> createState() =>
-      _GlobalSystemPromptSampleDialogState();
+  State<GlobalSystemPromptSampleDialog> createState() => _GlobalSystemPromptSampleDialogState();
 }
 
-class _GlobalSystemPromptSampleDialogState
-    extends State<GlobalSystemPromptSampleDialog> {
+class _GlobalSystemPromptSampleDialogState extends State<GlobalSystemPromptSampleDialog> {
   String systemPrompt = '';
   int wordsCount = 0;
   int tokensCount = 0;
@@ -24,17 +22,15 @@ class _GlobalSystemPromptSampleDialogState
     final words = prompt.split(' ');
     wordsCount = words.length;
     final tokenizer = Tokenizer();
-    tokensCount = await openAI?.countTokens(PromptValue.string(prompt)) ??
-        await localModel?.countTokens(PromptValue.string(prompt)) ??
-        await tokenizer.count(prompt, modelName: 'gpt-4');
+    tokensCount =
+        await openAI?.countTokens(PromptValue.string(prompt)) ?? await tokenizer.count(prompt, modelName: 'gpt-4');
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      systemPrompt = await getFormattedSystemPrompt(
-          basicPrompt: defaultGlobalSystemMessage);
+      systemPrompt = await getFormattedSystemPrompt(basicPrompt: defaultGlobalSystemMessage);
       await countWordsAndTokens(systemPrompt);
       if (mounted) setState(() {});
     });
@@ -49,12 +45,9 @@ class _GlobalSystemPromptSampleDialogState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-                'This is a full system prompt that will be sent to every new chat room as first system message'),
+            const Text('This is a full system prompt that will be sent to every new chat room as first system message'),
             Card(
-              child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: SelectableText(systemPrompt)),
+              child: Padding(padding: const EdgeInsets.all(10), child: SelectableText(systemPrompt)),
             ),
             Text('Words: $wordsCount, Tokens: $tokensCount'),
           ],

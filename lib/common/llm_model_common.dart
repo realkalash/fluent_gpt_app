@@ -1,7 +1,12 @@
 class LlmModelCommon {
+  /// Example: Qwen2.5-7B
   final String modelName;
+
+  /// Example: lmstudio-community/Qwen3-8B-GGUF:Q4_K_M or a file path
   final String modelPath;
   final String modelDescription;
+
+  /// Example: https://huggingface.co/Qwen/Qwen3-8B
   final String modelUri;
   final bool imageSupported;
   final bool reasoningSupported;
@@ -64,7 +69,7 @@ class LlmModelCommonUtils {
         minMemoryUsageBytes: 1024 * 1024 * 1024 * 1,
       ),
       LlmModelCommon(
-        modelName: 'Qwen2.5-7B',
+        modelName: 'Qwen3-8B',
         modelPath: 'lmstudio-community/Qwen3-8B-GGUF:Q4_K_M',
         modelDescription: """Medium model for basic tasks. Great for chat, tasks and everyday use.
 Excels at creative writing, role-playing, multi-turn dialogues, and instruction following
