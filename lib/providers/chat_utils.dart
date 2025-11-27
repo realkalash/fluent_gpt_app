@@ -3,18 +3,6 @@ import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/utils.dart';
 
-String modifyMessageStyle(String prompt) {
-  if (conversationLenghtStyleStream.value !=
-      ConversationLengthStyleEnum.normal) {
-    prompt += ' ${conversationLenghtStyleStream.value.prompt}';
-  }
-
-  if (conversationStyleStream.value != ConversationStyleEnum.normal) {
-    prompt += ' ${conversationStyleStream.value.prompt}';
-  }
-  return prompt;
-}
-
 ChatRoom generateDefaultChatroom({String? systemMessage}) {
   return ChatRoom(
     id: generateChatID(),

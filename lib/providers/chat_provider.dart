@@ -546,11 +546,10 @@ class ChatProvider
       ragPart = enhancedPrompt;
       return;
     }
+    await processFilesBeforeSendingMessage();
 
     // to prevent empty messages posted to the chat
     if (messageContent.isNotEmpty && sendAsUser) {
-      /// add additional styles to the message
-      messageContent = modifyMessageStyle(messageContent);
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       addHumanMessageToList(
         FluentChatMessage.humanText(
@@ -573,13 +572,15 @@ class ChatProvider
       );
     }
 
-    await processFilesBeforeSendingMessage();
     updateServerTimer();
 
     if (messageContent.isNotEmpty) isAnswering = true;
     notifyListeners();
     if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
-      await autoStartServer();
+      final launched = await autoStartServer();
+      if (launched == false) {
+        return stopAnswering(StopReason.canceled);
+      }
     }
     // Check if agent mode is enabled
     if (AppCache.enableAgentMode.value == true) {
@@ -993,12 +994,12 @@ class ChatProvider
       if (AppCache.scrapOnlyDecription.value!) {
         final List<WebSearchResult> shortResults = results.take(15).map((e) => e).toList();
         addWebResultsToMessages(shortResults);
-        await _answerBasedOnWebResults(
+        await answerBasedOnWebResults(
             shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
       } else {
         final threeRessults = results.take(3).map((e) => e).toList();
         addWebResultsToMessages(threeRessults);
-        await _answerBasedOnWebResults(threeRessults, messageContent);
+        await answerBasedOnWebResults(threeRessults, messageContent);
       }
     } catch (e) {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -2077,52 +2078,6 @@ class ChatProvider
 
   Future<void> archiveChatRoom(ChatRoom room) async {
     return deleteChatRoom(room.id);
-  }
-
-  Future _answerBasedOnWebResults(
-    List<WebSearchResult> results,
-    String userMessage,
-  ) async {
-    String urlContent = '';
-    for (var result in results) {
-      final url = result.url;
-      final title = result.title;
-      final text = AppCache.scrapOnlyDecription.value!
-          ? WebScraper.clearTextFromTags(result.description)
-          : await WebScraper().extractFormattedContent(url);
-      final characters = text.characters;
-      final tokenCount = characters.length / 4;
-      // print('[scrapper] Token count: $tokenCount');
-      // print('[scrapper] Char count: ${characters.length}');
-      // print('[scrapper] URL: $url');
-      // print('[scrapper] Title: $title');
-      // print('[scrapper] Text: $text');
-      if (tokenCount > 6500) {
-        urlContent += '[SYSTEM:Char count exceeded 3500. Stop the search]';
-        break;
-      }
-      // if char count is more than 2000, append and skip the rest
-      if (tokenCount > 2000) {
-        // append the first 2000 chars
-        urlContent += characters.take(2000).join('');
-        urlContent += '[SYSTEM:Char count exceeded 500. Skip the rest of the page]';
-        continue;
-      }
-
-      urlContent += 'Page Title:$title\nBody:```$text```\n\n';
-    }
-    userMessage = modifyMessageStyle(userMessage);
-
-    return sendSingleMessage(
-      'You are an agent of LLM model that scraps the internet. Answer to the message based only on this search results from these web pages: $urlContent.\n'
-      'In the end add a caption where did you find this info.'
-      '''E.g. "I found this information on: 
-      - [page1](link1) 
-      - [page2](link2)
-      "'''
-      '.Answer in markdown with links. ALWAYS USE SOURCE NAMES AND LINKS!'
-      'User message: $userMessage',
-    );
   }
 
   @override

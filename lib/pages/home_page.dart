@@ -1360,8 +1360,9 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             if (selectedModel.reasoningSupported)
               Button(
                 onPressed: () {
-                  AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
-                  context.read<ChatProvider>().updateUI();
+                  setState(() {
+                    AppCache.enableReasoning.value = !AppCache.enableReasoning.value!;
+                  });
                 },
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.all(

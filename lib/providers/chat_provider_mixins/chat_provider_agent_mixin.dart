@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
-import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/features/image_generator_feature.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
@@ -78,20 +78,28 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
   Future<void> _executeAgentLoop(String userRequest) async {
     const maxIterations = 10;
     int iteration = 0;
-    String systemInfo = getSystemInfoString();
 
     // Stream subscription will be stored in listenerResponseStream (from ChatProvider)
     // so it can be cancelled via stopAnswering()
+    final _agentSystemPromptWords = agentSystemPrompt.split('\n');
+    StringBuffer sb = StringBuffer();
+    for (final line in _agentSystemPromptWords) {
+      if (line.startsWith('{')) {
+        _writeValuesInSystemInfo(sb, line);
+      } else {
+        sb.writeln(line);
+      }
+    }
 
     // Prepare agent messages with custom system prompt and chat history
     final messagesToSend = <ChatMessage>[
-      SystemChatMessage(content: '$agentSystemPrompt\n\nSystem info: $systemInfo'),
+      SystemChatMessage(content: sb.toString()),
     ];
 
     // Include recent chat history for context (excluding headers and system messages)
     final recentMessages = await getLastMessagesLimitToTokens(
-      8196, // Use 8196 tokens of history
-      allowImages: false,
+      min(2048, selectedChatRoom.maxTokenLength), // Use minimum of 2048 tokens of history
+      allowImages: true,
       stripMessage: false,
     );
 
@@ -823,5 +831,30 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       ),
     );
     return 'Successfully remembered info: $info';
+  }
+
+  void _writeValuesInSystemInfo(StringBuffer sb, String line) {
+    switch (line) {
+      case '{system_info}':
+        sb.writeln('System info: ${getSystemInfoString()}');
+        break;
+      case '{user_info}':
+        sb.writeln(
+            '''Background context about the user (DO NOT mention or reference this information unprompted - only use when directly relevant to the user's request): """$infoAboutUser"""''');
+        break;
+      case '{lang}':
+        sb.writeln('Preferable language: ${I18n.currentLocale.languageCode}');
+        break;
+      case '{conversation_lenght}':
+        if (conversationLenghtStyleStream.value != ConversationLengthStyleEnum.normal) {
+          sb.writeln('Your answer length should be: ${conversationLenghtStyleStream.value.name}');
+        }
+        break;
+      case '{conversation_style}':
+        if (conversationStyleStream.value != ConversationStyleEnum.normal) {
+          sb.writeln('YOU SHOULD ANSWER VERY: ${conversationStyleStream.value.name}');
+        }
+        break;
+    }
   }
 }

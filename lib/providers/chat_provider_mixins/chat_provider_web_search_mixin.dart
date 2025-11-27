@@ -90,12 +90,12 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
       if (AppCache.scrapOnlyDecription.value!) {
         final List<WebSearchResult> shortResults = results.take(15).map((e) => e).toList();
         addWebResultsToMessages(shortResults);
-        await _answerBasedOnWebResults(
+        await answerBasedOnWebResults(
             shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
       } else {
         final threeRessults = results.take(3).map((e) => e).toList();
         addWebResultsToMessages(threeRessults);
-        await _answerBasedOnWebResults(threeRessults, messageContent);
+        await answerBasedOnWebResults(threeRessults, messageContent);
       }
     } catch (e) {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -111,7 +111,7 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
     notifyListeners();
   }
 
-  Future _answerBasedOnWebResults(
+  Future answerBasedOnWebResults(
     List<WebSearchResult> results,
     String userMessage,
   ) async {
@@ -130,7 +130,7 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
       // print('[scrapper] Title: $title');
       // print('[scrapper] Text: $text');
       if (tokenCount > 6500) {
-        urlContent += '[SYSTEM:Char count exceeded 3500. Stop the search]';
+        urlContent += '[SYSTEM:Char count exceeded 6500. Stop the search]';
         break;
       }
       // if char count is more than 2000, append and skip the rest
@@ -143,7 +143,6 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
 
       urlContent += 'Page Title:$title\nBody:```$text```\n\n';
     }
-    userMessage = modifyMessageStyle(userMessage);
 
     return sendSingleMessage(
       'You are an agent of LLM model that scraps the internet. Answer to the message based only on this search results from these web pages: $urlContent.\n'
