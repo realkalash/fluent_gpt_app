@@ -1,4 +1,3 @@
-
 import 'package:entry/entry.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -22,12 +21,10 @@ class CommandRequestAnswerOverlay extends StatefulWidget {
   final double initPosLeft;
 
   @override
-  State<CommandRequestAnswerOverlay> createState() =>
-      CommandRequestAnswerOverlayState();
+  State<CommandRequestAnswerOverlay> createState() => CommandRequestAnswerOverlayState();
 }
 
-class CommandRequestAnswerOverlayState
-    extends State<CommandRequestAnswerOverlay> {
+class CommandRequestAnswerOverlayState extends State<CommandRequestAnswerOverlay> {
   FluentChatMessage? answer;
   bool isAnwering = true;
   void close() {
@@ -47,17 +44,11 @@ class CommandRequestAnswerOverlayState
       model: selectedChatRoom.model.modelName,
       maxTokens: selectedChatRoom.maxTokenLength,
     );
-    if (selectedChatRoom.model.ownedBy == 'openai') {
-      answerStream = openAI!.stream(
-        PromptValue.string(widget.message.content),
-        options: options,
-      );
-    } else {
-      answerStream = localModel!.stream(
-        PromptValue.string(widget.message.content),
-        options: options,
-      );
-    }
+    answerStream = openAI!.stream(
+      PromptValue.string(widget.message.content),
+      options: options,
+    );
+
     String responseId = '-1';
     answerStream!.listen((chunk) {
       final message = chunk.output;
@@ -92,6 +83,7 @@ class CommandRequestAnswerOverlayState
     super.initState();
     sendMessageToAi();
   }
+
   double posTop = 0;
   double posLeft = 0;
 
@@ -128,14 +120,11 @@ class CommandRequestAnswerOverlayState
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                            icon: Text('X', style: TextStyle(color: Colors.red)),
-                            onPressed: close),
+                        IconButton(icon: Text('X', style: TextStyle(color: Colors.red)), onPressed: close),
                         const SizedBox(width: 8),
                         Text(
                           'T: $responseTokens, R: ${widget.message.tokens}',
-                          style: TextStyle(
-                              color: Colors.white.withAlpha(128), fontSize: 10),
+                          style: TextStyle(color: Colors.white.withAlpha(128), fontSize: 10),
                         ),
                       ],
                     ),

@@ -389,11 +389,7 @@ class ChatProvider
       maxTokens: 512,
     );
     AIChatMessage response;
-    if (selectedModel.ownedBy == 'openai') {
-      response = await openAI!.call([messageToSend], options: options);
-    } else {
-      response = await localModel!.call([messageToSend], options: options);
-    }
+    response = await openAI!.call([messageToSend], options: options);
 
     final personalKnowladge = await AppCache.userInfo.value();
     log('Generated user knowladge: "$response"');
@@ -489,12 +485,6 @@ class ChatProvider
     bool includeConversationOnSend = true,
     int? seed,
   }) async {
-    // Check if agent mode is enabled
-    if (AppCache.enableAgentMode.value == true) {
-      await sendAgentMessage(messageContent);
-      return;
-    }
-
     bool isFirstMessage = messages.value.isEmpty;
     bool isThirdMessage = messages.value.length == 2;
     final shouldForceDisableReasoning =
@@ -591,6 +581,12 @@ class ChatProvider
     if (selectedModel.ownedBy == OwnedByEnum.localServer.name) {
       await autoStartServer();
     }
+    // Check if agent mode is enabled
+    if (AppCache.enableAgentMode.value == true) {
+      await sendAgentMessage(messageContent);
+      return;
+    }
+
     final messagesToSend = <ChatMessage>[];
     if (supportsMultipleHighresImages(selectedChatRoom.model.modelName) == false &&
         aiCanSeeOnlyLastImageHintShown == false) {
@@ -730,11 +726,8 @@ class ChatProvider
 
       if (!sendStream) {
         late AIChatMessage response;
-        if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-          response = await openAI!.call(messagesToSend, options: options);
-        } else {
-          response = await localModel!.call(messagesToSend, options: options);
-        }
+        response = await openAI!.call(messagesToSend, options: options);
+
         if (response.toolCalls.isNotEmpty) {
           final lastChar = response.toolCalls.first.argumentsRaw;
           if (lastChar == '}') {
@@ -756,19 +749,7 @@ class ChatProvider
         isAnswering = false;
         return;
       }
-      if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-        responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
-      } else {
-        if (selectedChatRoom.model.ownedBy == OwnedByEnum.gemini.name) {
-          throw Exception('Gemini is not supported yet');
-          // TODO: add more models
-        } else if (selectedChatRoom.model.ownedBy == OwnedByEnum.claude.name) {
-          throw Exception('Claude is not supported yet');
-          // TODO: add more models
-        }
-
-        responseStream = localModel!.stream(PromptValue.chat(messagesToSend), options: options);
-      }
+      responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
 
       String functionCallString = '';
       String functionName = '';
@@ -1230,9 +1211,9 @@ class ChatProvider
       return openAI!.countTokens(PromptValue.string(text), options: options);
     } else {
       var tokensTotal = 0;
-      tokensTotal = await (localModel ?? openAI)!.countTokens(PromptValue.string(text), options: options);
+      tokensTotal = await openAI!.countTokens(PromptValue.string(text), options: options);
       if (tokensTotal == 0) {
-        await (localModel ?? openAI)!.countTokens(
+        await openAI!.countTokens(
           PromptValue.string(text),
           options: options.copyWith(model: 'gpt-5'),
         );
@@ -1337,11 +1318,8 @@ class ChatProvider
     try {
       if (sendAsStream) {
         Stream<ChatResult> stream;
-        if (selectedModel.ownedBy == 'openai') {
-          stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
-        } else {
-          stream = localModel!.stream(PromptValue.chat(messagesToSend), options: options);
-        }
+        stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
+
         await stream.forEach(
           (final chunk) {
             final message = chunk.output;
@@ -1367,11 +1345,7 @@ class ChatProvider
         );
       } else if (!sendAsStream) {
         AIChatMessage response;
-        if (selectedModel.ownedBy == 'openai') {
-          response = await openAI!.call(messagesToSend, options: options);
-        } else {
-          response = await localModel!.call(messagesToSend, options: options);
-        }
+        response = await openAI!.call(messagesToSend, options: options);
         addBotMessageToList(FluentChatMessage.ai(id: responseId, content: response.content));
         saveToDisk([selectedChatRoom]);
         notifyListeners();
@@ -1417,15 +1391,10 @@ class ChatProvider
       final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName, maxTokens: maxTokens);
       var sentTokens = selectedChatRoom.totalSentTokens ?? 0;
       var respTokens = selectedChatRoom.totalReceivedTokens ?? 0;
-      if (selectedModel.ownedBy == 'openai') {
-        sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
-        response = await openAI!.call(messagesToSend, options: options);
-        respTokens += await openAI!.countTokens(PromptValue.string(response.content));
-      } else {
-        sentTokens += await localModel!.countTokens(PromptValue.chat(messagesToSend));
-        response = await localModel!.call(messagesToSend, options: options);
-        respTokens += await localModel!.countTokens(PromptValue.string(response.content));
-      }
+      sentTokens += await openAI!.countTokens(PromptValue.chat(messagesToSend));
+      response = await openAI!.call(messagesToSend, options: options);
+      respTokens += await openAI!.countTokens(PromptValue.string(response.content));
+
       if (sentTokens != selectedChatRoom.totalSentTokens) {
         selectedChatRoom.totalSentTokens = sentTokens;
       }
@@ -2098,6 +2067,7 @@ class ChatProvider
   void updateUI() {
     notifyListeners();
   }
+
   bool isAutonomousMode = AppCache.enableAgentMode.value ?? false;
   void updateAutonomousModeUI(bool value) {
     isAutonomousMode = value;

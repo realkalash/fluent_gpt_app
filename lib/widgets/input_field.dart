@@ -316,11 +316,7 @@ class _InputFieldState extends State<InputField> {
   Future<int> countTokensString(String text) async {
     if (text.isEmpty) return 0;
     final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
-    if (selectedModel.ownedBy == 'openai') {
-      return openAI!.countTokens(PromptValue.string(text), options: options);
-    } else {
-      return (localModel ?? openAI)!.countTokens(PromptValue.string(text), options: options);
-    }
+    return openAI!.countTokens(PromptValue.string(text), options: options);
   }
 
   void countTokensInInputField() {

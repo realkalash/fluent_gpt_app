@@ -28,7 +28,7 @@ class _InfoAboutUserDialogState extends State<InfoAboutUserDialog> {
         // Tokenizer tokenizer = Tokenizer();
         // tokens = await tokenizer.count(textController.text, modelName: 'gpt-4');
         final value = PromptValue.string(textController.text);
-        tokens = await openAI?.countTokens(value) ?? await localModel?.countTokens(value) ?? 0;
+        tokens = await openAI?.countTokens(value) ?? 0;
         setState(() {});
       }
     });

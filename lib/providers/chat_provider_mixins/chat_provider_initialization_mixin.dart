@@ -154,11 +154,10 @@ mixin ChatProviderInitializationMixin on ChangeNotifier, ChatProviderBaseMixin {
       loadMessagesFromDisk(selectedChatRoomId);
     }
     selectedChatRoomId = selectedChatRoomId;
-    if (openAI == null && localModel == null && selectedChatRoom.model.ownedBy != null) {
+    if (openAI == null && selectedChatRoom.model.ownedBy != null) {
       initModelsApi();
     }
     // dumb way to notify UI listeners
     notifyRoomsStream();
   }
 }
-

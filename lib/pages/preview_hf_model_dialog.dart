@@ -471,6 +471,9 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
     scheduleMicrotask(_startDownload);
   }
 
+  http.StreamedResponse? response;
+  final http.Client client = http.Client();
+
   void _startDownload() async {
     try {
       final file = File(widget.savePath);
@@ -482,15 +485,16 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
       }
 
       final request = http.Request('GET', Uri.parse(widget.url));
-      final response = await http.Client().send(request);
-      if (response.statusCode != 200) {
-        throw Exception('Failed: ${response.statusCode}');
+      response = await client.send(request);
+      final _response = response!;
+      if (_response.statusCode != 200) {
+        throw Exception('Failed: ${_response.statusCode}');
       }
 
       final sink = file.openWrite();
-      total = response.contentLength ?? 0;
+      total = _response.contentLength ?? 0;
       try {
-        await for (final chunk in response.stream) {
+        await for (final chunk in _response.stream) {
           sink.add(chunk);
           received += chunk.length;
           if (!mounted) continue;
@@ -520,9 +524,20 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
       if (mounted) Navigator.of(context).pop(widget.savePath);
     } catch (e, stack) {
       logError(e.toString(), stack);
-     
+
       if (mounted) Navigator.of(context).pop(null);
     }
+  }
+
+  Future<void> _cancelDownload() async {
+    client.close();
+    // delete the file
+    final file = File(widget.savePath);
+    if (file.existsSync()) {
+      await file.delete();
+    }
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop(null);
   }
 
   @override
@@ -567,6 +582,16 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
                     ],
                   ),
                 ],
+              ),
+              // bottom button to cancel the download
+              Positioned(
+                bottom: 0,
+                right: 16,
+                child: Button(
+                    onPressed: () {
+                      _cancelDownload();
+                    },
+                    child: Text('Cancel'.tr)),
               ),
             ],
           ),

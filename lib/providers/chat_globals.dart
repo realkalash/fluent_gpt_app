@@ -9,7 +9,6 @@ import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/subjects.dart';
 
 ChatOpenAI? openAI;
-ChatOpenAI? localModel;
 
 /// First is ID, second is ChatRoom
 BehaviorSubject<Map<String, ChatRoom>> chatRoomsStream =

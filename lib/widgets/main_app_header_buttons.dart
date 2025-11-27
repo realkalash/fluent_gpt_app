@@ -285,7 +285,7 @@ class ServerInitializingIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: ServerProvider.isInitializingStreamController.stream,
+      stream: ServerProvider.isInitializingStreamController,
       builder: (context, snapshot) {
         bool isInitializing = snapshot.data ?? false;
         return AnimatedSwitcher(
@@ -300,7 +300,7 @@ class ServerInitializingIcon extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
-                      'Starting server',
+                      'Loading AI model',
                       maxLines: 1,
                       overflow: TextOverflow.clip,
                     ),

@@ -47,17 +47,6 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
   /// Agent mode: AI plans and executes tasks autonomously
   Future<void> sendAgentMessage(String messageContent) async {
-    // Add user message to chat
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    await addHumanMessageToList(
-      FluentChatMessage.humanText(
-        id: '$timestamp',
-        content: messageContent,
-        creator: 'User',
-        timestamp: timestamp,
-      ),
-    );
-
     // Show planning status
     showPlanningStatus();
 
@@ -199,11 +188,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         bool hasDisplayedContent = false; // Track if we've shown content in UI
 
         final Stream<ChatResult> stream;
-        if (selectedChatRoom.model.ownedBy == OwnedByEnum.openai.name) {
-          stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
-        } else {
-          stream = localModel!.stream(PromptValue.chat(messagesToSend), options: options);
-        }
+        stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
 
         // Use Completer to wait for stream completion
         final completer = Completer<AIChatMessage>();

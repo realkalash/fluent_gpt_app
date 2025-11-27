@@ -20,13 +20,18 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
       }
       allModels.add(listModels);
     }
+    /// if we created the very first model, we need to autoselect it
+    if (allModels.value.length == 1) {
+      selectedChatRoom.model = allModels.value.first;
+      selectedChatRoomId = selectedChatRoom.id;
+      saveToDisk([selectedChatRoom]);
+      notifyListeners();
+    }
   }
 
   Future<void> addNewCustomModel(ChatModelAi model) async {
     final allModelsList = allModels.value;
-    final maxIndex = allModelsList.isEmpty 
-        ? -1 
-        : allModelsList.map((e) => e.index).reduce((a, b) => a > b ? a : b);
+    final maxIndex = allModelsList.isEmpty ? -1 : allModelsList.map((e) => e.index).reduce((a, b) => a > b ? a : b);
     final newModel = model.copyWith(index: maxIndex + 1);
     allModelsList.add(newModel);
     allModels.add(allModelsList);
@@ -49,18 +54,18 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
     final allModelsList = List<ChatModelAi>.from(allModels.value);
     // Sort by index first to ensure correct order
     allModelsList.sort((a, b) => a.index.compareTo(b.index));
-    
+
     if (newIndex > oldIndex) {
       newIndex -= 1;
     }
     final item = allModelsList.removeAt(oldIndex);
     allModelsList.insert(newIndex, item);
-    
+
     // Update indices to match new positions
     for (int i = 0; i < allModelsList.length; i++) {
       allModelsList[i] = allModelsList[i].copyWith(index: i);
     }
-    
+
     allModels.add(allModelsList);
     await saveModelsToDisk();
   }
@@ -74,12 +79,13 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
   /// Should be called after we load all chat rooms
   @override
   void initModelsApi() {
-    openAI = ChatOpenAI(apiKey: selectedModel.apiKey);
-    if (selectedModel.uri != null && selectedModel.uri!.isNotEmpty)
-      localModel = ChatOpenAI(
+    if (selectedModel.uri != null && selectedModel.uri!.isNotEmpty) {
+      openAI = ChatOpenAI(
         baseUrl: selectedModel.uri!,
         apiKey: selectedModel.apiKey,
       );
+    } else {
+      openAI = ChatOpenAI(apiKey: selectedModel.apiKey);
+    }
   }
 }
-

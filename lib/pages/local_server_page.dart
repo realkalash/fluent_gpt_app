@@ -1,15 +1,20 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/llm_model_common.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/dialogs/llm_models_dialogs/list_hf_models_dialog.dart';
 import 'package:fluent_gpt/pages/preview_hf_model_dialog.dart';
 import 'package:fluent_gpt/pages/welcome/choose_hf_model_dialog.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/server_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -27,6 +32,8 @@ class _LocalServerPageState extends State<LocalServerPage> {
   bool isLoadingDevices = false;
   bool disableLogging = false;
   final TextEditingController modelPathController = TextEditingController();
+  final TextEditingController llamaServerExecPathController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +49,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
         }
       });
       modelPathController.text = ServerProvider.modelPath;
+      llamaServerExecPathController.text = AppCache.llamaServerExecPath.value ?? '';
     });
   }
 
@@ -77,6 +85,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
     );
     return StreamBuilder(
         stream: ServerProvider.serverStatusStream,
+        initialData: ServerProvider.isServerRunning,
         builder: (context, asyncSnapshot) {
           final isRunning = asyncSnapshot.data ?? false;
           return ScaffoldPage.scrollable(
@@ -214,6 +223,12 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       onChanged: (value) => ServerProvider.modelPath = value,
                       placeholder: 'Enter or choose a model file path or Hugging face URL...',
                     ),
+                    if (!kReleaseMode)
+                      TextFormBox(
+                        controller: llamaServerExecPathController,
+                        onChanged: (value) => AppCache.llamaServerExecPath.value = value,
+                        placeholder: 'Enter path to llama-server executable...',
+                      ),
                     const SizedBox(height: 16),
                     Button(
                       onPressed: () async {
@@ -482,22 +497,48 @@ class _LocalServerPageState extends State<LocalServerPage> {
                         File file = modelPathController.text.isNotEmpty
                             ? File(modelPathController.text)
                             : File(ServerProvider.modelPath);
+                        LlmModelCommon? hfModel;
+                        final chatProvider = context.read<ChatProvider>();
 
                         /// if exists then it is a local model
                         bool isHfModel = !file.existsSync();
                         if (isHfModel) {
                           final isDownloaded = PreviewHuggingFaceModel.isDownloaded(modelPathController.text);
                           if (!isDownloaded) {
-                            final model = await PreviewHuggingFaceModel.show(context, modelPathController.text);
-                            if (model != null) {
-                              ServerProvider.modelPath = model.modelPath;
+                            hfModel = await PreviewHuggingFaceModel.show(context, modelPathController.text);
+                            if (hfModel != null) {
+                              ServerProvider.modelPath = hfModel.modelPath;
+                              final name = hfModel.modelName;
+                              // create a model obj from the downloaded model
+                              chatProvider.addNewCustomModel(
+                                ChatModelAi(
+                                  modelName: name,
+                                  customName: name,
+                                  ownedBy: OwnedByEnum.localServer.name,
+                                  uri: ServerProvider.serverUrl,
+                                  imageSupported: hfModel.imageSupported,
+                                  reasoningSupported: hfModel.reasoningSupported,
+                                  toolSupported: hfModel.toolSupported,
+                                ),
+                              );
                             }
                           } else {
+                            // model download and now it is a file. For current users who already downloaded model
                             ServerProvider.modelPath = PreviewHuggingFaceModel.getModelPath(modelPathController.text);
                             isHfModel = false;
+                            final name = modelPathController.text.split('/').last;
+                            // create a model obj from the model
+                            chatProvider.addNewCustomModel(
+                              ChatModelAi(
+                                modelName: name,
+                                customName: name,
+                                ownedBy: OwnedByEnum.localServer.name,
+                                uri: ServerProvider.serverUrl,
+                              ),
+                            );
                           }
                         }
-                        final res = await ServerProvider.startLlamaServer(
+                        final started = await ServerProvider.startLlamaServer(
                           // ignore: use_build_context_synchronously
                           context: context,
                           modelPath: isHfModel ? null : ServerProvider.modelPath,
@@ -511,7 +552,23 @@ class _LocalServerPageState extends State<LocalServerPage> {
                           gpuLayers: serverProvider.gpuLayers,
                           disableLogging: disableLogging,
                         );
-                        if (res) {
+                        if (started) {
+                          // if started and hfModel is not in allModels, add it
+                          if (hfModel != null &&
+                              allModels.value.any((model) {
+                                    return model.modelName == hfModel?.modelName &&
+                                        model.ownedBy == OwnedByEnum.localServer.name;
+                                  }) ==
+                                  false) {
+                            chatProvider.addNewCustomModel(
+                              ChatModelAi(
+                                modelName: hfModel.modelName,
+                                customName: hfModel.modelName,
+                                ownedBy: OwnedByEnum.localServer.name,
+                                uri: ServerProvider.serverUrl,
+                              ),
+                            );
+                          }
                           ServerProvider.autoStopServerChanged(AppCache.autoStopServerEnabled.value);
                         }
                       },
