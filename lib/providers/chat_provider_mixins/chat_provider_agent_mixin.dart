@@ -41,6 +41,157 @@ const _commonIgnoredDirNames = {
   'target',
 };
 
+/// End index (exclusive) of a balanced `{...}` starting at [openBraceIndex], or -1.
+int _agentBalancedJsonObjectEnd(String s, int openBraceIndex) {
+  var depth = 0;
+  var inString = false;
+  var escape = false;
+  for (var j = openBraceIndex; j < s.length; j++) {
+    final c = s.codeUnitAt(j);
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (inString) {
+      if (c == 0x5C) {
+        escape = true;
+      } else if (c == 0x22) {
+        inString = false;
+      }
+      continue;
+    }
+    if (c == 0x22) {
+      inString = true;
+      continue;
+    }
+    if (c == 0x7B) {
+      depth++;
+    } else if (c == 0x7D) {
+      depth--;
+      if (depth == 0) {
+        return j + 1;
+      }
+    }
+  }
+  return -1;
+}
+
+String? _agentExtractFirstJsonObject(String input) {
+  final start = input.indexOf('{');
+  if (start < 0) {
+    return null;
+  }
+  final end = _agentBalancedJsonObjectEnd(input, start);
+  if (end <= start) {
+    return null;
+  }
+  return input.substring(start, end);
+}
+
+/// Parses tool `argumentsRaw`; handles models that concatenate multiple JSON objects.
+({Map<String, dynamic> map, String? warning})? _agentParseToolArgumentsRaw(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) {
+    return (map: <String, dynamic>{}, warning: null);
+  }
+  try {
+    final decoded = jsonDecode(trimmed);
+    if (decoded is Map<String, dynamic>) {
+      return (map: decoded, warning: null);
+    }
+  } catch (_) {}
+
+  final first = _agentExtractFirstJsonObject(trimmed);
+  if (first == null) {
+    return null;
+  }
+  try {
+    final decoded = jsonDecode(first) as Map<String, dynamic>;
+    String? warning;
+    final rest = trimmed.substring(trimmed.indexOf(first) + first.length).trim();
+    if (rest.isNotEmpty) {
+      if (rest.startsWith('{')) {
+        warning =
+            'Tool arguments contained multiple JSON objects; only the first was used. Call one tool per turn, or wait for each tool result before the next tool.';
+      } else {
+        warning = 'Trailing non-JSON text after tool arguments was ignored.';
+      }
+    }
+    return (map: decoded, warning: warning);
+  } catch (_) {
+    return null;
+  }
+}
+
+class _AgentStreamingToolAgg {
+  String id = '';
+  String name = '';
+  final StringBuffer argumentsRaw = StringBuffer();
+}
+
+AIChatMessage _agentBuildStreamedAiMessage({
+  required String fullContent,
+  required List<_AgentStreamingToolAgg> toolAggs,
+}) {
+  if (toolAggs.isEmpty) {
+    return AIChatMessage(content: fullContent, toolCalls: const []);
+  }
+
+  final warnings = <String>[];
+  final builtCalls = <AIChatMessageToolCall>[];
+  for (var idx = 0; idx < toolAggs.length; idx++) {
+    final a = toolAggs[idx];
+    final raw = a.argumentsRaw.toString();
+    final name = a.name;
+    if (name.isEmpty && raw.trim().isEmpty) {
+      continue;
+    }
+    if (name.isEmpty) {
+      warnings.add(
+        'A tool call was missing the function name. Raw arguments (truncated): '
+        '${raw.length > 220 ? "${raw.substring(0, 220)}…" : raw}',
+      );
+      continue;
+    }
+
+    final parsed = _agentParseToolArgumentsRaw(raw);
+    if (parsed == null) {
+      warnings.add(
+        'Could not parse JSON arguments for tool "$name". Use one tool call per turn with a single JSON object. '
+        'Raw (truncated): ${raw.length > 400 ? "${raw.substring(0, 400)}…" : raw}',
+      );
+      logError('Agent tool parse failed for $name');
+      continue;
+    }
+    if (parsed.warning != null) {
+      log('Agent tool call: ${parsed.warning}');
+      warnings.add(parsed.warning!);
+    }
+
+    final normalizedRaw = _agentExtractFirstJsonObject(raw.trim()) ?? raw.trim();
+    builtCalls.add(
+      AIChatMessageToolCall(
+        id: a.id.isNotEmpty ? a.id : 'tool_${DateTime.now().millisecondsSinceEpoch}_$idx',
+        name: name,
+        argumentsRaw: normalizedRaw,
+        arguments: parsed.map,
+      ),
+    );
+  }
+
+  final contentParts = <String>[];
+  final trimmed = fullContent.trim();
+  if (trimmed.isNotEmpty) {
+    contentParts.add(trimmed);
+  }
+  if (warnings.isNotEmpty) {
+    contentParts.add(warnings.join('\n'));
+  }
+  final textOut = contentParts.join('\n\n');
+
+  return AIChatMessage(content: textOut, toolCalls: builtCalls);
+}
+
 /// Mixin for agent mode functionality
 /// Provides autonomous task execution with planning and tool calling
 mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProviderImageGenerationMixin {
@@ -89,7 +240,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     } finally {
       isAnswering = false;
       removePlanningStatus();
-      notifyListeners();
+      removeFilesFromInput();
       await saveToDisk([selectedChatRoom]);
     }
   }
@@ -217,17 +368,17 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         temperature: 0.7,
         toolChoice: const ChatToolChoiceAuto(),
         tools: agentTools,
+        parallelToolCalls: false,
       );
 
       try {
         // Stream the response using .listen() for better performance
         final messageId = '${DateTime.now().millisecondsSinceEpoch}_agent';
         String fullContent = '';
-        String toolCallString = '';
-        String toolCallName = '';
-        String toolCallId = '';
+        final toolAggs = <_AgentStreamingToolAgg>[];
         int responseTokens = 0; // Track tokens for this response
         bool hasDisplayedContent = false; // Track if we've shown content in UI
+        var toolStreamingActive = false;
 
         final Stream<ChatResult> stream;
         stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
@@ -239,45 +390,48 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           (final chunk) {
             final message = chunk.output;
 
-            // Handle content streaming (when AI responds with text)
-            if (message.content.isNotEmpty) {
-              fullContent += message.content;
-
-              // Only display content if we haven't detected any tool calls yet
-              // This prevents showing garbage like "3"}</function>" from Llama3.3
-              if (toolCallString.isEmpty && toolCallName.isEmpty) {
-                hasDisplayedContent = true;
-                // Add/update message (addBotMessageToList auto-concatenates by ID)
-                // Pass accumulated responseTokens for accurate total
-                addBotMessageToList(
-                  FluentChatMessage.ai(
-                    id: messageId,
-                    content: message.content,
-                    timestamp: DateTime.now().millisecondsSinceEpoch,
-                    tokens: responseTokens, // Use accumulated total, not per-chunk
-                    creator: selectedChatRoom.characterName,
-                  ),
-                );
-              }
-            }
-
-            // Handle tool calls streaming (when AI wants to use tools)
+            // Merge tool-call deltas first (same chunk may include both text and tools)
             if (message.toolCalls.isNotEmpty) {
-              final toolCall = message.toolCalls.first;
-              toolCallString += toolCall.argumentsRaw;
-              if (toolCall.name.isNotEmpty) {
-                toolCallName = toolCall.name;
-              }
-              if (toolCall.id.isNotEmpty) {
-                toolCallId = toolCall.id;
+              toolStreamingActive = true;
+              for (var i = 0; i < message.toolCalls.length; i++) {
+                while (toolAggs.length <= i) {
+                  toolAggs.add(_AgentStreamingToolAgg());
+                }
+                final tc = message.toolCalls[i];
+                final slot = toolAggs[i];
+                if (tc.id.isNotEmpty) {
+                  slot.id = tc.id;
+                }
+                if (tc.name.isNotEmpty) {
+                  slot.name = tc.name;
+                }
+                slot.argumentsRaw.write(tc.argumentsRaw);
               }
 
               // If we previously displayed content but now have tool calls,
               // we need to clear that erroneous content from the UI
               if (hasDisplayedContent && fullContent.isNotEmpty) {
-                // Remove the message with garbage content
                 removeMessage(messageId);
                 hasDisplayedContent = false;
+              }
+            }
+
+            // Handle content streaming (when AI responds with text)
+            if (message.content.isNotEmpty) {
+              fullContent += message.content;
+
+              // Only display content if we haven't started a tool call stream
+              if (!toolStreamingActive) {
+                hasDisplayedContent = true;
+                addBotMessageToList(
+                  FluentChatMessage.ai(
+                    id: messageId,
+                    content: message.content,
+                    timestamp: DateTime.now().millisecondsSinceEpoch,
+                    tokens: responseTokens,
+                    creator: selectedChatRoom.characterName,
+                  ),
+                );
               }
             }
 
@@ -290,36 +444,22 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
             // Check for finish reasons
             if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
-              // Build final response with accumulated tool calls
-              AIChatMessage response;
-              if (toolCallString.isNotEmpty && toolCallName.isNotEmpty) {
-                try {
-                  // Parse the complete tool call arguments
-                  final toolCallArgs = jsonDecode(toolCallString) as Map<String, dynamic>;
-                  final toolCall = AIChatMessageToolCall(
-                    id: toolCallId.isNotEmpty ? toolCallId : 'tool_${DateTime.now().millisecondsSinceEpoch}',
-                    name: toolCallName,
-                    argumentsRaw: toolCallString,
-                    arguments: toolCallArgs,
-                  );
-                  response = AIChatMessage(
-                    content: fullContent,
-                    toolCalls: [toolCall],
-                  );
-                } catch (e) {
-                  logError('Error parsing tool call: $e');
-                  response = AIChatMessage(content: fullContent);
-                }
-              } else {
-                response = AIChatMessage(content: fullContent);
-              }
+              final response = _agentBuildStreamedAiMessage(
+                fullContent: fullContent,
+                toolAggs: toolAggs,
+              );
               completer.complete(response);
             }
           },
           onDone: () {
             // If not already completed, complete with content-only response
             if (!completer.isCompleted) {
-              completer.complete(AIChatMessage(content: fullContent));
+              completer.complete(
+                _agentBuildStreamedAiMessage(
+                  fullContent: fullContent,
+                  toolAggs: toolAggs,
+                ),
+              );
             }
           },
           onError: (e, stack) {
@@ -424,12 +564,18 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           // Show tool execution status with parameter
           final executingMessage = keyParam != null ? '⚙️ Executing: $toolName "$keyParam"' : '⚙️ Executing: $toolName';
 
+          final execTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final execId = '${DateTime.now().microsecondsSinceEpoch}_exec';
+          final argsJson = jsonEncode(toolArgs);
+
           addBotHeader(
             FluentChatMessage.executionHeader(
-              id: '${DateTime.now().millisecondsSinceEpoch}_exec',
+              id: execId,
               content: executingMessage,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
+              timestamp: execTimestamp,
               creator: selectedChatRoom.characterName,
+              agentToolName: toolName,
+              agentToolArgumentsJson: argsJson,
             ),
           );
           notifyListeners();
@@ -445,6 +591,19 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
             ),
           );
 
+          await editMessage(
+            execId,
+            FluentChatMessage.executionHeader(
+              id: execId,
+              content: executingMessage,
+              timestamp: execTimestamp,
+              creator: selectedChatRoom.characterName,
+              agentToolName: toolName,
+              agentToolArgumentsJson: argsJson,
+              agentToolResult: toolResult,
+            ),
+          );
+
           // Show completion status (check if it was an error)
           final isError = toolResult.startsWith('Error:');
           final statusIcon = isError ? '❌' : '✓';
@@ -452,10 +611,13 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
           addBotHeader(
             FluentChatMessage.executionHeader(
-              id: '${DateTime.now().millisecondsSinceEpoch}_done',
+              id: '${DateTime.now().microsecondsSinceEpoch}_done',
               content: '$statusIcon $statusText: $toolName',
               timestamp: DateTime.now().millisecondsSinceEpoch,
               creator: selectedChatRoom.characterName,
+              agentToolName: toolName,
+              agentToolArgumentsJson: argsJson,
+              agentToolResult: toolResult,
             ),
           );
           notifyListeners();

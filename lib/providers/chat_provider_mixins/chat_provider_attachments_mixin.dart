@@ -11,13 +11,12 @@ import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
 mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
-  List<Attachment>? fileInputs;
-  bool isSendingFiles = false;
   static const Map<String, bool> allowedFileExtensions = {
     'jpg': true,
     'jpeg': true,
@@ -29,13 +28,21 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
     'pdf': true,
   };
 
-  void addFilesToInput(List<XFile> files, {bool clearExisting = true}) {
+  @override
+  Future<void> addFilesToInput(List<XFile> files, {bool clearExisting = true}) async {
     if (clearExisting) {
-      fileInputs?.clear();
+      fileInputs.clear();
     }
-    fileInputs ??= <Attachment>[];
     for (var file in files) {
+      final mime = file.mimeType ?? await FileUtils.detectFileTypeFromBytes(await file.readAsBytes());
+      if (mime?.startsWith('image') == false) {
+        // add path to the input instead of the file
+        final path = file.path;
+        ChatProvider.messageControllerGlobal.text = path;
+        return;
+      }
       final fileExt = file.path.split('.').last;
+
       if (allowedFileExtensions.containsKey(fileExt) == false) {
         displayErrorInfoBar(
           title: 'Not Supported'.tr,
@@ -45,13 +52,13 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
         continue;
       }
       final attachment = Attachment.fromFile(file);
-      fileInputs?.add(attachment);
+      fileInputs.add(attachment);
     }
     notifyListeners();
   }
 
   void addAttachmentToInput(List<Attachment> attachments) {
-    fileInputs?.clear();
+    fileInputs.clear();
     fileInputs = attachments;
     notifyListeners();
   }
@@ -68,11 +75,11 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
   }
 
   Future<void> processFilesBeforeSendingMessage() async {
-    if (fileInputs == null || fileInputs!.isEmpty) {
+    if (fileInputs.isEmpty) {
       return;
     }
 
-    for (var file in fileInputs!) {
+    for (var file in fileInputs) {
       await Future.delayed(const Duration(milliseconds: 10));
       if (file.isImage == true) {
         final bytes = await file.readAsBytes();
@@ -158,45 +165,46 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
         );
       }
     }
-    if (fileInputs != null) {
+    if (fileInputs.isNotEmpty) {
       // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
       await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 
+  @override
   void removeFilesFromInput() {
-    for (var file in fileInputs ?? <Attachment>[]) {
+    for (var file in fileInputs) {
       if (file.isInternalScreenshot == true) {
         FileUtils.deleteFile(file.path);
       }
     }
-    fileInputs = null;
+    fileInputs.clear();
     notifyListeners();
   }
 
   void removeAttachmentFromInput(Attachment attachment) {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
 
     // Delete internal screenshot files if needed
     if (attachment.isInternalScreenshot) {
       FileUtils.deleteFile(attachment.path);
     }
 
-    final index = fileInputs!.indexOf(attachment);
+    final index = fileInputs.indexOf(attachment);
     if (index != -1) {
-      fileInputs!.removeAt(index);
+      fileInputs.removeAt(index);
     }
 
     // If list is empty, set to null
-    if (fileInputs!.isEmpty) {
-      fileInputs = null;
+    if (fileInputs.isEmpty) {
+      fileInputs.clear();
     }
 
     notifyListeners();
   }
 
   Future<void> sendAllAttachmentsToChatSilently() async {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
     await processFilesBeforeSendingMessage();
     removeFilesFromInput();
   }

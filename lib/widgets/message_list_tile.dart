@@ -25,6 +25,7 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/agent_execution_header_tile.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -191,17 +192,7 @@ class _MessageCardState extends State<MessageCard> {
       );
     }
     if (widget.message.type == FluentChatMessageType.executionHeader) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text(
-          widget.message.content,
-          textAlign: TextAlign.left,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.typography.caption?.color?.withAlpha(127),
-          ),
-        ),
-      );
+      return AgentExecutionHeaderTile(message: widget.message);
     }
 
     if (widget.message.type == FluentChatMessageType.system)

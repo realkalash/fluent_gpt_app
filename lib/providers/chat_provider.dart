@@ -738,13 +738,12 @@ class ChatProvider
           chunkNumber++;
 
           if (chunkNumber == 1) {
-            for (var file in fileInputs ?? <Attachment>[]) {
+            for (var file in fileInputs) {
               if (file.isInternalScreenshot == true) {
                 FileUtils.deleteFile(file.path);
               }
             }
-            fileInputs = null;
-            notifyListeners();
+            removeFilesFromInput();
           }
           final message = chunk.output;
           // log tokens
@@ -1329,8 +1328,7 @@ class ChatProvider
       addBotErrorMessageToList(
         FluentChatMessage.system(content: 'Error while sending single message: $e', id: id),
       );
-      fileInputs = null;
-      notifyListeners();
+      removeFilesFromInput();
     }
   }
 
@@ -1476,7 +1474,7 @@ class ChatProvider
 
   @override
   Future<void> sendAllAttachmentsToChatSilently() async {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
     await processFilesBeforeSendingMessage();
     removeFilesFromInput();
   }

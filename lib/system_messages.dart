@@ -34,6 +34,11 @@ const String agentSystemPrompt =
 
 # TOOL REFERENCE
 
+## Tool calling rules (critical)
+- Issue **at most one** tool call per assistant message. Arguments must be **one** JSON object only (not two objects back-to-back).
+- After each tool runs, you will see its result in the conversation—then call the next tool if needed.
+- The API is configured with parallel tool calls **disabled** to avoid malformed streams.
+
 ## File Discovery
 - **search_files_tool**: Find files by filename pattern (`*.dart`, `test_*`) under a directory tree.
 - **list_directory_tool**: Browse directory contents. Use `glob` to filter (e.g. `*.dart`), `entries: "directories"` for folders only, `skipCommonIgnored: true` (default) to skip .git/node_modules/build.
@@ -61,7 +66,7 @@ const String agentSystemPrompt =
 
 # WORKFLOW
 1. **PLAN**: Briefly outline the steps you will take.
-2. **EXECUTE**: Run each step using tools. Prefer parallel tool calls when tasks are independent.
+2. **EXECUTE**: Run each step using tools **one at a time** (one tool call, then read the result, then the next).
 3. **VERIFY**: Check results (run tests, read output, confirm file state).
 4. **REPORT**: Summarize what was done.
 
