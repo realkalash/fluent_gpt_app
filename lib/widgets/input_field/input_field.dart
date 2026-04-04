@@ -359,15 +359,11 @@ class _InputFieldState extends State<InputField> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (totalTokens >= 0.8 * selectedChatRoom.maxTokenLength)
-                        GestureDetector(
+                      if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
+                        _ContextUsageRing(
+                          totalTokens: totalTokens,
+                          maxTokenLength: selectedChatRoom.maxTokenLength,
                           onTap: chatProvider.scrollToLastOverflowMessage,
-                          child: Text(
-                            '${(totalTokens / selectedChatRoom.maxTokenLength * 100).toStringAsFixed(0)}${'% overflow. Click here to go to the last visible to AI message'.tr}  ',
-                            style: context.theme.typography.caption?.copyWith(
-                              color: context.theme.typography.caption?.color?.withAlpha(127),
-                            ),
-                          ),
                         ),
                       if (tokensInInputField > 0 && AppCache.nerdySelectorType.value != 0)
                         Text('${'Tokens in field'.tr}: $tokensInInputField', style: context.theme.typography.caption),
@@ -497,5 +493,100 @@ class _InputFieldState extends State<InputField> {
     provider.addHumanMessageToList(fMessage);
     provider.messageController.clear();
     promptTextFocusNode.requestFocus();
+  }
+}
+
+class _ContextUsageRing extends StatelessWidget {
+  const _ContextUsageRing({
+    required this.totalTokens,
+    required this.maxTokenLength,
+    required this.onTap,
+  });
+
+  final int totalTokens;
+  final int maxTokenLength;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxLen = maxTokenLength <= 0 ? 1 : maxTokenLength;
+    final ratio = totalTokens / maxLen;
+    final percentStr = (ratio * 100).toStringAsFixed(0);
+    final tooltipMessage = '$percentStr${'% overflow. Click here to go to the last visible to AI message'.tr}';
+
+    final captionColor = FluentTheme.of(context).typography.caption?.color;
+    final base = captionColor ?? const Color(0xFFB3B3B3);
+    final trackColor = base.withAlpha(70);
+    final progressColor = ratio > 1.0 ? FluentTheme.of(context).accentColor : base.withAlpha(230);
+
+    return Tooltip(
+      message: tooltipMessage,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: SizedBox(
+            width: 16,
+            height: 16,
+            child: CustomPaint(
+              painter: _ContextUsageRingPainter(
+                progress: ratio,
+                trackColor: trackColor,
+                progressColor: progressColor,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextUsageRingPainter extends CustomPainter {
+  _ContextUsageRingPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+  });
+
+  final double progress;
+  final Color trackColor;
+  final Color progressColor;
+
+  static const double _strokeWidth = 1.6;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (min(size.width, size.height) - _strokeWidth) / 2;
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _strokeWidth
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(center, radius, trackPaint);
+
+    final sweep = 2 * pi * progress.clamp(0.0, 1.0);
+    if (sweep <= 0) return;
+
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    canvas.drawArc(rect, -pi / 2, sweep, false, progressPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ContextUsageRingPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.progressColor != progressColor;
   }
 }

@@ -16,6 +16,37 @@ import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mix
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
+/// Inserts `[path:…]` tokens at the current selection (or caret), replacing any selected range.
+void _insertPathTokensAtCursorForChat(List<String> paths) {
+  if (paths.isEmpty) return;
+  final insertion = paths.map((p) => '[path:$p]').join(' ');
+  final controller = ChatProvider.messageControllerGlobal;
+  final value = controller.value;
+  final text = value.text;
+  final sel = value.selection;
+  final int start;
+  final int end;
+  if (sel.isValid) {
+    var s = sel.start.clamp(0, text.length);
+    var e = sel.end.clamp(0, text.length);
+    if (s > e) {
+      final t = s;
+      s = e;
+      e = t;
+    }
+    start = s;
+    end = e;
+  } else {
+    start = end = text.length;
+  }
+  final newText = text.replaceRange(start, end, insertion);
+  final newOffset = start + insertion.length;
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection.collapsed(offset: newOffset),
+  );
+}
+
 mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
   static const Map<String, bool> allowedFileExtensions = {
     'jpg': true,
@@ -29,17 +60,18 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
   };
 
   @override
-  Future<void> addFilesToInput(List<XFile> files, {bool clearExisting = true}) async {
+  Future<void> addFilesToInput(List<XFile> files,
+      {bool clearExisting = true}) async {
     if (clearExisting) {
       fileInputs.clear();
     }
+    final nonImagePaths = <String>[];
     for (var file in files) {
-      final mime = file.mimeType ?? await FileUtils.detectFileTypeFromBytes(await file.readAsBytes());
+      final mime = file.mimeType ??
+          await FileUtils.detectFileTypeFromBytes(await file.readAsBytes());
       if (mime?.startsWith('image') == false) {
-        // add path to the input instead of the file
-        final path = file.path;
-        ChatProvider.messageControllerGlobal.text = path;
-        return;
+        nonImagePaths.add(file.path);
+        continue;
       }
       final fileExt = file.path.split('.').last;
 
@@ -54,6 +86,11 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
       final attachment = Attachment.fromFile(file);
       fileInputs.add(attachment);
     }
+    if (nonImagePaths.isNotEmpty) {
+      _insertPathTokensAtCursorForChat(nonImagePaths);
+      notifyListeners();
+      return;
+    }
     notifyListeners();
   }
 
@@ -63,7 +100,8 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
     notifyListeners();
   }
 
-  Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
+  Future<void> addAttachmentAiLens(Uint8List bytes,
+      {bool showDialog = true}) async {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput([attachment]);
     if (showDialog) {
@@ -160,7 +198,8 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
             path: file.path,
             fileName: file.name,
             tokens: 256,
-            content: 'Uploaded file: "${file.path}". Analyse it before the answer',
+            content:
+                'Uploaded file: "${file.path}". Analyse it before the answer',
           ),
         );
       }

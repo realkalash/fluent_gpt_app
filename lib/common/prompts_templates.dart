@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/common/custom_prompt.dart';
+import 'package:fluent_gpt/system_messages.dart';
 
 const List<CustomPrompt> baseArchivedPromptsTemplate = [
   // Continue writing
@@ -527,5 +528,11 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
     prompt:
         'Write a product description for **\${productName}** highlighting its **\${keyFeatures}**.',
     tags: ['Marketing', 'Writing'],
+  ),
+  CustomPrompt(
+    id: 69,
+    title: 'FluentGPT Agentic Mode',
+    prompt: agentSystemPrompt,
+    tags: ['System'],
   ),
 ];

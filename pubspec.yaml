@@ -1,7 +1,7 @@
 name: fluent_gpt
 description: An open-source, multi-platform desktop application that brings the power of LLM models to your fingertips. Designed with a sleek Fluent interface, it offers a unique and customizable chat experience on Windows, macOS, and Linux
 publish_to: "none"
-version: 1.0.80+1
+version: 1.0.81+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -88,6 +88,7 @@ dependencies:
     git:
       url: https://github.com/Siddharth2212/link_preview_generator.git
   gen_art_bg: ^0.5.1
+  extended_text_field: ^16.0.2
   
 
 dev_dependencies:

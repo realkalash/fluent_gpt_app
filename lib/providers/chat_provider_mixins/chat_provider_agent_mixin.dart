@@ -245,6 +245,104 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     }
   }
 
+  /// One streamed model turn for the agent loop (shared by tool rounds and step-limit wrap-up).
+  Future<({AIChatMessage response, int responseTokens})> _agentStreamAssistantTurn(
+    List<ChatMessage> messages,
+    ChatOpenAIOptions options,
+    String messageId,
+  ) async {
+    String fullContent = '';
+    final toolAggs = <_AgentStreamingToolAgg>[];
+    var responseTokens = 0;
+    var hasDisplayedContent = false;
+    var toolStreamingActive = false;
+
+    final stream = openAI!.stream(PromptValue.chat(messages), options: options);
+    final completer = Completer<AIChatMessage>();
+
+    listenerResponseStream = stream.listen(
+      (final chunk) {
+        final message = chunk.output;
+
+        if (message.toolCalls.isNotEmpty) {
+          toolStreamingActive = true;
+          for (var i = 0; i < message.toolCalls.length; i++) {
+            while (toolAggs.length <= i) {
+              toolAggs.add(_AgentStreamingToolAgg());
+            }
+            final tc = message.toolCalls[i];
+            final slot = toolAggs[i];
+            if (tc.id.isNotEmpty) {
+              slot.id = tc.id;
+            }
+            if (tc.name.isNotEmpty) {
+              slot.name = tc.name;
+            }
+            slot.argumentsRaw.write(tc.argumentsRaw);
+          }
+
+          if (hasDisplayedContent && fullContent.isNotEmpty) {
+            removeMessage(messageId);
+            hasDisplayedContent = false;
+          }
+        }
+
+        if (message.content.isNotEmpty) {
+          fullContent += message.content;
+
+          if (!toolStreamingActive) {
+            hasDisplayedContent = true;
+            addBotMessageToList(
+              FluentChatMessage.ai(
+                id: messageId,
+                content: message.content,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+                tokens: responseTokens,
+                creator: selectedChatRoom.characterName,
+              ),
+            );
+          }
+        }
+
+        if (chunk.usage.totalTokens != null) {
+          totalSentTokens += chunk.usage.promptTokens ?? 0;
+          totalReceivedTokens += chunk.usage.responseTokens ?? 0;
+          responseTokens += chunk.usage.responseTokens ?? 0;
+        }
+
+        if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
+          completer.complete(
+            _agentBuildStreamedAiMessage(
+              fullContent: fullContent,
+              toolAggs: toolAggs,
+            ),
+          );
+        }
+      },
+      onDone: () {
+        if (!completer.isCompleted) {
+          completer.complete(
+            _agentBuildStreamedAiMessage(
+              fullContent: fullContent,
+              toolAggs: toolAggs,
+            ),
+          );
+        }
+      },
+      onError: (e, stack) {
+        logError('Error in stream: $e', stack);
+        if (!completer.isCompleted) {
+          completer.completeError(e, stack);
+        }
+      },
+      cancelOnError: true,
+    );
+
+    final response = await completer.future;
+    listenerResponseStream = null;
+    return (response: response, responseTokens: responseTokens);
+  }
+
   /// Execute agent loop with planning and tool execution
   Future<void> _executeAgentLoop(String userRequest) async {
     const maxIterations = 10;
@@ -372,110 +470,10 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       );
 
       try {
-        // Stream the response using .listen() for better performance
         final messageId = '${DateTime.now().millisecondsSinceEpoch}_agent';
-        String fullContent = '';
-        final toolAggs = <_AgentStreamingToolAgg>[];
-        int responseTokens = 0; // Track tokens for this response
-        bool hasDisplayedContent = false; // Track if we've shown content in UI
-        var toolStreamingActive = false;
-
-        final Stream<ChatResult> stream;
-        stream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
-
-        // Use Completer to wait for stream completion
-        final completer = Completer<AIChatMessage>();
-
-        listenerResponseStream = stream.listen(
-          (final chunk) {
-            final message = chunk.output;
-
-            // Merge tool-call deltas first (same chunk may include both text and tools)
-            if (message.toolCalls.isNotEmpty) {
-              toolStreamingActive = true;
-              for (var i = 0; i < message.toolCalls.length; i++) {
-                while (toolAggs.length <= i) {
-                  toolAggs.add(_AgentStreamingToolAgg());
-                }
-                final tc = message.toolCalls[i];
-                final slot = toolAggs[i];
-                if (tc.id.isNotEmpty) {
-                  slot.id = tc.id;
-                }
-                if (tc.name.isNotEmpty) {
-                  slot.name = tc.name;
-                }
-                slot.argumentsRaw.write(tc.argumentsRaw);
-              }
-
-              // If we previously displayed content but now have tool calls,
-              // we need to clear that erroneous content from the UI
-              if (hasDisplayedContent && fullContent.isNotEmpty) {
-                removeMessage(messageId);
-                hasDisplayedContent = false;
-              }
-            }
-
-            // Handle content streaming (when AI responds with text)
-            if (message.content.isNotEmpty) {
-              fullContent += message.content;
-
-              // Only display content if we haven't started a tool call stream
-              if (!toolStreamingActive) {
-                hasDisplayedContent = true;
-                addBotMessageToList(
-                  FluentChatMessage.ai(
-                    id: messageId,
-                    content: message.content,
-                    timestamp: DateTime.now().millisecondsSinceEpoch,
-                    tokens: responseTokens,
-                    creator: selectedChatRoom.characterName,
-                  ),
-                );
-              }
-            }
-
-            // Track tokens
-            if (chunk.usage.totalTokens != null) {
-              totalSentTokens += chunk.usage.promptTokens ?? 0;
-              totalReceivedTokens += chunk.usage.responseTokens ?? 0;
-              responseTokens += chunk.usage.responseTokens ?? 0;
-            }
-
-            // Check for finish reasons
-            if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
-              final response = _agentBuildStreamedAiMessage(
-                fullContent: fullContent,
-                toolAggs: toolAggs,
-              );
-              completer.complete(response);
-            }
-          },
-          onDone: () {
-            // If not already completed, complete with content-only response
-            if (!completer.isCompleted) {
-              completer.complete(
-                _agentBuildStreamedAiMessage(
-                  fullContent: fullContent,
-                  toolAggs: toolAggs,
-                ),
-              );
-            }
-          },
-          onError: (e, stack) {
-            logError('Error in stream: $e', stack);
-            if (!completer.isCompleted) {
-              completer.completeError(e, stack);
-            }
-          },
-          cancelOnError: true,
-        );
-
-        // Wait for stream to complete
-        final response = await completer.future;
-
-        // Clean up listener after completion
-        listenerResponseStream = null;
+        final streamResult = await _agentStreamAssistantTurn(messagesToSend, options, messageId);
+        final response = streamResult.response;
+        var responseTokens = streamResult.responseTokens;
 
         // Check if user cancelled
         if (!isAnswering) {
@@ -496,8 +494,8 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         }
 
         // If API didn't provide tokens, calculate them locally
-        if (responseTokens == 0 && fullContent.isNotEmpty) {
-          responseTokens = await countTokensString(fullContent);
+        if (responseTokens == 0 && response.content.isNotEmpty) {
+          responseTokens = await countTokensString(response.content);
           totalReceivedTokens += responseTokens;
         }
 
@@ -591,11 +589,19 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
             ),
           );
 
+          // Single execution row: replace "Executing" with final status (no duplicate Completed line).
+          final isError = toolResult.startsWith('Error:');
+          final statusIcon = isError ? '❌' : '✓';
+          final statusText = isError ? 'Failed' : 'Completed';
+          final doneMessage = keyParam != null
+              ? '$statusIcon $statusText: $toolName "$keyParam"'
+              : '$statusIcon $statusText: $toolName';
+
           await editMessage(
             execId,
             FluentChatMessage.executionHeader(
               id: execId,
-              content: executingMessage,
+              content: doneMessage,
               timestamp: execTimestamp,
               creator: selectedChatRoom.characterName,
               agentToolName: toolName,
@@ -604,22 +610,6 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
             ),
           );
 
-          // Show completion status (check if it was an error)
-          final isError = toolResult.startsWith('Error:');
-          final statusIcon = isError ? '❌' : '✓';
-          final statusText = isError ? 'Failed' : 'Completed';
-
-          addBotHeader(
-            FluentChatMessage.executionHeader(
-              id: '${DateTime.now().microsecondsSinceEpoch}_done',
-              content: '$statusIcon $statusText: $toolName',
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-              creator: selectedChatRoom.characterName,
-              agentToolName: toolName,
-              agentToolArgumentsJson: argsJson,
-              agentToolResult: toolResult,
-            ),
-          );
           notifyListeners();
         }
       } catch (e) {
@@ -641,15 +631,103 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     // Clean up
     listenerResponseStream = null;
 
-    if (iteration >= maxIterations) {
+    final hitStepLimit = iteration >= maxIterations;
+    final needsStepLimitWrapUp = hitStepLimit &&
+        isAnswering &&
+        messagesToSend.isNotEmpty &&
+        messagesToSend.last is ToolChatMessage;
+
+    if (needsStepLimitWrapUp) {
+      messagesToSend.add(
+        HumanChatMessage(
+          content: ChatMessageContent.text(
+            'System notice: The agent reached its maximum number of tool rounds for this run. '
+            'You must not use tools for this reply (tools are disabled). '
+            'Based on the user request and every message and tool result above, write a concise, helpful final answer: '
+            'summarize what you accomplished and what you found; note what is still unknown, unfinished, or risky; '
+            'tell the user they can send another message if they want you to continue exploring or finish the task.',
+          ),
+        ),
+      );
+
       addBotHeader(
         FluentChatMessage.executionHeader(
-          id: '${DateTime.now().millisecondsSinceEpoch}_maxiter',
-          content: '⚠️ Reached maximum iterations',
+          id: '${DateTime.now().millisecondsSinceEpoch}_wrapup',
+          content: '⚙️ Wrapping up (step limit reached)',
           timestamp: DateTime.now().millisecondsSinceEpoch,
           creator: selectedChatRoom.characterName,
         ),
       );
+      notifyListeners();
+
+      final wrapUpMessageId = '${DateTime.now().millisecondsSinceEpoch}_agent_wrapup';
+      final wrapUpOptions = ChatOpenAIOptions(
+        model: selectedChatRoom.model.modelName,
+        temperature: 0.7,
+        toolChoice: const ChatToolChoiceNone(),
+      );
+
+      try {
+        final streamResult = await _agentStreamAssistantTurn(
+          messagesToSend,
+          wrapUpOptions,
+          wrapUpMessageId,
+        );
+        var wrapResponse = streamResult.response;
+        var wrapResponseTokens = streamResult.responseTokens;
+
+        if (!isAnswering) {
+          notifyListeners();
+        } else {
+          if (wrapResponse.toolCalls.isNotEmpty) {
+            log(
+              'Agent step-limit wrap-up returned ${wrapResponse.toolCalls.length} tool call(s); using text only',
+            );
+            wrapResponse = AIChatMessage(content: wrapResponse.content, toolCalls: const []);
+          }
+
+          if (wrapResponseTokens == 0 && wrapResponse.content.isNotEmpty) {
+            wrapResponseTokens = await countTokensString(wrapResponse.content);
+            totalReceivedTokens += wrapResponseTokens;
+          }
+
+          await editMessage(
+            wrapUpMessageId,
+            FluentChatMessage.ai(
+              id: wrapUpMessageId,
+              content: wrapResponse.content,
+              tokens: wrapResponseTokens,
+              timestamp: DateTime.now().millisecondsSinceEpoch,
+              creator: selectedChatRoom.characterName,
+            ),
+          );
+        }
+      } catch (e, stack) {
+        listenerResponseStream = null;
+        if (!isAnswering) {
+          notifyListeners();
+        } else {
+          logError('Error in agent step-limit wrap-up: $e', stack);
+          final time = DateTime.now().millisecondsSinceEpoch;
+          addBotErrorMessageToList(
+            FluentChatMessage.ai(
+              id: '${time}_wrapup_err',
+              content:
+                  'Reached the agent step limit but could not generate a closing summary: $e',
+              creator: 'error',
+              timestamp: time,
+            ),
+          );
+          addBotHeader(
+            FluentChatMessage.executionHeader(
+              id: '${time}_maxiter',
+              content: '⚠️ Reached maximum iterations (wrap-up failed)',
+              timestamp: time,
+              creator: selectedChatRoom.characterName,
+            ),
+          );
+        }
+      }
     }
   }
 

@@ -23,7 +23,7 @@ class ShellExecutionWidget extends StatefulWidget {
 }
 
 class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
-  bool _isExpanded = true;
+  bool _isExpanded = false;
   bool _isExecuting = false;
 
   Future<void> _runCommand(String command) async {

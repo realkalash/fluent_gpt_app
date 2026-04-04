@@ -35,12 +35,25 @@ class FluentChatMessage {
   final Map<String, bool>? buttons;
   final int? indexPin;
 
-  /// Agent tool trace: output string the model received (for execution header hover UI).
+  /// Agent tool trace (execution header UI).
+  ///
+  /// [agentToolName] — tool id (e.g. `read_file_tool`).
+  /// [agentToolArgumentsJson] — JSON-encoded map of arguments the model invoked (flyout).
+  /// [agentToolResult] — exact tool return string the model received (flyout output preview).
   final String? agentToolName;
   final String? agentToolArgumentsJson;
   final String? agentToolResult;
 
   bool get hasAgentToolOutputSnapshot => agentToolResult != null;
+
+  /// Execution-header flyout: needs a tool name and either JSON args (replay) or a stored result (legacy / side-effect tools).
+  bool get hasAgentToolFlyoutContent {
+    if (agentToolName == null || agentToolName!.isEmpty) {
+      return false;
+    }
+    return (agentToolArgumentsJson != null && agentToolArgumentsJson!.trim().isNotEmpty) ||
+        (agentToolResult != null && agentToolResult!.isNotEmpty);
+  }
 
   bool get isTextMessage => type == FluentChatMessageType.textHuman || type == FluentChatMessageType.textAi;
   bool get isTextFromMe => type == FluentChatMessageType.textHuman;
