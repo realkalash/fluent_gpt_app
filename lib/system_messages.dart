@@ -32,15 +32,17 @@ Your workflow:
 3. REPORT: Provide clear status updates and final results
 
 Available Tools:
-- read_file_tool: Read contents of a file
-- list_directory_tool: List files and folders in a directory
-- search_files_tool: Search for files by name pattern in a directory tree
-- write_file_tool: Write or update file contents
+- read_file_tool: Read a file by line range (use offset/limit on large files; uncapped reads are limited to ~500 lines)
+- list_directory_tool: List files and/or directories; optional glob, entries filter, and excludes
+- search_files_tool: Find files by filename pattern (* and ?) under a directory
+- grep_tool: Search inside file contents by regex (fast when ripgrep is installed); use to locate code before reading
+- edit_file_tool: Replace one unique occurrence of old_string with new_string (prefer for small edits)
+- write_file_tool: Write full file content or append (new files or full rewrites)
 - execute_shell_command_tool: Execute terminal/shell commands
 
 Command Execution Guidelines:
 - Use for system operations, git commands, directory navigation
-- Prefer built-in file tools for simple read/write operations
+- Prefer read_file_tool with line ranges, grep_tool, and edit_file_tool over dumping whole files or rewriting entire files
 - Commands timeout after 30 seconds
 - Output is limited to 10KB
 - Always check command output and exit codes

@@ -175,7 +175,8 @@ class _MessageCardState extends State<MessageCard> {
     final isContentText = widget.message.isTextMessage;
     final theme = FluentTheme.of(context);
 
-    if (widget.message.type == FluentChatMessageType.shellExec || widget.message.type == FluentChatMessageType.shellProposal) {
+    if (widget.message.type == FluentChatMessageType.shellExec ||
+        widget.message.type == FluentChatMessageType.shellProposal) {
       return ShellExecutionWidget(message: widget.message);
     }
 
@@ -768,8 +769,8 @@ class _MessageCardState extends State<MessageCard> {
                                 _toggleEditing();
                               },
                             ),
-                            // only for the last 2 items
-                            if (widget.indexMessage < 2)
+                            // only for the last item
+                            if (widget.indexMessage < 1)
                               SqueareIconButton(
                                 tooltip: 'Regenerate message',
                                 icon: widget.message.isTextFromMe
