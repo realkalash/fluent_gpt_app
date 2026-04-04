@@ -81,7 +81,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                       child: GestureDetector(
                         onTap: () async {
                           final result =
-                              await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
+                              await FilePicker.pickFiles(type: FileType.image, allowMultiple: false);
                           if (result == null) return;
                           final path = result.files.single.path;
                           setState(() {

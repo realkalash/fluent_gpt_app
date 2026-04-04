@@ -2,7 +2,7 @@ PODS:
   - audioplayers_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
-  - cryptography_flutter (0.2.0):
+  - cryptography_flutter (0.0.1):
     - FlutterMacOS
   - file_picker (0.0.1):
     - FlutterMacOS
@@ -25,27 +25,26 @@ PODS:
     - HotKey
   - keypress_simulator_macos (0.0.1):
     - FlutterMacOS
+  - location (0.0.1):
+    - FlutterMacOS
   - macos_window_utils (1.0.0):
     - FlutterMacOS
   - package_info_plus (0.0.1):
     - FlutterMacOS
   - pasteboard (0.0.1):
     - FlutterMacOS
-  - path_provider_foundation (0.0.1):
-    - Flutter
-    - FlutterMacOS
   - printing (1.0.0):
     - FlutterMacOS
   - protocol_handler_macos (0.0.1):
     - FlutterMacOS
-  - record_macos (1.1.0):
+  - record_macos (1.2.0):
     - FlutterMacOS
   - screen_retriever_macos (0.0.1):
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - system_theme (0.0.1):
+  - system_theme (3.2.0):
     - FlutterMacOS
   - tray_manager (0.0.1):
     - FlutterMacOS
@@ -65,10 +64,10 @@ DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
   - hotkey_manager_macos (from `Flutter/ephemeral/.symlinks/plugins/hotkey_manager_macos/macos`)
   - keypress_simulator_macos (from `Flutter/ephemeral/.symlinks/plugins/keypress_simulator_macos/macos`)
+  - location (from `Flutter/ephemeral/.symlinks/plugins/location/macos`)
   - macos_window_utils (from `Flutter/ephemeral/.symlinks/plugins/macos_window_utils/macos`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
   - pasteboard (from `Flutter/ephemeral/.symlinks/plugins/pasteboard/macos`)
-  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
   - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
   - protocol_handler_macos (from `Flutter/ephemeral/.symlinks/plugins/protocol_handler_macos/macos`)
   - record_macos (from `Flutter/ephemeral/.symlinks/plugins/record_macos/macos`)
@@ -103,14 +102,14 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/hotkey_manager_macos/macos
   keypress_simulator_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/keypress_simulator_macos/macos
+  location:
+    :path: Flutter/ephemeral/.symlinks/plugins/location/macos
   macos_window_utils:
     :path: Flutter/ephemeral/.symlinks/plugins/macos_window_utils/macos
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   pasteboard:
     :path: Flutter/ephemeral/.symlinks/plugins/pasteboard/macos
-  path_provider_foundation:
-    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
   printing:
     :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
   protocol_handler_macos:
@@ -131,29 +130,29 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/window_manager/macos
 
 SPEC CHECKSUMS:
-  audioplayers_darwin: 4f9ca89d92d3d21cec7ec580e78ca888e5fb68bd
-  cryptography_flutter: 33e8726fef117a6f306382f6fa34e173642cc64f
+  audioplayers_darwin: 835ced6edd4c9fc8ebb0a7cc9e294a91d99917d5
+  cryptography_flutter: be2b3e0e31603521b6a1c2bea232a88a2488a91c
   file_picker: 7584aae6fa07a041af2b36a2655122d42f578c1a
-  file_selector_macos: 6280b52b459ae6c590af5d78fc35c7267a3c4b31
+  file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   FluentIcons: 7d6e501bf569ebd7257261fdcf20f359b4267e79
   flutter_gpt_tokenizer: 0d9e224c1ff3bc0ae48f802fc87258c08057350c
-  flutter_local_notifications: 4bf37a31afde695b56091b4ae3e4d9c7a7e6cda0
+  flutter_local_notifications: 1fc7ffb10a83d6a2eeeeddb152d43f1944b0aad0
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   HotKey: 400beb7caa29054ea8d864c96f5ba7e5b4852277
   hotkey_manager_macos: a4317849af96d2430fa89944d3c58977ca089fbe
   keypress_simulator_macos: b5c87294b03ab5a2e743873a7dabe1ff5589129d
+  location: c002b64375c0739e7afa30cbd0b675554830d208
   macos_window_utils: 23f54331a0fd51eea9e0ed347253bf48fd379d1d
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
-  pasteboard: 278d8100149f940fb795d6b3a74f0720c890ecb7
-  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
+  pasteboard: b594eaf838d930b276d7a35a44a32b4f489170cb
   printing: c4cf83c78fd684f9bc318e6aadc18972aa48f617
   protocol_handler_macos: f9cd7b13bcaf6b0425f7410cbe52376cb843a936
-  record_macos: 43194b6c06ca6f8fa132e2acea72b202b92a0f5b
+  record_macos: 7f227161b93c49e7e34fe681c5891c8622c8cc8b
   screen_retriever_macos: 452e51764a9e1cdb74b3c541238795849f21557f
-  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
-  system_theme: ed74293ad07d3a05e3e2d0059ff342360346f1a0
+  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  system_theme: 6a419772fd834d53d9eb27accb3653b399c74426
   tray_manager: a104b5c81b578d83f3c3d0f40a997c8b10810166
-  url_launcher_macos: 0fba8ddabfc33ce0a9afe7c5fef5aab3d8d2d673
+  url_launcher_macos: f87a979182d112f911de6820aefddaf56ee9fbfd
   window_manager: b729e31d38fb04905235df9ea896128991cad99e
 
 PODFILE CHECKSUM: 4d755c157da5db49c037663cf0110dff955fe873

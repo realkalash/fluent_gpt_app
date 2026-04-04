@@ -41,8 +41,7 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
         }
         notificationTapBackground(
           NotificationResponse(
-            notificationResponseType:
-                NotificationResponseType.selectedNotification,
+            notificationResponseType: NotificationResponseType.selectedNotification,
             payload: jsonEncode(details.userInput),
           ),
         );
@@ -76,8 +75,7 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
       return;
     }
     if (Platform.isMacOS || Platform.isIOS) {
-      final permission =
-          await MacOSFlutterLocalNotificationsPlugin().checkPermissions();
+      final permission = await MacOSFlutterLocalNotificationsPlugin().checkPermissions();
       if (permission?.isEnabled == false) {
         await MacOSFlutterLocalNotificationsPlugin().requestPermissions(
           alert: true,
@@ -87,10 +85,9 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
       }
       final stringPayload = jsonEncode(payload);
       await notificationsPlugin.show(
-        int.tryParse(_id) ?? 999,
-        title,
-        body,
-        null,
+        id: int.tryParse(_id) ?? 999,
+        title: title,
+        body: body,
         payload: stringPayload,
       );
       return;
@@ -98,10 +95,9 @@ _winNotifyPlugin.showNotificationPluginTemplate(message);
     if (Platform.isLinux) {
       final stringPayload = jsonEncode(payload);
       await notificationsPlugin.show(
-        int.tryParse(_id) ?? 999,
-        title,
-        body,
-        null,
+        id: int.tryParse(_id) ?? 999,
+        title: title,
+        body: body,
         payload: stringPayload,
       );
       return;

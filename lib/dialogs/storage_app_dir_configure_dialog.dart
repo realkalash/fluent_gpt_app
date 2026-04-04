@@ -80,7 +80,7 @@ class _StorageAppDirConfigureDialogState
               children: [
                 Button(
                   onPressed: () async {
-                    final result = await FilePicker.platform.getDirectoryPath(
+                    final result = await FilePicker.getDirectoryPath(
                       initialDirectory:
                           AppCache.appDocumentsDirectory.value?.isEmpty == true
                               ? null
@@ -188,7 +188,7 @@ class _StorageAppDirConfigureDialogState
       }
     }
     final data = jsonEncode(settings);
-    final selectedPath = await FilePicker.platform.saveFile(
+    final selectedPath = await FilePicker.saveFile(
       type: FileType.custom,
       allowedExtensions: ['json'],
       initialDirectory: FileUtils.documentDirectoryPath,
@@ -205,7 +205,7 @@ class _StorageAppDirConfigureDialogState
   }
 
   Future<void> importSettings(BuildContext context) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
       initialDirectory: FileUtils.documentDirectoryPath,

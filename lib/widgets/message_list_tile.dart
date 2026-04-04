@@ -1187,7 +1187,7 @@ class _MessageCardState extends State<MessageCard> {
     }
   }
 
-  _copyImageToClipboard(BuildContext context) async {
+  Future<void> _copyImageToClipboard(BuildContext context) async {
     Navigator.of(context).maybePop();
 
     final imageBytesString = widget.message.content;

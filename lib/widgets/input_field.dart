@@ -661,14 +661,6 @@ class _InputFieldState extends State<InputField> {
                 clearFieldAndFocus();
                 if (text.isNotEmpty) provider.onResponseEnd(controller.text, '$timestamp');
               }),
-          MenuFlyoutSeparator(),
-          MenuFlyoutItem(
-            text: Text('Send with waiting for response'.tr),
-            onPressed: () {
-              provider.sendMessage(controller.text, hidePrompt: false, sendStream: false);
-              clearFieldAndFocus();
-            },
-          ),
         ],
       );
     });
@@ -1262,7 +1254,7 @@ class AddFileButton extends StatelessWidget {
         dimension: isMini ? 30 : 48,
         child: IconButton(
           onPressed: () async {
-            FilePickerResult? result = await FilePicker.platform.pickFiles(
+            FilePickerResult? result = await FilePicker.pickFiles(
               allowedExtensions: [
                 'jpg',
                 'jpeg',

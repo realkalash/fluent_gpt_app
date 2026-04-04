@@ -517,9 +517,9 @@ class _AiLensDialogState extends State<AiLensDialog> {
     );
   }
 
-  void sendMessage([bool asStream = true]) {
+  void sendMessage() {
     final provider = context.read<ChatProvider>();
-    provider.sendMessage(textContr.text, hidePrompt: false, sendStream: asStream);
+    provider.sendMessage(textContr.text, hidePrompt: false);
     Navigator.of(context).pop(true);
   }
 
@@ -528,13 +528,6 @@ class _AiLensDialogState extends State<AiLensDialog> {
     flyoutController.showFlyout(builder: (context) {
       return MenuFlyout(
         items: [
-          MenuFlyoutItem(
-            text: Text('Send with waiting for response'.tr),
-            onPressed: () {
-              Navigator.of(context).pop();
-              sendMessage(false);
-            },
-          ),
           MenuFlyoutItem(
             text: Text('Add to chat as USER'.tr),
             onPressed: () {

@@ -392,7 +392,7 @@ class FileUtils {
   /// Shows OS prompt to choose where to save a file
   static Future<String?> saveFileOsPrompt(Uint8List bytes,
       {List<String>? allowedExtensions, FileType type = FileType.any, String? fileName}) async {
-    final path = await FilePicker.platform.saveFile(
+    final path = await FilePicker.saveFile(
       allowedExtensions: allowedExtensions,
       type: type,
       bytes: bytes,

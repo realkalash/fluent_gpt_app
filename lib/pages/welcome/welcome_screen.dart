@@ -4,7 +4,6 @@ import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/theme.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_moving_background/enums/animation_types.dart';
 import 'package:provider/provider.dart';
 import 'package:simple_animations/simple_animations.dart';
 import 'package:flutter_moving_background/flutter_moving_background.dart';
@@ -129,7 +128,7 @@ class AnimatedGradientBackgroundMovingCircles extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MovingBackground(
       backgroundColor: Color.fromARGB(120, 26, 26, 26),
-      animationType: AnimationType.rain,
+      animationType: AnimationType.moveAndFade,
       duration: Duration(seconds: 30),
       circles: [
         MovingCircle(color: Colors.purple),

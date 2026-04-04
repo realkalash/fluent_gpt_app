@@ -50,14 +50,14 @@ class _ZoomHoverState extends State<ZoomHover> {
 
   @override
   Widget build(BuildContext context) {
+    final scale = _isHovered ? widget.hoverScale : 1.0;
     return MouseRegion(
       onEnter: (_) => _handleHoverChanged(true),
       onExit: (_) => _handleHoverChanged(false),
       child: AnimatedContainer(
         duration: _isHovered ? widget.enterDuration : widget.exitDuration,
         curve: _isHovered ? widget.enterCurve : widget.exitCurve,
-        transform: Matrix4.identity()
-          ..scale(_isHovered ? widget.hoverScale : 1.0),
+        transform: Matrix4.identity()..scaleByDouble(scale, scale, scale, 1.0),
         transformAlignment: Alignment.center,
         decoration: widget.addShadowOnHover
             ? BoxDecoration(
