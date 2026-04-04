@@ -45,7 +45,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 
-import 'input_field.dart';
+import 'input_field/input_field.dart';
 
 class MessageListTile extends StatelessWidget {
   const MessageListTile({

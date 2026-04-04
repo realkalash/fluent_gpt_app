@@ -58,7 +58,8 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
-import 'package:fluent_gpt/widgets/input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/additional_btns_input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';

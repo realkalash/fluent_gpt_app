@@ -13,7 +13,7 @@ import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/overlay/overlay_ui.dart';
-import 'package:fluent_gpt/widgets/input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
