@@ -8,7 +8,6 @@ import 'package:fluent_gpt/features/open_ai_features.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
-import 'package:fluent_gpt/providers/chat_utils.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';

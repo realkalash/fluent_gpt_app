@@ -17,8 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class EditChatRoomDialog extends StatefulWidget {
-  const EditChatRoomDialog(
-      {super.key, required this.room, required this.onOkPressed});
+  const EditChatRoomDialog({super.key, required this.room, required this.onOkPressed});
   final ChatRoom room;
   final VoidCallback onOkPressed;
 
@@ -29,8 +28,7 @@ class EditChatRoomDialog extends StatefulWidget {
   }) {
     return showDialog(
       context: context,
-      builder: (ctx) =>
-          EditChatRoomDialog(room: room, onOkPressed: onOkPressed),
+      builder: (ctx) => EditChatRoomDialog(room: room, onOkPressed: onOkPressed),
     );
   }
 
@@ -63,9 +61,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
 
   Future countTokens() async {
     if (widget.room.isFolder) return;
-    final tokens = await context
-        .read<ChatProvider>()
-        .countTokensString(systemMessageContr.text);
+    final tokens = await context.read<ChatProvider>().countTokensString(systemMessageContr.text);
     setState(() {
       tokensInMessage = tokens;
     });
@@ -85,19 +81,13 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
   @override
   Widget build(BuildContext context) {
     final provider = context.read<ChatProvider>();
-    final dateCreated = DateTime.fromMillisecondsSinceEpoch(
-        widget.room.dateCreatedMilliseconds);
-    final dateCreatedString =
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(dateCreated);
-    final dateModified = DateTime.fromMillisecondsSinceEpoch(
-        widget.room.dateModifiedMilliseconds);
-    final dateModifiedString =
-        DateFormat('yyyy-MM-dd HH:mm:ss').format(dateModified);
+    final dateCreated = DateTime.fromMillisecondsSinceEpoch(widget.room.dateCreatedMilliseconds);
+    final dateCreatedString = DateFormat('yyyy-MM-dd HH:mm:ss').format(dateCreated);
+    final dateModified = DateTime.fromMillisecondsSinceEpoch(widget.room.dateModifiedMilliseconds);
+    final dateModifiedString = DateFormat('yyyy-MM-dd HH:mm:ss').format(dateModified);
 
     return ContentDialog(
-      title: widget.room.isFolder
-          ? const Text('Edit folder')
-          : const Text('Edit chat room'),
+      title: widget.room.isFolder ? const Text('Edit folder') : const Text('Edit chat room'),
       constraints: const BoxConstraints(maxWidth: 800),
       actions: [
         FilledButton(
@@ -145,8 +135,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: () async {
-                    final result = await FilePicker.platform
-                        .pickFiles(type: FileType.image, allowMultiple: false);
+                    final result = await FilePicker.pickFiles(type: FileType.image, allowMultiple: false);
                     if (result == null) return;
                     final path = result.files.single.path;
                     setState(() {
@@ -203,8 +192,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(2.0),
-                                child: Icon(FluentIcons.delete_20_regular,
-                                    size: 16),
+                                child: Icon(FluentIcons.delete_20_regular, size: 16),
                               ),
                             ),
                           ),
@@ -215,14 +203,13 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 ),
               ),
             ),
-           Text('Chat name'.tr),
+          Text('Chat name'.tr),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Expanded(
                 child: TextBox(
-                  controller:
-                      TextEditingController(text: widget.room.chatRoomName),
+                  controller: TextEditingController(text: widget.room.chatRoomName),
                   onChanged: (value) {
                     roomName = value;
                   },
@@ -233,8 +220,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
           if (!widget.room.isFolder) ...[
             Text('Character name'.tr),
             TextBox(
-              controller:
-                  TextEditingController(text: widget.room.characterName),
+              controller: TextEditingController(text: widget.room.characterName),
               maxLines: 1,
               onChanged: (value) {
                 characterName = value;
@@ -246,12 +232,9 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 Spacer(),
                 SqueareIconButton(
                   onTap: () async {
-                    final currentStrippedPrompt =
-                        (systemMessageContr.text).isEmpty
-                            ? defaultGlobalSystemMessage
-                            : systemMessageContr.text
-                                .split(contextualInfoDelimeter)
-                                .first;
+                    final currentStrippedPrompt = (systemMessageContr.text).isEmpty
+                        ? defaultGlobalSystemMessage
+                        : systemMessageContr.text.split(contextualInfoDelimeter).first;
                     final newPrompt = await getFormattedSystemPrompt(
                       basicPrompt: currentStrippedPrompt,
                     );
@@ -294,8 +277,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                 }),
             const Text('Max token length'),
             TextBox(
-              controller: TextEditingController(
-                  text: widget.room.maxTokenLength.toString()),
+              controller: TextEditingController(text: widget.room.maxTokenLength.toString()),
               onChanged: (value) {
                 maxTokens = int.parse(value);
               },

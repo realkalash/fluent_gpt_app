@@ -121,12 +121,8 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                       resetSearch();
                     } else {
                       prompts = prompts.where((element) {
-                        final isTitleContains = element.title
-                            .toLowerCase()
-                            .contains(value.toLowerCase());
-                        final isPromptContains = element.prompt
-                            .toLowerCase()
-                            .contains(value.toLowerCase());
+                        final isTitleContains = element.title.toLowerCase().contains(value.toLowerCase());
+                        final isPromptContains = element.prompt.toLowerCase().contains(value.toLowerCase());
                         return isTitleContains || isPromptContains;
                       }).toList();
                     }
@@ -185,8 +181,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                           children: item.tags
                               .map((e) => Button(
                                     style: const ButtonStyle(
-                                      padding: WidgetStatePropertyAll(
-                                          EdgeInsets.all(4)),
+                                      padding: WidgetStatePropertyAll(EdgeInsets.all(4)),
                                     ),
                                     onPressed: () {},
                                     child: Text(e),
@@ -224,29 +219,23 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
                         onPressed: () async {
                           await resetSearch();
                           final newPrompt = item.copyWith(
-                            id: int.parse(
-                                nanoid(alphabet: Alphabet.numbers, length: 10)),
+                            id: int.parse(nanoid(alphabet: Alphabet.numbers, length: 10)),
                             title: '${item.title} 2',
                           );
                           prompts.insert(0, newPrompt);
-                          groups = prompts
-                              .expand((element) => element.tags)
-                              .toSet()
-                              .toList();
+                          groups = prompts.expand((element) => element.tags).toSet().toList();
                           await savePrompts();
                           setState(() {});
                         },
                       ),
                       IconButton(
-                        icon: Icon(FluentIcons.delete_20_filled,
-                            size: 24, color: Colors.red),
+                        icon: Icon(FluentIcons.delete_20_filled, size: 24, color: Colors.red),
                         onPressed: () => removePrompt(index),
                       ),
                     ],
                   ),
                   onPressed: () async {
-                    final isContainsPlaceHolder =
-                        placeholdersRegex.hasMatch(item.prompt);
+                    final isContainsPlaceHolder = placeholdersRegex.hasMatch(item.prompt);
                     // if not empty show new dialog with Wrap and TextBox for each placeholder
                     if (isContainsPlaceHolder) {
                       final newText = await showDialog<String>(
@@ -298,8 +287,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       }
       prompts.insert(
         0,
-        result.copyWith(
-            id: int.parse(nanoid(alphabet: Alphabet.numbers, length: 10))),
+        result.copyWith(id: int.parse(nanoid(alphabet: Alphabet.numbers, length: 10))),
       );
       groups = prompts.expand((element) => element.tags).toSet().toList();
       await savePrompts();
@@ -326,12 +314,10 @@ class ReplaceAllPlaceHoldersDialog extends StatefulWidget {
   final String originalText;
 
   @override
-  State<ReplaceAllPlaceHoldersDialog> createState() =>
-      _ReplaceAllPlaceHoldersDialogState();
+  State<ReplaceAllPlaceHoldersDialog> createState() => _ReplaceAllPlaceHoldersDialogState();
 }
 
-class _ReplaceAllPlaceHoldersDialogState
-    extends State<ReplaceAllPlaceHoldersDialog> {
+class _ReplaceAllPlaceHoldersDialogState extends State<ReplaceAllPlaceHoldersDialog> {
   String newText = '';
   @override
   void initState() {
@@ -356,26 +342,34 @@ class _ReplaceAllPlaceHoldersDialogState
   @override
   Widget build(BuildContext context) {
     final words = newText.split(' ');
+    final size = MediaQuery.sizeOf(context);
     return ContentDialog(
       title: const Text('Replace all placeholders'),
       constraints: const BoxConstraints(maxWidth: 800, maxHeight: 1200),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            title: const Text('Text:'),
-            subtitle: RichText(
-                text: TextSpan(children: [
-              for (final word in words)
-                placeholdersRegex.hasMatch(word)
-                    ? TextSpan(
-                        text: '$word ',
-                        style: TextStyle(
-                          color: Colors.yellow,
-                        ),
-                      )
-                    : TextSpan(text: '$word '),
-            ])),
+          Column(
+            children: [
+              const Text('Text:'),
+              SizedBox(
+                height: size.height * 0.3,
+                child: SingleChildScrollView(
+                  child: RichText(
+                      text: TextSpan(children: [
+                    for (final word in words)
+                      placeholdersRegex.hasMatch(word)
+                          ? TextSpan(
+                              text: '$word ',
+                              style: TextStyle(
+                                color: Colors.yellow,
+                              ),
+                            )
+                          : TextSpan(text: '$word '),
+                  ])),
+                ),
+              )
+            ],
           ),
           Wrap(
             spacing: 4,
@@ -414,11 +408,9 @@ class _ReplaceAllPlaceHoldersDialogState
                           const SizedBox(width: 4),
                           Text(
                             'tab',
-                            style: TextStyle(
-                                fontSize: 14, color: context.theme.accentColor),
+                            style: TextStyle(fontSize: 14, color: context.theme.accentColor),
                           ),
-                          Icon(FluentIcons.arrow_right_24_regular,
-                              size: 14, color: context.theme.accentColor),
+                          Icon(FluentIcons.arrow_right_24_regular, size: 14, color: context.theme.accentColor),
                         ],
                       ),
                     ),

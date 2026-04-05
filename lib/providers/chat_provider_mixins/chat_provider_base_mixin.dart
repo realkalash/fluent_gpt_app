@@ -1,3 +1,5 @@
+import 'package:cross_file/cross_file.dart';
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_room.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -53,6 +55,9 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
     bool showImageInChat = false,
     bool sendAsStream = true,
   });
+  // Files operations
+  Future<void> addFilesToInput(List<XFile> files, {bool clearExisting = true});
+  void removeFilesFromInput();
 
   // Scrolling
   Future<void> scrollToEnd({bool withDelay = true});
@@ -60,6 +65,8 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
   // State
   bool get isAnswering;
   set isAnswering(bool value);
+  bool isSendingFiles = false;
+  List<Attachment> fileInputs = [];
 
   // Initialization-specific dependencies
   Future<void> loadMessagesFromDisk(String id);

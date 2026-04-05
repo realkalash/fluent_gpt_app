@@ -10,7 +10,7 @@ import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/tray.dart';
-import 'package:fluent_gpt/widgets/input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';

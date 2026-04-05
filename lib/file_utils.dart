@@ -83,6 +83,10 @@ extension XFileBaseExtension on XFile {
 }
 
 class FileUtils {
+  /// One in-flight write per chat id so concurrent [saveChatMessages] calls cannot
+  /// interleave and corrupt `*-messages.json` (invalid JSON like `]{"id":...`).
+  static final Map<String, Future<void>> _chatMessagesSaveChains = {};
+
   /// Directory for storing app configuration, user data and chats
   static String? documentDirectoryPath;
 
@@ -244,12 +248,37 @@ class FileUtils {
   }
 
   /// key and message.toJson() to json string
-  static Future saveChatMessages(String id, String data) async {
-    final file = await getChatRoomMessagesFileById(id);
-    if (!file.existsSync()) {
-      await file.create(recursive: true);
+  static Future<void> saveChatMessages(String id, String data) async {
+    final prev = _chatMessagesSaveChains[id] ?? Future.value();
+    final completer = Completer<void>();
+    _chatMessagesSaveChains[id] = completer.future;
+    try {
+      try {
+        await prev;
+      } catch (_) {
+        // Do not wedge the queue if a prior save failed.
+      }
+      final file = await getChatRoomMessagesFileById(id);
+      final parent = file.parent;
+      if (!parent.existsSync()) {
+        await parent.create(recursive: true);
+      }
+      final tmp = File('${file.path}.tmp');
+      await tmp.writeAsString(data);
+      if (file.existsSync()) {
+        await file.delete();
+      }
+      await tmp.rename(file.path);
+    } catch (e, st) {
+      if (!completer.isCompleted) {
+        completer.completeError(e, st);
+      }
+      rethrow;
+    } finally {
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     }
-    await file.writeAsString(data);
   }
 
   static Future<String> getChatRoomsPath() async {
@@ -392,7 +421,7 @@ class FileUtils {
   /// Shows OS prompt to choose where to save a file
   static Future<String?> saveFileOsPrompt(Uint8List bytes,
       {List<String>? allowedExtensions, FileType type = FileType.any, String? fileName}) async {
-    final path = await FilePicker.platform.saveFile(
+    final path = await FilePicker.saveFile(
       allowedExtensions: allowedExtensions,
       type: type,
       bytes: bytes,
@@ -408,5 +437,19 @@ class FileUtils {
       return null;
     }
     return path;
+  }
+
+  // Detect file type from bytes reading the first 1024 bytes
+  static Future<String?> detectFileTypeFromBytes(Uint8List bytes) async {
+    final first1024Bytes = bytes.sublist(0, 1024);
+    switch (first1024Bytes) {
+      case [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]:
+        return 'image/png';
+      case [0xFF, 0xD8, 0xFF, 0xE0]:
+        return 'image/jpeg';
+      case [0x25, 0x50, 0x44, 0x46]:
+        return 'application/pdf';
+    }
+    return null;
   }
 }

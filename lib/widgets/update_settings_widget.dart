@@ -150,10 +150,10 @@ class _UpdateSettingsWidgetState extends State<UpdateSettingsWidget> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.accentColor.withOpacity(0.1),
+              color: theme.accentColor.withAlpha(25),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: theme.accentColor.withOpacity(0.3),
+                color: theme.accentColor.withAlpha(75),
               ),
             ),
             child: Row(

@@ -23,10 +23,11 @@ class ShellExecutionWidget extends StatefulWidget {
 }
 
 class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
-  bool _isExpanded = true;
+  bool _isExpanded = false;
   bool _isExecuting = false;
 
   Future<void> _runCommand(String command) async {
+    final provider = context.read<ChatProvider>();
     if (_isExecuting) return;
 
     setState(() {
@@ -36,7 +37,7 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
     try {
       var shell = Shell();
       final parts = _parseCommand(command);
-      
+
       if (parts.isEmpty) {
         throw Exception('Empty command');
       }
@@ -49,13 +50,12 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
       int exitCode = 0;
 
       try {
-        final process = await shell.start(commandName, arguments: commandArgs)
-            .timeout(const Duration(seconds: 30));
-        
+        final process = await shell.start(commandName, arguments: commandArgs).timeout(const Duration(seconds: 30));
+
         stdout = await process.stdout.readAsString();
         stderr = await process.stderr.readAsString();
         exitCode = await process.exitCode;
-        
+
         // Limit output size
         if (stdout.length > 10240) {
           stdout = '${stdout.substring(0, 10240)}\n... (output truncated)';
@@ -72,7 +72,6 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
       }
 
       // Update message to shellExec type with results
-      final provider = context.read<ChatProvider>();
       final updatedMessage = FluentChatMessage.shellExec(
         id: widget.message.id,
         command: command,
@@ -198,9 +197,7 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                   style: TextStyle(
                     fontFamily: 'Consolas',
                     fontSize: 13,
-                    color: isProposal 
-                        ? Colors.orange 
-                        : (isSuccess ? Colors.green : Colors.red),
+                    color: isProposal ? Colors.orange : (isSuccess ? Colors.green : Colors.red),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -270,9 +267,7 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.dark 
-                      ? const Color(0xFF2B2B2B) 
-                      : const Color(0xFF353535),
+                  color: theme.brightness == Brightness.dark ? const Color(0xFF2B2B2B) : const Color(0xFF353535),
                 ),
                 child: Text(
                   description,

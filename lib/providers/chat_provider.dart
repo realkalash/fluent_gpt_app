@@ -58,7 +58,8 @@ import 'package:fluent_gpt/tray.dart';
 import 'package:fluent_gpt/utils.dart';
 
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
-import 'package:fluent_gpt/widgets/input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/additional_btns_input_field.dart';
+import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -477,7 +478,6 @@ class ChatProvider
   Future<void> sendMessage(
     String messageContent, {
     bool hidePrompt = false,
-    bool sendStream = true,
     void Function()? onFinishResponse,
     void Function()? onMessageSent,
     bool sendAsUser = true,
@@ -725,31 +725,6 @@ class ChatProvider
     try {
       initModelsApi();
 
-      if (!sendStream) {
-        late AIChatMessage response;
-        response = await openAI!.call(messagesToSend, options: options);
-
-        if (response.toolCalls.isNotEmpty) {
-          final lastChar = response.toolCalls.first.argumentsRaw;
-          if (lastChar == '}') {
-            final decoded = jsonDecode(response.toolCalls.first.argumentsRaw);
-            _onToolsResponseEnd(messageContent, decoded, response.content);
-          }
-        }
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        addBotMessageToList(
-          FluentChatMessage.ai(
-            id: '$timestamp',
-            content: response.content,
-            timestamp: timestamp,
-            tokens: await countTokensString(response.content),
-            creator: selectedChatRoom.characterName,
-          ),
-        );
-        saveToDisk([selectedChatRoom]);
-        isAnswering = false;
-        return;
-      }
       responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
 
       String functionCallString = '';
@@ -764,13 +739,12 @@ class ChatProvider
           chunkNumber++;
 
           if (chunkNumber == 1) {
-            for (var file in fileInputs ?? <Attachment>[]) {
+            for (var file in fileInputs) {
               if (file.isInternalScreenshot == true) {
                 FileUtils.deleteFile(file.path);
               }
             }
-            fileInputs = null;
-            notifyListeners();
+            removeFilesFromInput();
           }
           final message = chunk.output;
           // log tokens
@@ -844,7 +818,6 @@ class ChatProvider
                     timestamp: time,
                     buttons: {
                       MesssageListTileButtons.disable_tools_btn.name: true,
-                      MesssageListTileButtons.send_with_waiting_for_response_btn.name: true,
                     }),
               );
             }
@@ -922,7 +895,6 @@ class ChatProvider
               timestamp: now,
               buttons: {
                 MesssageListTileButtons.disable_tools_btn.name: true,
-                MesssageListTileButtons.send_with_waiting_for_response_btn.name: true,
                 MesssageListTileButtons.retry_btn.name: true,
               }),
         );
@@ -1357,8 +1329,7 @@ class ChatProvider
       addBotErrorMessageToList(
         FluentChatMessage.system(content: 'Error while sending single message: $e', id: id),
       );
-      fileInputs = null;
-      notifyListeners();
+      removeFilesFromInput();
     }
   }
 
@@ -1504,7 +1475,7 @@ class ChatProvider
 
   @override
   Future<void> sendAllAttachmentsToChatSilently() async {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
     await processFilesBeforeSendingMessage();
     removeFilesFromInput();
   }
@@ -2479,8 +2450,6 @@ class ChatProvider
 
       displayTextInfoBar('Tools disabled'.tr);
       notifyListeners();
-    } else if (button == MesssageListTileButtons.send_with_waiting_for_response_btn.name) {
-      sendMessage(message.content, sendStream: false);
     } else if (button == MesssageListTileButtons.retry_btn.name) {
       sendMessage(message.content);
     }

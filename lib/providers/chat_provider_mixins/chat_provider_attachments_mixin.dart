@@ -11,13 +11,43 @@ import 'package:fluent_gpt/features/image_util.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 
+/// Inserts `[path:…]` tokens at the current selection (or caret), replacing any selected range.
+void _insertPathTokensAtCursorForChat(List<String> paths) {
+  if (paths.isEmpty) return;
+  final insertion = paths.map((p) => '[path:$p]').join(' ');
+  final controller = ChatProvider.messageControllerGlobal;
+  final value = controller.value;
+  final text = value.text;
+  final sel = value.selection;
+  final int start;
+  final int end;
+  if (sel.isValid) {
+    var s = sel.start.clamp(0, text.length);
+    var e = sel.end.clamp(0, text.length);
+    if (s > e) {
+      final t = s;
+      s = e;
+      e = t;
+    }
+    start = s;
+    end = e;
+  } else {
+    start = end = text.length;
+  }
+  final newText = text.replaceRange(start, end, insertion);
+  final newOffset = start + insertion.length;
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection.collapsed(offset: newOffset),
+  );
+}
+
 mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
-  List<Attachment>? fileInputs;
-  bool isSendingFiles = false;
   static const Map<String, bool> allowedFileExtensions = {
     'jpg': true,
     'jpeg': true,
@@ -29,13 +59,22 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
     'pdf': true,
   };
 
-  void addFilesToInput(List<XFile> files, {bool clearExisting = true}) {
+  @override
+  Future<void> addFilesToInput(List<XFile> files,
+      {bool clearExisting = true}) async {
     if (clearExisting) {
-      fileInputs?.clear();
+      fileInputs.clear();
     }
-    fileInputs ??= <Attachment>[];
+    final nonImagePaths = <String>[];
     for (var file in files) {
+      final mime = file.mimeType ??
+          await FileUtils.detectFileTypeFromBytes(await file.readAsBytes());
+      if (mime?.startsWith('image') == false) {
+        nonImagePaths.add(file.path);
+        continue;
+      }
       final fileExt = file.path.split('.').last;
+
       if (allowedFileExtensions.containsKey(fileExt) == false) {
         displayErrorInfoBar(
           title: 'Not Supported'.tr,
@@ -45,18 +84,24 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
         continue;
       }
       final attachment = Attachment.fromFile(file);
-      fileInputs?.add(attachment);
+      fileInputs.add(attachment);
+    }
+    if (nonImagePaths.isNotEmpty) {
+      _insertPathTokensAtCursorForChat(nonImagePaths);
+      notifyListeners();
+      return;
     }
     notifyListeners();
   }
 
   void addAttachmentToInput(List<Attachment> attachments) {
-    fileInputs?.clear();
+    fileInputs.clear();
     fileInputs = attachments;
     notifyListeners();
   }
 
-  Future<void> addAttachmentAiLens(Uint8List bytes, {bool showDialog = true}) async {
+  Future<void> addAttachmentAiLens(Uint8List bytes,
+      {bool showDialog = true}) async {
     final attachment = Attachment.fromInternalScreenshotBytes(bytes);
     addAttachmentToInput([attachment]);
     if (showDialog) {
@@ -68,11 +113,11 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
   }
 
   Future<void> processFilesBeforeSendingMessage() async {
-    if (fileInputs == null || fileInputs!.isEmpty) {
+    if (fileInputs.isEmpty) {
       return;
     }
 
-    for (var file in fileInputs!) {
+    for (var file in fileInputs) {
       await Future.delayed(const Duration(milliseconds: 10));
       if (file.isImage == true) {
         final bytes = await file.readAsBytes();
@@ -153,50 +198,52 @@ mixin ChatProviderAttachmentsMixin on ChangeNotifier, ChatProviderBaseMixin {
             path: file.path,
             fileName: file.name,
             tokens: 256,
-            content: 'Uploaded file: "${file.path}". Analyse it before the answer',
+            content:
+                'Uploaded file: "${file.path}". Analyse it before the answer',
           ),
         );
       }
     }
-    if (fileInputs != null) {
+    if (fileInputs.isNotEmpty) {
       // wait for the file to be populated. Otherwise addHumanMessage can be sent before the file is populated
       await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 
+  @override
   void removeFilesFromInput() {
-    for (var file in fileInputs ?? <Attachment>[]) {
+    for (var file in fileInputs) {
       if (file.isInternalScreenshot == true) {
         FileUtils.deleteFile(file.path);
       }
     }
-    fileInputs = null;
+    fileInputs.clear();
     notifyListeners();
   }
 
   void removeAttachmentFromInput(Attachment attachment) {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
 
     // Delete internal screenshot files if needed
     if (attachment.isInternalScreenshot) {
       FileUtils.deleteFile(attachment.path);
     }
 
-    final index = fileInputs!.indexOf(attachment);
+    final index = fileInputs.indexOf(attachment);
     if (index != -1) {
-      fileInputs!.removeAt(index);
+      fileInputs.removeAt(index);
     }
 
     // If list is empty, set to null
-    if (fileInputs!.isEmpty) {
-      fileInputs = null;
+    if (fileInputs.isEmpty) {
+      fileInputs.clear();
     }
 
     notifyListeners();
   }
 
   Future<void> sendAllAttachmentsToChatSilently() async {
-    if (fileInputs == null || fileInputs!.isEmpty) return;
+    if (fileInputs.isEmpty) return;
     await processFilesBeforeSendingMessage();
     removeFilesFromInput();
   }

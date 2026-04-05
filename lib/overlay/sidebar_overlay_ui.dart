@@ -23,7 +23,7 @@ import 'package:provider/provider.dart';
 import 'package:rxdart/subjects.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../widgets/input_field.dart';
+import '../widgets/input_field/input_field.dart';
 import '../widgets/message_list_tile.dart';
 
 class SidebarOverlayUI extends StatefulWidget {

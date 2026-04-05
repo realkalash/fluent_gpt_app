@@ -35,6 +35,26 @@ class FluentChatMessage {
   final Map<String, bool>? buttons;
   final int? indexPin;
 
+  /// Agent tool trace (execution header UI).
+  ///
+  /// [agentToolName] — tool id (e.g. `read_file_tool`).
+  /// [agentToolArgumentsJson] — JSON-encoded map of arguments the model invoked (flyout).
+  /// [agentToolResult] — exact tool return string the model received (flyout output preview).
+  final String? agentToolName;
+  final String? agentToolArgumentsJson;
+  final String? agentToolResult;
+
+  bool get hasAgentToolOutputSnapshot => agentToolResult != null;
+
+  /// Execution-header flyout: needs a tool name and either JSON args (replay) or a stored result (legacy / side-effect tools).
+  bool get hasAgentToolFlyoutContent {
+    if (agentToolName == null || agentToolName!.isEmpty) {
+      return false;
+    }
+    return (agentToolArgumentsJson != null && agentToolArgumentsJson!.trim().isNotEmpty) ||
+        (agentToolResult != null && agentToolResult!.isNotEmpty);
+  }
+
   bool get isTextMessage => type == FluentChatMessageType.textHuman || type == FluentChatMessageType.textAi;
   bool get isTextFromMe => type == FluentChatMessageType.textHuman;
 
@@ -51,6 +71,9 @@ class FluentChatMessage {
     this.webResults,
     this.buttons,
     this.indexPin,
+    this.agentToolName,
+    this.agentToolArgumentsJson,
+    this.agentToolResult,
   });
 
   @override
@@ -123,6 +146,9 @@ class FluentChatMessage {
     int? timestamp,
     int tokens = 0,
     Map<String, bool>? buttons,
+    String? agentToolName,
+    String? agentToolArgumentsJson,
+    String? agentToolResult,
   }) {
     return FluentChatMessage(
       id: id,
@@ -132,6 +158,9 @@ class FluentChatMessage {
       type: FluentChatMessageType.executionHeader,
       tokens: tokens,
       buttons: buttons,
+      agentToolName: agentToolName,
+      agentToolArgumentsJson: agentToolArgumentsJson,
+      agentToolResult: agentToolResult,
     );
   }
 
@@ -282,6 +311,9 @@ class FluentChatMessage {
     String? imagePrompt,
     int? indexPin,
     Map<String, bool>? buttons,
+    String? agentToolName,
+    String? agentToolArgumentsJson,
+    String? agentToolResult,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
@@ -296,6 +328,9 @@ class FluentChatMessage {
       webResults: webResults ?? this.webResults,
       buttons: buttons ?? this.buttons,
       imagePrompt: imagePrompt ?? this.imagePrompt,
+      agentToolName: agentToolName ?? this.agentToolName,
+      agentToolArgumentsJson: agentToolArgumentsJson ?? this.agentToolArgumentsJson,
+      agentToolResult: agentToolResult ?? this.agentToolResult,
     );
   }
 
@@ -315,6 +350,9 @@ class FluentChatMessage {
       webResults: webResults,
       buttons: buttons,
       imagePrompt: imagePrompt,
+      agentToolName: agentToolName,
+      agentToolArgumentsJson: agentToolArgumentsJson,
+      agentToolResult: agentToolResult,
     );
   }
 
@@ -332,6 +370,9 @@ class FluentChatMessage {
       if (fileName != null) 'fileName': fileName!,
       if (webResults != null) 'webResults': webResults!.map((e) => e.toJson()).toList(),
       if (buttons != null) 'buttons': buttons!,
+      if (agentToolName != null) 'agentToolName': agentToolName!,
+      if (agentToolArgumentsJson != null) 'agentToolArgumentsJson': agentToolArgumentsJson!,
+      if (agentToolResult != null) 'agentToolResult': agentToolResult!,
     };
   }
 
@@ -350,6 +391,9 @@ class FluentChatMessage {
           (json['webResults'] as List?)?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>)).toList(),
       imagePrompt: json['imagePrompt'] as String?,
       buttons: (json['buttons'] as Map<String, dynamic>?)?.map((key, value) => MapEntry(key, value as bool)),
+      agentToolName: json['agentToolName'] as String?,
+      agentToolArgumentsJson: json['agentToolArgumentsJson'] as String?,
+      agentToolResult: json['agentToolResult'] as String?,
     );
   }
 
@@ -506,6 +550,9 @@ class FluentChatMessage {
       buttons: buttons,
       imagePrompt: imagePrompt,
       indexPin: indexPin,
+      agentToolName: agentToolName,
+      agentToolArgumentsJson: agentToolArgumentsJson,
+      agentToolResult: agentToolResult,
     );
   }
 

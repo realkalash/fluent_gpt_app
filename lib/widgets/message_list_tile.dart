@@ -25,6 +25,7 @@ import 'package:fluent_gpt/theme.dart';
 import 'package:easy_image_viewer/easy_image_viewer.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_gpt/utils.dart';
+import 'package:fluent_gpt/widgets/agent_execution_header_tile.dart';
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/context_menu_builders.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
@@ -44,7 +45,7 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 
-import 'input_field.dart';
+import 'input_field/input_field.dart';
 
 class MessageListTile extends StatelessWidget {
   const MessageListTile({
@@ -175,7 +176,8 @@ class _MessageCardState extends State<MessageCard> {
     final isContentText = widget.message.isTextMessage;
     final theme = FluentTheme.of(context);
 
-    if (widget.message.type == FluentChatMessageType.shellExec || widget.message.type == FluentChatMessageType.shellProposal) {
+    if (widget.message.type == FluentChatMessageType.shellExec ||
+        widget.message.type == FluentChatMessageType.shellProposal) {
       return ShellExecutionWidget(message: widget.message);
     }
 
@@ -190,17 +192,7 @@ class _MessageCardState extends State<MessageCard> {
       );
     }
     if (widget.message.type == FluentChatMessageType.executionHeader) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Text(
-          widget.message.content,
-          textAlign: TextAlign.left,
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.typography.caption?.color?.withAlpha(127),
-          ),
-        ),
-      );
+      return AgentExecutionHeaderTile(message: widget.message);
     }
 
     if (widget.message.type == FluentChatMessageType.system)
@@ -768,8 +760,8 @@ class _MessageCardState extends State<MessageCard> {
                                 _toggleEditing();
                               },
                             ),
-                            // only for the last 2 items
-                            if (widget.indexMessage < 2)
+                            // only for the last item
+                            if (widget.indexMessage < 1)
                               SqueareIconButton(
                                 tooltip: 'Regenerate message',
                                 icon: widget.message.isTextFromMe
@@ -1187,7 +1179,7 @@ class _MessageCardState extends State<MessageCard> {
     }
   }
 
-  _copyImageToClipboard(BuildContext context) async {
+  Future<void> _copyImageToClipboard(BuildContext context) async {
     Navigator.of(context).maybePop();
 
     final imageBytesString = widget.message.content;

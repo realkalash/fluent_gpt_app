@@ -232,7 +232,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                     const SizedBox(height: 16),
                     Button(
                       onPressed: () async {
-                        FilePickerResult? result = await FilePicker.platform.pickFiles(
+                        FilePickerResult? result = await FilePicker.pickFiles(
                           type: FileType.custom,
                           allowedExtensions: ['gguf'],
                           allowMultiple: false,

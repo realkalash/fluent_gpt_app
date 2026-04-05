@@ -120,7 +120,7 @@ void main(List<String> args) async {
   // SimpleSpellCheckerEnRegister.registerLan();
   await windowManager.ensureInitialized();
 
-  if (await FlutterSingleInstance().isFirstInstance() == false) {
+  if (Platform.isMacOS == false && await FlutterSingleInstance().isFirstInstance() == false) {
     log("App is already running");
     showWindow();
     return;

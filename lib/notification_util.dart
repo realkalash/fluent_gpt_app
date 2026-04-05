@@ -14,15 +14,12 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 }
 
 @pragma('vm:entry-point')
-Future<void> onDidReceiveLocalNotification(
-    int id, String? title, String? body, String? payload) async {
+Future<void> onDidReceiveLocalNotification(int id, String? title, String? body, String? payload) async {
   // handle notification
 }
 
-final FlutterLocalNotificationsPlugin notificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-const DarwinInitializationSettings initializationSettingsDarwin =
-    DarwinInitializationSettings(
+final FlutterLocalNotificationsPlugin notificationsPlugin = FlutterLocalNotificationsPlugin();
+const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings(
   // onDidReceiveLocalNotification: onDidReceiveLocalNotification,
   requestAlertPermission: false,
   requestSoundPermission: false,
@@ -63,9 +60,8 @@ Future initializeNotifications(String? appId) async {
     linux: initializationSettingsLinux,
   );
   await notificationsPlugin.initialize(
-    initializationSettings,
-    onDidReceiveNotificationResponse:
-        (NotificationResponse notificationResponse) async {
+    settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) async {
       log('Notification response received: ${notificationResponse.payload}');
       if (await windowManager.isFocused() == false) {
         showWindow();
