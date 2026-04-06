@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/push_to_talk_tool.dart';
+import 'package:fluent_gpt/features/screen_ocr/click_to_read_tool.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/features/souce_nao_image_finder.dart';
 import 'package:fluent_gpt/log.dart';
@@ -193,6 +194,11 @@ HotKey showOverlayForText = HotKey(
 HotKey? takeScreenshot;
 HotKey? pttScreenshotKey;
 HotKey? pttKey;
+HotKey clickToReadHotkey = HotKey(
+  key: LogicalKeyboardKey.f2,
+  modifiers: [HotKeyModifier.control, HotKeyModifier.shift],
+  scope: HotKeyScope.system,
+);
 Future<void> initShortcuts() async {
   await hotKeyManager.register(
     openWindowHotkey,
@@ -334,6 +340,18 @@ Future<void> initCachedHotKeys() async {
       },
     );
   }
+  final clickToReadKeyCached = AppCache.clickToReadKey.value;
+  if (clickToReadKeyCached != null) {
+    await hotKeyManager.unregister(clickToReadHotkey);
+    clickToReadHotkey = HotKey.fromJson(jsonDecode(clickToReadKeyCached));
+  }
+  await hotKeyManager.register(
+    clickToReadHotkey,
+    keyDownHandler: (hotKey) async {
+      if (ClickToReadTool.isActive) return;
+      await ClickToReadTool.activate();
+    },
+  );
   if (pttScreenshotKeyCached != null) {
     pttScreenshotKey = HotKey.fromJson(jsonDecode(pttScreenshotKeyCached));
     await hotKeyManager.register(

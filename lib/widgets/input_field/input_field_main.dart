@@ -46,6 +46,10 @@ class _InputFieldMainState extends State<InputFieldMain> {
   @override
   Widget build(BuildContext context) {
     final theme = FluentTheme.of(context);
+    final fieldNormalBorder = OutlineInputBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(4)),
+      borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
+    );
     return Material(
       color: Colors.transparent,
       child: Row(
@@ -151,14 +155,8 @@ class _InputFieldMainState extends State<InputFieldMain> {
                               hintStyle: TextStyle(
                                 color: theme.typography.caption?.color?.withValues(alpha: 0.65),
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
-                              ),
+                              border: fieldNormalBorder,
+                              enabledBorder: fieldNormalBorder,
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4),
                                 borderSide: BorderSide(color: theme.accentColor, width: 1.5),

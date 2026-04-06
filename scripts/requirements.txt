@@ -1,0 +1,3 @@
+comic-text-detector
+numpy
+Pillow

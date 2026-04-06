@@ -35,6 +35,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_theme/system_theme.dart';
 import 'package:window_manager/window_manager.dart';
 import 'navigation_provider.dart';
+import 'overlay/click_to_read_overlay_ui.dart';
 import 'overlay/overlay_ui.dart';
 import 'overlay/sidebar_overlay_ui.dart';
 import 'providers/chat_provider.dart';
@@ -362,6 +363,9 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
               stream: overlayVisibility,
               initialData: overlayVisibility.value,
               builder: (context, snapshot) {
+                if (snapshot.data?.isShowingClickToReadOverlay == true) {
+                  return const ClickToReadOverlayUI();
+                }
                 if (snapshot.data?.isShowingOverlay == true) {
                   return const OverlayUI();
                 }

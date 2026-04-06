@@ -51,19 +51,23 @@ class OverlayStatus {
   final bool isShowingOverlay;
   final bool isShowingSidebarOverlay;
   final bool isShowingSearchOverlay;
+  final bool isShowingClickToReadOverlay;
   const OverlayStatus({
     this.isShowingOverlay = false,
     this.isShowingSidebarOverlay = false,
     this.isShowingSearchOverlay = false,
+    this.isShowingClickToReadOverlay = false,
   });
 
-  bool get isEnabled => isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay;
+  bool get isEnabled =>
+      isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay || isShowingClickToReadOverlay;
 
   static const OverlayStatus enabled = OverlayStatus(isShowingOverlay: true);
   static const OverlayStatus disabled = OverlayStatus(isShowingOverlay: false);
   static const OverlayStatus sidebarEnabled = OverlayStatus(isShowingSidebarOverlay: true);
   static const OverlayStatus sidebarDisabled = OverlayStatus(isShowingSidebarOverlay: false);
   static const OverlayStatus searchEnabled = OverlayStatus(isShowingSearchOverlay: true);
+  static const OverlayStatus clickToReadEnabled = OverlayStatus(isShowingClickToReadOverlay: true);
 
   //equality
   @override
@@ -73,11 +77,16 @@ class OverlayStatus {
     return other is OverlayStatus &&
         other.isShowingOverlay == isShowingOverlay &&
         other.isShowingSidebarOverlay == isShowingSidebarOverlay &&
-        other.isShowingSearchOverlay == isShowingSearchOverlay;
+        other.isShowingSearchOverlay == isShowingSearchOverlay &&
+        other.isShowingClickToReadOverlay == isShowingClickToReadOverlay;
   }
 
   @override
-  int get hashCode => isShowingOverlay.hashCode ^ isShowingSidebarOverlay.hashCode ^ isShowingSearchOverlay.hashCode;
+  int get hashCode =>
+      isShowingOverlay.hashCode ^
+      isShowingSidebarOverlay.hashCode ^
+      isShowingSearchOverlay.hashCode ^
+      isShowingClickToReadOverlay.hashCode;
 }
 
 class OverlayManager {
@@ -267,6 +276,24 @@ class OverlayManager {
     Offset position = await calcWindowPosition(windowSize, Alignment.topCenter);
     await Future.delayed(Duration(milliseconds: 100));
     await windowManager.setPosition(position + Offset(0, 200), animate: false);
+  }
+
+  static Future<void> showClickToReadOverlay() async {
+    if (overlayVisibility.value.isShowingClickToReadOverlay) return;
+    overlayVisibility.add(OverlayStatus.clickToReadEnabled);
+    await windowManager.setAlwaysOnTop(true);
+    await windowManager.setTitleBarStyle(TitleBarStyle.hidden, windowButtonVisibility: false);
+    await windowManager.setMinimumSize(const Size(100, 100));
+
+    final primaryDisplay = await screenRetriever.getPrimaryDisplay();
+    final displaySize = primaryDisplay.size;
+    await windowManager.setPosition(Offset.zero, animate: false);
+    await windowManager.setSize(Size(displaySize.width, displaySize.height), animate: false);
+    await windowManager.setResizable(false);
+    await windowManager.show();
+    if (Platform.isMacOS) {
+      await windowManager.show();
+    }
   }
 
   static Future<void> hideOverlay() async {
