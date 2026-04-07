@@ -16,7 +16,6 @@ import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
-import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/pdf_utils.dart';
 import 'package:fluent_gpt/features/rag_openai.dart';
 import 'package:fluent_gpt/features/image_generator_feature.dart';
@@ -59,7 +58,6 @@ import 'package:fluent_gpt/utils.dart';
 
 import 'package:fluent_gpt/widgets/confirmation_dialog.dart';
 import 'package:fluent_gpt/widgets/input_field/additional_btns_input_field.dart';
-import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
@@ -68,7 +66,6 @@ import 'package:flutter_gpt_tokenizer/flutter_gpt_tokenizer.dart';
 import 'package:intl/intl.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
-import 'package:record/record.dart';
 import 'package:collection/collection.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 // import 'package:simple_spell_checker/simple_spell_checker.dart' as spell_checker;
@@ -2049,89 +2046,6 @@ class ChatProvider
 
   Future<void> archiveChatRoom(ChatRoom room) async {
     return deleteChatRoom(room.id);
-  }
-
-  @override
-  Future<bool> startListeningForInput() async {
-    try {
-      if (!DeepgramSpeech.isValid()) {
-        displayInfoBar(context!, builder: (ctx, close) {
-          return InfoBar(
-            title: Text('Deepgram API key is not set'.tr),
-            severity: InfoBarSeverity.warning,
-            action: Button(
-              onPressed: () async {
-                close();
-                // ensure its closed
-                await Future.delayed(const Duration(milliseconds: 200));
-                Navigator.of(context!).push(
-                  FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
-                );
-              },
-              child: Text('Settings'.tr),
-            ),
-          );
-        });
-        return false;
-      }
-      recorder = AudioRecorder();
-      final devices = await recorder!.listInputDevices();
-      if (devices.isEmpty) {
-        displayErrorInfoBar(
-          title: 'No microphone found'.tr,
-        );
-        return false;
-      }
-      micStream = await recorder!.startStream(
-        RecordConfig(
-          encoder: AudioEncoder.pcm16bits,
-          sampleRate: 16000,
-          numChannels: 1,
-          device: AppCache.micrpohoneDeviceId.value != null
-              ? InputDevice(
-                  id: AppCache.micrpohoneDeviceId.value!, label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
-              : devices.first,
-        ),
-      );
-
-      final streamParams = {
-        'detect_language': false, // not supported by streaming API
-        'language': AppCache.speechLanguage.value!,
-        // must specify encoding and sample_rate according to the audio stream
-        'encoding': 'linear16',
-        'sample_rate': 16000,
-      };
-      transcriber = DeepgramSpeech.deepgram.listen.liveListener(micStream!, queryParams: streamParams);
-      transcriber!.stream.listen((res) {
-        if (res.transcript?.isNotEmpty == true) {
-          messageController.text += '${res.transcript!} ';
-        }
-      });
-      transcriber!.start();
-    } catch (e, stack) {
-      logError('Speech error:\n$e', stack);
-      return false;
-    }
-    return true;
-  }
-
-  @override
-  Future<void> stopListeningForInput() async {
-    try {
-      transcriber!.pause(keepAlive: false);
-      await transcriber!.close();
-      transcriber = null;
-    } catch (e, stack) {
-      logError('Error while stopping listening: $e', stack);
-    }
-    try {
-      await recorder!.cancel();
-      await Future.delayed(const Duration(milliseconds: 500));
-      await recorder!.dispose();
-    } catch (e, stack) {
-      logError('Error while stopping audio stream: $e', stack);
-    }
-    micStream = null;
   }
 
   /// Replace the message with the new one. Recover the tokens if textHuman or textAi

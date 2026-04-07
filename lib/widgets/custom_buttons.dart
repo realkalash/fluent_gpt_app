@@ -2,17 +2,20 @@
 
 import 'dart:async';
 
+import 'package:fluent_gpt/app_colors.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
 import 'package:fluent_gpt/log.dart';
+import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide FluentIcons;
+// import material colors
+import 'package:flutter/material.dart' as material;
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
-import 'package:fluent_gpt/providers/chat_globals.dart';
 
 class FilledRedButton extends StatelessWidget {
   const FilledRedButton({
@@ -93,15 +96,12 @@ class AiLibraryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: Button(
-        style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
-        onPressed: onPressed,
-        child: isSmall
-            ? const Text('AI', style: TextStyle(color: Colors.white))
-            : const Text('AI library', style: TextStyle(color: Colors.white)),
-      ),
+    return Button(
+      style: ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black)),
+      onPressed: onPressed,
+      child: isSmall
+          ? const Text('AI', style: TextStyle(color: Colors.white))
+          : const Text('AI library', style: TextStyle(color: Colors.white)),
     );
   }
 }
@@ -204,7 +204,7 @@ class PromptLibraryButton extends StatelessWidget {
   }
 }
 
-class ToggleButtonAdvenced extends StatelessWidget {
+class ToggleButtonAdvenced extends StatefulWidget {
   const ToggleButtonAdvenced({
     super.key,
     this.checked = false,
@@ -229,19 +229,31 @@ class ToggleButtonAdvenced extends StatelessWidget {
   final bool shrinkWrapActions;
   final bool showOnBasicTap;
 
+  @override
+  State<ToggleButtonAdvenced> createState() => _ToggleButtonAdvencedState();
+}
+
+class _ToggleButtonAdvencedState extends State<ToggleButtonAdvenced> {
+  final controller = FlyoutController();
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   void showContextMenu(BuildContext context, FlyoutController controller) {
-    if (contextItems.isEmpty) return;
+    if (widget.contextItems.isEmpty) return;
     controller.showFlyout(builder: (context) {
       return FlyoutContent(
         constraints: BoxConstraints(
           minWidth: 64,
           minHeight: 64,
-          maxWidth: maxWidthContextMenu,
-          maxHeight: maxHeightContextMenu,
+          maxWidth: widget.maxWidthContextMenu,
+          maxHeight: widget.maxHeightContextMenu,
         ),
         child: ListView(
-          shrinkWrap: shrinkWrapActions,
-          children: contextItems,
+          shrinkWrap: widget.shrinkWrapActions,
+          children: widget.contextItems,
         ),
       );
     });
@@ -249,9 +261,8 @@ class ToggleButtonAdvenced extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = FlyoutController();
     return Tooltip(
-      message: tooltip,
+      message: widget.tooltip,
       style: const TooltipThemeData(waitDuration: Duration(milliseconds: 100)),
       child: FlyoutTarget(
         controller: controller,
@@ -260,30 +271,143 @@ class ToggleButtonAdvenced extends StatelessWidget {
             showContextMenu(context, controller);
           },
           child: ToggleButton(
-            checked: checked,
-            onChanged: showOnBasicTap
+            checked: widget.checked,
+            onChanged: widget.showOnBasicTap
                 ? (value) {
-                    onChanged(value);
+                    widget.onChanged(value);
                     showContextMenu(context, controller);
                   }
-                : onChanged,
+                : widget.onChanged,
             style: ToggleButtonThemeData(
               checkedButtonStyle: ButtonStyle(
-                padding: WidgetStateProperty.all(padding),
+                padding: WidgetStateProperty.all(widget.padding),
                 backgroundColor: WidgetStateProperty.all(
                   context.theme.accentColor,
                 ),
               ),
               uncheckedButtonStyle: ButtonStyle(
-                padding: WidgetStateProperty.all(padding),
+                padding: WidgetStateProperty.all(widget.padding),
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(width: 20, height: 20, child: icon),
-                if (contextItems.isNotEmpty) const Icon(FluentIcons.chevron_down_20_regular),
+                SizedBox(width: 20, height: 20, child: widget.icon),
+                if (widget.contextItems.isNotEmpty) const Icon(FluentIcons.chevron_down_20_regular),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class TransparentButtonAdvanced extends StatefulWidget {
+  const TransparentButtonAdvanced({
+    super.key,
+    required this.child,
+    required this.tooltip,
+    this.contextItems = const [],
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+    this.maxWidthContextMenu = 200,
+    this.maxHeightContextMenu = 300,
+    this.shrinkWrapActions = false,
+    this.checked = false,
+    this.showOnBasicTap = false,
+    required this.onChanged,
+  });
+  final Widget child;
+  final List<Widget> contextItems;
+  final double maxWidthContextMenu;
+  final double maxHeightContextMenu;
+  final bool shrinkWrapActions;
+  final bool showOnBasicTap;
+  final String tooltip;
+  final EdgeInsets padding;
+  final bool checked;
+  final void Function(bool) onChanged;
+  @override
+  State<TransparentButtonAdvanced> createState() => _TransparentButtonAdvancedState();
+}
+
+class _TransparentButtonAdvancedState extends State<TransparentButtonAdvanced> {
+  final flyoutController = FlyoutController();
+  @override
+  void dispose() {
+    flyoutController.dispose();
+    super.dispose();
+  }
+
+  void showContextMenu(BuildContext context, FlyoutController controller) {
+    if (widget.contextItems.isEmpty) return;
+    controller.showFlyout(builder: (context) {
+      return FlyoutContent(
+        constraints: BoxConstraints(
+          minWidth: 64,
+          minHeight: 64,
+          maxWidth: widget.maxWidthContextMenu,
+          maxHeight: widget.maxHeightContextMenu,
+        ),
+        child: ListView(
+          shrinkWrap: widget.shrinkWrapActions,
+          children: widget.contextItems,
+        ),
+      );
+    });
+  }
+
+  bool isChecked = false;
+  @override
+  void initState() {
+    super.initState();
+    isChecked = widget.checked;
+  }
+
+  void switchChecked() {
+    setState(() {
+      isChecked = !isChecked;
+    });
+    widget.onChanged(isChecked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Brightness brightness = context.theme.brightness;
+    return FlyoutTarget(
+      controller: flyoutController,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onHover: (event) {
+          if (isChecked) return;
+          setState(() {
+            isChecked = true;
+          });
+        },
+        onExit: (event) {
+          if (!isChecked) return;
+          setState(() {
+            isChecked = false;
+          });
+        },
+        child: GestureDetector(
+          onSecondaryTap: () {
+            showContextMenu(context, flyoutController);
+          },
+          onTap: () => switchChecked(),
+          child: ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            child: ColoredBox(
+              isAntiAlias: false,
+              color: isChecked
+                  ? brightness == Brightness.dark
+                      ? material.Colors.white24
+                      : material.Colors.black12
+                  : Colors.transparent,
+              child: Padding(
+                padding: widget.padding,
+                child: widget.child,
+              ),
             ),
           ),
         ),

@@ -8,21 +8,10 @@ import 'package:langchain_openai/langchain_openai.dart';
 import 'package:rxdart/rxdart.dart';
 
 mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
-  @Deprecated('Don not use it to set value. Only for StreamBuilder')
 
   /// Calculated by current messages in the chat.
-  final BehaviorSubject<int> totalTokensForCurrentChatByMessages = BehaviorSubject.seeded(0);
-
   @override
-  set totalTokensByMessages(int value) =>
-      // ignore: deprecated_member_use_from_same_package
-      totalTokensForCurrentChatByMessages.add(value);
-
-  /// Calculated by current messages in the chat.
-  // ignore: deprecated_member_use_from_same_package
-  @override
-  // ignore: deprecated_member_use_from_same_package
-  int get totalTokensByMessages => totalTokensForCurrentChatByMessages.value;
+  int totalTokensByMessages = 0;
 
   @Deprecated('Don not use it to set value. Only for StreamBuilder')
   final BehaviorSubject<int> totalSentForCurrentChat = BehaviorSubject.seeded(0);

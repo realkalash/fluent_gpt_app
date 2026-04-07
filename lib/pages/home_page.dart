@@ -410,13 +410,11 @@ class PageHeaderText extends StatelessWidget {
                   onPressed: () => showCostCalculatorDialog(context),
                   child: Row(
                     children: [
-                      StreamBuilder<int>(
-                          stream:
-                              // ignore: deprecated_member_use_from_same_package
-                              chatProvider.totalTokensForCurrentChatByMessages,
-                          builder: (context, snapshot) {
+                      Selector<ChatProvider, int>(
+                          selector: (context, chatProvider) => chatProvider.totalTokensByMessages,
+                          builder: (context, totalTokens, child) {
                             return Text(
-                              '${'Tokens total:'.tr} ${(chatProvider.totalTokensByMessages)} '.tr,
+                              '${'Tokens total:'.tr} ${(totalTokens)} '.tr,
                               style: const TextStyle(fontSize: 12),
                             );
                           }),
@@ -721,7 +719,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
       'a': Colors.red.dark,
       'b': Colors.green,
       'c': Colors.blue,
-      'd': Colors.yellow.dark,
+      'd': Colors.yellow.darker,
       'e': Colors.orange,
       'f': Colors.purple,
       'g': Colors.teal.darker,
@@ -849,6 +847,7 @@ class _HomePagePlaceholdersCardsState extends State<HomePagePlaceholdersCards> {
                                     overflow: TextOverflow.clip,
                                     style: const TextStyle(
                                       fontSize: 14,
+                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

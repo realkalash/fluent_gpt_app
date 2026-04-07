@@ -103,9 +103,7 @@ class _OverlayUIState extends State<SearchOverlayUI> {
                           tooltip: 'Create new chat'.tr,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
-                          child: _InputField(),
-                        ),
+                        const Expanded(child: _InputField()),
                         const AddFileButton(),
                         Container(
                           margin: const EdgeInsets.only(right: 8),
@@ -224,7 +222,6 @@ class _InputFieldState extends State<_InputField> {
     );
   }
 
-
   Future<void> onSubmit(String text, ChatProvider chatProvider) async {
     if (shiftPressedStream.valueOrNull == true) {
       final currentText = chatProvider.messageController.text;
@@ -260,7 +257,7 @@ class _InputFieldState extends State<_InputField> {
       return;
     }
 
-    if (text.trim().isEmpty && chatProvider.fileInputs == null) {
+    if (text.trim().isEmpty && chatProvider.fileInputs.isEmpty) {
       return;
     }
 
