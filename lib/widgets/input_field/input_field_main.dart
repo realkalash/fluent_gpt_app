@@ -235,28 +235,31 @@ class _InputFieldMainState extends State<InputFieldMain> {
                     },
                   ),
                   const Spacer(),
-                  Selector<ChatProvider, int>(
-                    selector: (context, chatProvider) => chatProvider.totalTokensByMessages,
-                    builder: (context, totalTokens, child) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
-                            ContextUsageRing(
-                              totalTokens: totalTokens,
-                              maxTokenLength: selectedChatRoom.maxTokenLength,
-                              onTap: () {
-                                context.read<ChatProvider>().scrollToLastOverflowMessage();
-                              },
-                            ),
-                          if (tokensInInputField > 0)
-                            Tooltip(
-                                message: 'Tokens in field'.tr,
-                                style: TooltipThemeData(waitDuration: Duration.zero),
-                                child: Text('T:$tokensInInputField', style: theme.typography.caption)),
-                        ],
-                      );
-                    },
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6.0),
+                    child: Selector<ChatProvider, int>(
+                      selector: (context, chatProvider) => chatProvider.totalTokensByMessages,
+                      builder: (context, totalTokens, child) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
+                              ContextUsageRing(
+                                totalTokens: totalTokens,
+                                maxTokenLength: selectedChatRoom.maxTokenLength,
+                                onTap: () {
+                                  context.read<ChatProvider>().scrollToLastOverflowMessage();
+                                },
+                              ),
+                            if (tokensInInputField > 0)
+                              Tooltip(
+                                  message: 'Tokens in field'.tr,
+                                  style: TooltipThemeData(waitDuration: Duration.zero),
+                                  child: Text('T:$tokensInInputField', style: theme.typography.caption)),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   const MicrophoneButton(),
                   if (ChatProvider.messageControllerGlobal.text.isNotEmpty)
