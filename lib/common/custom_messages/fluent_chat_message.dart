@@ -278,6 +278,30 @@ class FluentChatMessage {
     );
   }
 
+  /// Agent shell tool: waiting for user Allow / Allow & Remember / Deny.
+  factory FluentChatMessage.shellPendingApproval({
+    required String id,
+    required String command,
+    String? workingDirectory,
+    String creator = 'agent',
+    int? timestamp,
+    int tokens = 0,
+  }) {
+    final content = jsonEncode({
+      'command': command,
+      'workingDirectory': workingDirectory,
+      'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
+    });
+    return FluentChatMessage(
+      id: id,
+      content: content,
+      creator: creator,
+      timestamp: timestamp ?? DateTime.now().millisecondsSinceEpoch,
+      type: FluentChatMessageType.shellPendingApproval,
+      tokens: tokens,
+    );
+  }
+
   factory FluentChatMessage.imageAi({
     required String id,
     required String content,
@@ -364,15 +388,15 @@ class FluentChatMessage {
       'timestamp': timestamp,
       'type': type.index,
       'tokens': tokens,
-      if (indexPin != null) 'pin': indexPin!,
-      if (imagePrompt != null) 'imagePrompt': imagePrompt!,
-      if (path != null) 'path': path!,
-      if (fileName != null) 'fileName': fileName!,
+      'pin': ?indexPin,
+      'imagePrompt': ?imagePrompt,
+      'path': ?path,
+      'fileName': ?fileName,
       if (webResults != null) 'webResults': webResults!.map((e) => e.toJson()).toList(),
-      if (buttons != null) 'buttons': buttons!,
-      if (agentToolName != null) 'agentToolName': agentToolName!,
-      if (agentToolArgumentsJson != null) 'agentToolArgumentsJson': agentToolArgumentsJson!,
-      if (agentToolResult != null) 'agentToolResult': agentToolResult!,
+      'buttons': ?buttons,
+      'agentToolName': ?agentToolName,
+      'agentToolArgumentsJson': ?agentToolArgumentsJson,
+      'agentToolResult': ?agentToolResult,
     };
   }
 
@@ -456,6 +480,14 @@ class FluentChatMessage {
           return AIChatMessage(content: 'Proposed command: $cmd${desc != null ? '\n$desc' : ''}');
         } catch (e) {
           return AIChatMessage(content: 'Shell command proposal: $content');
+        }
+      case FluentChatMessageType.shellPendingApproval:
+        try {
+          final data = jsonDecode(content) as Map<String, dynamic>;
+          final cmd = data['command'] as String;
+          return AIChatMessage(content: 'Shell command pending approval: $cmd');
+        } catch (e) {
+          return AIChatMessage(content: 'Shell command pending approval: $content');
         }
       case FluentChatMessageType.executionHeader:
         return AIChatMessage(content: content);
@@ -584,4 +616,5 @@ enum FluentChatMessageType {
   webResult,
   shellExec,
   shellProposal,
+  shellPendingApproval,
 }

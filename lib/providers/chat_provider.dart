@@ -1941,6 +1941,7 @@ class ChatProvider
     } catch (e) {
       log('Error while stopping reading aloud: $e');
     }
+    cancelPendingShellApprovalIfNeeded();
     try {
       cancelToken?.cancel('canceled ');
       listenerResponseStream?.cancel();

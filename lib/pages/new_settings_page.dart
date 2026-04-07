@@ -824,6 +824,7 @@ class GeneralSettingsPage extends StatefulWidget {
 
 class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
   final systemPromptController = TextEditingController();
+  final agentCharacterPromptController = TextEditingController();
   final cities = CitiesList.getAllCitiesList();
   @override
   void initState() {
@@ -832,7 +833,21 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
     if (systemPromptController.text.isEmpty) {
       systemPromptController.text = defaultGlobalSystemMessage;
     }
+    agentCharacterPromptController.text = AppCache.agentCharacterSystemPrompt.value ?? '';
+    if (agentCharacterPromptController.text.isEmpty) {
+      agentCharacterPromptController.text = kDefaultAgentCharacterPrompt;
+    }
   }
+
+  @override
+  void dispose() {
+    systemPromptController.dispose();
+    agentCharacterPromptController.dispose();
+    super.dispose();
+  }
+
+  bool expandGlobalSystemPrompt = false;
+  bool expandAgentCharacterPrompt = false;
 
   @override
   Widget build(BuildContext context) {
@@ -846,7 +861,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           placeholder: 'Global system prompt'.tr,
           controller: systemPromptController,
           minLines: 1,
-          maxLines: 50,
+          maxLines: expandGlobalSystemPrompt ? 50 : 4,
           suffix: AiLibraryButton(onPressed: () async {
             final prompt = await showDialog<CustomPrompt?>(
               context: context,
@@ -864,9 +879,57 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             defaultGlobalSystemMessage = value;
           },
         ),
-        CaptionText(
-          'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below'
-              .tr,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: CaptionText(
+                'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below'
+                    .tr,
+              ),
+            ),
+            LinkTextButton(expandGlobalSystemPrompt ? 'Collapse' : 'Expand', onPressed: () {
+              setState(() {
+                expandGlobalSystemPrompt = !expandGlobalSystemPrompt;
+              });
+            })
+          ],
+        ),
+        spacer,
+        LabelText('Agent mode character / role'.tr),
+        TextFormBox(
+          placeholder: 'Agent mode character / role'.tr,
+          controller: agentCharacterPromptController,
+          minLines: 2,
+          maxLines: expandAgentCharacterPrompt ? 20 : 4,
+          onChanged: (value) {
+            AppCache.agentCharacterSystemPrompt.value = value;
+          },
+        ),
+        Row(
+          crossAxisAlignment: .start,
+          children: [
+            Expanded(
+              child: CaptionText(
+                'Agent mode only. Replaces {character} at the top of the agent system prompt. An empty saved value uses the built-in default when the agent runs.'
+                    .tr,
+              ),
+            ),
+            LinkTextButton(expandGlobalSystemPrompt ? 'Collapse' : 'Expand', onPressed: () {
+              setState(() {
+                expandAgentCharacterPrompt = !expandAgentCharacterPrompt;
+              });
+            })
+          ],
+        ),
+        Button(
+          child: Text('Reset agent character to default'.tr),
+          onPressed: () {
+            setState(() {
+              AppCache.agentCharacterSystemPrompt.value = '';
+              agentCharacterPromptController.text = kDefaultAgentCharacterPrompt;
+            });
+          },
         ),
         spacer,
         Button(
@@ -1248,12 +1311,27 @@ class ToolsSettings extends StatefulWidget {
 class _ToolsSettingsState extends State<ToolsSettings> {
   bool obscureBraveText = true;
   bool obscureOpenAiText = true;
+  late final TextEditingController _shellAllowlistController;
+
   final allValues = [
     AppCache.gptToolCopyToClipboardEnabled,
     AppCache.gptToolAutoOpenUrls,
     AppCache.gptToolGenerateImage,
     AppCache.gptToolRememberInfo,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _shellAllowlistController = TextEditingController(text: AppCache.shellCommandAllowlist.value ?? '');
+  }
+
+  @override
+  void dispose() {
+    _shellAllowlistController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     // final gptProvider = context.watch<ChatProvider>();
@@ -1330,6 +1408,45 @@ class _ToolsSettingsState extends State<ToolsSettings> {
                 child: Text('Remember info'.tr),
               ),
             ],
+          ),
+          biggerSpacer,
+          Text('Agent shell'.tr, style: theme.typography.subtitle),
+          spacer,
+          Text(
+            'Comma-separated first tokens to auto-run without approval (e.g. ls, git).'.tr,
+            style: theme.typography.caption,
+          ),
+          const SizedBox(height: 8),
+          TextFormBox(
+            controller: _shellAllowlistController,
+            placeholder: 'ls,git,...',
+            onChanged: (value) {
+              AppCache.shellCommandAllowlist.value = value;
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Button(
+                onPressed: () {
+                  setState(() {
+                    AppCache.shellCommandAllowlist.value = AppCache.kShellCommandAllowlistDefault;
+                    _shellAllowlistController.text = AppCache.kShellCommandAllowlistDefault;
+                  });
+                },
+                child: Text('Reset allowlist to defaults'.tr),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Consumer<ChatProvider>(
+            builder: (context, chatProvider, _) {
+              return Checkbox(
+                checked: chatProvider.allowAllShellForSession,
+                onChanged: (v) => chatProvider.setAllowAllShellForSession(v ?? false),
+                content: Text('Allow all shell commands for this session (until app restart)'.tr),
+              );
+            },
           ),
           biggerSpacer,
           Text('Additional tools'.tr, style: theme.typography.subtitle),
