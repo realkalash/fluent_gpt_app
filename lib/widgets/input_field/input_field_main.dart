@@ -88,9 +88,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
           decoration: BoxDecoration(
             color: theme.resources.controlFillColorDefault,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: isHovered ? theme.accentColor : theme.resources.controlStrokeColorDefault,
-            ),
+            border: Border.all(color: isHovered ? theme.accentColor : theme.resources.controlStrokeColorDefault),
           ),
           child: Column(
             children: [
@@ -119,10 +117,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
                               accentColor: theme.accentColor,
                               chipBackground: theme.accentColor.withValues(alpha: 0.14),
                               linkColor: theme.accentColor,
-                              baseStyle: TextStyle(
-                                fontSize: bodyStyle?.fontSize ?? 14,
-                                color: bodyStyle?.color,
-                              ),
+                              baseStyle: TextStyle(fontSize: bodyStyle?.fontSize ?? 14, color: bodyStyle?.color),
                             );
                             return ExtendedTextField(
                               autofocus: true,
@@ -136,10 +131,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
                               specialTextSpanBuilder: spanBuilder,
                               extendedSpellCheckConfiguration: extendedSpell,
                               extendedContextMenuBuilder: (ctx, state) =>
-                                  ContextMenuBuilders.spellCheckContextMenuBuilder(
-                                ctx,
-                                state as EditableTextState,
-                              ),
+                                  ContextMenuBuilders.spellCheckContextMenuBuilder(ctx, state as EditableTextState),
                               style: TextStyle(
                                 fontSize: bodyStyle?.fontSize ?? 14,
                                 height: 1.35,
@@ -148,9 +140,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
                               cursorColor: theme.accentColor,
                               decoration: InputDecoration(
                                 hintText: 'Use "/" or type your message here'.tr,
-                                hintStyle: TextStyle(
-                                  color: theme.typography.caption?.color?.withValues(alpha: 0.65),
-                                ),
+                                hintStyle: TextStyle(color: theme.typography.caption?.color?.withValues(alpha: 0.65)),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 isDense: true,
@@ -163,33 +153,21 @@ class _InputFieldMainState extends State<InputFieldMain> {
                   ),
                 ],
               ),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: const AddFileButton(),
-                  ),
-                  Focus(
-                    skipTraversal: true,
-                    canRequestFocus: false,
-                    descendantsAreFocusable: false,
-                    descendantsAreTraversable: false,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 10, right: 4, bottom: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const AddFileButton(),
+                    Focus(
+                      skipTraversal: true,
+                      canRequestFocus: false,
+                      descendantsAreFocusable: false,
+                      descendantsAreTraversable: false,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Tooltip(
-                            richMessage: WidgetSpan(
-                              child: ModelsTooltipContainer(),
-                              alignment: PlaceholderAlignment.top,
-                            ),
-                            style: const TooltipThemeData(waitDuration: Duration.zero),
-                            child: const ChooseModelDropdownButton(),
-                          ),
-                          const SizedBox(width: 4),
                           AiLibraryButton(
                             onPressed: () async {
                               // ignore: use_build_context_synchronously
@@ -200,89 +178,92 @@ class _InputFieldMainState extends State<InputFieldMain> {
                                 barrierDismissible: true,
                               );
                               if (prompt != null) {
-                                controller.messageController.text =
-                                    prompt.getPromptText(controller.messageController.text);
+                                controller.messageController.text = prompt.getPromptText(
+                                  controller.messageController.text,
+                                );
                                 promptTextFocusNode.requestFocus();
                               }
                             },
                             isSmall: true,
                           ),
+                          const SizedBox(width: 8),
+                          const Tooltip(
+                            richMessage: WidgetSpan(
+                              child: ModelsTooltipContainer(),
+                              alignment: PlaceholderAlignment.top,
+                            ),
+                            style: TooltipThemeData(waitDuration: Duration.zero),
+                            child: ChooseModelDropdownButton(),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Selector<ChatProvider, bool>(
-                    selector: (context, chatProvider) => chatProvider.isAnswering,
-                    builder: (context, isAnswering, child) {
-                      if (!isAnswering) return const SizedBox.shrink();
-                      return SizedBox.square(
-                        dimension: 52,
-                        child: IconButton(
-                          style: ButtonStyle(
-                              backgroundColor: WidgetStatePropertyAll(
-                            theme.scaffoldBackgroundColor,
-                          )),
-                          onPressed: () {
+                    const SizedBox(width: 4),
+
+                    const Spacer(),
+                    Selector<ChatProvider, bool>(
+                      selector: (context, chatProvider) => chatProvider.isAnswering,
+                      builder: (context, isAnswering, child) {
+                        // if (!isAnswering) return const SizedBox.shrink();
+                        return TransparentButtonAdvanced(
+                          onChanged: (v) {
                             context.read<ChatProvider>().stopAnswering(StopReason.canceled);
                           },
-                          icon: Icon(
-                            ic.FluentIcons.stop_24_filled,
-                            size: 24,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6.0),
-                    child: Selector<ChatProvider, int>(
-                      selector: (context, chatProvider) => chatProvider.totalTokensByMessages,
-                      builder: (context, totalTokens, child) {
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
-                              ContextUsageRing(
-                                totalTokens: totalTokens,
-                                maxTokenLength: selectedChatRoom.maxTokenLength,
-                                onTap: () {
-                                  context.read<ChatProvider>().scrollToLastOverflowMessage();
-                                },
-                              ),
-                            if (tokensInInputField > 0)
-                              Tooltip(
-                                  message: 'Tokens in field'.tr,
-                                  style: TooltipThemeData(waitDuration: Duration.zero),
-                                  child: Text('T:$tokensInInputField', style: theme.typography.caption)),
-                          ],
+                          tooltip: 'Stop answering'.tr,
+                          child: const Icon(ic.FluentIcons.stop_24_filled, size: 24),
                         );
                       },
                     ),
-                  ),
-                  const MicrophoneButton(),
-                  if (ChatProvider.messageControllerGlobal.text.isNotEmpty)
-                    ImproveTextSparkleButton(
-                      onStateChange: (state) {
-                        if (state == ImproveTextSparkleButtonState.improving) {
-                          setState(() {
-                            useShimmer = true;
-                          });
-                        }
-                        if (state == ImproveTextSparkleButtonState.improved) {
-                          setState(() {
-                            useShimmer = false;
-                          });
-                        }
-                      },
-                      onTextImproved: (text) {
-                        ChatProvider.messageControllerGlobal.text = text;
-                      },
-                      input: () => ChatProvider.messageControllerGlobal.text.trim(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: Selector<ChatProvider, int>(
+                        selector: (context, chatProvider) => chatProvider.totalTokensByMessages,
+                        builder: (context, totalTokens, child) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
+                                ContextUsageRing(
+                                  totalTokens: totalTokens,
+                                  maxTokenLength: selectedChatRoom.maxTokenLength,
+                                  onTap: () {
+                                    context.read<ChatProvider>().scrollToLastOverflowMessage();
+                                  },
+                                ),
+                              if (tokensInInputField > 0)
+                                Tooltip(
+                                  message: 'Tokens in field'.tr,
+                                  style: const TooltipThemeData(waitDuration: Duration.zero),
+                                  child: Text('T:$tokensInInputField', style: theme.typography.caption),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                ],
-              )
+                    const MicrophoneButton(),
+                    if (ChatProvider.messageControllerGlobal.text.isNotEmpty)
+                      ImproveTextSparkleButton(
+                        onStateChange: (state) {
+                          if (state == ImproveTextSparkleButtonState.improving) {
+                            setState(() {
+                              useShimmer = true;
+                            });
+                          }
+                          if (state == ImproveTextSparkleButtonState.improved) {
+                            setState(() {
+                              useShimmer = false;
+                            });
+                          }
+                        },
+                        onTextImproved: (text) {
+                          ChatProvider.messageControllerGlobal.text = text;
+                        },
+                        input: () => ChatProvider.messageControllerGlobal.text.trim(),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -292,10 +273,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
 }
 
 class PromptChipWidget extends StatefulWidget {
-  const PromptChipWidget({
-    super.key,
-    required this.prompt,
-  });
+  const PromptChipWidget({super.key, required this.prompt});
 
   final CustomPrompt prompt;
 
@@ -346,7 +324,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
                           leading: Icon(child.icon),
                           text: Text(child.title.tr),
                           onPressed: () => _onTap(context, child),
-                        )
+                        ),
                     ],
                   ),
                 ),
@@ -360,51 +338,49 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
   void _onRightClick(BuildContext context) {
     final item = widget.prompt;
 
-    flyoutContr.showFlyout(builder: (ctx) {
-      return FlyoutContent(
-        constraints: const BoxConstraints(maxWidth: 220),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final child in item.children)
+    flyoutContr.showFlyout(
+      builder: (ctx) {
+        return FlyoutContent(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final child in item.children)
+                FlyoutListTile(icon: Icon(child.icon), text: Text(child.title), onPressed: () => _onTap(ctx, child)),
+              if (item.children.isNotEmpty) const Divider(),
               FlyoutListTile(
-                icon: Icon(child.icon),
-                text: Text(child.title),
-                onPressed: () => _onTap(ctx, child),
-              ),
-            if (item.children.isNotEmpty) const Divider(),
-            FlyoutListTile(
-              icon: const Icon(ic.FluentIcons.settings_20_regular),
-              text: Text('Edit'.tr),
-              onPressed: () async {
-                final prompt = await showDialog<CustomPrompt?>(
-                  context: context,
-                  builder: (context) => EditPromptDialog(prompt: item),
-                );
-                if (prompt != null) {
-                  // ignore: use_build_context_synchronously
-                  final list = customPrompts.value.toList();
-                  list.removeWhere((element) => element.id == item.id);
-                  list.add(prompt);
-                  list.sort((a, b) => a.index.compareTo(b.index));
-                  customPrompts.add(list);
-                  // ignore: use_build_context_synchronously
-                  Navigator.of(ctx).pop();
+                icon: const Icon(ic.FluentIcons.settings_20_regular),
+                text: Text('Edit'.tr),
+                onPressed: () async {
+                  final prompt = await showDialog<CustomPrompt?>(
+                    context: context,
+                    builder: (context) => EditPromptDialog(prompt: item),
+                  );
+                  if (prompt != null) {
+                    // ignore: use_build_context_synchronously
+                    final list = customPrompts.value.toList();
+                    list.removeWhere((element) => element.id == item.id);
+                    list.add(prompt);
+                    list.sort((a, b) => a.index.compareTo(b.index));
+                    customPrompts.add(list);
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(ctx).pop();
 
-                  //unbind old hotkey
-                  if (item.hotkey != null) {
-                    await hotKeyManager.unregister(item.hotkey!);
+                    //unbind old hotkey
+                    if (item.hotkey != null) {
+                      await hotKeyManager.unregister(item.hotkey!);
 
-                    /// wait native channel to finish
-                    await Future.delayed(const Duration(milliseconds: 200));
+                      /// wait native channel to finish
+                      await Future.delayed(const Duration(milliseconds: 200));
+                    }
+                    OverlayManager.bindHotkeys(customPrompts.value);
                   }
-                  OverlayManager.bindHotkeys(customPrompts.value);
-                }
-              },
-            ),
-          ],
-        ),
-      );
-    });
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
