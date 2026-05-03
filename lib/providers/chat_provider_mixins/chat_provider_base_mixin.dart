@@ -77,11 +77,11 @@ mixin ChatProviderBaseMixin on ChangeNotifier {
   // Token counters (from TokensMixin)
   double get autoScrollSpeed;
   set autoScrollSpeed(double value);
+  int get totalTokensByMessages;
+  set totalTokensByMessages(int value);
   int get totalSentTokens;
   set totalSentTokens(int value);
   int get totalReceivedTokens;
   set totalReceivedTokens(int value);
   BehaviorSubject<int> get totalReceivedForCurrentChat;
-  int get totalTokensByMessages;
-  set totalTokensByMessages(int value);
 }

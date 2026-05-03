@@ -289,7 +289,22 @@ class _InputFieldState extends State<InputField> {
   }
 
   final debouncer = Debouncer(milliseconds: 500);
- 
+  int tokensInInputField = 0;
+
+  Future<int> countTokensString(String text) async {
+    if (text.isEmpty) return 0;
+    final options = ChatOpenAIOptions(model: selectedChatRoom.model.modelName);
+    return openAI!.countTokens(PromptValue.string(text), options: options);
+  }
+
+  void countTokensInInputField() {
+    debouncer.run(() async {
+      final text = ChatProvider.messageControllerGlobal.text;
+      final tokens = await countTokensString(text).onError((error, stack) => 0);
+      tokensInInputField = tokens;
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -331,9 +346,30 @@ class _InputFieldState extends State<InputField> {
             if (widget.isMini) InputFieldMini(onSubmit: onSubmit),
             if (!widget.isMini)
               InputFieldMain(
+                countTokensInInputField: countTokensInInputField,
                 onSubmit: onSubmit,
                 onSecondaryTap: _onSecondaryTap,
                 menuController: menuController,
+              ),
+            if (!widget.isMini)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 50),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (totalTokens >= 0.4 * selectedChatRoom.maxTokenLength)
+                        _ContextUsageRing(
+                          totalTokens: totalTokens,
+                          maxTokenLength: selectedChatRoom.maxTokenLength,
+                          onTap: chatProvider.scrollToLastOverflowMessage,
+                        ),
+                      if (tokensInInputField > 0 && AppCache.nerdySelectorType.value != 0)
+                        Text('${'Tokens in field'.tr}: $tokensInInputField', style: context.theme.typography.caption),
+                    ],
+                  ),
+                ),
               ),
           ],
         ),
@@ -460,8 +496,8 @@ class _InputFieldState extends State<InputField> {
   }
 }
 
-class ContextUsageRing extends StatelessWidget {
-  const ContextUsageRing({
+class _ContextUsageRing extends StatelessWidget {
+  const _ContextUsageRing({
     required this.totalTokens,
     required this.maxTokenLength,
     required this.onTap,
@@ -494,7 +530,7 @@ class ContextUsageRing extends StatelessWidget {
             width: 16,
             height: 16,
             child: CustomPaint(
-              painter: ContextUsageRingPainter(
+              painter: _ContextUsageRingPainter(
                 progress: ratio,
                 trackColor: trackColor,
                 progressColor: progressColor,
@@ -507,8 +543,8 @@ class ContextUsageRing extends StatelessWidget {
   }
 }
 
-class ContextUsageRingPainter extends CustomPainter {
-  ContextUsageRingPainter({
+class _ContextUsageRingPainter extends CustomPainter {
+  _ContextUsageRingPainter({
     required this.progress,
     required this.trackColor,
     required this.progressColor,
@@ -548,7 +584,7 @@ class ContextUsageRingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant ContextUsageRingPainter oldDelegate) {
+  bool shouldRepaint(covariant _ContextUsageRingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.trackColor != trackColor ||
         oldDelegate.progressColor != progressColor;

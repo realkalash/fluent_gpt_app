@@ -47,3 +47,21 @@ app.*.map.json
 
 # ignore macos build files
 *.dmg
+forked-plugins/elevenlabs_flutter/macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+forked-plugins/elevenlabs_flutter/macos/Flutter/ephemeral/flutter_export_environment.sh
+forked-plugins/elevenlabs_flutter/linux/flutter/generated_plugin_registrant.h
+forked-plugins/elevenlabs_flutter/linux/flutter/generated_plugin_registrant.cc
+forked-plugins/elevenlabs_flutter/ios/Runner/GeneratedPluginRegistrant.m
+forked-plugins/elevenlabs_flutter/ios/Runner/GeneratedPluginRegistrant.h
+forked-plugins/elevenlabs_flutter/ios/Flutter/ephemeral/flutter_lldbinit
+forked-plugins/elevenlabs_flutter/ios/Flutter/ephemeral/flutter_lldb_helper.py
+forked-plugins/elevenlabs_flutter/ios/Flutter/Generated.xcconfig
+forked-plugins/elevenlabs_flutter/ios/Flutter/flutter_export_environment.sh
+forked-plugins/elevenlabs_flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+forked-plugins/elevenlabs_flutter/android/local.properties
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Podfile.lock
+linux/flutter/generated_plugins.cmake
+windows/flutter/generated_plugins.cmake
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugin_registrant.cc

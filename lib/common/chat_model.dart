@@ -62,6 +62,13 @@ class ChatModelAi {
         filterQuality: FilterQuality.medium,
       );
     }
+    if (ownedBy == OwnedByEnum.openrouter.name) {
+      return Image.asset(
+        'assets/openrouter-icon.png',
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+      );
+    }
     if (ownedBy == OwnedByEnum.deepinfra.name) {
       return Image.asset(
         'assets/deepinfra_icon.webp',
@@ -194,6 +201,12 @@ class ChatModelProviderBase {
           ownedBy: OwnedByEnum.openai,
           priceUrl: 'https://help.openai.com/en/articles/7127956-how-much-does-gpt-4-cost',
         ),
+        ChatModelProviderBase(
+          'OpenRouter',
+          'https://openrouter.ai/api/v1',
+          ownedBy: OwnedByEnum.openrouter,
+          priceUrl: 'https://openrouter.ai/docs/overview/models',
+        ),
         ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.lm_studio),
         ChatModelProviderBase(
           'Deepinfra',
@@ -212,6 +225,7 @@ class ChatModelProviderBase {
 
 enum OwnedByEnum {
   openai,
+  openrouter,
   lm_studio,
   gemini,
   deepinfra,

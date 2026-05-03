@@ -18,34 +18,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:langchain/langchain.dart';
 import 'package:langchain_openai/langchain_openai.dart';
+import 'package:shell/shell.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 const _agentReadDefaultLineCap = 500;
 const _agentReadAbsoluteLineCap = 2500;
 const _grepToolMaxOutputChars = 48000;
 const _dartGrepMaxBytesPerFile = 512 * 1024;
-
-/// User choice for agent [execute_shell_command_tool] when not auto-approved.
-enum ShellApprovalResult {
-  allow,
-  allowAndRemember,
-  deny,
-}
-
-String _shellFirstToken(String command) {
-  final t = command.trim();
-  if (t.isEmpty) return '';
-  return t.split(RegExp(r'\s+')).first;
-}
-
-Set<String> _parseShellAllowlistSet() {
-  final raw = AppCache.shellCommandAllowlist.value ?? '';
-  return raw
-      .split(',')
-      .map((s) => s.trim().toLowerCase())
-      .where((s) => s.isNotEmpty)
-      .toSet();
-}
 
 const _commonIgnoredDirNames = {
   '.git',
@@ -218,98 +197,6 @@ AIChatMessage _agentBuildStreamedAiMessage({
 mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProviderImageGenerationMixin {
   // Members required from ChatProvider but not in base mixins
   void addBotHeader(FluentChatMessage message);
-  int? deleteMessage(String id, [bool showInfo = true]);
-
-  /// Cleared on app restart. When true, all shell commands run without the pending-approval UI.
-  bool _allowAllShellForSession = false;
-  Completer<ShellApprovalResult>? _shellApprovalCompleter;
-  String? _pendingShellApprovalMessageId;
-
-  bool get allowAllShellForSession => _allowAllShellForSession;
-
-  void setAllowAllShellForSession(bool value) {
-    if (_allowAllShellForSession == value) return;
-    _allowAllShellForSession = value;
-    notifyListeners();
-  }
-
-  /// Called when the user approves or denies a pending shell command in chat.
-  void resolveShellApproval(ShellApprovalResult result, {String? messageId}) {
-    if (_shellApprovalCompleter == null || _shellApprovalCompleter!.isCompleted) return;
-    if (messageId != null && messageId != _pendingShellApprovalMessageId) return;
-    _shellApprovalCompleter!.complete(result);
-  }
-
-  /// Completes any pending shell approval with [deny] (e.g. user stopped the agent).
-  void cancelPendingShellApprovalIfNeeded() {
-    if (_shellApprovalCompleter != null && !_shellApprovalCompleter!.isCompleted) {
-      _shellApprovalCompleter!.complete(ShellApprovalResult.deny);
-    }
-  }
-
-  void _addFirstWordToShellAllowlist(String command) {
-    final token = _shellFirstToken(command).toLowerCase();
-    if (token.isEmpty) return;
-    final raw = AppCache.shellCommandAllowlist.value ?? '';
-    final parts = raw.split(',').map((s) => s.trim().toLowerCase()).where((s) => s.isNotEmpty).toList();
-    if (parts.contains(token)) return;
-    parts.add(token);
-    AppCache.shellCommandAllowlist.value = parts.join(',');
-  }
-
-  Future<bool> _checkShellApproval(String command, {String? workingDirectory}) async {
-    if (_allowAllShellForSession) return true;
-    final first = _shellFirstToken(command).toLowerCase();
-    if (first.isNotEmpty) {
-      final allow = _parseShellAllowlistSet();
-      if (allow.contains(first)) return true;
-    }
-
-    final pendingId = '${DateTime.now().microsecondsSinceEpoch}_shell_pending';
-    _pendingShellApprovalMessageId = pendingId;
-    _shellApprovalCompleter = Completer<ShellApprovalResult>();
-    addCustomMessageToList(
-      FluentChatMessage.shellPendingApproval(
-        id: pendingId,
-        command: command,
-        workingDirectory: workingDirectory,
-        creator: selectedChatRoom.characterName,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-      ),
-    );
-    notifyListeners();
-
-    final result = await _shellApprovalCompleter!.future;
-    _shellApprovalCompleter = null;
-    _pendingShellApprovalMessageId = null;
-
-    switch (result) {
-      case ShellApprovalResult.deny:
-        await editMessage(
-          pendingId,
-          FluentChatMessage.shellExec(
-            id: pendingId,
-            command: command,
-            exitCode: -1,
-            stdout: '',
-            stderr: 'User denied execution',
-            creator: selectedChatRoom.characterName,
-            timestamp: DateTime.now().millisecondsSinceEpoch,
-          ),
-        );
-        notifyListeners();
-        return false;
-      case ShellApprovalResult.allowAndRemember:
-        _addFirstWordToShellAllowlist(command);
-        deleteMessage(pendingId, false);
-        notifyListeners();
-        return true;
-      case ShellApprovalResult.allow:
-        deleteMessage(pendingId, false);
-        notifyListeners();
-        return true;
-    }
-  }
 
   // Stream subscription for cancellation support
   StreamSubscription<ChatResult>? get listenerResponseStream;
@@ -493,8 +380,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       if (msg.type != FluentChatMessageType.header &&
           msg.type != FluentChatMessageType.executionHeader &&
           msg.type != FluentChatMessageType.system &&
-          msg.type != FluentChatMessageType.shellProposal &&
-          msg.type != FluentChatMessageType.shellPendingApproval) {
+          msg.type != FluentChatMessageType.shellProposal) {
         messagesToSend.add(
           msg.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported),
         );
@@ -980,7 +866,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       final recursive = args['recursive'] as bool? ?? false;
       final globPattern = args['glob'] as String?;
       final entriesMode = args['entries'] as String? ?? 'all';
-      final skipCommon = (args['skipCommonIgnored'] ?? args['skip_common_ignored']) == true;
+      final skipCommon = (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ?? true;
       final userExclude = args['exclude'] as List<dynamic>?;
 
       final exclude = _mergeExcludeNames(userExclude, skipCommon);
@@ -1461,58 +1347,47 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       final String command = args['command'];
       final String? workingDirectory = args['workingDirectory'];
 
-      // Safety: Block obviously destructive commands.
-      // These are hard-blocked even if "allow all" is on.
+      // Safety: Block dangerous commands
       final lowerCommand = command.toLowerCase();
-      final dangerousPatterns = <RegExp>[
-        RegExp(r'rm\s+-rf\s+/'),
-        RegExp(r'del\s+/f\s+/s\s+/q\s+[a-z]:\\'),
-        RegExp(r'format\s+[a-z]:'),      // Windows disk format
-        RegExp(r'mkfs'),                  // Linux disk format
-        RegExp(r':\(\)\s*\{\s*:\|:\s*&\s*\}\s*;\s*:'), // fork bomb
+      final dangerousPatterns = [
+        'rm -rf /',
+        'del /f /s /q c:\\',
+        'format',
+        'mkfs',
+        ':(){:|:&};:', // fork bomb
       ];
 
       for (final pattern in dangerousPatterns) {
-        if (pattern.hasMatch(lowerCommand)) {
-          return 'Error: Command blocked by safety filter (matched "${pattern.pattern}"). If this is a false positive, inform the user.';
+        if (lowerCommand.contains(pattern)) {
+          return 'Error: Dangerous command blocked for safety: $command';
         }
       }
 
-      final approved = await _checkShellApproval(command, workingDirectory: workingDirectory);
-      if (!approved) {
-        return 'Error: User denied execution of command: $command';
-      }
-
-      // Determine working directory, expanding ~ if needed
-      String? resolvedWorkingDirectory;
+      var shell = Shell();
       if (workingDirectory != null && workingDirectory.isNotEmpty) {
-        resolvedWorkingDirectory = workingDirectory.replaceFirst(
-          RegExp(r'^~'),
-          Platform.environment['HOME'] ?? '',
-        );
+        shell.navigate(workingDirectory);
       }
 
-      // Determine the user's shell for proper execution
-      final userShell = Platform.environment['SHELL'] ?? '/bin/sh';
+      // Parse command and arguments
+      final parts = _parseCommand(command);
+      if (parts.isEmpty) {
+        return 'Error: Empty command';
+      }
+
+      final commandName = parts.first;
+      final commandArgs = parts.length > 1 ? parts.sublist(1) : <String>[];
 
       String stdout = '';
       String stderr = '';
       int exitCode = 0;
 
       try {
-        // Execute through the real shell so that ~, &&, ||, pipes,
-        // environment variables, and builtins all work correctly.
-        final result = await Process.run(
-          userShell,
-          ['-c', command],
-          workingDirectory: resolvedWorkingDirectory,
-          environment: Platform.environment,
-          runInShell: false,
-        ).timeout(const Duration(seconds: 30));
+        // Execute with timeout
+        final process = await shell.start(commandName, arguments: commandArgs).timeout(const Duration(seconds: 30));
 
-        stdout = result.stdout as String;
-        stderr = result.stderr as String;
-        exitCode = result.exitCode;
+        stdout = await process.stdout.readAsString();
+        stderr = await process.stderr.readAsString();
+        exitCode = await process.exitCode;
 
         // Limit output size (max 10KB)
         if (stdout.length > 10240) {
@@ -1564,6 +1439,50 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     }
   }
 
+  /// Parse command string into command and arguments
+  List<String> _parseCommand(String command) {
+    final parts = <String>[];
+    final buffer = StringBuffer();
+    bool inQuotes = false;
+    bool escape = false;
+
+    for (int i = 0; i < command.length; i++) {
+      final char = command[i];
+
+      if (escape) {
+        buffer.write(char);
+        escape = false;
+        continue;
+      }
+
+      if (char == '\\') {
+        escape = true;
+        continue;
+      }
+
+      if (char == '"' || char == "'") {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char == ' ' && !inQuotes) {
+        if (buffer.isNotEmpty) {
+          parts.add(buffer.toString());
+          buffer.clear();
+        }
+        continue;
+      }
+
+      buffer.write(char);
+    }
+
+    if (buffer.isNotEmpty) {
+      parts.add(buffer.toString());
+    }
+
+    return parts;
+  }
+
   Future<String> _handleCopyToClipboardTool(Map<String, dynamic> args) async {
     // final text = args['responseMessage'];
     final textToCopy = args['clipboard'];
@@ -1574,6 +1493,24 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
   Future<String> _handleAutoOpenUrlsTool(Map<String, dynamic> args) async {
     final url = args['url'];
+    // final text = args['responseMessage'] as String?;
+    // we already post agent message in tool use
+    // final appendedText = text + '\n```func\n$url\n```';
+    // if (text?.isNotEmpty == true) {
+    //   final time = DateTime.now().millisecondsSinceEpoch;
+    //   final tokens = await countTokensString(text!);
+    //   addBotMessageToList(
+    //     FluentChatMessage.ai(
+    //       id: time.toString(),
+    //       content: text,
+    //       timestamp: time,
+    //       creator: selectedChatRoom.characterName,
+    //       tokens: tokens,
+    //     ),
+    //   );
+    //   // User need time to read XD
+    //   await Future.delayed(const Duration(milliseconds: 1200));
+    // }
 
     if (await canLaunchUrlString(url)) {
       final res = await launchUrlString(url);
@@ -1614,10 +1551,6 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
   void _writeValuesInSystemInfo(StringBuffer sb, String line) {
     switch (line) {
-      case '{character}':
-        final stored = AppCache.agentCharacterSystemPrompt.value?.trim();
-        sb.writeln((stored != null && stored.isNotEmpty) ? stored : kDefaultAgentCharacterPrompt);
-        break;
       case '{system_info}':
         sb.writeln('System info: ${getSystemInfoString()}');
         break;

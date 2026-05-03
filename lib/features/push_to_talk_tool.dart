@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/features/apple_speech_dictation.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -25,10 +24,6 @@ class PushToTalkTool {
 
   static Future<void> start() async {
     if (isRecording) return;
-    if (useAppleSpeechRecognition()) {
-      await _startMacOS();
-      return;
-    }
     if (!DeepgramSpeech.isValid()) return;
 
     isRecording = true;
@@ -43,10 +38,10 @@ class PushToTalkTool {
             ? InputDevice(id: AppCache.micrpohoneDeviceId.value!, label: AppCache.micrpohoneDeviceName.value!)
             : null,
       ));
-      // https://developers.deepgram.com/reference/listen-live
-      final streamParams = <String, dynamic>{
-        'model': 'nova-2-general',
+      final streamParams = {
+        'detect_language': false, // not supported by streaming API
         'language': AppCache.speechLanguage.value!,
+        // must specify encoding and sample_rate according to the audio stream
         'encoding': 'linear16',
         'sample_rate': 16000,
       };
@@ -64,37 +59,8 @@ class PushToTalkTool {
     }
   }
 
-  static Future<void> _startMacOS() async {
-    isRecording = true;
-    text = ChatProvider.messageControllerGlobal.text;
-    try {
-      final ok = await startAppleSpeechDictation(
-        initialText: text ?? '',
-        onText: (t) {
-          text = t;
-          ChatProvider.messageControllerGlobal.text = t;
-        },
-        onError: (e) => logError('Apple speech error: ${e.errorMsg}'),
-      );
-      if (!ok) {
-        isRecording = false;
-      }
-    } catch (e) {
-      logError(e.toString());
-      isRecording = false;
-    }
-  }
-
   static Future<String?> stop() async {
     if (isRecording == false) return null;
-    if (useAppleSpeechRecognition()) {
-      try {
-        await stopAppleSpeechDictation();
-        return text;
-      } finally {
-        isRecording = false;
-      }
-    }
     try {
       transcriber!.pause(keepAlive: false);
       await transcriber!.close();
