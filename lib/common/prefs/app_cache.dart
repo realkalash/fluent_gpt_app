@@ -92,8 +92,6 @@ class AppCache {
   static const windowHeight = IntPref("windowHeight");
 
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
-  /// Saved agent character block; empty means use built-in default at substitution time.
-  static const agentCharacterSystemPrompt = StringPref("agentCharacterSystemPrompt", '');
   static const hideEditSystemPromptInHomePage = BoolPref("hideEditSystemPromptInHomePage", true);
   static const tokensUsedTotal = IntPref("tokensUsedTotal");
   static const costTotal = DoublePref("costTotal");
@@ -152,14 +150,6 @@ class AppCache {
   static const speedIntIncreasePerc = IntPref("ttsSpeed", 0);
   static const enableQuestionHelpers = BoolPref("enableQuestionHelpers");
   static const enableAgentMode = BoolPref("enableAgentMode", false);
-  /// Comma-separated first tokens (e.g. ls,git) auto-approved for agent shell tool.
-  static const kShellCommandAllowlistDefault =
-      'ls,cat,echo,pwd,cd,git,find,grep,head,tail,wc,which,whoami,date,uname,flutter,dart,npm,node,python,pip,cargo,make,cmake,brew';
-
-  static const shellCommandAllowlist = StringPref(
-    "shellCommandAllowlist",
-    kShellCommandAllowlistDefault,
-  );
   static const nerdySelectorType = IntPref("nerdySelectorType", 0);
 
   /* Use API */

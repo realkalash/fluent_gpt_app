@@ -84,7 +84,7 @@ We welcome contributions!
 
 This project is licensed under the Creative Commons Attribution-NonCommercial-NoDerivs 4.0 International License - see the [LICENSE.md](LICENSE.md) file for details.
 
-Copyright (c) 2026 Alex Kalashnikov.
+Copyright (c) 2024 Alex Kalashnikov.
 
 ## Acknowledgments
 

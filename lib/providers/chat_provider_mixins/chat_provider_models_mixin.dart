@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/openrouter_reasoning_http_client.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:http/http.dart' as http;
 import 'package:langchain_openai/langchain_openai.dart';
 
 mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
@@ -79,13 +81,22 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
   /// Should be called after we load all chat rooms
   @override
   void initModelsApi() {
+    openAI?.close();
+    final httpClient = OpenRouterVendorReasoningHttpClient(
+      http.Client(),
+      modelSelector: () => selectedModel,
+    );
     if (selectedModel.uri != null && selectedModel.uri!.isNotEmpty) {
       openAI = ChatOpenAI(
         baseUrl: selectedModel.uri!,
         apiKey: selectedModel.apiKey,
+        client: httpClient,
       );
     } else {
-      openAI = ChatOpenAI(apiKey: selectedModel.apiKey);
+      openAI = ChatOpenAI(
+        apiKey: selectedModel.apiKey,
+        client: httpClient,
+      );
     }
   }
 }

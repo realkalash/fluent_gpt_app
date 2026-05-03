@@ -1,6 +1,5 @@
 import 'package:deepgram_speech_to_text/deepgram_speech_to_text.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/features/apple_speech_dictation.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
@@ -16,33 +15,6 @@ mixin ChatProviderSpeechMixin on ChangeNotifier, ChatProviderBaseMixin {
   AudioRecorder? recorder;
 
   Future<bool> startListeningForInput() async {
-    if (useAppleSpeechRecognition()) {
-      return _startListeningMacOS();
-    }
-    return _startListeningDeepgram();
-  }
-
-  Future<bool> _startListeningMacOS() async {
-    try {
-      final ok = await startAppleSpeechDictation(
-        initialText: messageController.text,
-        onText: (t) => messageController.text = t,
-        onError: (e) => logError('Apple speech error: ${e.errorMsg}'),
-      );
-      if (!ok) {
-        displayErrorInfoBar(
-          title: 'Speech recognition unavailable'.tr,
-          message: 'Check Microphone and Speech Recognition in System Settings.'.tr,
-        );
-      }
-      return ok;
-    } catch (e, stack) {
-      logError('Speech error:\n$e', stack);
-      return false;
-    }
-  }
-
-  Future<bool> _startListeningDeepgram() async {
     try {
       if (!DeepgramSpeech.isValid()) {
         displayInfoBar(context!, builder: (ctx, close) {
@@ -55,7 +27,7 @@ mixin ChatProviderSpeechMixin on ChangeNotifier, ChatProviderBaseMixin {
                 // ensure its closed
                 await Future.delayed(const Duration(milliseconds: 200));
                 Navigator.of(context!).push(
-                  FluentPageRoute(builder: (ctx) => const NewSettingsPage(initialIndex: 4)),
+                  FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
                 );
               },
               child: Text('Settings'.tr),
@@ -84,10 +56,12 @@ mixin ChatProviderSpeechMixin on ChangeNotifier, ChatProviderBaseMixin {
         ),
       );
 
-      // https://developers.deepgram.com/reference/listen-live
-      final streamParams = <String, dynamic>{
-        'model': 'nova-3',
+      final streamParams = {
+        'detect_language': false, // not supported by streaming API
         'language': AppCache.speechLanguage.value!,
+        // must specify encoding and sample_rate according to the audio stream
+        'encoding': 'linear16',
+        'sample_rate': 16000,
       };
       transcriber = DeepgramSpeech.deepgram.listen.liveListener(micStream!, queryParams: streamParams);
       transcriber!.stream.listen((res) {
@@ -104,10 +78,6 @@ mixin ChatProviderSpeechMixin on ChangeNotifier, ChatProviderBaseMixin {
   }
 
   Future<void> stopListeningForInput() async {
-    if (useAppleSpeechRecognition()) {
-      await stopAppleSpeechDictation();
-      return;
-    }
     try {
       transcriber!.pause(keepAlive: false);
       await transcriber!.close();
@@ -125,3 +95,4 @@ mixin ChatProviderSpeechMixin on ChangeNotifier, ChatProviderBaseMixin {
     micStream = null;
   }
 }
+

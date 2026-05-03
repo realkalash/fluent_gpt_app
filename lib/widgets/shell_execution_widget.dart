@@ -4,8 +4,6 @@ import 'dart:convert';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
-import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_agent_mixin.dart'
-    show ShellApprovalResult;
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +25,6 @@ class ShellExecutionWidget extends StatefulWidget {
 class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
   bool _isExpanded = false;
   bool _isExecuting = false;
-  bool _shellApprovalSent = false;
 
   Future<void> _runCommand(String command) async {
     final provider = context.read<ChatProvider>();
@@ -160,15 +157,12 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
 
     final command = data['command'] as String? ?? '';
     final description = data['description'] as String?;
-    final workingDirectory = data['workingDirectory'] as String?;
     final exitCode = data['exitCode'] as int?;
     final stdout = data['stdout'] as String? ?? '';
     final stderr = data['stderr'] as String? ?? '';
 
     final theme = FluentTheme.of(context);
-    final isPendingApproval = widget.message.type == FluentChatMessageType.shellPendingApproval;
-    final isProposal = widget.message.type == FluentChatMessageType.shellProposal ||
-        (exitCode == null && !isPendingApproval);
+    final isProposal = widget.message.type == FluentChatMessageType.shellProposal || exitCode == null;
     final isSuccess = exitCode == 0;
 
     return Container(
@@ -203,9 +197,7 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                   style: TextStyle(
                     fontFamily: 'Consolas',
                     fontSize: 13,
-                    color: isPendingApproval || isProposal
-                        ? Colors.orange
-                        : (isSuccess ? Colors.green : Colors.red),
+                    color: isProposal ? Colors.orange : (isSuccess ? Colors.green : Colors.red),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -220,8 +212,8 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                     ),
                   ),
                 ),
-                // Run button (for markdown shell proposals only)
-                if (isProposal && !isPendingApproval)
+                // Run button (for proposals only)
+                if (isProposal)
                   FilledButton(
                     onPressed: _isExecuting ? null : () => _runCommand(command),
                     style: ButtonStyle(
@@ -236,60 +228,6 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                             child: ProgressRing(strokeWidth: 2),
                           )
                         : const Text('Run', style: TextStyle(fontSize: 12)),
-                  ),
-                if (isPendingApproval)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Tooltip(
-                        message: 'Run this command once',
-                        child: Button(
-                          onPressed: _shellApprovalSent
-                              ? null
-                              : () {
-                                  setState(() => _shellApprovalSent = true);
-                                  context.read<ChatProvider>().resolveShellApproval(
-                                        ShellApprovalResult.allow,
-                                        messageId: widget.message.id,
-                                      );
-                                },
-                          child: const Text('Allow', style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Tooltip(
-                        message:
-                            'Run and add the first word of this command to your allowlist (Settings → Tools)',
-                        child: FilledButton(
-                          onPressed: _shellApprovalSent
-                              ? null
-                              : () {
-                                  setState(() => _shellApprovalSent = true);
-                                  context.read<ChatProvider>().resolveShellApproval(
-                                        ShellApprovalResult.allowAndRemember,
-                                        messageId: widget.message.id,
-                                      );
-                                },
-                          child: const Text('Allow & remember', style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Tooltip(
-                        message: 'Do not run; tell the model the command was denied',
-                        child: Button(
-                          onPressed: _shellApprovalSent
-                              ? null
-                              : () {
-                                  setState(() => _shellApprovalSent = true);
-                                  context.read<ChatProvider>().resolveShellApproval(
-                                        ShellApprovalResult.deny,
-                                        messageId: widget.message.id,
-                                      );
-                                },
-                          child: const Text('Deny', style: TextStyle(fontSize: 12)),
-                        ),
-                      ),
-                    ],
                   ),
                 // Copy button (for executed commands)
                 if (!isProposal)
@@ -341,20 +279,8 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                 ),
               ),
 
-            if (isPendingApproval && workingDirectory != null && workingDirectory.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Text(
-                  'cwd: $workingDirectory',
-                  style: const TextStyle(
-                    fontFamily: 'Consolas',
-                    fontSize: 11,
-                    color: Color(0xFF808080),
-                  ),
-                ),
-              ),
             // Show "Click Run to execute" for proposals
-            if (isProposal && !isPendingApproval)
+            if (isProposal)
               Container(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -368,31 +294,6 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                     const Expanded(
                       child: Text(
                         'Click "Run" to execute this command',
-                        style: TextStyle(
-                          fontFamily: 'Consolas',
-                          fontSize: 11,
-                          color: Color(0xFF808080),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (isPendingApproval)
-              Container(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Icon(
-                      FluentIcons.info,
-                      size: 12,
-                      color: Colors.orange.withOpacity(0.7),
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Agent requested shell access — choose Allow, Allow & remember, or Deny.',
                         style: TextStyle(
                           fontFamily: 'Consolas',
                           fontSize: 11,

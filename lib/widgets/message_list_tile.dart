@@ -177,8 +177,7 @@ class _MessageCardState extends State<MessageCard> {
     final theme = FluentTheme.of(context);
 
     if (widget.message.type == FluentChatMessageType.shellExec ||
-        widget.message.type == FluentChatMessageType.shellProposal ||
-        widget.message.type == FluentChatMessageType.shellPendingApproval) {
+        widget.message.type == FluentChatMessageType.shellProposal) {
       return ShellExecutionWidget(message: widget.message);
     }
 
