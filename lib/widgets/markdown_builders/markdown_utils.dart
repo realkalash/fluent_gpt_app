@@ -13,6 +13,29 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import 'code_wrapper.dart';
 
+/// Short inline label: `.../lastSegment` when [content] has multiple segments.
+String _compactPathLinkLabel(String type, String content) {
+  final raw = content.trim();
+  if (raw.isEmpty) return raw;
+
+  if (type == 'url') {
+    final uri = Uri.tryParse(raw);
+    if (uri != null && uri.hasAuthority) {
+      final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      if (segs.isNotEmpty) {
+        final last = segs.last;
+        if (raw.length > last.length + 1) return '.../$last';
+      }
+      return raw.length > uri.host.length ? uri.host : raw;
+    }
+    return raw;
+  }
+
+  final parts = raw.split(RegExp(r'[/\\]')).where((p) => p.isNotEmpty).toList();
+  if (parts.length <= 1) return raw;
+  return '.../${parts.last}';
+}
+
 ///Tag: [MarkdownTag.em]
 ///
 /// emphasis, Markdown treats asterisks (*) and underscores (_) as indicators of emphasis
@@ -148,84 +171,91 @@ class _PathLinkWidgetState extends State<PathLinkWidget> {
     final icon = widget.type == 'path' 
         ? FluentIcons.folder_20_filled 
         : FluentIcons.link_20_filled;
-    
+    final label = _compactPathLinkLabel(widget.type, widget.content);
+
     return SelectionContainer.disabled(
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: widget.type == 'path' ? _openPath : _openUrl,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _isHovered
-                      ? (widget.type == 'path' 
-                          ? Colors.blue.withAlpha(30) 
-                          : Colors.purple.withAlpha(30))
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: widget.type == 'path' 
-                        ? Colors.blue.withAlpha(100) 
-                        : Colors.purple.withAlpha(100),
-                    width: 1,
+      child: Tooltip(
+        message: widget.content,
+        waitDuration: const Duration(milliseconds: 400),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: widget.type == 'path' ? _openPath : _openUrl,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _isHovered
+                        ? (widget.type == 'path' 
+                            ? Colors.blue.withAlpha(30) 
+                            : Colors.purple.withAlpha(30))
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: widget.type == 'path' 
+                          ? Colors.blue.withAlpha(100) 
+                          : Colors.purple.withAlpha(100),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: () => openFileDirectory(widget.content),
-                      child: Icon(
-                        icon,
-                        size: 12,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () => openFileDirectory(widget.content),
+                        child: Icon(
+                          icon,
+                          size: 12,
+                          color: widget.type == 'path' ? Colors.blue : Colors.purple,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: widget.style,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        FluentIcons.open_20_filled,
+                        size: 10,
                         color: widget.type == 'path' ? Colors.blue : Colors.purple,
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        widget.content,
-                        style: widget.style,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      FluentIcons.open_20_filled,
-                      size: 10,
-                      color: widget.type == 'path' ? Colors.blue : Colors.purple,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (widget.type == 'path') ...[
-              const SizedBox(width: 2),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: _copyToClipboard,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: _isHovered ? Colors.blue.withAlpha(30) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Icon(
-                      FluentIcons.copy_20_filled,
-                      size: 10,
-                      color: Colors.blue,
-                    ),
+                    ],
                   ),
                 ),
               ),
+              if (widget.type == 'path') ...[
+                const SizedBox(width: 2),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: _copyToClipboard,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _isHovered ? Colors.blue.withAlpha(30) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Icon(
+                        FluentIcons.copy_20_filled,
+                        size: 10,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

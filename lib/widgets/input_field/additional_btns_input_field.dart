@@ -206,49 +206,54 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
               final e = models[i];
               return MenuFlyoutItem(
                 selected: e == selectedModel,
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (e == selectedModel)
-                      Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: const Icon(ic.FluentIcons.checkmark_16_filled),
-                      ),
-                    SqueareIconButton(
-                      onTap: () async {
-                        Navigator.of(ctx).pop();
-
-                        final changedModel = await showDialog<ChatModelAi>(
-                          context: context,
-                          builder: (context) => AddAiModelDialog(initialModel: e),
-                        );
-                        if (changedModel != null) {
-                          provider.removeCustomModel(e);
-                          await provider.addNewCustomModel(changedModel);
-                          await Future.delayed(const Duration(milliseconds: 100));
-                          provider.selectNewModel(changedModel);
-                        }
-                      },
-                      icon: Icon(ic.FluentIcons.edit_16_regular),
-                      tooltip: 'Edit'.tr,
-                    ),
-                    const SizedBox(width: 4),
-                    if (i != 0)
-                      SqueareIconButton(
-                        onTap: () async {
-                          // move this item 1 element up
-                          final index = models.indexOf(e);
-                          final previous = models[index - 1];
-                          models[index - 1] = e;
-                          models[index] = previous;
-                          allModels.value = models;
-                          provider.saveModelsToDisk();
-                          setState(() {});
-                        },
-                        icon: Icon(ic.FluentIcons.arrow_up_12_regular),
-                        tooltip: 'Move up'.tr,
-                      ),
-                  ],
+                trailing: StreamBuilder(
+                  stream: selectedChatRoomIdStream,
+                  builder: (context, _) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (e == selectedModel)
+                          Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: const Icon(ic.FluentIcons.checkmark_16_filled),
+                          ),
+                        SqueareIconButton(
+                          onTap: () async {
+                            Navigator.of(ctx).pop();
+                    
+                            final changedModel = await showDialog<ChatModelAi>(
+                              context: context,
+                              builder: (context) => AddAiModelDialog(initialModel: e),
+                            );
+                            if (changedModel != null) {
+                              provider.removeCustomModel(e);
+                              await provider.addNewCustomModel(changedModel);
+                              await Future.delayed(const Duration(milliseconds: 100));
+                              provider.selectNewModel(changedModel);
+                            }
+                          },
+                          icon: Icon(ic.FluentIcons.edit_16_regular),
+                          tooltip: 'Edit'.tr,
+                        ),
+                        const SizedBox(width: 4),
+                        if (i != 0)
+                          SqueareIconButton(
+                            onTap: () async {
+                              // move this item 1 element up
+                              final index = models.indexOf(e);
+                              final previous = models[index - 1];
+                              models[index - 1] = e;
+                              models[index] = previous;
+                              allModels.value = models;
+                              provider.saveModelsToDisk();
+                              setState(() {});
+                            },
+                            icon: Icon(ic.FluentIcons.arrow_up_12_regular),
+                            tooltip: 'Move up'.tr,
+                          ),
+                      ],
+                    );
+                  }
                 ),
                 leading: SizedBox.square(dimension: 24, child: e.modelIcon),
                 text: Text(e.customName),
