@@ -44,6 +44,15 @@ class FluentChatMessage {
   final String? agentToolArgumentsJson;
   final String? agentToolResult;
 
+  /// API prompt token usage for this assistant turn (streaming batches may report late).
+  final int? usagePromptTokens;
+
+  /// API completion token usage for this assistant turn.
+  final int? usageCompletionTokens;
+
+  /// Ms from stream start until first visible assistant text delta (agent / streaming).
+  final int? timeToFirstTokenMs;
+
   bool get hasAgentToolOutputSnapshot => agentToolResult != null;
 
   /// Execution-header flyout: needs a tool name and either JSON args (replay) or a stored result (legacy / side-effect tools).
@@ -74,6 +83,9 @@ class FluentChatMessage {
     this.agentToolName,
     this.agentToolArgumentsJson,
     this.agentToolResult,
+    this.usagePromptTokens,
+    this.usageCompletionTokens,
+    this.timeToFirstTokenMs,
   });
 
   @override
@@ -110,6 +122,9 @@ class FluentChatMessage {
     int? timestamp,
     int tokens = 0,
     Map<String, bool>? buttons,
+    int? usagePromptTokens,
+    int? usageCompletionTokens,
+    int? timeToFirstTokenMs,
   }) {
     return FluentChatMessage(
       id: id,
@@ -119,6 +134,9 @@ class FluentChatMessage {
       type: FluentChatMessageType.textAi,
       tokens: tokens,
       buttons: buttons,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
   factory FluentChatMessage.header({
@@ -242,7 +260,7 @@ class FluentChatMessage {
       'stderr': stderr,
       'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
     });
-    
+
     return FluentChatMessage(
       id: id,
       content: content,
@@ -267,7 +285,7 @@ class FluentChatMessage {
       'description': description,
       'timestamp': timestamp ?? DateTime.now().millisecondsSinceEpoch,
     });
-    
+
     return FluentChatMessage(
       id: id,
       content: content,
@@ -314,6 +332,9 @@ class FluentChatMessage {
     String? agentToolName,
     String? agentToolArgumentsJson,
     String? agentToolResult,
+    int? usagePromptTokens,
+    int? usageCompletionTokens,
+    int? timeToFirstTokenMs,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
@@ -331,12 +352,13 @@ class FluentChatMessage {
       agentToolName: agentToolName ?? this.agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson ?? this.agentToolArgumentsJson,
       agentToolResult: agentToolResult ?? this.agentToolResult,
+      usagePromptTokens: usagePromptTokens ?? this.usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens ?? this.usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs ?? this.timeToFirstTokenMs,
     );
   }
 
-  FluentChatMessage newPin({
-    required int? indexPin,
-  }) {
+  FluentChatMessage newPin({required int? indexPin}) {
     return FluentChatMessage(
       id: id,
       content: content,
@@ -353,6 +375,9 @@ class FluentChatMessage {
       agentToolName: agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson,
       agentToolResult: agentToolResult,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
 
@@ -364,15 +389,18 @@ class FluentChatMessage {
       'timestamp': timestamp,
       'type': type.index,
       'tokens': tokens,
-      if (indexPin != null) 'pin': indexPin!,
-      if (imagePrompt != null) 'imagePrompt': imagePrompt!,
-      if (path != null) 'path': path!,
-      if (fileName != null) 'fileName': fileName!,
+      'pin': ?indexPin,
+      'imagePrompt': ?imagePrompt,
+      'path': ?path,
+      'fileName': ?fileName,
       if (webResults != null) 'webResults': webResults!.map((e) => e.toJson()).toList(),
-      if (buttons != null) 'buttons': buttons!,
-      if (agentToolName != null) 'agentToolName': agentToolName!,
-      if (agentToolArgumentsJson != null) 'agentToolArgumentsJson': agentToolArgumentsJson!,
-      if (agentToolResult != null) 'agentToolResult': agentToolResult!,
+      'agentToolName': ?agentToolName,
+      'agentToolArgumentsJson': ?agentToolArgumentsJson,
+      'agentToolResult': ?agentToolResult,
+      'buttons': ?buttons,
+      'usagePromptTokens': ?usagePromptTokens,
+      'usageCompletionTokens': ?usageCompletionTokens,
+      'timeToFirstTokenMs': ?timeToFirstTokenMs,
     };
   }
 
@@ -387,13 +415,17 @@ class FluentChatMessage {
       tokens: json['tokens'] as int,
       path: json['path'] as String?,
       fileName: json['fileName'] as String?,
-      webResults:
-          (json['webResults'] as List?)?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>)).toList(),
+      webResults: (json['webResults'] as List?)
+          ?.map((e) => WebSearchResult.fromJson(e as Map<String, dynamic>))
+          .toList(),
       imagePrompt: json['imagePrompt'] as String?,
       buttons: (json['buttons'] as Map<String, dynamic>?)?.map((key, value) => MapEntry(key, value as bool)),
       agentToolName: json['agentToolName'] as String?,
       agentToolArgumentsJson: json['agentToolArgumentsJson'] as String?,
       agentToolResult: json['agentToolResult'] as String?,
+      usagePromptTokens: json['usagePromptTokens'] as int?,
+      usageCompletionTokens: json['usageCompletionTokens'] as int?,
+      timeToFirstTokenMs: json['timeToFirstTokenMs'] as int?,
     );
   }
 
@@ -415,12 +447,20 @@ class FluentChatMessage {
         return SystemChatMessage(content: content);
       case FluentChatMessageType.image:
         return HumanChatMessage(
-            content: ChatMessageContentImage(
-                data: content, detail: ChatMessageContentImageDetail.high, mimeType: 'image/png'));
+          content: ChatMessageContentImage(
+            data: content,
+            detail: ChatMessageContentImageDetail.high,
+            mimeType: 'image/png',
+          ),
+        );
       case FluentChatMessageType.imageAi:
         return HumanChatMessage(
-            content: ChatMessageContentImage(
-                data: content, detail: ChatMessageContentImageDetail.high, mimeType: 'image/png'));
+          content: ChatMessageContentImage(
+            data: content,
+            detail: ChatMessageContentImageDetail.high,
+            mimeType: 'image/png',
+          ),
+        );
       case FluentChatMessageType.file:
         return HumanChatMessage(
           // fileName: fileName ?? 'temp',
@@ -439,8 +479,9 @@ class FluentChatMessage {
           final exitCode = data['exitCode'] as int;
           final stdout = data['stdout'] as String;
           final stderr = data['stderr'] as String;
-          
-          final summary = 'Shell command: $cmd\nExit code: $exitCode\n'
+
+          final summary =
+              'Shell command: $cmd\nExit code: $exitCode\n'
               'Output: ${stdout.isEmpty ? '(empty)' : stdout.substring(0, stdout.length > 200 ? 200 : stdout.length)}'
               '${stderr.isNotEmpty ? '\nError: $stderr' : ''}';
           return AIChatMessage(content: summary);
@@ -553,6 +594,9 @@ class FluentChatMessage {
       agentToolName: agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson,
       agentToolResult: agentToolResult,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
 

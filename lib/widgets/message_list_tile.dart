@@ -47,6 +47,36 @@ import 'package:fluent_gpt/providers/chat_globals.dart';
 
 import 'input_field/input_field.dart';
 
+String _messageStatsFooterVisible(FluentChatMessage m, String formatDateTime) {
+  final ttft = m.timeToFirstTokenMs;
+  final ttftPart = ttft != null ? ', TTFT: ${ttft}ms' : '';
+  return '$formatDateTime$ttftPart, T: ${m.tokens}';
+}
+
+String _messageStatsTooltipBody(FluentChatMessage m, String formatDateTime) {
+  final buf = StringBuffer();
+  buf.writeln('Time: $formatDateTime');
+  switch (m.type) {
+    case FluentChatMessageType.textHuman:
+      buf.writeln('Tokens (approx): ${m.tokens}');
+      break;
+    case FluentChatMessageType.textAi:
+      final p = m.usagePromptTokens;
+      final c = m.usageCompletionTokens;
+      buf.writeln('Prompt tokens (API): ${(p != null && p > 0) ? p : 'n/a'}');
+      buf.writeln('Completion tokens (API): ${(c != null && c > 0) ? c : 'n/a'}');
+      buf.writeln('Local token estimate (content): ${m.tokens}');
+      if (m.timeToFirstTokenMs != null) {
+        buf.writeln('Time to first token: ${m.timeToFirstTokenMs} ms');
+      }
+      break;
+    default:
+      buf.writeln('Tokens (approx): ${m.tokens}');
+      break;
+  }
+  return buf.toString().trimRight();
+}
+
 class MessageListTile extends StatelessWidget {
   const MessageListTile({
     super.key,
@@ -574,12 +604,16 @@ class _MessageCardState extends State<MessageCard> {
                         )
                     ],
                   ),
-                Text(
-                  '$formatDateTime, T: ${widget.message.tokens}',
-                  style: TextStyle(
-                    fontSize: widget.textSize * 0.9,
-                    fontWeight: FontWeight.w200,
-                    color: context.theme.typography.body?.color,
+                Tooltip(
+                  style: TooltipThemeData(waitDuration: const Duration(milliseconds: 200)),
+                  message: _messageStatsTooltipBody(widget.message, formatDateTime),
+                  child: Text(
+                    _messageStatsFooterVisible(widget.message, formatDateTime),
+                    style: TextStyle(
+                      fontSize: widget.textSize * 0.9,
+                      fontWeight: FontWeight.w200,
+                      color: context.theme.typography.body?.color,
+                    ),
                   ),
                 ),
               ],
