@@ -44,6 +44,15 @@ class FluentChatMessage {
   final String? agentToolArgumentsJson;
   final String? agentToolResult;
 
+  /// API prompt token usage for this assistant turn (streaming batches may report late).
+  final int? usagePromptTokens;
+
+  /// API completion token usage for this assistant turn.
+  final int? usageCompletionTokens;
+
+  /// Ms from stream start until first visible assistant text delta (agent / streaming).
+  final int? timeToFirstTokenMs;
+
   bool get hasAgentToolOutputSnapshot => agentToolResult != null;
 
   /// Execution-header flyout: needs a tool name and either JSON args (replay) or a stored result (legacy / side-effect tools).
@@ -74,6 +83,9 @@ class FluentChatMessage {
     this.agentToolName,
     this.agentToolArgumentsJson,
     this.agentToolResult,
+    this.usagePromptTokens,
+    this.usageCompletionTokens,
+    this.timeToFirstTokenMs,
   });
 
   @override
@@ -110,6 +122,9 @@ class FluentChatMessage {
     int? timestamp,
     int tokens = 0,
     Map<String, bool>? buttons,
+    int? usagePromptTokens,
+    int? usageCompletionTokens,
+    int? timeToFirstTokenMs,
   }) {
     return FluentChatMessage(
       id: id,
@@ -119,6 +134,9 @@ class FluentChatMessage {
       type: FluentChatMessageType.textAi,
       tokens: tokens,
       buttons: buttons,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
   factory FluentChatMessage.header({
@@ -338,6 +356,9 @@ class FluentChatMessage {
     String? agentToolName,
     String? agentToolArgumentsJson,
     String? agentToolResult,
+    int? usagePromptTokens,
+    int? usageCompletionTokens,
+    int? timeToFirstTokenMs,
   }) {
     return FluentChatMessage(
       id: id ?? this.id,
@@ -355,6 +376,9 @@ class FluentChatMessage {
       agentToolName: agentToolName ?? this.agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson ?? this.agentToolArgumentsJson,
       agentToolResult: agentToolResult ?? this.agentToolResult,
+      usagePromptTokens: usagePromptTokens ?? this.usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens ?? this.usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs ?? this.timeToFirstTokenMs,
     );
   }
 
@@ -377,6 +401,9 @@ class FluentChatMessage {
       agentToolName: agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson,
       agentToolResult: agentToolResult,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
 
@@ -397,6 +424,9 @@ class FluentChatMessage {
       'agentToolName': ?agentToolName,
       'agentToolArgumentsJson': ?agentToolArgumentsJson,
       'agentToolResult': ?agentToolResult,
+      'usagePromptTokens': ?usagePromptTokens,
+      'usageCompletionTokens': ?usageCompletionTokens,
+      'timeToFirstTokenMs': ?timeToFirstTokenMs,
     };
   }
 
@@ -418,6 +448,9 @@ class FluentChatMessage {
       agentToolName: json['agentToolName'] as String?,
       agentToolArgumentsJson: json['agentToolArgumentsJson'] as String?,
       agentToolResult: json['agentToolResult'] as String?,
+      usagePromptTokens: json['usagePromptTokens'] as int?,
+      usageCompletionTokens: json['usageCompletionTokens'] as int?,
+      timeToFirstTokenMs: json['timeToFirstTokenMs'] as int?,
     );
   }
 
@@ -585,6 +618,9 @@ class FluentChatMessage {
       agentToolName: agentToolName,
       agentToolArgumentsJson: agentToolArgumentsJson,
       agentToolResult: agentToolResult,
+      usagePromptTokens: usagePromptTokens,
+      usageCompletionTokens: usageCompletionTokens,
+      timeToFirstTokenMs: timeToFirstTokenMs,
     );
   }
 

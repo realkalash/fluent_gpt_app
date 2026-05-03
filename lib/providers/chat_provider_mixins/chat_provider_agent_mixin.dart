@@ -359,7 +359,13 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
   }
 
   /// One streamed model turn for the agent loop (shared by tool rounds and step-limit wrap-up).
-  Future<({AIChatMessage response, int responseTokens})> _agentStreamAssistantTurn(
+  Future<
+      ({
+        AIChatMessage response,
+        int responseTokens,
+        int usagePromptTokens,
+        int? timeToFirstTokenMs,
+      })> _agentStreamAssistantTurn(
     List<ChatMessage> messages,
     ChatOpenAIOptions options,
     String messageId,
@@ -367,6 +373,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     String fullContent = '';
     final toolAggs = <_AgentStreamingToolAgg>[];
     var responseTokens = 0;
+    var usagePromptTurn = 0;
+    int? ttftMs;
+    final turnStarted = DateTime.now();
     var hasDisplayedContent = false;
     var toolStreamingActive = false;
 
@@ -376,6 +385,15 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     listenerResponseStream = stream.listen(
       (final chunk) {
         final message = chunk.output;
+
+        // Apply usage first so each streamed row matches this chunk's totals.
+        // Streaming often reports usage only on the last chunk; values may stay 0 until then.
+        if (chunk.usage.totalTokens != null) {
+          totalSentTokens += chunk.usage.promptTokens ?? 0;
+          totalReceivedTokens += chunk.usage.responseTokens ?? 0;
+          usagePromptTurn += chunk.usage.promptTokens ?? 0;
+          responseTokens += chunk.usage.responseTokens ?? 0;
+        }
 
         if (message.toolCalls.isNotEmpty) {
           toolStreamingActive = true;
@@ -405,6 +423,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
           if (!toolStreamingActive) {
             hasDisplayedContent = true;
+            ttftMs ??= DateTime.now().difference(turnStarted).inMilliseconds;
             addBotMessageToList(
               FluentChatMessage.ai(
                 id: messageId,
@@ -412,15 +431,12 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
                 timestamp: DateTime.now().millisecondsSinceEpoch,
                 tokens: responseTokens,
                 creator: selectedChatRoom.characterName,
+                usagePromptTokens: usagePromptTurn,
+                usageCompletionTokens: responseTokens,
+                timeToFirstTokenMs: ttftMs,
               ),
             );
           }
-        }
-
-        if (chunk.usage.totalTokens != null) {
-          totalSentTokens += chunk.usage.promptTokens ?? 0;
-          totalReceivedTokens += chunk.usage.responseTokens ?? 0;
-          responseTokens += chunk.usage.responseTokens ?? 0;
         }
 
         if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
@@ -453,7 +469,12 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
     final response = await completer.future;
     listenerResponseStream = null;
-    return (response: response, responseTokens: responseTokens);
+    return (
+      response: response,
+      responseTokens: responseTokens,
+      usagePromptTokens: usagePromptTurn,
+      timeToFirstTokenMs: ttftMs,
+    );
   }
 
   /// Execute agent loop with planning and tool execution
@@ -588,6 +609,8 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         final streamResult = await _agentStreamAssistantTurn(messagesToSend, options, messageId);
         final response = streamResult.response;
         var responseTokens = streamResult.responseTokens;
+        final usagePromptFromStream = streamResult.usagePromptTokens;
+        final ttftFromStream = streamResult.timeToFirstTokenMs;
 
         // Check if user cancelled
         if (!isAnswering) {
@@ -638,6 +661,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
                 tokens: responseTokens,
                 timestamp: DateTime.now().millisecondsSinceEpoch,
                 creator: selectedChatRoom.characterName,
+                usagePromptTokens: usagePromptFromStream,
+                usageCompletionTokens: responseTokens,
+                timeToFirstTokenMs: ttftFromStream,
               ));
           break;
         }
@@ -813,6 +839,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
               tokens: wrapResponseTokens,
               timestamp: DateTime.now().millisecondsSinceEpoch,
               creator: selectedChatRoom.characterName,
+              usagePromptTokens: streamResult.usagePromptTokens,
+              usageCompletionTokens: wrapResponseTokens,
+              timeToFirstTokenMs: streamResult.timeToFirstTokenMs,
             ),
           );
         }
