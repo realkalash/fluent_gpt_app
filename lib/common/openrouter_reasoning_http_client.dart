@@ -1,17 +1,19 @@
 import 'package:fluent_gpt/common/chat_model.dart';
-import 'package:fluent_gpt/common/openrouter_reasoning.dart';
+import 'package:fluent_gpt/common/openrouter_web_search.dart';
 import 'package:http/http.dart' as http;
 
-/// Injects OpenRouter `reasoning: { enabled: true }` into POST /chat/completions bodies
-/// when the current model requests vendor reasoning support.
+/// Rewrites POST `/chat/completions` JSON for OpenRouter: vendor `reasoning.enabled`,
+/// and optionally the `openrouter:web_search` server tool (see [includeWebSearchServerTool]).
 class OpenRouterVendorReasoningHttpClient extends http.BaseClient {
   OpenRouterVendorReasoningHttpClient(
     this._inner, {
     required this.modelSelector,
-  });
+    bool Function()? includeWebSearchServerTool,
+  }) : includeWebSearchServerTool = includeWebSearchServerTool ?? (() => true);
 
   final http.Client _inner;
   final ChatModelAi Function() modelSelector;
+  final bool Function() includeWebSearchServerTool;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
@@ -21,7 +23,11 @@ class OpenRouterVendorReasoningHttpClient extends http.BaseClient {
         request.body.isNotEmpty) {
       try {
         final model = modelSelector();
-        request.body = applyOpenRouterVendorReasoningToJsonBody(request.body, model);
+        request.body = applyOpenRouterChatCompletionsBodyMutations(
+          request.body,
+          model,
+          includeWebSearchServerTool: includeWebSearchServerTool,
+        );
       } catch (_) {}
     }
     return _inner.send(request);

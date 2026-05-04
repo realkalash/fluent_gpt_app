@@ -134,6 +134,9 @@ class AppCache {
       gptToolGenerateImage.value == true ||
       gptToolRememberInfo.value == true;
 
+  /// Max results per OpenRouter `openrouter:web_search` call (1–25). Applies when using OpenRouter.
+  static const openRouterWebSearchMaxResults = IntPref("openRouterWebSearchMaxResults", 5);
+
   static const useAiToNameChat = BoolPref("useSecondRequestForNamingChats", false);
   static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
   static const annoyModeTimerMinMinutes = IntPref("annoyModeTimerMinMinutes", 100);

@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
+import 'package:fluent_gpt/common/openrouter_reasoning.dart';
+import 'package:fluent_gpt/common/openrouter_web_search.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/enums.dart';
@@ -1496,6 +1498,11 @@ class ChatProvider
     int tokensReceivedInResponse = 0,
   ]) async {
     log('assistantArgs: $toolArgs');
+    if (toolName != null &&
+        isOpenRouterConfiguredModel(selectedModel) &&
+        isOpenRouterServerWebSearchToolInvocation(toolName)) {
+      return;
+    }
     if (toolName == 'copy_to_clipboard_tool' && AppCache.gptToolCopyToClipboardEnabled.value!) {
       final text = toolArgs['responseMessage'];
       final textToCopy = toolArgs['clipboard'];

@@ -5,8 +5,7 @@ import 'package:fluent_gpt/common/chat_model.dart';
 /// True when this model configuration targets OpenRouter (preset or URL).
 bool isOpenRouterConfiguredModel(ChatModelAi model) {
   if (model.ownedBy == OwnedByEnum.openrouter.name) return true;
-  final uri = model.uri;
-  return uri != null && uri.contains('openrouter.ai');
+  return false;
 }
 
 /// Whether to add OpenRouter's vendor `reasoning: { enabled: true }` to chat requests

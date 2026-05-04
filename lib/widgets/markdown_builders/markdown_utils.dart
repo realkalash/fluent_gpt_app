@@ -1,3 +1,4 @@
+import 'package:fluent_gpt/app_colors.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/shell_driver.dart';
 import 'package:fluent_gpt/utils.dart';
@@ -192,13 +193,13 @@ class _PathLinkWidgetState extends State<PathLinkWidget> {
                     color: _isHovered
                         ? (widget.type == 'path' 
                             ? Colors.blue.withAlpha(30) 
-                            : Colors.purple.withAlpha(30))
+                            : AppColors.linkTransparentPurpleBackground)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
                       color: widget.type == 'path' 
                           ? Colors.blue.withAlpha(100) 
-                          : Colors.purple.withAlpha(100),
+                          : AppColors.linkTransparentPurpleBorder,
                       width: 1,
                     ),
                   ),
@@ -227,7 +228,7 @@ class _PathLinkWidgetState extends State<PathLinkWidget> {
                       Icon(
                         FluentIcons.open_20_filled,
                         size: 10,
-                        color: widget.type == 'path' ? Colors.blue : Colors.purple,
+                        color: widget.type == 'path' ? Colors.blue : AppColors.linkPurpleText,
                       ),
                     ],
                   ),

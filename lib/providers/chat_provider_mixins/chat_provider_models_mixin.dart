@@ -9,12 +9,40 @@ import 'package:http/http.dart' as http;
 import 'package:langchain_openai/langchain_openai.dart';
 
 mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
+  bool _agentOpenRouterWebSearchGateActive = false;
+  bool _pendingOpenRouterWebSearchInject = false;
+
+  /// While an agent run is active, OpenRouter `openrouter:web_search` is injected only on the next completion after [scheduleOpenRouterWebSearchForNextAgentRequest].
+  void beginAgentOpenRouterWebSearchGate() {
+    _agentOpenRouterWebSearchGateActive = true;
+    _pendingOpenRouterWebSearchInject = false;
+  }
+
+  void endAgentOpenRouterWebSearchGate() {
+    _agentOpenRouterWebSearchGateActive = false;
+    _pendingOpenRouterWebSearchInject = false;
+  }
+
+  void scheduleOpenRouterWebSearchForNextAgentRequest() {
+    _pendingOpenRouterWebSearchInject = true;
+  }
+
+  /// Used by [OpenRouterVendorReasoningHttpClient]; consumes pending inject once.
+  bool evaluateIncludeOpenRouterWebSearchServerTool() {
+    if (!_agentOpenRouterWebSearchGateActive) return true;
+    if (!_pendingOpenRouterWebSearchInject) return false;
+    _pendingOpenRouterWebSearchInject = false;
+    return true;
+  }
+
   @override
   Future<void> initChatModels() async {
     final listModelsJsonString = await AppCache.savedModels.value();
     if (listModelsJsonString.isNotEmpty == true) {
       final listModelsJson = jsonDecode(listModelsJsonString) as List;
-      var listModels = listModelsJson.map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>)).toList();
+      var listModels = listModelsJson
+          .map((e) => ChatModelAi.fromJson(e as Map<String, dynamic>))
+          .toList();
       // Sort by index and reassign sequential indices
       listModels.sort((a, b) => a.index.compareTo(b.index));
       for (int i = 0; i < listModels.length; i++) {
@@ -22,6 +50,7 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
       }
       allModels.add(listModels);
     }
+
     /// if we created the very first model, we need to autoselect it
     if (allModels.value.length == 1) {
       selectedChatRoom.model = allModels.value.first;
@@ -33,7 +62,9 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
 
   Future<void> addNewCustomModel(ChatModelAi model) async {
     final allModelsList = allModels.value;
-    final maxIndex = allModelsList.isEmpty ? -1 : allModelsList.map((e) => e.index).reduce((a, b) => a > b ? a : b);
+    final maxIndex = allModelsList.isEmpty
+        ? -1
+        : allModelsList.map((e) => e.index).reduce((a, b) => a > b ? a : b);
     final newModel = model.copyWith(index: maxIndex + 1);
     allModelsList.add(newModel);
     allModels.add(allModelsList);
@@ -85,6 +116,7 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
     final httpClient = OpenRouterVendorReasoningHttpClient(
       http.Client(),
       modelSelector: () => selectedModel,
+      includeWebSearchServerTool: evaluateIncludeOpenRouterWebSearchServerTool,
     );
     if (selectedModel.uri != null && selectedModel.uri!.isNotEmpty) {
       openAI = ChatOpenAI(
@@ -93,10 +125,7 @@ mixin ChatProviderModelsMixin on ChangeNotifier, ChatProviderBaseMixin {
         client: httpClient,
       );
     } else {
-      openAI = ChatOpenAI(
-        apiKey: selectedModel.apiKey,
-        client: httpClient,
-      );
+      openAI = ChatOpenAI(apiKey: selectedModel.apiKey, client: httpClient);
     }
   }
 }

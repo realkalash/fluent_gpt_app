@@ -5,6 +5,8 @@ import 'dart:math';
 
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
+import 'package:fluent_gpt/common/openrouter_reasoning.dart';
+import 'package:fluent_gpt/common/openrouter_web_search.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -12,6 +14,7 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_base_mixin.dart';
 import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_image_generation_mixin.dart';
+import 'package:fluent_gpt/providers/chat_provider_mixins/chat_provider_models_mixin.dart';
 import 'package:fluent_gpt/system_messages.dart';
 import 'package:fluent_gpt/utils.dart';
 import 'package:flutter/foundation.dart';
@@ -89,7 +92,9 @@ String? _agentExtractFirstJsonObject(String input) {
 }
 
 /// Parses tool `argumentsRaw`; handles models that concatenate multiple JSON objects.
-({Map<String, dynamic> map, String? warning})? _agentParseToolArgumentsRaw(String raw) {
+({Map<String, dynamic> map, String? warning})? _agentParseToolArgumentsRaw(
+  String raw,
+) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) {
     return (map: <String, dynamic>{}, warning: null);
@@ -108,7 +113,9 @@ String? _agentExtractFirstJsonObject(String input) {
   try {
     final decoded = jsonDecode(first) as Map<String, dynamic>;
     String? warning;
-    final rest = trimmed.substring(trimmed.indexOf(first) + first.length).trim();
+    final rest = trimmed
+        .substring(trimmed.indexOf(first) + first.length)
+        .trim();
     if (rest.isNotEmpty) {
       if (rest.startsWith('{')) {
         warning =
@@ -168,10 +175,13 @@ AIChatMessage _agentBuildStreamedAiMessage({
       warnings.add(parsed.warning!);
     }
 
-    final normalizedRaw = _agentExtractFirstJsonObject(raw.trim()) ?? raw.trim();
+    final normalizedRaw =
+        _agentExtractFirstJsonObject(raw.trim()) ?? raw.trim();
     builtCalls.add(
       AIChatMessageToolCall(
-        id: a.id.isNotEmpty ? a.id : 'tool_${DateTime.now().millisecondsSinceEpoch}_$idx',
+        id: a.id.isNotEmpty
+            ? a.id
+            : 'tool_${DateTime.now().millisecondsSinceEpoch}_$idx',
         name: name,
         argumentsRaw: normalizedRaw,
         arguments: parsed.map,
@@ -194,7 +204,12 @@ AIChatMessage _agentBuildStreamedAiMessage({
 
 /// Mixin for agent mode functionality
 /// Provides autonomous task execution with planning and tool calling
-mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProviderImageGenerationMixin {
+mixin ChatProviderAgentMixin
+    on
+        ChangeNotifier,
+        ChatProviderBaseMixin,
+        ChatProviderImageGenerationMixin,
+        ChatProviderModelsMixin {
   // Members required from ChatProvider but not in base mixins
   void addBotHeader(FluentChatMessage message);
 
@@ -247,12 +262,14 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
   /// One streamed model turn for the agent loop (shared by tool rounds and step-limit wrap-up).
   Future<
-      ({
-        AIChatMessage response,
-        int responseTokens,
-        int usagePromptTokens,
-        int? timeToFirstTokenMs,
-      })> _agentStreamAssistantTurn(
+    ({
+      AIChatMessage response,
+      int responseTokens,
+      int usagePromptTokens,
+      int? timeToFirstTokenMs,
+    })
+  >
+  _agentStreamAssistantTurn(
     List<ChatMessage> messages,
     ChatOpenAIOptions options,
     String messageId,
@@ -326,7 +343,8 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           }
         }
 
-        if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
+        if (chunk.finishReason == FinishReason.stop ||
+            chunk.finishReason == FinishReason.toolCalls) {
           completer.complete(
             _agentBuildStreamedAiMessage(
               fullContent: fullContent,
@@ -366,180 +384,206 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
   /// Execute agent loop with planning and tool execution
   Future<void> _executeAgentLoop(String userRequest) async {
-    const maxIterations = 10;
-    int iteration = 0;
+    beginAgentOpenRouterWebSearchGate();
+    try {
+      const maxIterations = 10;
+      int iteration = 0;
 
-    // Stream subscription will be stored in listenerResponseStream (from ChatProvider)
-    // so it can be cancelled via stopAnswering()
-    final _agentSystemPromptWords = agentSystemPrompt.split('\n');
-    StringBuffer sb = StringBuffer();
-    for (final line in _agentSystemPromptWords) {
-      if (line.startsWith('{')) {
-        _writeValuesInSystemInfo(sb, line);
-      } else {
-        sb.writeln(line);
+      // Stream subscription will be stored in listenerResponseStream (from ChatProvider)
+      // so it can be cancelled via stopAnswering()
+      final _agentSystemPromptWords = agentSystemPrompt.split('\n');
+      StringBuffer sb = StringBuffer();
+      for (final line in _agentSystemPromptWords) {
+        if (line.startsWith('{')) {
+          _writeValuesInSystemInfo(sb, line);
+        } else {
+          sb.writeln(line);
+        }
       }
-    }
 
-    // Prepare agent messages with custom system prompt and chat history
-    final messagesToSend = <ChatMessage>[
-      SystemChatMessage(content: sb.toString()),
-    ];
+      // Prepare agent messages with custom system prompt and chat history
+      final messagesToSend = <ChatMessage>[
+        SystemChatMessage(content: sb.toString()),
+      ];
 
-    // Include recent chat history for context (excluding headers and system messages)
-    final recentMessages = await getLastMessagesLimitToTokens(
-      min(2048, selectedChatRoom.maxTokenLength), // Use minimum of 2048 tokens of history
-      allowImages: true,
-      stripMessage: false,
-    );
-
-    // Add recent messages (excluding headers, system messages, and shell proposals)
-    // Note: The current user request is already in recentMessages since we added it in sendAgentMessage
-    // shellExec is included so AI can see command results from previous interactions
-    // shellProposal is excluded since they're just UI suggestions, not executed yet
-    for (final msg in recentMessages) {
-      if (msg.type != FluentChatMessageType.header &&
-          msg.type != FluentChatMessageType.executionHeader &&
-          msg.type != FluentChatMessageType.system &&
-          msg.type != FluentChatMessageType.shellProposal) {
-        messagesToSend.add(
-          msg.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported),
-        );
-      }
-    }
-
-    // Define agent-specific tools
-    final agentTools = [
-      ToolSpec(
-        name: 'read_file_tool',
-        description:
-            'Read a slice of a text file by line range. Prefer offset+limit on large files; omitting both caps output (~500 lines) to save tokens',
-        inputJsonSchema: readFileToolParameters,
-      ),
-      ToolSpec(
-        name: 'list_directory_tool',
-        description: 'List files and/or directories with optional glob filter, excludes, and recursive mode',
-        inputJsonSchema: listDirectoryToolParameters,
-      ),
-      ToolSpec(
-        name: 'search_files_tool',
-        description: 'Find files by filename pattern (wildcards * and ?) under a directory',
-        inputJsonSchema: searchFilesToolParameters,
-      ),
-      ToolSpec(
-        name: 'grep_tool',
-        description:
-            'Search file contents by regex (fast via ripgrep when installed; otherwise scans files). Use after search_files_tool or to locate symbols before read_file_tool',
-        inputJsonSchema: grepToolParameters,
-      ),
-      ToolSpec(
-        name: 'edit_file_tool',
-        description:
-            'Replace exactly one occurrence of old_string with new_string in an existing file. Prefer this over write_file_tool for small edits',
-        inputJsonSchema: editFileToolParameters,
-      ),
-      ToolSpec(
-        name: 'write_file_tool',
-        description:
-            'Write or append full file content. Use for new files or full rewrites; prefer edit_file_tool for targeted edits',
-        inputJsonSchema: writeFileToolParameters,
-      ),
-      ToolSpec(
-        name: 'execute_shell_command_tool',
-        description: 'Execute a shell/terminal command and return the output',
-        inputJsonSchema: executeShellCommandToolParameters,
-      ),
-      // new tools
-      if (AppCache.gptToolCopyToClipboardEnabled.value!)
-        ToolSpec(
-          name: 'copy_to_clipboard_tool',
-          description: 'Tool to copy text to user clipboard',
-          inputJsonSchema: copyToClipboardFunctionParameters,
-        ),
-      if (AppCache.gptToolAutoOpenUrls.value!)
-        ToolSpec(
-          name: 'auto_open_urls_tool',
-          description: 'Tool to open urls in the browser',
-          inputJsonSchema: autoOpenUrlParameters,
-        ),
-      if (AppCache.gptToolGenerateImage.value!)
-        ToolSpec(
-          name: 'generate_image_tool',
-          description:
-              'Tool to generate image. Use it to generate images based on a prompt. Requires API key in settings',
-          inputJsonSchema: generateImageParameters,
-        ),
-      if (AppCache.gptToolRememberInfo.value!)
-        ToolSpec(
-          name: 'remember_info_tool',
-          description: 'Tool to remember info. Use it to store info about user or important notes',
-          inputJsonSchema: rememberInfoParameters,
-        ),
-    ];
-
-    initModelsApi();
-
-    while (iteration < maxIterations && isAnswering) {
-      iteration++;
-
-      final options = ChatOpenAIOptions(
-        model: selectedChatRoom.model.modelName,
-        temperature: 0.7,
-        toolChoice: const ChatToolChoiceAuto(),
-        tools: agentTools,
-        parallelToolCalls: false,
+      // Include recent chat history for context (excluding headers and system messages)
+      final recentMessages = await getLastMessagesLimitToTokens(
+        min(
+          2048,
+          selectedChatRoom.maxTokenLength,
+        ), // Use minimum of 2048 tokens of history
+        allowImages: true,
+        stripMessage: false,
       );
 
-      try {
-        final messageId = '${DateTime.now().millisecondsSinceEpoch}_agent';
-        final streamResult = await _agentStreamAssistantTurn(messagesToSend, options, messageId);
-        final response = streamResult.response;
-        var responseTokens = streamResult.responseTokens;
-        final usagePromptFromStream = streamResult.usagePromptTokens;
-        final ttftFromStream = streamResult.timeToFirstTokenMs;
-
-        // Check if user cancelled
-        if (!isAnswering) {
-          log('Agent cancelled by user');
-          notifyListeners();
-          break;
-        }
-
-        // Count tool call tokens if present
-        int toolTokens = 0;
-        if (response.toolCalls.isNotEmpty) {
-          for (final toolCall in response.toolCalls) {
-            toolTokens += await countTokensString(toolCall.name);
-            toolTokens += await countTokensString(jsonEncode(toolCall.arguments));
-          }
-          totalReceivedTokens += toolTokens;
-          responseTokens += toolTokens;
-        }
-
-        // If API didn't provide tokens, calculate them locally
-        if (responseTokens == 0 && response.content.isNotEmpty) {
-          responseTokens = await countTokensString(response.content);
-          totalReceivedTokens += responseTokens;
-        }
-
-        // Note: Token count is accumulated during streaming via addBotMessageToList
-        // Each chunk adds its tokens, so the final message already has the total
-
-        if (kDebugMode) {
-          log(
-            'Agent iteration $iteration: content: "${response.content}" toolCalls: ${response.toolCalls.length} contentTokens: ${responseTokens - toolTokens} toolsTokens: $toolTokens totalTokens: $responseTokens',
+      // Add recent messages (excluding headers, system messages, and shell proposals)
+      // Note: The current user request is already in recentMessages since we added it in sendAgentMessage
+      // shellExec is included so AI can see command results from previous interactions
+      // shellProposal is excluded since they're just UI suggestions, not executed yet
+      for (final msg in recentMessages) {
+        if (msg.type != FluentChatMessageType.header &&
+            msg.type != FluentChatMessageType.executionHeader &&
+            msg.type != FluentChatMessageType.system &&
+            msg.type != FluentChatMessageType.shellProposal) {
+          messagesToSend.add(
+            msg.toLangChainChatMessage(
+              shouldCleanReasoning: selectedModel.reasoningSupported,
+            ),
           );
         }
+      }
 
-        // Add AI response to conversation history
-        messagesToSend.add(response);
+      // Define agent-specific tools
+      final agentTools = [
+        ToolSpec(
+          name: 'read_file_tool',
+          description:
+              'Read a slice of a text file by line range. Prefer offset+limit on large files; omitting both caps output (~500 lines) to save tokens',
+          inputJsonSchema: readFileToolParameters,
+        ),
+        ToolSpec(
+          name: 'list_directory_tool',
+          description:
+              'List files and/or directories with optional glob filter, excludes, and recursive mode',
+          inputJsonSchema: listDirectoryToolParameters,
+        ),
+        ToolSpec(
+          name: 'search_files_tool',
+          description:
+              'Find files by filename pattern (wildcards * and ?) under a directory',
+          inputJsonSchema: searchFilesToolParameters,
+        ),
+        ToolSpec(
+          name: 'grep_tool',
+          description:
+              'Search file contents by regex (fast via ripgrep when installed; otherwise scans files). Use after search_files_tool or to locate symbols before read_file_tool',
+          inputJsonSchema: grepToolParameters,
+        ),
+        ToolSpec(
+          name: 'edit_file_tool',
+          description:
+              'Replace exactly one occurrence of old_string with new_string in an existing file. Prefer this over write_file_tool for small edits',
+          inputJsonSchema: editFileToolParameters,
+        ),
+        ToolSpec(
+          name: 'write_file_tool',
+          description:
+              'Write or append full file content. Use for new files or full rewrites; prefer edit_file_tool for targeted edits',
+          inputJsonSchema: writeFileToolParameters,
+        ),
+        ToolSpec(
+          name: 'execute_shell_command_tool',
+          description: 'Execute a shell/terminal command and return the output',
+          inputJsonSchema: executeShellCommandToolParameters,
+        ),
+        // new tools
+        if (AppCache.gptToolCopyToClipboardEnabled.value!)
+          ToolSpec(
+            name: 'copy_to_clipboard_tool',
+            description: 'Tool to copy text to user clipboard',
+            inputJsonSchema: copyToClipboardFunctionParameters,
+          ),
+        if (AppCache.gptToolAutoOpenUrls.value!)
+          ToolSpec(
+            name: 'auto_open_urls_tool',
+            description: 'Tool to open urls in the browser',
+            inputJsonSchema: autoOpenUrlParameters,
+          ),
+        if (AppCache.gptToolGenerateImage.value!)
+          ToolSpec(
+            name: 'generate_image_tool',
+            description:
+                'Tool to generate image. Use it to generate images based on a prompt. Requires API key in settings',
+            inputJsonSchema: generateImageParameters,
+          ),
+        if (AppCache.gptToolRememberInfo.value!)
+          ToolSpec(
+            name: 'remember_info_tool',
+            description:
+                'Tool to remember info. Use it to store info about user or important notes',
+            inputJsonSchema: rememberInfoParameters,
+          ),
+        if (isOpenRouterConfiguredModel(selectedModel))
+          ToolSpec(
+            name: 'enable_openrouter_web_search_tool',
+            description:
+                'Schedules OpenRouter live web search for the NEXT assistant API turn only (server-side tool). '
+                'Call when you need current facts from the web. Do not use for local files, repo browsing, or tasks solvable offline.',
+            inputJsonSchema: enableOpenRouterWebSearchToolParameters,
+          ),
+      ];
 
-        // Check for tool calls
-        if (response.toolCalls.isEmpty) {
-          // No more tool calls, agent is done
-          log('Agent iteration $iteration: No more tool calls, ✅ Task completed');
-          // update the message with the end received tokens
-          editMessage(
+      initModelsApi();
+
+      while (iteration < maxIterations && isAnswering) {
+        iteration++;
+
+        final options = ChatOpenAIOptions(
+          model: selectedChatRoom.model.modelName,
+          temperature: 0.7,
+          toolChoice: const ChatToolChoiceAuto(),
+          tools: agentTools,
+          parallelToolCalls: false,
+        );
+
+        try {
+          final messageId = '${DateTime.now().millisecondsSinceEpoch}_agent';
+          final streamResult = await _agentStreamAssistantTurn(
+            messagesToSend,
+            options,
+            messageId,
+          );
+          final response = streamResult.response;
+          var responseTokens = streamResult.responseTokens;
+          final usagePromptFromStream = streamResult.usagePromptTokens;
+          final ttftFromStream = streamResult.timeToFirstTokenMs;
+
+          // Check if user cancelled
+          if (!isAnswering) {
+            log('Agent cancelled by user');
+            notifyListeners();
+            break;
+          }
+
+          // Count tool call tokens if present
+          int toolTokens = 0;
+          if (response.toolCalls.isNotEmpty) {
+            for (final toolCall in response.toolCalls) {
+              toolTokens += await countTokensString(toolCall.name);
+              toolTokens += await countTokensString(
+                jsonEncode(toolCall.arguments),
+              );
+            }
+            totalReceivedTokens += toolTokens;
+            responseTokens += toolTokens;
+          }
+
+          // If API didn't provide tokens, calculate them locally
+          if (responseTokens == 0 && response.content.isNotEmpty) {
+            responseTokens = await countTokensString(response.content);
+            totalReceivedTokens += responseTokens;
+          }
+
+          // Note: Token count is accumulated during streaming via addBotMessageToList
+          // Each chunk adds its tokens, so the final message already has the total
+
+          if (kDebugMode) {
+            log(
+              'Agent iteration $iteration: content: "${response.content}" toolCalls: ${response.toolCalls.length} contentTokens: ${responseTokens - toolTokens} toolsTokens: $toolTokens totalTokens: $responseTokens',
+            );
+          }
+
+          // Add AI response to conversation history
+          messagesToSend.add(response);
+
+          // Check for tool calls
+          if (response.toolCalls.isEmpty) {
+            // No more tool calls, agent is done
+            log(
+              'Agent iteration $iteration: No more tool calls, ✅ Task completed',
+            );
+            // update the message with the end received tokens
+            editMessage(
               messageId,
               FluentChatMessage.ai(
                 id: messageId,
@@ -550,218 +594,242 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
                 usagePromptTokens: usagePromptFromStream,
                 usageCompletionTokens: responseTokens,
                 timeToFirstTokenMs: ttftFromStream,
-              ));
-          break;
-        }
+              ),
+            );
+            break;
+          }
 
-        // Execute tool calls
-        for (final toolCall in response.toolCalls) {
-          // Check if user cancelled during tool execution
+          // Execute tool calls
+          for (final toolCall in response.toolCalls) {
+            // Check if user cancelled during tool execution
+            if (!isAnswering) {
+              log('Agent cancelled by user during tool execution');
+              notifyListeners();
+              break;
+            }
+
+            final toolName = toolCall.name;
+            final toolArgs = toolCall.arguments;
+            log('Agent toolCall.name: $toolName');
+            if (kDebugMode) {
+              log('toolCall: $toolName, args: $toolArgs\n\n');
+            }
+
+            // Get key parameter for display (path, directory, or pattern)
+            String? keyParam;
+            if (toolName == 'grep_tool') {
+              keyParam =
+                  '${toolArgs['pattern'] ?? ''} @ ${toolArgs['path'] ?? '.'}';
+            } else if (toolName == 'search_files_tool') {
+              keyParam =
+                  '${toolArgs['pattern']} in ${toolArgs['directory'] ?? '.'}';
+            } else if (toolArgs.containsKey('path')) {
+              keyParam = toolArgs['path']?.toString();
+            } else if (toolArgs.containsKey('url')) {
+              keyParam = toolArgs['url']?.toString();
+            } else if (toolArgs.containsKey('directory')) {
+              keyParam = toolArgs['directory']?.toString();
+            } else if (toolArgs.containsKey('clipboard')) {
+              keyParam = toolArgs['clipboard']?.toString();
+            } else if (toolName == 'enable_openrouter_web_search_tool') {
+              keyParam = toolArgs['query']?.toString().trim().isNotEmpty == true
+                  ? toolArgs['query']?.toString()
+                  : toolArgs['reason']?.toString();
+            }
+
+            // Show tool execution status with parameter
+            final executingMessage = keyParam != null
+                ? '⚙️ Executing: $toolName "$keyParam"'
+                : '⚙️ Executing: $toolName';
+
+            final execTimestamp = DateTime.now().millisecondsSinceEpoch;
+            final execId = '${DateTime.now().microsecondsSinceEpoch}_exec';
+            final argsJson = jsonEncode(toolArgs);
+
+            addBotHeader(
+              FluentChatMessage.executionHeader(
+                id: execId,
+                content: executingMessage,
+                timestamp: execTimestamp,
+                creator: selectedChatRoom.characterName,
+                agentToolName: toolName,
+                agentToolArgumentsJson: argsJson,
+              ),
+            );
+            notifyListeners();
+
+            // OpenRouter runs web_search server-side; skip local execution.
+            final toolResult =
+                isOpenRouterConfiguredModel(selectedModel) &&
+                    isOpenRouterServerWebSearchToolInvocation(toolName)
+                ? '{}'
+                : await _executeAgentTool(toolName, toolArgs);
+
+            // Add tool result to conversation
+            messagesToSend.add(
+              ToolChatMessage(content: toolResult, toolCallId: toolCall.id),
+            );
+
+            // Single execution row: replace "Executing" with final status (no duplicate Completed line).
+            final isError = toolResult.startsWith('Error:');
+            final statusIcon = isError ? '❌' : '✓';
+            final statusText = isError ? 'Failed' : 'Completed';
+            final doneMessage = keyParam != null
+                ? '$statusIcon $statusText: $toolName "$keyParam"'
+                : '$statusIcon $statusText: $toolName';
+
+            await editMessage(
+              execId,
+              FluentChatMessage.executionHeader(
+                id: execId,
+                content: doneMessage,
+                timestamp: execTimestamp,
+                creator: selectedChatRoom.characterName,
+                agentToolName: toolName,
+                agentToolArgumentsJson: argsJson,
+                agentToolResult: toolResult,
+              ),
+            );
+
+            notifyListeners();
+          }
+        } catch (e) {
+          // Clean up listener on error
+          listenerResponseStream = null;
+
+          // If it's a cancellation, don't throw
           if (!isAnswering) {
-            log('Agent cancelled by user during tool execution');
+            log('Agent cancelled by user (caught in error handler)');
             notifyListeners();
             break;
           }
 
-          final toolName = toolCall.name;
-          final toolArgs = toolCall.arguments;
-          if (kDebugMode) {
-            log('toolCall: $toolName, args: $toolArgs\n\n');
-          }
-
-          // Get key parameter for display (path, directory, or pattern)
-          String? keyParam;
-          if (toolName == 'grep_tool') {
-            keyParam = '${toolArgs['pattern'] ?? ''} @ ${toolArgs['path'] ?? '.'}';
-          } else if (toolName == 'search_files_tool') {
-            keyParam = '${toolArgs['pattern']} in ${toolArgs['directory'] ?? '.'}';
-          } else if (toolArgs.containsKey('path')) {
-            keyParam = toolArgs['path']?.toString();
-          } else if (toolArgs.containsKey('url')) {
-            keyParam = toolArgs['url']?.toString();
-          } else if (toolArgs.containsKey('directory')) {
-            keyParam = toolArgs['directory']?.toString();
-          } else if (toolArgs.containsKey('clipboard')) {
-            keyParam = toolArgs['clipboard']?.toString();
-          }
-
-          // Show tool execution status with parameter
-          final executingMessage = keyParam != null ? '⚙️ Executing: $toolName "$keyParam"' : '⚙️ Executing: $toolName';
-
-          final execTimestamp = DateTime.now().millisecondsSinceEpoch;
-          final execId = '${DateTime.now().microsecondsSinceEpoch}_exec';
-          final argsJson = jsonEncode(toolArgs);
-
-          addBotHeader(
-            FluentChatMessage.executionHeader(
-              id: execId,
-              content: executingMessage,
-              timestamp: execTimestamp,
-              creator: selectedChatRoom.characterName,
-              agentToolName: toolName,
-              agentToolArgumentsJson: argsJson,
-            ),
-          );
-          notifyListeners();
-
-          // Execute the tool
-          final toolResult = await _executeAgentTool(toolName, toolArgs);
-
-          // Add tool result to conversation
-          messagesToSend.add(
-            ToolChatMessage(
-              content: toolResult,
-              toolCallId: toolCall.id,
-            ),
-          );
-
-          // Single execution row: replace "Executing" with final status (no duplicate Completed line).
-          final isError = toolResult.startsWith('Error:');
-          final statusIcon = isError ? '❌' : '✓';
-          final statusText = isError ? 'Failed' : 'Completed';
-          final doneMessage = keyParam != null
-              ? '$statusIcon $statusText: $toolName "$keyParam"'
-              : '$statusIcon $statusText: $toolName';
-
-          await editMessage(
-            execId,
-            FluentChatMessage.executionHeader(
-              id: execId,
-              content: doneMessage,
-              timestamp: execTimestamp,
-              creator: selectedChatRoom.characterName,
-              agentToolName: toolName,
-              agentToolArgumentsJson: argsJson,
-              agentToolResult: toolResult,
-            ),
-          );
-
-          notifyListeners();
+          logError('Error in agent loop iteration $iteration: $e');
+          rethrow;
         }
-      } catch (e) {
-        // Clean up listener on error
-        listenerResponseStream = null;
-
-        // If it's a cancellation, don't throw
-        if (!isAnswering) {
-          log('Agent cancelled by user (caught in error handler)');
-          notifyListeners();
-          break;
-        }
-
-        logError('Error in agent loop iteration $iteration: $e');
-        rethrow;
       }
-    }
 
-    // Clean up
-    listenerResponseStream = null;
+      // Clean up
+      listenerResponseStream = null;
 
-    final hitStepLimit = iteration >= maxIterations;
-    final needsStepLimitWrapUp = hitStepLimit &&
-        isAnswering &&
-        messagesToSend.isNotEmpty &&
-        messagesToSend.last is ToolChatMessage;
+      final hitStepLimit = iteration >= maxIterations;
+      final needsStepLimitWrapUp =
+          hitStepLimit &&
+          isAnswering &&
+          messagesToSend.isNotEmpty &&
+          messagesToSend.last is ToolChatMessage;
 
-    if (needsStepLimitWrapUp) {
-      messagesToSend.add(
-        HumanChatMessage(
-          content: ChatMessageContent.text(
-            'System notice: The agent reached its maximum number of tool rounds for this run. '
-            'You must not use tools for this reply (tools are disabled). '
-            'Based on the user request and every message and tool result above, write a concise, helpful final answer: '
-            'summarize what you accomplished and what you found; note what is still unknown, unfinished, or risky; '
-            'tell the user they can send another message if they want you to continue exploring or finish the task.',
+      if (needsStepLimitWrapUp) {
+        messagesToSend.add(
+          HumanChatMessage(
+            content: ChatMessageContent.text(
+              'System notice: The agent reached its maximum number of tool rounds for this run. '
+              'You must not use tools for this reply (tools are disabled). '
+              'Based on the user request and every message and tool result above, write a concise, helpful final answer: '
+              'summarize what you accomplished and what you found; note what is still unknown, unfinished, or risky; '
+              'tell the user they can send another message if they want you to continue exploring or finish the task.',
+            ),
           ),
-        ),
-      );
-
-      addBotHeader(
-        FluentChatMessage.executionHeader(
-          id: '${DateTime.now().millisecondsSinceEpoch}_wrapup',
-          content: '⚙️ Wrapping up (step limit reached)',
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-          creator: selectedChatRoom.characterName,
-        ),
-      );
-      notifyListeners();
-
-      final wrapUpMessageId = '${DateTime.now().millisecondsSinceEpoch}_agent_wrapup';
-      final wrapUpOptions = ChatOpenAIOptions(
-        model: selectedChatRoom.model.modelName,
-        temperature: 0.7,
-        toolChoice: const ChatToolChoiceNone(),
-      );
-
-      try {
-        final streamResult = await _agentStreamAssistantTurn(
-          messagesToSend,
-          wrapUpOptions,
-          wrapUpMessageId,
         );
-        var wrapResponse = streamResult.response;
-        var wrapResponseTokens = streamResult.responseTokens;
 
-        if (!isAnswering) {
-          notifyListeners();
-        } else {
-          if (wrapResponse.toolCalls.isNotEmpty) {
-            log(
-              'Agent step-limit wrap-up returned ${wrapResponse.toolCalls.length} tool call(s); using text only',
-            );
-            wrapResponse = AIChatMessage(content: wrapResponse.content, toolCalls: const []);
-          }
+        addBotHeader(
+          FluentChatMessage.executionHeader(
+            id: '${DateTime.now().millisecondsSinceEpoch}_wrapup',
+            content: '⚙️ Wrapping up (step limit reached)',
+            timestamp: DateTime.now().millisecondsSinceEpoch,
+            creator: selectedChatRoom.characterName,
+          ),
+        );
+        notifyListeners();
 
-          if (wrapResponseTokens == 0 && wrapResponse.content.isNotEmpty) {
-            wrapResponseTokens = await countTokensString(wrapResponse.content);
-            totalReceivedTokens += wrapResponseTokens;
-          }
+        final wrapUpMessageId =
+            '${DateTime.now().millisecondsSinceEpoch}_agent_wrapup';
+        final wrapUpOptions = ChatOpenAIOptions(
+          model: selectedChatRoom.model.modelName,
+          temperature: 0.7,
+          toolChoice: const ChatToolChoiceNone(),
+        );
 
-          await editMessage(
+        try {
+          final streamResult = await _agentStreamAssistantTurn(
+            messagesToSend,
+            wrapUpOptions,
             wrapUpMessageId,
-            FluentChatMessage.ai(
-              id: wrapUpMessageId,
-              content: wrapResponse.content,
-              tokens: wrapResponseTokens,
-              timestamp: DateTime.now().millisecondsSinceEpoch,
-              creator: selectedChatRoom.characterName,
-              usagePromptTokens: streamResult.usagePromptTokens,
-              usageCompletionTokens: wrapResponseTokens,
-              timeToFirstTokenMs: streamResult.timeToFirstTokenMs,
-            ),
           );
-        }
-      } catch (e, stack) {
-        listenerResponseStream = null;
-        if (!isAnswering) {
-          notifyListeners();
-        } else {
-          logError('Error in agent step-limit wrap-up: $e', stack);
-          final time = DateTime.now().millisecondsSinceEpoch;
-          addBotErrorMessageToList(
-            FluentChatMessage.ai(
-              id: '${time}_wrapup_err',
-              content:
-                  'Reached the agent step limit but could not generate a closing summary: $e',
-              creator: 'error',
-              timestamp: time,
-            ),
-          );
-          addBotHeader(
-            FluentChatMessage.executionHeader(
-              id: '${time}_maxiter',
-              content: '⚠️ Reached maximum iterations (wrap-up failed)',
-              timestamp: time,
-              creator: selectedChatRoom.characterName,
-            ),
-          );
+          var wrapResponse = streamResult.response;
+          var wrapResponseTokens = streamResult.responseTokens;
+
+          if (!isAnswering) {
+            notifyListeners();
+          } else {
+            if (wrapResponse.toolCalls.isNotEmpty) {
+              log(
+                'Agent step-limit wrap-up returned ${wrapResponse.toolCalls.length} tool call(s); using text only',
+              );
+              wrapResponse = AIChatMessage(
+                content: wrapResponse.content,
+                toolCalls: const [],
+              );
+            }
+
+            if (wrapResponseTokens == 0 && wrapResponse.content.isNotEmpty) {
+              wrapResponseTokens = await countTokensString(
+                wrapResponse.content,
+              );
+              totalReceivedTokens += wrapResponseTokens;
+            }
+
+            await editMessage(
+              wrapUpMessageId,
+              FluentChatMessage.ai(
+                id: wrapUpMessageId,
+                content: wrapResponse.content,
+                tokens: wrapResponseTokens,
+                timestamp: DateTime.now().millisecondsSinceEpoch,
+                creator: selectedChatRoom.characterName,
+                usagePromptTokens: streamResult.usagePromptTokens,
+                usageCompletionTokens: wrapResponseTokens,
+                timeToFirstTokenMs: streamResult.timeToFirstTokenMs,
+              ),
+            );
+          }
+        } catch (e, stack) {
+          listenerResponseStream = null;
+          if (!isAnswering) {
+            notifyListeners();
+          } else {
+            logError('Error in agent step-limit wrap-up: $e', stack);
+            final time = DateTime.now().millisecondsSinceEpoch;
+            addBotErrorMessageToList(
+              FluentChatMessage.ai(
+                id: '${time}_wrapup_err',
+                content:
+                    'Reached the agent step limit but could not generate a closing summary: $e',
+                creator: 'error',
+                timestamp: time,
+              ),
+            );
+            addBotHeader(
+              FluentChatMessage.executionHeader(
+                id: '${time}_maxiter',
+                content: '⚠️ Reached maximum iterations (wrap-up failed)',
+                timestamp: time,
+                creator: selectedChatRoom.characterName,
+              ),
+            );
+          }
         }
       }
+    } finally {
+      endAgentOpenRouterWebSearchGate();
     }
   }
 
   /// Execute a single agent tool and return the result for AI to use it in the next iteration
-  Future<String> _executeAgentTool(String toolName, Map<String, dynamic> args) async {
+  Future<String> _executeAgentTool(
+    String toolName,
+    Map<String, dynamic> args,
+  ) async {
     log('Executing tool: $toolName, args: $args');
     try {
       switch (toolName) {
@@ -787,6 +855,8 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           return await _handleGenerateImageTool(args);
         case 'remember_info_tool':
           return await _handleRememberInfoTool(args);
+        case 'enable_openrouter_web_search_tool':
+          return _handleEnableOpenRouterWebSearchTool(args);
         default:
           return 'Error: Unknown tool $toolName';
       }
@@ -794,6 +864,23 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       logError('Error executing tool $toolName: $e');
       return 'Error: $e';
     }
+  }
+
+  String _handleEnableOpenRouterWebSearchTool(Map<String, dynamic> args) {
+    if (!isOpenRouterConfiguredModel(selectedModel)) {
+      return 'Error: Live web search requires an OpenRouter-backed chat model.';
+    }
+    scheduleOpenRouterWebSearchForNextAgentRequest();
+    final reason = args['reason']?.toString() ?? '';
+    final query = args['query']?.toString() ?? '';
+    final payload = <String, dynamic>{
+      'status': 'scheduled',
+      'message':
+          'The next assistant API turn will include OpenRouter server-side web search. Perform searches or ask time-sensitive questions in that turn.',
+      if (reason.isNotEmpty) 'reason': reason,
+      if (query.isNotEmpty) 'query_hint': query,
+    };
+    return jsonEncode(payload);
   }
 
   Future<String> _handleReadFileTool(Map<String, dynamic> args) async {
@@ -872,7 +959,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           '(Output capped at $_agentReadDefaultLineCap lines; pass offset and limit to read more)',
         );
       } else if (endIdx < totalLines) {
-        buf.writeln('(More lines exist; use offset: ${endIdx + 1} to continue)');
+        buf.writeln(
+          '(More lines exist; use offset: ${endIdx + 1} to continue)',
+        );
       }
       buf.writeln();
       for (var i = 0; i < selected.length; i++) {
@@ -895,7 +984,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       final recursive = args['recursive'] as bool? ?? false;
       final globPattern = args['glob'] as String?;
       final entriesMode = args['entries'] as String? ?? 'all';
-      final skipCommon = (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ?? true;
+      final skipCommon =
+          (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ??
+          true;
       final userExclude = args['exclude'] as List<dynamic>?;
 
       final exclude = _mergeExcludeNames(userExclude, skipCommon);
@@ -937,11 +1028,17 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       }
 
       if (recursive) {
-        await for (final entity in dir.list(recursive: true, followLinks: false)) {
+        await for (final entity in dir.list(
+          recursive: true,
+          followLinks: false,
+        )) {
           considerEntity(entity);
         }
       } else {
-        await for (final entity in dir.list(recursive: false, followLinks: false)) {
+        await for (final entity in dir.list(
+          recursive: false,
+          followLinks: false,
+        )) {
           if (_pathHasExcludedSegment(entity.path, exclude)) {
             continue;
           }
@@ -1009,7 +1106,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       }
 
       final maxResults = (args['maxResults'] as num?)?.toInt() ?? 50;
-      final skipCommon = (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ?? true;
+      final skipCommon =
+          (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ??
+          true;
       final exclude = _mergeExcludeNames(null, skipCommon);
 
       final dir = Directory(directory);
@@ -1020,7 +1119,10 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       final matches = <String>[];
       final regExp = _agentGlobToRegExp(pattern);
 
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity in dir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (_pathHasExcludedSegment(entity.path, exclude)) {
           continue;
         }
@@ -1060,13 +1162,17 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
       final searchPath = (args['path'] as String?) ?? '.';
       final glob = args['glob'] as String?;
-      final maxResults = ((args['max_results'] ?? args['maxResults']) as num?)?.toInt() ?? 80;
+      final maxResults =
+          ((args['max_results'] ?? args['maxResults']) as num?)?.toInt() ?? 80;
       final contextLines = max(
         0,
         ((args['context_lines'] ?? args['contextLines']) as num?)?.toInt() ?? 2,
       );
-      final caseSensitive = (args['case_sensitive'] ?? args['caseSensitive']) as bool? ?? true;
-      final skipCommon = (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ?? true;
+      final caseSensitive =
+          (args['case_sensitive'] ?? args['caseSensitive']) as bool? ?? true;
+      final skipCommon =
+          (args['skipCommonIgnored'] ?? args['skip_common_ignored']) as bool? ??
+          true;
 
       final type = FileSystemEntity.typeSync(searchPath);
       if (type == FileSystemEntityType.notFound) {
@@ -1281,7 +1387,8 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     final lines = stdout.split('\n');
     var text = stdout;
     if (lines.length > maxLines) {
-      text = '${lines.take(maxLines).join('\n')}\n... (${lines.length - maxLines} lines omitted; refine pattern, path, or glob)';
+      text =
+          '${lines.take(maxLines).join('\n')}\n... (${lines.length - maxLines} lines omitted; refine pattern, path, or glob)';
     }
     if (text.length <= _grepToolMaxOutputChars) {
       return text;
@@ -1305,7 +1412,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     }
 
     final exclude = _mergeExcludeNames(null, skipCommon);
-    final globRe = glob != null && glob.isNotEmpty ? _agentGlobToRegExp(glob) : null;
+    final globRe = glob != null && glob.isNotEmpty
+        ? _agentGlobToRegExp(glob)
+        : null;
 
     final results = <String>[];
     final maxLinesOut = max(maxResults, 20).clamp(20, 500);
@@ -1344,7 +1453,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       }
       await scanFile(f);
     } else if (rootType == FileSystemEntityType.directory) {
-      await for (final entity in Directory(searchPath).list(recursive: true, followLinks: false)) {
+      await for (final entity in Directory(
+        searchPath,
+      ).list(recursive: true, followLinks: false)) {
         if (results.length >= maxLinesOut) {
           break;
         }
@@ -1371,7 +1482,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     return results.join('\n');
   }
 
-  Future<String> _handleExecuteShellCommandTool(Map<String, dynamic> args) async {
+  Future<String> _handleExecuteShellCommandTool(
+    Map<String, dynamic> args,
+  ) async {
     try {
       final String command = args['command'];
       final String? workingDirectory = args['workingDirectory'];
@@ -1412,7 +1525,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
       try {
         // Execute with timeout
-        final process = await shell.start(commandName, arguments: commandArgs).timeout(const Duration(seconds: 30));
+        final process = await shell
+            .start(commandName, arguments: commandArgs)
+            .timeout(const Duration(seconds: 30));
 
         stdout = await process.stdout.readAsString();
         stderr = await process.stderr.readAsString();
@@ -1452,14 +1567,18 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
       if (stdout.isNotEmpty) {
         summary.writeln('Output:');
-        summary.writeln(stdout.length > 500 ? '${stdout.substring(0, 500)}...' : stdout);
+        summary.writeln(
+          stdout.length > 500 ? '${stdout.substring(0, 500)}...' : stdout,
+        );
       } else {
         summary.writeln('Output: (empty)');
       }
 
       if (stderr.isNotEmpty) {
         summary.writeln('Errors:');
-        summary.writeln(stderr.length > 500 ? '${stderr.substring(0, 500)}...' : stderr);
+        summary.writeln(
+          stderr.length > 500 ? '${stderr.substring(0, 500)}...' : stderr,
+        );
       }
 
       return summary.toString();
@@ -1585,19 +1704,25 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         break;
       case '{user_info}':
         sb.writeln(
-            '''Background context about the user (DO NOT mention or reference this information unprompted - only use when directly relevant to the user's request): """$infoAboutUser"""''');
+          '''Background context about the user (DO NOT mention or reference this information unprompted - only use when directly relevant to the user's request): """$infoAboutUser"""''',
+        );
         break;
       case '{lang}':
         sb.writeln('Preferable language: ${I18n.currentLocale.languageCode}');
         break;
       case '{conversation_lenght}':
-        if (conversationLenghtStyleStream.value != ConversationLengthStyleEnum.normal) {
-          sb.writeln('Your answer length should be: ${conversationLenghtStyleStream.value.name}');
+        if (conversationLenghtStyleStream.value !=
+            ConversationLengthStyleEnum.normal) {
+          sb.writeln(
+            'Your answer length should be: ${conversationLenghtStyleStream.value.name}',
+          );
         }
         break;
       case '{conversation_style}':
         if (conversationStyleStream.value != ConversationStyleEnum.normal) {
-          sb.writeln('YOU SHOULD ANSWER VERY: ${conversationStyleStream.value.name}');
+          sb.writeln(
+            'YOU SHOULD ANSWER VERY: ${conversationStyleStream.value.name}',
+          );
         }
         break;
     }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:elevenlabs_flutter/elevenlabs_flutter.dart';
+import 'package:fluent_gpt/app_colors.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -78,14 +79,7 @@ String _messageStatsTooltipBody(FluentChatMessage m, String formatDateTime) {
 }
 
 class MessageListTile extends StatelessWidget {
-  const MessageListTile({
-    super.key,
-    this.leading,
-    this.onPressed,
-    required this.title,
-    this.subtitle,
-    this.tileColor,
-  });
+  const MessageListTile({super.key, this.leading, this.onPressed, required this.title, this.subtitle, this.tileColor});
   final Widget? leading;
   final void Function()? onPressed;
   final Widget title;
@@ -98,29 +92,19 @@ class MessageListTile extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (leading != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8),
-            child: leading!,
-          ),
+        if (leading != null) Padding(padding: const EdgeInsets.only(left: 8, top: 8, bottom: 8), child: leading!),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
                 padding: const EdgeInsets.only(left: 16, top: 8),
-                child: DefaultTextStyle(
-                  style: theme.typography.title!,
-                  child: title,
-                ),
+                child: DefaultTextStyle(style: theme.typography.title!, child: title),
               ),
               if (subtitle != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 16, bottom: 8),
-                  child: DefaultTextStyle(
-                    style: theme.typography.subtitle!,
-                    child: subtitle!,
-                  ),
+                  child: DefaultTextStyle(style: theme.typography.subtitle!, child: subtitle!),
                 ),
             ],
           ),
@@ -215,10 +199,7 @@ class _MessageCardState extends State<MessageCard> {
       return Text(
         widget.message.content,
         textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 14,
-          color: theme.typography.caption?.color?.withAlpha(127),
-        ),
+        style: TextStyle(fontSize: 14, color: theme.typography.caption?.color?.withAlpha(127)),
       );
     }
     if (widget.message.type == FluentChatMessageType.executionHeader) {
@@ -240,10 +221,7 @@ class _MessageCardState extends State<MessageCard> {
           controller: flyoutController,
           child: GestureDetector(
             onSecondaryTap: () {
-              flyoutController.showFlyout(
-                builder: (context) => _showOptionsFlyout(),
-                position: mouseLocalPosition,
-              );
+              flyoutController.showFlyout(builder: (context) => _showOptionsFlyout(), position: mouseLocalPosition);
             },
             onTap: () {
               setState(() {
@@ -269,7 +247,7 @@ class _MessageCardState extends State<MessageCard> {
                       Expanded(child: Text('System', style: myMessageStyle)),
                       _isExpanded
                           ? const Icon(FluentIcons.chevron_up_16_filled, size: 12)
-                          : const Icon(FluentIcons.chevron_down_16_filled, size: 12)
+                          : const Icon(FluentIcons.chevron_down_16_filled, size: 12),
                     ],
                   ),
                   if (_isExpanded)
@@ -303,9 +281,7 @@ class _MessageCardState extends State<MessageCard> {
                       borderRadius: BorderRadius.circular(8.0),
                       image: DecorationImage(
                         fit: BoxFit.cover,
-                        image: FileImage(
-                          File(selectedChatRoom.characterAvatarPath!),
-                        ),
+                        image: FileImage(File(selectedChatRoom.characterAvatarPath!)),
                       ),
                     ),
                   ),
@@ -366,13 +342,11 @@ class _MessageCardState extends State<MessageCard> {
                           final provider = context.read<ChatProvider>();
                           await provider.editMessage(
                             widget.message.id,
-                            widget.message.copyWith(
-                              content: textEditingController!.text,
-                            ),
+                            widget.message.copyWith(content: textEditingController!.text),
                           );
                           _toggleEditing();
                         },
-                      )
+                      ),
                     ],
                   )
                 else if (isContentText && _isMarkdownView)
@@ -483,37 +457,28 @@ class _MessageCardState extends State<MessageCard> {
                       if (Platform.isWindows) {
                         final content = widget.message.content;
                         showDialog(
-                            context: context,
-                            barrierDismissible: true,
-                            builder: (ctx) {
-                              return ContentDialog(
-                                title: Text(widget.message.fileName ?? 'File'),
-                                constraints: const BoxConstraints(
-                                  maxWidth: 800,
-                                  maxHeight: 1200,
+                          context: context,
+                          barrierDismissible: true,
+                          builder: (ctx) {
+                            return ContentDialog(
+                              title: Text(widget.message.fileName ?? 'File'),
+                              constraints: const BoxConstraints(maxWidth: 800, maxHeight: 1200),
+                              actions: [Button(onPressed: () => Navigator.of(ctx).pop(), child: Text('Close'.tr))],
+                              content: SizedBox(
+                                width: 800,
+                                child: SingleChildScrollView(
+                                  child: SelectableText(content, style: TextStyle(fontSize: 16)),
                                 ),
-                                actions: [
-                                  Button(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: Text('Close'.tr),
-                                  ),
-                                ],
-                                content: SizedBox(
-                                  width: 800,
-                                  child: SingleChildScrollView(
-                                    child: SelectableText(
-                                      content,
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            });
+                              ),
+                            );
+                          },
+                        );
                         return;
                       }
                       final tempDir = Directory.systemTemp;
                       final file = File(
-                          '${tempDir.path}${Platform.pathSeparator}${widget.message.fileName?.isEmpty == true ? 'file' : widget.message.fileName}');
+                        '${tempDir.path}${Platform.pathSeparator}${widget.message.fileName?.isEmpty == true ? 'file' : widget.message.fileName}',
+                      );
                       await file.writeAsString(widget.message.content);
                       final mimeType = mime(file.path);
                       await OpenFilex.open(file.path, type: mimeType);
@@ -525,68 +490,13 @@ class _MessageCardState extends State<MessageCard> {
                         if (widget.message.path?.endsWith('.pdf') == false)
                           Icon(FluentIcons.document_24_filled, size: 24)
                         else
-                          Icon(
-                            FluentIcons.document_pdf_24_filled,
-                            size: 24,
-                            color: Colors.warningPrimaryColor,
-                          ),
-                        Text(
-                          widget.message.fileName ?? 'File',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
+                          Icon(FluentIcons.document_pdf_24_filled, size: 24, color: Colors.warningPrimaryColor),
+                        Text(widget.message.fileName ?? 'File', overflow: TextOverflow.ellipsis, maxLines: 1),
                       ],
                     ),
                   ),
                 if (widget.message.type == FluentChatMessageType.webResult)
-                  Wrap(
-                    children: [
-                      if (widget.message.content.isNotEmpty)
-                        SelectableText(
-                          widget.message.content,
-                          style: TextStyle(fontSize: widget.textSize.toDouble()),
-                        ),
-                      for (final result in (widget.message.webResults ?? <WebSearchResult>[]))
-                        SizedBox(
-                          width: 200,
-                          child: Button(
-                            onPressed: () => launchUrlString(result.url),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (result.favicon != null)
-                                  Image.network(
-                                    result.favicon!,
-                                    width: 24,
-                                    height: 24,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => const Icon(
-                                      FluentIcons.globe_16_regular,
-                                      size: 24,
-                                    ),
-                                  ),
-                                Text(
-                                  result.title,
-                                  style: theme.typography.subtitle!,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.start,
-                                  maxLines: 2,
-                                ),
-
-                                /// url short one line
-                                Text(
-                                  result.url,
-                                  style: theme.typography.caption!,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.start,
-                                  maxLines: 1,
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                    ],
-                  ),
+                  WebResultAnswerTile(widget: widget, theme: theme),
                 if (widget.message.buttons != null)
                   Wrap(
                     spacing: 4,
@@ -601,7 +511,7 @@ class _MessageCardState extends State<MessageCard> {
                                 }
                               : null,
                           child: Text(button.key.tr),
-                        )
+                        ),
                     ],
                   ),
                 Tooltip(
@@ -646,9 +556,7 @@ class _MessageCardState extends State<MessageCard> {
                 final provider = context.read<ChatProvider>();
                 await provider.editMessage(
                   widget.message.id,
-                  widget.message.copyWith(
-                    content: textEditingController!.text,
-                  ),
+                  widget.message.copyWith(content: textEditingController!.text),
                 );
                 _toggleEditing();
               } else {
@@ -754,9 +662,7 @@ class _MessageCardState extends State<MessageCard> {
                           child: SqueareIconButton(
                             icon: const Icon(FluentIcons.more_vertical_16_filled),
                             onTap: () {
-                              flyoutController.showFlyout(
-                                builder: (ctx) => _showOptionsFlyout(),
-                              );
+                              flyoutController.showFlyout(builder: (ctx) => _showOptionsFlyout());
                             },
                             tooltip: 'More'.tr,
                           ),
@@ -812,28 +718,31 @@ class _MessageCardState extends State<MessageCard> {
                               icon: _isLoadingReadAloud
                                   ? ProgressRing()
                                   : TextToSpeechService.isReadingAloud
-                                      ? Icon(
-                                          FluentIcons.stop_24_filled,
-                                          color: context.theme.accentColor,
-                                        )
-                                      : const Icon(FluentIcons.sound_wave_circle_24_regular),
+                                  ? Icon(FluentIcons.stop_24_filled, color: context.theme.accentColor)
+                                  : const Icon(FluentIcons.sound_wave_circle_24_regular),
                               onTap: () async {
                                 if (TextToSpeechService.isValid() == false) {
-                                  displayInfoBar(context, builder: (ctx, close) {
-                                    return InfoBar(
-                                      severity: InfoBarSeverity.warning,
-                                      title: Text('${TextToSpeechService.serviceName} API key is not set'),
-                                      action: Button(
+                                  displayInfoBar(
+                                    context,
+                                    builder: (ctx, close) {
+                                      return InfoBar(
+                                        severity: InfoBarSeverity.warning,
+                                        title: Text('${TextToSpeechService.serviceName} API key is not set'),
+                                        action: Button(
                                           child: Text('Settings'.tr),
                                           onPressed: () {
                                             Navigator.of(context).push(
-                                              FluentPageRoute(builder: (context) {
-                                                return const NewSettingsPage();
-                                              }),
+                                              FluentPageRoute(
+                                                builder: (context) {
+                                                  return const NewSettingsPage();
+                                                },
+                                              ),
                                             );
-                                          }),
-                                    );
-                                  });
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  );
                                   return;
                                 }
                                 if (TextToSpeechService.isReadingAloud) {
@@ -860,20 +769,23 @@ class _MessageCardState extends State<MessageCard> {
                                     });
                                     if (e is DeadlineExceededException) {
                                       // ignore: use_build_context_synchronously
-                                      displayInfoBar(context, builder: (ctx, close) {
-                                        return InfoBar(
-                                          severity: InfoBarSeverity.error,
-                                          title: Text('Timeout exceeded. Please try again later.'),
-                                        );
-                                      });
+                                      displayInfoBar(
+                                        context,
+                                        builder: (ctx, close) {
+                                          return InfoBar(
+                                            severity: InfoBarSeverity.error,
+                                            title: Text('Timeout exceeded. Please try again later.'),
+                                          );
+                                        },
+                                      );
                                     } else {
                                       // ignore: use_build_context_synchronously
-                                      displayInfoBar(context, builder: (ctx, close) {
-                                        return InfoBar(
-                                          severity: InfoBarSeverity.error,
-                                          title: Text('$e'),
-                                        );
-                                      });
+                                      displayInfoBar(
+                                        context,
+                                        builder: (ctx, close) {
+                                          return InfoBar(severity: InfoBarSeverity.error, title: Text('$e'));
+                                        },
+                                      );
 
                                       rethrow;
                                     }
@@ -914,9 +826,7 @@ class _MessageCardState extends State<MessageCard> {
                             child: SqueareIconButton(
                               icon: const Icon(FluentIcons.more_vertical_16_filled),
                               onTap: () {
-                                flyoutController.showFlyout(
-                                  builder: (context) => _showOptionsFlyout(),
-                                );
+                                flyoutController.showFlyout(builder: (context) => _showOptionsFlyout());
                               },
                               tooltip: 'More'.tr,
                             ),
@@ -964,10 +874,8 @@ class _MessageCardState extends State<MessageCard> {
     if (code.isEmpty) {
       displayInfoBar(
         context,
-        builder: (context, close) => const InfoBar(
-          title: Text('No code snippet found'),
-          severity: InfoBarSeverity.warning,
-        ),
+        builder: (context, close) =>
+            const InfoBar(title: Text('No code snippet found'), severity: InfoBarSeverity.warning),
       );
       return;
     }
@@ -982,10 +890,7 @@ class _MessageCardState extends State<MessageCard> {
 
   Future<void> _showImageDialog(BuildContext context, FluentChatMessage message) async {
     final image = decodeImage(message.content);
-    final provider = Image.memory(
-      image,
-      filterQuality: FilterQuality.high,
-    ).image;
+    final provider = Image.memory(image, filterQuality: FilterQuality.high).image;
 
     showDialog(
       context: context,
@@ -1004,22 +909,26 @@ class _MessageCardState extends State<MessageCard> {
         continue;
       }
       if (command.children.isNotEmpty) {
-        items.add(MenuFlyoutSubItem(
-          text: Text(command.title.tr),
-          leading: Icon(command.icon),
-          items: (BuildContext context) {
-            return _buildMenuItems(command.children, selectedText);
-          },
-        ));
+        items.add(
+          MenuFlyoutSubItem(
+            text: Text(command.title.tr),
+            leading: Icon(command.icon),
+            items: (BuildContext context) {
+              return _buildMenuItems(command.children, selectedText);
+            },
+          ),
+        );
       } else {
-        items.add(MenuFlyoutItem(
-          text: Text(command.title.tr),
-          leading: Icon(command.icon),
-          onPressed: () {
-            final provider = context.read<ChatProvider>();
-            provider.sendToQuickOverlay(command.title, command.getPromptText(selectedText));
-          },
-        ));
+        items.add(
+          MenuFlyoutItem(
+            text: Text(command.title.tr),
+            leading: Icon(command.icon),
+            onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.sendToQuickOverlay(command.title, command.getPromptText(selectedText));
+            },
+          ),
+        );
       }
     }
     return items;
@@ -1038,42 +947,47 @@ class _MessageCardState extends State<MessageCard> {
       items: [
         if (message.indexPin == null)
           MenuFlyoutItem(
-              text: Text('Pin message'.tr),
-              leading: const Icon(FluentIcons.pin_20_filled),
-              onPressed: () {
-                final provider = context.read<ChatProvider>();
-                provider.pinMessage(message.id);
-              })
+            text: Text('Pin message'.tr),
+            leading: const Icon(FluentIcons.pin_20_filled),
+            onPressed: () {
+              final provider = context.read<ChatProvider>();
+              provider.pinMessage(message.id);
+            },
+          )
         else
           MenuFlyoutItem(
-              text: Text('Unpin message'.tr),
-              leading: const Icon(FluentIcons.pin_off_20_filled),
-              onPressed: () {
-                final provider = context.read<ChatProvider>();
-                provider.unpinMessage(message.id);
-              }),
-        MenuFlyoutItem(
-            text: Text('Shorter'.tr),
-            leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
+            text: Text('Unpin message'.tr),
+            leading: const Icon(FluentIcons.pin_off_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.shortenMessage(widget.message.id);
-            }),
+              provider.unpinMessage(message.id);
+            },
+          ),
         MenuFlyoutItem(
-            text: Text('Longer'.tr),
-            leading: const Icon(FluentIcons.text_description_16_filled),
-            onPressed: () {
-              final provider = context.read<ChatProvider>();
-              provider.lengthenMessage(widget.message.id);
-            }),
+          text: Text('Shorter'.tr),
+          leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.shortenMessage(widget.message.id);
+          },
+        ),
+        MenuFlyoutItem(
+          text: Text('Longer'.tr),
+          leading: const Icon(FluentIcons.text_description_16_filled),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.lengthenMessage(widget.message.id);
+          },
+        ),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
-            text: Text('Continue'.tr),
-            leading: const Icon(FluentIcons.arrow_forward_20_filled),
-            onPressed: () {
-              final provider = context.read<ChatProvider>();
-              provider.continueMessage(widget.message.id);
-            }),
+          text: Text('Continue'.tr),
+          leading: const Icon(FluentIcons.arrow_forward_20_filled),
+          onPressed: () {
+            final provider = context.read<ChatProvider>();
+            provider.continueMessage(widget.message.id);
+          },
+        ),
         if (message.isTextMessage) ...[
           MenuFlyoutItem(
             text: Text('Remember this'.tr),
@@ -1081,40 +995,43 @@ class _MessageCardState extends State<MessageCard> {
             onPressed: () async {
               final provider = context.read<ChatProvider>();
               final messageIndex = messagesReversedList.indexOf(message);
-              final previous =
-                  messagesReversedList.length > messageIndex + 1 ? messagesReversedList[messageIndex + 1] : null;
-              final next =
-                  messagesReversedList.length > messageIndex - 1 ? messagesReversedList[messageIndex - 1] : null;
+              final previous = messagesReversedList.length > messageIndex + 1
+                  ? messagesReversedList[messageIndex + 1]
+                  : null;
+              final next = messagesReversedList.length > messageIndex - 1
+                  ? messagesReversedList[messageIndex - 1]
+                  : null;
               final messagesRange = await provider.convertMessagesToString([
                 if (previous != null) previous,
                 message,
                 if (next != null) next,
               ]);
               messagesReversedList[messageIndex + 1];
-              final information = await provider.generateUserKnowladgeBasedOnText(
-                messagesRange,
+              final information = await provider.generateUserKnowladgeBasedOnText(messagesRange);
+              displayInfoBar(
+                provider.context!,
+                builder: (ctx, close) {
+                  return InfoBar(
+                    title: Text('Memory updated'.tr),
+                    content: Text(information),
+                    severity: InfoBarSeverity.success,
+                    isLong: true,
+                    action: Button(
+                      onPressed: () async {
+                        close();
+                        await Future.delayed(const Duration(milliseconds: 400));
+                        showDialog(
+                          // ignore: use_build_context_synchronously
+                          context: provider.context!,
+                          builder: (ctx) => const InfoAboutUserDialog(),
+                          barrierDismissible: true,
+                        );
+                      },
+                      child: Text('Open memory'.tr),
+                    ),
+                  );
+                },
               );
-              displayInfoBar(provider.context!, builder: (ctx, close) {
-                return InfoBar(
-                  title: Text('Memory updated'.tr),
-                  content: Text(information),
-                  severity: InfoBarSeverity.success,
-                  isLong: true,
-                  action: Button(
-                    onPressed: () async {
-                      close();
-                      await Future.delayed(const Duration(milliseconds: 400));
-                      showDialog(
-                        // ignore: use_build_context_synchronously
-                        context: provider.context!,
-                        builder: (ctx) => const InfoAboutUserDialog(),
-                        barrierDismissible: true,
-                      );
-                    },
-                    child: Text('Open memory'.tr),
-                  ),
-                );
-              });
             },
           ),
           MenuFlyoutItem(
@@ -1189,20 +1106,12 @@ class _MessageCardState extends State<MessageCard> {
   Future<void> _saveImageToFile(BuildContext context) async {
     final fileBytesString = widget.message.content;
     final fileBytes = base64.decode(fileBytesString);
-    final file = XFile.fromData(
-      fileBytes,
-      name: 'image.png',
-      mimeType: 'image/png',
-      length: fileBytes.lengthInBytes,
-    );
+    final file = XFile.fromData(fileBytes, name: 'image.png', mimeType: 'image/png', length: fileBytes.lengthInBytes);
 
     final FileSaveLocation? location = await getSaveLocation(
       suggestedName: '${fileBytes.lengthInBytes}.png',
       acceptedTypeGroups: [
-        const XTypeGroup(
-          label: 'images',
-          extensions: ['png', 'jpg', 'jpeg'],
-        ),
+        const XTypeGroup(label: 'images', extensions: ['png', 'jpg', 'jpeg']),
       ],
     );
 
@@ -1220,6 +1129,111 @@ class _MessageCardState extends State<MessageCard> {
     final imageBytes = base64.decode(imageBytesString);
     Pasteboard.writeImage(imageBytes);
     displayCopiedToClipboard();
+  }
+}
+
+class WebResultAnswerTile extends StatefulWidget {
+  const WebResultAnswerTile({super.key, required this.widget, required this.theme});
+
+  final MessageCard widget;
+  final FluentThemeData theme;
+
+  @override
+  State<WebResultAnswerTile> createState() => _WebResultAnswerTileState();
+}
+
+class _WebResultAnswerTileState extends State<WebResultAnswerTile> {
+  bool isExpanded = false;
+  @override
+  Widget build(BuildContext context) {
+    if (!isExpanded)
+      return SizedBox(
+        width: double.infinity,
+        child: Button(
+          child: Text('Show ${widget.widget.message.webResults?.length} results'),
+          onPressed: () {
+            setState(() {
+              isExpanded = true;
+            });
+          },
+        ),
+      );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.widget.message.content.isNotEmpty)
+          SelectableText(widget.widget.message.content, style: TextStyle(fontSize: widget.widget.textSize.toDouble())),
+        for (final result in (widget.widget.message.webResults ?? <WebSearchResult>[]))
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Button(
+              onPressed: () => launchUrlString(result.url),
+              style: ButtonStyle(
+                padding: WidgetStateProperty.all(EdgeInsets.symmetric(vertical: 2, horizontal: 2)),
+                backgroundColor: WidgetStateProperty.resolveWith((state) {
+                  if (state.isHovered) {
+                    return AppColors.linkTransparentPurpleBorder;
+                  }
+                  return AppColors.linkTransparentPurpleBackground;
+                }),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (result.favicon != null)
+                          WidgetSpan(
+                            child: Image.network(
+                              result.favicon!,
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(FluentIcons.globe_16_regular, size: 24),
+                            ),
+                          ),
+                        TextSpan(text: result.title),
+                      ],
+                    ),
+
+                    style: TextStyle(color: AppColors.linkPurpleText, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.start,
+                    maxLines: 1,
+                  ),
+
+                  /// url short one line
+                  Text(
+                    result.url,
+                    style: widget.theme.typography.caption!.copyWith(
+                      color: widget.theme.typography.caption!.color?.withAlpha(150),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.start,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Button(
+              child: Text('Hide ${widget.widget.message.webResults?.length} results'),
+              onPressed: () {
+                setState(() {
+                  isExpanded = false;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -1338,10 +1352,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                         padding: const EdgeInsets.only(left: 16),
                         child: SelectableText(
                           widget.description!,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                   ],
@@ -1364,7 +1375,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
               tooltip: 'Close',
             ),
           ),
-        ]
+        ],
       ],
     );
   }

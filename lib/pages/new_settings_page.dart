@@ -1332,6 +1332,33 @@ class _ToolsSettingsState extends State<ToolsSettings> {
             ],
           ),
           biggerSpacer,
+          Text('OpenRouter'.tr, style: theme.typography.subtitle),
+          spacer,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Web search max results per query (1–25). Normal chat includes OpenRouter live web search automatically. In agent mode, call the enable_openrouter_web_search_tool once to inject search on the following assistant turn only. Extra charges may apply.'
+                      .tr,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: NumberBox(
+                  value: (AppCache.openRouterWebSearchMaxResults.value ?? 5).toDouble(),
+                  onChanged: (value) {
+                    var n = value?.round() ?? 5;
+                    if (n < 1) n = 1;
+                    if (n > 25) n = 25;
+                    AppCache.openRouterWebSearchMaxResults.value = n;
+                    setState(() {});
+                  },
+                ),
+              ),
+            ],
+          ),
+          biggerSpacer,
           Text('Additional tools'.tr, style: theme.typography.subtitle),
           spacer,
           Checkbox(
