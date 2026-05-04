@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "FluentGPT"
-#define MyAppVersion "1.0.80"
+#define MyAppVersion "1.0.84"
 #define MyAppPublisher "realkalash"
 #define MyAppURL "https://github.com/realkalash/fluent_gpt_app"
 #define MyAppExeName "fluent_gpt.exe"
@@ -48,29 +48,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\capture_screenshot.py"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\file_selector_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\flutter_acrylic_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\gpt_tokenizer.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\hotkey_manager_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\irondash_engine_context_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\pasteboard_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\audioplayers_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\record_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\permission_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\protocol_handler_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\screen_retriever_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions.dll"; DestDir: "{app}"; Flags: ignoreversion
-; Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\super_native_extensions_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\system_theme_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\tray_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\keypress_simulator_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\url_launcher_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\window_manager_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\windows_notification_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\drag_and_drop_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\printing_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\pdfium.dll"; DestDir: "{app}"; Flags: ignoreversion
+; All native deps from Flutter build (flutter_windows, plugins like speech_to_text_windows_plugin, pdfium, etc.)
+Source: "C:\Users\alex\repos\fluent_gpt_app\build\windows\x64\runner\Release\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Users\alex\repos\fluent_gpt_app\plugins\*"; DestDir: "{app}\plugins"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
