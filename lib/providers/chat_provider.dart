@@ -2072,7 +2072,7 @@ class ChatProvider
 
   AgentMode agentMode = AgentMode.agent;
 
-  void updateAutonomousModeUI(AgentMode value) {
+  void setAgentMode(AgentMode value) {
     agentMode = value;
     AppCache.agentMode.value = value.index;
     notifyListeners();

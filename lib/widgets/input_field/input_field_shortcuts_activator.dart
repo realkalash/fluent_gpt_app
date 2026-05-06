@@ -12,6 +12,7 @@ class InputFieldShortcutsActivator {
     onDigitPressed,
     arrowUpPressed,
     onShortcutCopyToThirdParty,
+    onShortcutCycleAgentModeForward,
   ) =>
       {
         if (Platform.isMacOS) ...{
@@ -33,6 +34,7 @@ class InputFieldShortcutsActivator {
           const SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
           const SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
           const SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
+          const SingleActivator(LogicalKeyboardKey.tab, shift: true): onShortcutCycleAgentModeForward,
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
@@ -51,6 +53,7 @@ class InputFieldShortcutsActivator {
           const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
           const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
           const SingleActivator(LogicalKeyboardKey.arrowUp): arrowUpPressed,
+          const SingleActivator(LogicalKeyboardKey.tab, shift: true): onShortcutCycleAgentModeForward,
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
       };

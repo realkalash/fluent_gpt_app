@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cross_file/cross_file.dart';
 
+import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -255,6 +256,13 @@ class _InputFieldState extends State<InputField> {
     provider.scrollToMessage(elementkey);
   }
 
+  void onShortcutCycleAgentModeForward() {
+    final provider = context.read<ChatProvider>();
+    final currentIndex = provider.agentMode.index;
+    final nextIndex = (currentIndex + 1) % AgentMode.values.length;
+    provider.setAgentMode(AgentMode.values[nextIndex]);
+  }
+
   Future onDigitPressed(int number) async {
     if (quickInputCommandsList.isEmpty) return;
     final selectedPrompt = quickInputCommandsList[number - 1];
@@ -319,6 +327,7 @@ class _InputFieldState extends State<InputField> {
         onDigitPressed,
         arrowUpPressed,
         onShortcutCopyToThirdParty,
+        onShortcutCycleAgentModeForward,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
