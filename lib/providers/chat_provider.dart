@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/attachment.dart';
+import 'package:fluent_gpt/common/tools/tool_def.dart';
+import 'package:fluent_gpt/common/tools/tool_registry.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
@@ -25,7 +27,6 @@ import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/features/open_ai_features.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
 import 'package:fluent_gpt/fluent_icons_list.dart';
-import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 
@@ -75,11 +76,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 // import 'package:simple_spell_checker/simple_spell_checker.dart' as spell_checker;
 
 import '../common/last_deleted_message.dart';
-
-class _StreamingToolAgg {
-  String name = '';
-  final StringBuffer argumentsRaw = StringBuffer();
-}
 
 class ChatProvider
     with
@@ -660,7 +656,10 @@ class ChatProvider
     }
 
     if (useSystemPrompt && selectedChatRoom.systemMessage?.isNotEmpty == true) {
-      final runtimeLine = 'Runtime mode: ${agentMode.runtimeName}';
+      final tools = toolsAvailableLine(agentMode);
+      final runtimeLine = tools.isEmpty
+          ? 'Runtime mode: ${agentMode.runtimeName}'
+          : 'Runtime mode: ${agentMode.runtimeName}\nTools available: $tools';
       final substituted = selectedChatRoom.systemMessage!.replaceAll('{runtime_mode}', runtimeLine);
       messagesToSend.insert(
         0,
@@ -679,7 +678,8 @@ class ChatProvider
     }
     onMessageSent?.call();
     String responseId = '';
-    bool isToolsEnabled = AppCache.isAnyToolsEnabled;
+    final activeTools = toolsForMode(agentMode);
+    final isToolsEnabled = activeTools.isNotEmpty;
     final options = ChatOpenAIOptions(
       model: selectedChatRoom.model.modelName,
       user: AppCache.userName.value,
@@ -691,28 +691,7 @@ class ChatProvider
       frequencyPenalty: selectedChatRoom.repeatPenalty,
       seed: seed ?? selectedChatRoom.seed,
       toolChoice: isToolsEnabled ? const ChatToolChoiceAuto() : null,
-      tools: isToolsEnabled
-          ? [
-              if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                const ToolSpec(
-                  name: 'copy_to_clipboard_tool',
-                  description: 'Tool to copy text to user clipboard',
-                  inputJsonSchema: copyToClipboardFunctionParameters,
-                ),
-              if (AppCache.gptToolRememberInfo.value!)
-                const ToolSpec(
-                  name: 'remember_info_tool',
-                  description: 'Tool to remember info. Use it to store info about user or important notes',
-                  inputJsonSchema: rememberInfoParameters,
-                ),
-              const ToolSpec(
-                name: 'grep_chat',
-                description:
-                    'Agentic tool to grep the chat message using its id and use it to continue answering. Use it when you dont have access to a certain parts of the chat',
-                inputJsonSchema: grepChatFunctionParameters,
-              ),
-            ]
-          : null,
+      tools: isToolsEnabled ? activeTools.map((t) => t.toSpec()).toList() : null,
     );
     // ignore: unnecessary_null_comparison
     if (ragPart != null) {
@@ -727,7 +706,7 @@ class ChatProvider
 
       responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
 
-      final toolAggs = <_StreamingToolAgg>[];
+      final toolAggs = <ToolStreamAgg>[];
       String responseContent = '';
       int chunkNumber = 0;
       int tokensReceivedInResponse = 0;
@@ -764,7 +743,7 @@ class ChatProvider
             if (message.toolCalls.isNotEmpty) {
               for (var i = 0; i < message.toolCalls.length; i++) {
                 while (toolAggs.length <= i) {
-                  toolAggs.add(_StreamingToolAgg());
+                  toolAggs.add(ToolStreamAgg());
                 }
                 final tc = message.toolCalls[i];
                 if (tc.name.isNotEmpty) {
@@ -1505,199 +1484,130 @@ class ChatProvider
   }
 
   void _dispatchToolAggs(
-    List<_StreamingToolAgg> aggs,
+    List<ToolStreamAgg> aggs,
     String userContent,
     int tokensReceivedInResponse,
   ) {
     for (final agg in aggs) {
-      final raw = agg.argumentsRaw.toString().trim();
-      if (raw.isEmpty || agg.name.isEmpty) continue;
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map<String, dynamic>) {
-          _onToolsResponseEnd(userContent, decoded, agg.name, tokensReceivedInResponse);
-        } else {
-          logError('Tool "${agg.name}" returned non-object args: $raw');
-        }
-      } catch (e) {
-        logError('Tool "${agg.name}" args parse failed: $e. Raw: $raw');
+      final raw = agg.argumentsRaw.toString();
+      if (raw.trim().isEmpty || agg.name.isEmpty) continue;
+      final parsed = parseToolArgumentsRaw(raw);
+      if (parsed == null) {
+        logToolParseFailure(agg.name, 'no JSON object found', raw);
+        continue;
       }
+      if (parsed.warning != null) {
+        log('Tool "${agg.name}": ${parsed.warning}');
+      }
+      _onToolsResponseEnd(userContent, parsed.map, agg.name, tokensReceivedInResponse);
     }
   }
 
-  Future _onToolsResponseEnd(
+  Future<void> _onToolsResponseEnd(
     String userContent,
     Map<String, dynamic> toolArgs,
     String? toolName, [
     int tokensReceivedInResponse = 0,
   ]) async {
     log('assistantArgs: $toolArgs');
-    if (toolName == 'copy_to_clipboard_tool' && AppCache.gptToolCopyToClipboardEnabled.value!) {
-      final text = toolArgs['responseMessage'] ?? '';
-      final textToCopy = toolArgs['clipboard'] ?? '';
-      await Clipboard.setData(ClipboardData(text: textToCopy));
-      displayCopiedToClipboard();
-      final newId = DateTime.now().millisecondsSinceEpoch.toString();
-      addBotMessageToList(
-        FluentChatMessage.ai(id: newId, content: "$text\n```Clipboard\n$textToCopy\n```"),
-      );
-    } else if (toolName == 'auto_open_urls_tool' && AppCache.gptToolAutoOpenUrls.value!) {
-      final url = toolArgs['url'];
-      final text = toolArgs['responseMessage'] ?? '';
-      final appendedText = '$text\n```func\n$url\n```';
+    if (toolName == null) return;
+    final tool = toolByName(toolName);
+    if (tool == null || !tool.isAvailableIn(agentMode) || tool.sideEffect == null) {
+      logError('Unknown or disallowed tool in mode ${agentMode.runtimeName}: $toolName');
       final time = DateTime.now().millisecondsSinceEpoch;
-      final tokens = tokensReceivedInResponse > 0 ? tokensReceivedInResponse : await countTokensString(appendedText);
-      addBotMessageToList(
-        FluentChatMessage.ai(
-          id: time.toString(),
-          content: appendedText,
-          timestamp: time,
-          creator: selectedChatRoom.characterName,
-          tokens: tokens,
-        ),
-      );
-      // User need time to read XD
-      await Future.delayed(const Duration(milliseconds: 1500));
-      if (await canLaunchUrlString(url)) await launchUrlString(url);
-    } else if (toolName == 'generate_image_tool' && AppCache.gptToolGenerateImage.value!) {
-      final String prompt = toolArgs['prompt'];
-      final String? size = toolArgs['size'];
-      final String? responseMessage = toolArgs['responseMessage'];
-      final appendedText = '\n```func\n$prompt\n```';
-      final time = DateTime.now().millisecondsSinceEpoch;
-      final botPromptMessage = FluentChatMessage.ai(
-        id: time.toString(),
-        content: prompt,
-        timestamp: time,
-        creator: selectedChatRoom.characterName,
-      );
-
-      await onResponseEndGenerateImage(
-        botPromptMessage,
-        OnMessageAction(
-          actionName: 'generate_image_tool',
-          isEnabled: true,
-          regExp: RegExp(''),
-          actionEnum: OnMessageActionEnum.generateImage,
-        ),
-        size: size,
-      );
-      if (responseMessage != null) {
-        final newTime = DateTime.now().millisecondsSinceEpoch;
-        final botResponse = FluentChatMessage.ai(
-          id: newTime.toString(),
-          // safety mechanism to prevent generating an image from the response message
-          content: appendedText.replaceAll('```image', ''),
-          timestamp: newTime,
-          creator: selectedChatRoom.characterName,
-        );
-        addBotMessageToList(botResponse);
-      }
-    } else if (toolName == 'remember_info_tool' && AppCache.gptToolRememberInfo.value == true) {
-      final info = toolArgs['info'];
-      final responseMessage = toolArgs['responseMessage'];
-      final time = DateTime.now().millisecondsSinceEpoch;
-      final funcText = '```remember\n$info\n```';
-      AppCache.userInfo.saveInfoToFile(info);
-
-      addBotMessageToList(
-        FluentChatMessage.ai(
-          id: time.toString(),
-          content: '$funcText\n$responseMessage',
-          timestamp: time,
-          creator: selectedChatRoom.characterName,
-          tokens: await countTokensString('$funcText\n$responseMessage'),
-        ),
-      );
-    } else if (toolName == 'grep_chat') {
-      final id = toolArgs['id'];
-      final message = messages.value[id];
-
-      const systemSuffix = '\nlast messages in your conversation were:';
-
-      final baseSystemMessage = (selectedChatRoom.systemMessage ?? '') + systemSuffix;
-      const additionalSuffix =
-          '(You are messaging to user after grepping tool was used. This is the result. Continue the conversation as usual)';
-      addBotHeader(
-        FluentChatMessage.header(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: '${selectedChatRoom.characterName} used grep_chat $id',
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-        ),
-      );
-      isAnswering = true;
-      notifyListeners();
-      final lenght = messagesReversedList.length;
-      final aiMessageString = await retrieveResponseFromPrompt(
-        additionalSuffix,
-        additionalPreMessages: [
-          FluentChatMessage.system(content: baseSystemMessage, id: '-1'),
-          // last AI messasge
-          messagesReversedList[0],
-          // last user prompt
-          if (lenght > 1) messagesReversedList[1],
-          if (lenght > 2) messagesReversedList[2],
-          if (lenght > 3) messagesReversedList[3],
-          if (lenght > 4) messagesReversedList[4],
-          if (lenght > 5) messagesReversedList[5],
-          if (lenght > 6) messagesReversedList[6],
-          if (lenght > 7) messagesReversedList[7],
-          if (lenght > 8) messagesReversedList[8],
-          if (lenght > 9) messagesReversedList[9],
-          // grepped result
-          message ??
-              FluentChatMessage.ai(
-                id: id,
-                content: 'System: Message not found',
-                timestamp: DateTime.now().millisecondsSinceEpoch,
-                creator: 'system',
-              ),
-        ],
-      );
-      addBotMessageToList(
-        FluentChatMessage.ai(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: aiMessageString,
-          timestamp: DateTime.now().millisecondsSinceEpoch,
-          creator: selectedChatRoom.characterName,
-        ),
-      );
-      isAnswering = false;
-      notifyListeners();
-    } else {
-      logError('Unknown tool: $toolName');
-      final time = DateTime.now().millisecondsSinceEpoch;
-      final id = time.toString();
       addBotErrorMessageToList(
         FluentChatMessage.ai(
-          id: id,
+          id: time.toString(),
           content: 'Unknown tool: $toolName.\n```json\n$toolArgs\n```',
           timestamp: time,
           creator: 'error',
         ),
       );
+      return;
     }
-    // if (toolName == 'search_files') {
-    //   final fileName = '${toolArgs['filename']}';
-    //   toolArgs.remove('filename');
+    await tool.sideEffect!(this, toolArgs, tokensReceivedInResponse);
+  }
 
-    //   final result =
-    //       await ShellDriver.runShellSearchFileCommand(fileName, toolArgs);
-    //   addBotMessageToList(AIChatMessage(content: result));
-    // } else
-    // if (toolName == 'get_current_weather') {
-    //   final location = toolArgs['location'];
-    //   // final unit = toolArgs['unit'];
-    //   final result = await ShellDriver.runShellCommand(
-    //       'curl wttr.in/$location?format="%C+%t+%w+%h+%p"');
-    //   addBotMessageToList(AIChatMessage(content: result));
-    // } else if (toolName == 'write_python_code') {
-    //   final code = toolArgs['code'];
-    //   final responseMessage = toolArgs['responseMessage'];
-    //   addBotMessageToList(AIChatMessage(content: '$code\n$responseMessage'));
-    // } else {
-    //   addBotMessageToList(AIChatMessage(content: 'Unknown tool: $toolName'));
-    // }
+  Future<void> runCopyToClipboardSideEffect(Map<String, dynamic> args) async {
+    final text = args['responseMessage'] ?? '';
+    final textToCopy = args['clipboard'] ?? '';
+    await Clipboard.setData(ClipboardData(text: textToCopy));
+    displayCopiedToClipboard();
+    final newId = DateTime.now().millisecondsSinceEpoch.toString();
+    addBotMessageToList(
+      FluentChatMessage.ai(id: newId, content: "$text\n```Clipboard\n$textToCopy\n```"),
+    );
+  }
+
+  Future<void> runAutoOpenUrlsSideEffect(Map<String, dynamic> args, int tokensReceivedInResponse) async {
+    final url = args['url'];
+    final text = args['responseMessage'] ?? '';
+    final appendedText = '$text\n```func\n$url\n```';
+    final time = DateTime.now().millisecondsSinceEpoch;
+    final tokens = tokensReceivedInResponse > 0 ? tokensReceivedInResponse : await countTokensString(appendedText);
+    addBotMessageToList(
+      FluentChatMessage.ai(
+        id: time.toString(),
+        content: appendedText,
+        timestamp: time,
+        creator: selectedChatRoom.characterName,
+        tokens: tokens,
+      ),
+    );
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (await canLaunchUrlString(url)) await launchUrlString(url);
+  }
+
+  Future<void> runGenerateImageSideEffect(Map<String, dynamic> args) async {
+    final String prompt = args['prompt'];
+    final String? size = args['size'];
+    final String? responseMessage = args['responseMessage'];
+    final appendedText = '\n```func\n$prompt\n```';
+    final time = DateTime.now().millisecondsSinceEpoch;
+    final botPromptMessage = FluentChatMessage.ai(
+      id: time.toString(),
+      content: prompt,
+      timestamp: time,
+      creator: selectedChatRoom.characterName,
+    );
+
+    await onResponseEndGenerateImage(
+      botPromptMessage,
+      OnMessageAction(
+        actionName: 'generate_image_tool',
+        isEnabled: true,
+        regExp: RegExp(''),
+        actionEnum: OnMessageActionEnum.generateImage,
+      ),
+      size: size,
+    );
+    if (responseMessage != null) {
+      final newTime = DateTime.now().millisecondsSinceEpoch;
+      final botResponse = FluentChatMessage.ai(
+        id: newTime.toString(),
+        content: appendedText.replaceAll('```image', ''),
+        timestamp: newTime,
+        creator: selectedChatRoom.characterName,
+      );
+      addBotMessageToList(botResponse);
+    }
+  }
+
+  Future<void> runRememberInfoSideEffect(Map<String, dynamic> args) async {
+    final info = args['info'];
+    final responseMessage = args['responseMessage'];
+    final time = DateTime.now().millisecondsSinceEpoch;
+    final funcText = '```remember\n$info\n```';
+    AppCache.userInfo.saveInfoToFile(info);
+    addBotMessageToList(
+      FluentChatMessage.ai(
+        id: time.toString(),
+        content: '$funcText\n$responseMessage',
+        timestamp: time,
+        creator: selectedChatRoom.characterName,
+        tokens: await countTokensString('$funcText\n$responseMessage'),
+      ),
+    );
   }
 
   Future<void> clearChatMessages() async {

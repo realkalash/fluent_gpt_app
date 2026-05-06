@@ -7,7 +7,8 @@ import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
-import 'package:fluent_gpt/gpt_tools.dart';
+import 'package:fluent_gpt/common/tools/tool_def.dart';
+import 'package:fluent_gpt/common/tools/tool_registry.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
@@ -42,97 +43,9 @@ const _commonIgnoredDirNames = {
   'target',
 };
 
-/// End index (exclusive) of a balanced `{...}` starting at [openBraceIndex], or -1.
-int _agentBalancedJsonObjectEnd(String s, int openBraceIndex) {
-  var depth = 0;
-  var inString = false;
-  var escape = false;
-  for (var j = openBraceIndex; j < s.length; j++) {
-    final c = s.codeUnitAt(j);
-    if (escape) {
-      escape = false;
-      continue;
-    }
-    if (inString) {
-      if (c == 0x5C) {
-        escape = true;
-      } else if (c == 0x22) {
-        inString = false;
-      }
-      continue;
-    }
-    if (c == 0x22) {
-      inString = true;
-      continue;
-    }
-    if (c == 0x7B) {
-      depth++;
-    } else if (c == 0x7D) {
-      depth--;
-      if (depth == 0) {
-        return j + 1;
-      }
-    }
-  }
-  return -1;
-}
-
-String? _agentExtractFirstJsonObject(String input) {
-  final start = input.indexOf('{');
-  if (start < 0) {
-    return null;
-  }
-  final end = _agentBalancedJsonObjectEnd(input, start);
-  if (end <= start) {
-    return null;
-  }
-  return input.substring(start, end);
-}
-
-/// Parses tool `argumentsRaw`; handles models that concatenate multiple JSON objects.
-({Map<String, dynamic> map, String? warning})? _agentParseToolArgumentsRaw(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) {
-    return (map: <String, dynamic>{}, warning: null);
-  }
-  try {
-    final decoded = jsonDecode(trimmed);
-    if (decoded is Map<String, dynamic>) {
-      return (map: decoded, warning: null);
-    }
-  } catch (_) {}
-
-  final first = _agentExtractFirstJsonObject(trimmed);
-  if (first == null) {
-    return null;
-  }
-  try {
-    final decoded = jsonDecode(first) as Map<String, dynamic>;
-    String? warning;
-    final rest = trimmed.substring(trimmed.indexOf(first) + first.length).trim();
-    if (rest.isNotEmpty) {
-      if (rest.startsWith('{')) {
-        warning =
-            'Tool arguments contained multiple JSON objects; only the first was used. Call one tool per turn, or wait for each tool result before the next tool.';
-      } else {
-        warning = 'Trailing non-JSON text after tool arguments was ignored.';
-      }
-    }
-    return (map: decoded, warning: warning);
-  } catch (_) {
-    return null;
-  }
-}
-
-class _AgentStreamingToolAgg {
-  String id = '';
-  String name = '';
-  final StringBuffer argumentsRaw = StringBuffer();
-}
-
 AIChatMessage _agentBuildStreamedAiMessage({
   required String fullContent,
-  required List<_AgentStreamingToolAgg> toolAggs,
+  required List<ToolStreamAgg> toolAggs,
 }) {
   if (toolAggs.isEmpty) {
     return AIChatMessage(content: fullContent, toolCalls: const []);
@@ -155,7 +68,7 @@ AIChatMessage _agentBuildStreamedAiMessage({
       continue;
     }
 
-    final parsed = _agentParseToolArgumentsRaw(raw);
+    final parsed = parseToolArgumentsRaw(raw);
     if (parsed == null) {
       warnings.add(
         'Could not parse JSON arguments for tool "$name". Use one tool call per turn with a single JSON object. '
@@ -169,7 +82,7 @@ AIChatMessage _agentBuildStreamedAiMessage({
       warnings.add(parsed.warning!);
     }
 
-    final normalizedRaw = _agentExtractFirstJsonObject(raw.trim()) ?? raw.trim();
+    final normalizedRaw = extractFirstJsonObject(raw.trim()) ?? raw.trim();
     builtCalls.add(
       AIChatMessageToolCall(
         id: a.id.isNotEmpty ? a.id : 'tool_${DateTime.now().millisecondsSinceEpoch}_$idx',
@@ -259,7 +172,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
     String messageId,
   ) async {
     String fullContent = '';
-    final toolAggs = <_AgentStreamingToolAgg>[];
+    final toolAggs = <ToolStreamAgg>[];
     var responseTokens = 0;
     var usagePromptTurn = 0;
     int? ttftMs;
@@ -287,7 +200,7 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           toolStreamingActive = true;
           for (var i = 0; i < message.toolCalls.length; i++) {
             while (toolAggs.length <= i) {
-              toolAggs.add(_AgentStreamingToolAgg());
+              toolAggs.add(ToolStreamAgg());
             }
             final tc = message.toolCalls[i];
             final slot = toolAggs[i];
@@ -409,74 +322,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
       }
     }
 
-    // Define agent-specific tools
-    final agentTools = [
-      const ToolSpec(
-        name: 'read_file_tool',
-        description:
-            'Read a slice of a text file by line range. Prefer offset+limit on large files; omitting both caps output (~500 lines) to save tokens',
-        inputJsonSchema: readFileToolParameters,
-      ),
-      const ToolSpec(
-        name: 'list_directory_tool',
-        description: 'List files and/or directories with optional glob filter, excludes, and recursive mode',
-        inputJsonSchema: listDirectoryToolParameters,
-      ),
-      const ToolSpec(
-        name: 'search_files_tool',
-        description: 'Find files by filename pattern (wildcards * and ?) under a directory',
-        inputJsonSchema: searchFilesToolParameters,
-      ),
-      const ToolSpec(
-        name: 'grep_tool',
-        description:
-            'Search file contents by regex (fast via ripgrep when installed; otherwise scans files). Use after search_files_tool or to locate symbols before read_file_tool',
-        inputJsonSchema: grepToolParameters,
-      ),
-      const ToolSpec(
-        name: 'edit_file_tool',
-        description:
-            'Replace exactly one occurrence of old_string with new_string in an existing file. Prefer this over write_file_tool for small edits',
-        inputJsonSchema: editFileToolParameters,
-      ),
-      const ToolSpec(
-        name: 'write_file_tool',
-        description:
-            'Write or append full file content. Use for new files or full rewrites; prefer edit_file_tool for targeted edits',
-        inputJsonSchema: writeFileToolParameters,
-      ),
-      const ToolSpec(
-        name: 'execute_shell_command_tool',
-        description: 'Execute a shell/terminal command and return the output',
-        inputJsonSchema: executeShellCommandToolParameters,
-      ),
-      // new tools
-      if (AppCache.gptToolCopyToClipboardEnabled.value!)
-        const ToolSpec(
-          name: 'copy_to_clipboard_tool',
-          description: 'Tool to copy text to user clipboard',
-          inputJsonSchema: copyToClipboardFunctionParameters,
-        ),
-      if (AppCache.gptToolAutoOpenUrls.value!)
-        const ToolSpec(
-          name: 'auto_open_urls_tool',
-          description: 'Tool to open urls in the browser',
-          inputJsonSchema: autoOpenUrlParameters,
-        ),
-      if (AppCache.gptToolGenerateImage.value!)
-        const ToolSpec(
-          name: 'generate_image_tool',
-          description:
-              'Tool to generate image. Use it to generate images based on a prompt. Requires API key in settings',
-          inputJsonSchema: generateImageParameters,
-        ),
-      if (AppCache.gptToolRememberInfo.value!)
-        const ToolSpec(
-          name: 'remember_info_tool',
-          description: 'Tool to remember info. Use it to store info about user or important notes',
-          inputJsonSchema: rememberInfoParameters,
-        ),
-    ];
+    // Pull tool list from the central registry, filtered to agent mode and
+    // the user's per-tool enable flags.
+    final agentTools = toolsForMode(AgentMode.agent).map((t) => t.toSpec()).toList();
 
     initModelsApi();
 
@@ -764,6 +612,10 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
   /// Execute a single agent tool and return the result for AI to use it in the next iteration
   Future<String> _executeAgentTool(String toolName, Map<String, dynamic> args) async {
     log('Executing tool: $toolName, args: $args');
+    final tool = toolByName(toolName);
+    if (tool == null || !tool.isAvailableIn(AgentMode.agent)) {
+      return 'Error: Tool "$toolName" is not allowed in agent mode';
+    }
     try {
       switch (toolName) {
         case 'read_file_tool':

@@ -82,7 +82,6 @@ class _AgentModeSwitcherState extends State<AgentModeSwitcher> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                // chevron down
                 Icon(ic.FluentIcons.chevron_down_24_regular, size: 12, color: colorText),
                 const SizedBox(width: 4),
               ],

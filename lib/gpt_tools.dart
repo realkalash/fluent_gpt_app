@@ -103,14 +103,6 @@ const rememberInfoParameters = {
   "required": ["info", "responseMessage"]
 };
 
-const grepChatFunctionParameters = {
-  "type": "object",
-  "properties": {
-    "id": {"type": "string", "description": "The id of the message to grep"},
-  },
-  "required": ["id"]
-};
-
 // Agent-specific tool parameters
 const readFileToolParameters = {
   "type": "object",
