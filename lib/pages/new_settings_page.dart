@@ -106,7 +106,7 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
       ),
       pane: NavigationPane(
         displayMode: PaneDisplayMode.open,
-        size: NavigationPaneSize(openMaxWidth: 200),
+        size: const NavigationPaneSize(openMaxWidth: 200),
         selected: selectedIndex,
         onChanged: (value) {
           setState(() {
@@ -116,76 +116,76 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
         items: [
           PaneItem(
             title: Text('General'.tr),
-            body: GeneralSettingsPage(),
+            body: const GeneralSettingsPage(),
             icon: Icon(FluentIcons.settings_32_filled, color: Colors.blue),
           ),
           PaneItem(
             title: Text('Appearance'.tr),
-            body: AppearanceSettings(),
+            body: const AppearanceSettings(),
             icon: Icon(FluentIcons.paint_bucket_24_filled, color: Colors.teal),
           ),
           PaneItem(
             title: Text('Tools'.tr),
-            body: ToolsSettings(),
+            body: const ToolsSettings(),
             icon: Icon(FluentIcons.toolbox_24_filled, color: Colors.green),
           ),
           PaneItem(
             title: Text('User info'.tr),
-            body: UserSettignsInfoPage(),
+            body: const UserSettignsInfoPage(),
             icon: Icon(FluentIcons.person_32_filled, color: Colors.magenta),
           ),
           PaneItem(
             title: Text('API and URLs'.tr),
-            body: APIandUrlsSettingsPage(),
+            body: const APIandUrlsSettingsPage(),
             icon: Icon(FluentIcons.apps_add_in_24_filled, color: Colors.yellow),
           ),
           PaneItem(
             title: Text('On response'.tr),
-            body: OnResponseEndSettingsPage(),
-            icon: Icon(
+            body: const OnResponseEndSettingsPage(),
+            icon: const Icon(
               FluentIcons.chat_32_filled,
               color: Color.fromARGB(255, 43, 226, 202),
             ),
           ),
           PaneItem(
             title: Text('Quick prompts'.tr),
-            body: QuickPromptsSettingsPage(),
-            icon: Icon(FluentIcons.book_toolbox_24_filled, color: Color.fromARGB(255, 55, 43, 226)),
+            body: const QuickPromptsSettingsPage(),
+            icon: const Icon(FluentIcons.book_toolbox_24_filled, color: Color.fromARGB(255, 55, 43, 226)),
           ),
           if (Platform.isMacOS)
             PaneItem(
               title: Text('Permissions'.tr),
-              body: PermissionsSettingsPage(),
+              body: const PermissionsSettingsPage(),
               icon: Icon(FluentIcons.lock_closed_32_filled, color: Colors.green),
             ),
           PaneItem(
             title: Text('Overlay'.tr),
-            body: OverlaySettingsPage(),
+            body: const OverlaySettingsPage(),
             icon: Icon(FluentIcons.oven_32_filled, color: Colors.orange),
           ),
           PaneItem(
             title: Text('Storage'.tr),
-            body: StorageSettingsPage(),
-            icon: Icon(FluentIcons.storage_32_filled, color: Color(0xFF8A2BE2)),
+            body: const StorageSettingsPage(),
+            icon: const Icon(FluentIcons.storage_32_filled, color: Color(0xFF8A2BE2)),
           ),
           PaneItem(
             title: Text('Hotkeys'.tr),
-            body: HotkeysSettingsPage(),
-            icon: Icon(
+            body: const HotkeysSettingsPage(),
+            icon: const Icon(
               FluentIcons.key_command_24_filled,
               color: Color.fromARGB(255, 226, 43, 144),
             ),
           ),
           if (kDebugMode)
             PaneItem(
-              title: Text('Debug'),
-              body: DebugPage(),
+              title: const Text('Debug'),
+              body: const DebugPage(),
               icon: Icon(FluentIcons.accessibility_32_filled, color: Colors.green),
             ),
           PaneItem(
             title: Text('About'.tr),
-            body: AboutPage(),
-            icon: Icon(FluentIcons.info_32_filled, color: Colors.white),
+            body: const AboutPage(),
+            icon: const Icon(FluentIcons.info_32_filled, color: Colors.white),
           ),
         ],
       ),
@@ -259,7 +259,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
                 HotKeyVirtualView(hotKey: takeScreenshot!)
               else
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text('[Not set]'.tr),
                 ),
             ],
@@ -294,7 +294,7 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
                 HotKeyVirtualView(hotKey: pttScreenshotKey!)
               else
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text('[Not set]'.tr),
                 ),
             ],
@@ -329,14 +329,14 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
                 HotKeyVirtualView(hotKey: pttKey!)
               else
                 Padding(
-                  padding: EdgeInsets.symmetric(vertical: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text('[Not set]'.tr),
                 ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
           child: Divider(),
         ),
         Button(
@@ -508,7 +508,7 @@ class _QuickPromptsSettingsPageState extends State<QuickPromptsSettingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
         color: FluentTheme.of(context).inactiveBackgroundColor,
-        child: ScaffoldPage(
+        child: const ScaffoldPage(
           content: CustomPromptsSettingsContainer(),
         ));
   }
@@ -559,7 +559,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
                   ),
                 ),
               ),
-              child: Icon(FluentIcons.question_circle_20_regular),
+              child: const Icon(FluentIcons.question_circle_20_regular),
             ),
             onTap: () {
               setState(() {
@@ -569,7 +569,7 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
           ),
         ),
         ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: 200.0),
+          constraints: const BoxConstraints(maxHeight: 200.0),
           child: StreamBuilder(
             stream: onMessageActions.stream,
             builder: (ctx, list) => ListView.builder(
@@ -704,11 +704,11 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
           title: Text('${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
         ),
         if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.deepgram.name)
-          _DeepgramSettings()
+          const _DeepgramSettings()
         else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.azure.name)
-          _AzureSettings()
+          const _AzureSettings()
         else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.elevenlabs.name)
-          _ElevenLabsSettings(),
+          const _ElevenLabsSettings(),
         spacer,
         LabelText('Image generator'.tr),
         DropDownButton(
@@ -726,7 +726,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
           title: Text(ImageGeneratorFeature.selectedGenerator.name.tr),
         ),
         if (ImageGeneratorFeature.selectedGenerator == ImageGeneratorEnum.deepinfraGenerator)
-          LinkTextButton('https://deepinfra.com/dash/deployments'),
+          const LinkTextButton('https://deepinfra.com/dash/deployments'),
         spacer,
         TextBox(
           controller: apiKeyTextController,
@@ -767,7 +767,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 AppCache.imageGeneratorSize.value = '768x1366';
                 setState(() {});
               },
-              text: Text('768x1366'),
+              text: const Text('768x1366'),
             ),
             MenuFlyoutItem(
               selected: AppCache.imageGeneratorSize.value == '1366x768',
@@ -775,7 +775,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 AppCache.imageGeneratorSize.value = '1366x768';
                 setState(() {});
               },
-              text: Text('1366x768'),
+              text: const Text('1366x768'),
             ),
             MenuFlyoutItem(
               selected: AppCache.imageGeneratorSize.value == '1024x1024',
@@ -783,7 +783,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 AppCache.imageGeneratorSize.value = '1024x1024';
                 setState(() {});
               },
-              text: Text('1024x1024'),
+              text: const Text('1024x1024'),
             ),
             MenuFlyoutItem(
               selected: AppCache.imageGeneratorSize.value == '512x512',
@@ -791,7 +791,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 AppCache.imageGeneratorSize.value = '512x512';
                 setState(() {});
               },
-              text: Text('512x512'),
+              text: const Text('512x512'),
             ),
             MenuFlyoutItem(
               selected: AppCache.imageGeneratorSize.value == '768x768',
@@ -799,7 +799,7 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
                 AppCache.imageGeneratorSize.value = '768x768';
                 setState(() {});
               },
-              text: Text('768x768'),
+              text: const Text('768x768'),
             ),
           ],
           title: Text(AppCache.imageGeneratorSize.value ?? '-'),
@@ -880,7 +880,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
           },
         ),
         spacer,
-        NerdySelectorDropdown(),
+        const NerdySelectorDropdown(),
         CheckBoxTooltip(
           content: Text('Use ai to name chat'.tr),
           tooltip: 'Can cause additional charges!'.tr,
@@ -890,8 +890,8 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             setState(() {});
           },
         ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
           child: Divider(),
         ),
         Card(
@@ -906,8 +906,8 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
             Text('User name in OS: ${SysInfo.userName}'),
           ]),
         ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
           child: Divider(),
         ),
         Button(
@@ -1105,8 +1105,8 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
                 barrierDismissible: true,
               );
             }),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
+        const Padding(
+          padding: EdgeInsets.all(8.0),
           child: Divider(),
         ),
         // Tooltip(
@@ -1163,7 +1163,7 @@ class _PermissionsSettingsPageState extends State<PermissionsSettingsPage> {
       color: FluentTheme.of(context).inactiveBackgroundColor,
       child: ScaffoldPage.scrollable(
         header: PageHeader(title: Text('Permissions'.tr)),
-        children: [
+        children: const [
           AccessebilityStatus(),
         ],
       ),
@@ -1183,7 +1183,7 @@ class DebugPage extends StatelessWidget {
         Wrap(
           children: [
             Button(
-                child: Text('PN'),
+                child: const Text('PN'),
                 onPressed: () {
                   NotificationService.showNotification('title', 'body');
                 }),
@@ -1358,7 +1358,7 @@ class _ToolsSettingsState extends State<ToolsSettings> {
       5. Email: Your email
       6. Paste clientId here"""
                     .tr,
-                child: Icon(FluentIcons.info_20_filled),
+                child: const Icon(FluentIcons.info_20_filled),
               ),
               onChanged: (value) {
                 AppCache.imgurClientId.value = value;
@@ -1645,9 +1645,9 @@ class AppearanceSettings extends StatelessWidget {
             },
           ),
           spacer,
-          DensityModeDropdown(),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          const DensityModeDropdown(),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
             child: Divider(),
           ),
           Text('Message Text size'.tr, style: FluentTheme.of(context).typography.subtitle),
@@ -1713,7 +1713,7 @@ class _ElevenLabsSettings extends StatelessWidget {
           'ElevenLabs API key (speech) \$\$\$',
           style: FluentTheme.of(context).typography.subtitle,
         ),
-        ElevenLabsConfigContainer(),
+        const ElevenLabsConfigContainer(),
         // Button(
         //   child: const Text('Configure ElevenLabs'),
         //   onPressed: () => ElevenlabsSpeech.showConfigureDialog(context),

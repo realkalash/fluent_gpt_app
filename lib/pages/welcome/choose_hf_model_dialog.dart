@@ -48,22 +48,22 @@ class _ChooseHfModelDialogState extends State<ChooseHfModelDialog> {
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.only(bottom: 4.0),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(4.0)),
+                  borderRadius: const BorderRadius.all(Radius.circular(4.0)),
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: BasicListTile(
                       color: cardColor,
-                      padding: EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(4),
                       title: Text.rich(TextSpan(children: [
-                        TextSpan(text: models[index].modelName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        TextSpan(text: models[index].modelName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         WidgetSpan(
                             child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(width: 4),
-                            if (models[index].imageSupported) IconImagesSupported(),
-                            if (models[index].reasoningSupported) IconReasoningSupported(),
-                            if (models[index].toolSupported) IconToolsSupported(),
+                            if (models[index].imageSupported) const IconImagesSupported(),
+                            if (models[index].reasoningSupported) const IconReasoningSupported(),
+                            if (models[index].toolSupported) const IconToolsSupported(),
                           ],
                         ))
                       ])),
@@ -71,7 +71,7 @@ class _ChooseHfModelDialogState extends State<ChooseHfModelDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(models[index].modelDescription, style: TextStyle(fontSize: 12)),
+                          Text(models[index].modelDescription, style: const TextStyle(fontSize: 12)),
                           if (models[index].minMemoryUsageBytes != null)
                             Text('Min memory usage: ${bytesToGB(models[index].minMemoryUsageBytes!)}', style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(178))),
                           LinkTextButton(models[index].modelUri),

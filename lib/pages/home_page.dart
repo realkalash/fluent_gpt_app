@@ -118,11 +118,11 @@ class PinnedMessagesRow extends StatelessWidget {
             provider.scrollToMessage(lastPinned?.id ?? '');
           },
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Colors.black),
+            decoration: const BoxDecoration(color: Colors.black),
             child: Row(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
+                const Padding(
+                  padding: EdgeInsets.all(4.0),
                   child: Icon(ic.FluentIcons.pin_20_filled, color: Colors.white),
                 ),
                 Expanded(
@@ -139,7 +139,7 @@ class PinnedMessagesRow extends StatelessWidget {
                 if (pinnedMessages.length > 1)
                   SqueareIconButtonSized(
                     onTap: () {
-                      showDialog(context: context, builder: (ctx) => PinnedMessagesDialog());
+                      showDialog(context: context, builder: (ctx) => const PinnedMessagesDialog());
                     },
                     icon: Text('${pinnedMessages.length}'),
                     tooltip: 'Pinned messages'.tr,
@@ -164,7 +164,7 @@ class EditChatDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 800),
+      constraints: const BoxConstraints(maxWidth: 800),
       child: StreamBuilder<bool>(
         stream: showEditChatDrawer,
         builder: (context, _) {
@@ -188,18 +188,18 @@ class EditChatDrawer extends StatelessWidget {
                       BoxShadow(
                         color: Colors.black.withAlpha(50),
                         blurRadius: 8,
-                        offset: Offset(0, 4),
+                        offset: const Offset(0, 4),
                       ),
                       BoxShadow(
                         color: Colors.white.withAlpha(50),
                         blurRadius: 8,
-                        offset: Offset(0, 4),
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
+                  child: const SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(16.0),
                       child: EditChatDrawerContainer(),
                     ),
                   ),
@@ -247,7 +247,7 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                   children: [
                     Text(
                       'Conversation length'.tr,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     ...ConversationLengthStyleEnum.values.map((e) {
                       return SelectableColorContainer(
@@ -275,7 +275,7 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                     }),
                     Text(
                       'Style'.tr,
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                     ...ConversationStyleEnum.values.map(
                       (e) => SelectableColorContainer(
@@ -304,8 +304,8 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                     borderRadius: BorderRadius.circular(8),
                     child: ColoredBox(
                       color: Colors.black.withAlpha(191),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
                           ic.FluentIcons.arrow_left_24_filled,
                           size: 24,
@@ -331,8 +331,8 @@ class _ConversationStyleRowState extends State<ConversationStyleRow> {
                     borderRadius: BorderRadius.circular(8),
                     child: ColoredBox(
                       color: Colors.black.withAlpha(191),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
                         child: Icon(
                           ic.FluentIcons.arrow_right_24_filled,
                           size: 24,
@@ -411,7 +411,7 @@ class PageHeaderText extends StatelessWidget {
                 message:
                     'When you send a message, the app will use the system message along with your prompt. This value may differ from your own calculations because some additional information can be sent with each of your prompts.\nTotal is the total tokens that exists in current chat\nSent is the total tokens that you have sent\nReceived is the total tokens that you have received'
                         .tr,
-                style: TooltipThemeData(maxWidth: 400),
+                style: const TooltipThemeData(maxWidth: 400),
                 child: HyperlinkButton(
                   style: ButtonStyle(
                     padding: WidgetStateProperty.all(EdgeInsets.zero),
@@ -520,7 +520,7 @@ class PageHeaderText extends StatelessWidget {
                                 ? Colors.white.withAlpha(51)
                                 : Colors.transparent,
                             padding: const EdgeInsets.all(4),
-                            child: Icon(ic.FluentIcons.arrow_up_16_filled, size: 10),
+                            child: const Icon(ic.FluentIcons.arrow_up_16_filled, size: 10),
                           );
                         },
                       ),
@@ -537,7 +537,7 @@ class PageHeaderText extends StatelessWidget {
                                 ? Colors.white.withAlpha(51)
                                 : Colors.transparent,
                             padding: const EdgeInsets.all(4),
-                            child: Icon(
+                            child: const Icon(
                               ic.FluentIcons.arrow_down_16_filled,
                               size: 10,
                             ),
@@ -691,7 +691,7 @@ class _AddSystemMessageFieldState extends State<AddSystemMessageField> {
           child: BasicListTile(
             color: Colors.transparent,
             title: Center(
-              child: Text('Add system message'.tr, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              child: Text('Add system message'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
             ),
             trailing: const PromptLibraryButton(),
             subtitle: systemMessage.isEmpty
@@ -1129,7 +1129,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               Consumer<ChatProvider>(
                 builder: (context, chatProvider, child) => ToggleButtonAdvenced(
                   checked: false,
-                  icon: Icon(ic.FluentIcons.eye_tracking_24_filled),
+                  icon: const Icon(ic.FluentIcons.eye_tracking_24_filled),
                   onChanged: (_) async {
                     String? base64Result;
                     base64Result = await ScreenshotTool.takeScreenshotReturnBase64Native();
@@ -1180,7 +1180,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             ),
             ToggleButtonAdvenced(
               checked: true,
-              icon: Icon(ic.FluentIcons.history_20_filled),
+              icon: const Icon(ic.FluentIcons.history_20_filled),
               onChanged: (_) {}, // No-op since we only use this for the context menu
               tooltip: 'Max tokens to include'.tr,
               maxWidthContextMenu: 350,
@@ -1193,7 +1193,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                     Tooltip(
                       message:
                           'To prevent token overflows unnecessary cost we propose to limit the conversation length'.tr,
-                      child: Icon(ic.FluentIcons.question_circle_24_filled, size: 24),
+                      child: const Icon(ic.FluentIcons.question_circle_24_filled, size: 24),
                     ),
                     const SizedBox(width: 8),
                     Expanded(child: Text('Max tokens to include'.tr)),
@@ -1235,7 +1235,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             ),
             ToggleButtonAdvenced(
               checked: AppCache.gptToolRememberInfo.value!,
-              icon: Icon(ic.FluentIcons.brain_circuit_20_regular),
+              icon: const Icon(ic.FluentIcons.brain_circuit_20_regular),
               onChanged: (v) {
                 setState(() {
                   AppCache.gptToolRememberInfo.value = v;
@@ -1255,8 +1255,8 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               maxWidthContextMenu: 300,
               contextItems: [
                 Text('Select items to include in system prompt'.tr),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
                   child: Divider(),
                 ),
                 CheckBoxTile(
@@ -1314,7 +1314,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                   },
                 ),
               ],
-              icon: Icon(ic.FluentIcons.person_info_20_regular),
+              icon: const Icon(ic.FluentIcons.person_info_20_regular),
               onChanged: (v) async {
                 setState(() {
                   AppCache.includeKnowledgeAboutUserToSysPrompt.value = v;
@@ -1333,7 +1333,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
             if (kDebugMode)
               ToggleButtonAdvenced(
                 checked: AppCache.useRAG.value!,
-                icon: Icon(ic.FluentIcons.book_24_regular),
+                icon: const Icon(ic.FluentIcons.book_24_regular),
                 onChanged: (v) {
                   setState(() {
                     AppCache.useRAG.value = v;
@@ -1343,7 +1343,7 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
               ),
             ToggleButtonAdvenced(
               checked: AppCache.autoPlayMessagesFromAi.value!,
-              icon: Icon(ic.FluentIcons.play_circle_16_filled),
+              icon: const Icon(ic.FluentIcons.play_circle_16_filled),
               onChanged: (v) {
                 setState(() {
                   AppCache.autoPlayMessagesFromAi.value = v;
@@ -1365,14 +1365,14 @@ class _ToggleButtonsRowState extends State<ToggleButtonsRow> {
                 ),
                 child: Row(
                   children: [
-                    Icon(ic.FluentIcons.brain_sparkle_20_filled, size: 18),
+                    const Icon(ic.FluentIcons.brain_sparkle_20_filled, size: 18),
                     const SizedBox(width: 4),
                     Text('Reasoning'.tr),
                   ],
                 ),
               ),
-            Spacer(),
-            _ScrollToBottomButton(),
+            const Spacer(),
+            const _ScrollToBottomButton(),
           ],
         ),
       ),
@@ -1427,7 +1427,7 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
           checkedButtonStyle: ButtonStyle(
             backgroundColor: WidgetStateProperty.all(context.theme.accentColor.withAlpha(128)),
           ),
-          uncheckedButtonStyle: ButtonStyle(
+          uncheckedButtonStyle: const ButtonStyle(
             // padding: WidgetStateProperty.all(EdgeInsets.zero),
           ),
         ),

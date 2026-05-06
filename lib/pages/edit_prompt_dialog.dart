@@ -174,7 +174,7 @@ class _EditPromptDialogState extends State<EditPromptDialog> {
               updateItem(newItem, context);
             },
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Wrap(
             spacing: 4,
             runSpacing: 4,

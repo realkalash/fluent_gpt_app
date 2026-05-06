@@ -160,7 +160,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                                                   Clipboard.setData(ClipboardData(text: ServerProvider.serverUrl));
                                                   displayCopiedToClipboard();
                                                 },
-                                                icon: Icon(FluentIcons.copy_16_filled),
+                                                icon: const Icon(FluentIcons.copy_16_filled),
                                                 tooltip: 'Copy to clipboard',
                                               ),
                                             )
@@ -244,7 +244,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       child: const Text('Choose Model File'),
                     ),
                     Button(
-                      child: Text('Select trusty model'),
+                      child: const Text('Select trusty model'),
                       onPressed: () async {
                         final model = await ChooseHfModelDialog.show(context);
                         if (model != null) {
@@ -253,7 +253,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       },
                     ),
                     Button(
-                      child: Text('List HF models'),
+                      child: const Text('List HF models'),
                       onPressed: () async {
                         final selected = await ListHuggingFaceModelsDialog.show(context);
                         if (selected != null) {
@@ -598,8 +598,8 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       setState(() {});
                     },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('Release resources after:'),
                   ),
                   SizedBox(
@@ -616,8 +616,8 @@ class _LocalServerPageState extends State<LocalServerPage> {
                       },
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('minutes if no activity'),
                   ),
                 ],
@@ -658,7 +658,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                                   color: Colors.red,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(FluentIcons.dismiss_20_filled, size: 10),
+                                child: const Icon(FluentIcons.dismiss_20_filled, size: 10),
                               ),
                             ),
                           ),
@@ -677,7 +677,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                                 color: Colors.green,
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(FluentIcons.arrow_maximize_16_filled, size: 10),
+                              child: const Icon(FluentIcons.arrow_maximize_16_filled, size: 10),
                             ),
                           ),
                         ),
@@ -690,9 +690,9 @@ class _LocalServerPageState extends State<LocalServerPage> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Spacer(),
+                        const Spacer(),
                         Button(
-                          style: ButtonStyle(
+                          style: const ButtonStyle(
                             padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 4, vertical: 2)),
                           ),
                           onPressed: () {
@@ -718,7 +718,7 @@ class _LocalServerPageState extends State<LocalServerPage> {
                                 color: Colors.red,
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(FluentIcons.delete_24_regular, size: 10),
+                              child: const Icon(FluentIcons.delete_24_regular, size: 10),
                             ),
                           ),
                         ),

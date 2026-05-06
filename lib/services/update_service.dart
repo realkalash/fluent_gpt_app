@@ -192,7 +192,7 @@ class UpdateService {
 
   /// Open the download page in browser
   Future<void> openDownloadPage() async {
-    final url = 'https://github.com/$_repoOwner/$_repoName/releases/latest';
+    const url = 'https://github.com/$_repoOwner/$_repoName/releases/latest';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }

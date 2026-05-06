@@ -44,7 +44,7 @@ class _ModelsListDialogState extends State<ModelsListDialog> {
           const Spacer(),
           SqueareIconButton(
             onTap: () => _openAddDialog(context, chatProvider),
-            icon: Icon(FluentIcons.add_24_filled),
+            icon: const Icon(FluentIcons.add_24_filled),
             tooltip: 'Add'.tr,
           ),
         ],

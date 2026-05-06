@@ -410,67 +410,67 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
 
     // Define agent-specific tools
     final agentTools = [
-      ToolSpec(
+      const ToolSpec(
         name: 'read_file_tool',
         description:
             'Read a slice of a text file by line range. Prefer offset+limit on large files; omitting both caps output (~500 lines) to save tokens',
         inputJsonSchema: readFileToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'list_directory_tool',
         description: 'List files and/or directories with optional glob filter, excludes, and recursive mode',
         inputJsonSchema: listDirectoryToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'search_files_tool',
         description: 'Find files by filename pattern (wildcards * and ?) under a directory',
         inputJsonSchema: searchFilesToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'grep_tool',
         description:
             'Search file contents by regex (fast via ripgrep when installed; otherwise scans files). Use after search_files_tool or to locate symbols before read_file_tool',
         inputJsonSchema: grepToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'edit_file_tool',
         description:
             'Replace exactly one occurrence of old_string with new_string in an existing file. Prefer this over write_file_tool for small edits',
         inputJsonSchema: editFileToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'write_file_tool',
         description:
             'Write or append full file content. Use for new files or full rewrites; prefer edit_file_tool for targeted edits',
         inputJsonSchema: writeFileToolParameters,
       ),
-      ToolSpec(
+      const ToolSpec(
         name: 'execute_shell_command_tool',
         description: 'Execute a shell/terminal command and return the output',
         inputJsonSchema: executeShellCommandToolParameters,
       ),
       // new tools
       if (AppCache.gptToolCopyToClipboardEnabled.value!)
-        ToolSpec(
+        const ToolSpec(
           name: 'copy_to_clipboard_tool',
           description: 'Tool to copy text to user clipboard',
           inputJsonSchema: copyToClipboardFunctionParameters,
         ),
       if (AppCache.gptToolAutoOpenUrls.value!)
-        ToolSpec(
+        const ToolSpec(
           name: 'auto_open_urls_tool',
           description: 'Tool to open urls in the browser',
           inputJsonSchema: autoOpenUrlParameters,
         ),
       if (AppCache.gptToolGenerateImage.value!)
-        ToolSpec(
+        const ToolSpec(
           name: 'generate_image_tool',
           description:
               'Tool to generate image. Use it to generate images based on a prompt. Requires API key in settings',
           inputJsonSchema: generateImageParameters,
         ),
       if (AppCache.gptToolRememberInfo.value!)
-        ToolSpec(
+        const ToolSpec(
           name: 'remember_info_tool',
           description: 'Tool to remember info. Use it to store info about user or important notes',
           inputJsonSchema: rememberInfoParameters,

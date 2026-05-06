@@ -33,7 +33,7 @@ class SearchOverlayUI extends StatefulWidget {
   const SearchOverlayUI({super.key});
 
   static Size defaultWindowSize() {
-    return Size(800, 200);
+    return const Size(800, 200);
   }
 
   @override
@@ -181,15 +181,15 @@ class _InputFieldState extends State<_InputField> {
               onShortcutPasteSilently(FluentChatMessageType.textAi),
           const SingleActivator(LogicalKeyboardKey.keyV, meta: true): onShortcutPasteToField,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, meta: true): () => onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, meta: true): () => onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, meta: true): () => onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, meta: true): () => onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, meta: true): () => onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, meta: true): () => onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
+          const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () => onDigitPressed(1),
+          const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () => onDigitPressed(2),
+          const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () => onDigitPressed(3),
+          const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () => onDigitPressed(4),
+          const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () => onDigitPressed(5),
+          const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () => onDigitPressed(6),
+          const SingleActivator(LogicalKeyboardKey.digit7, meta: true): () => onDigitPressed(7),
+          const SingleActivator(LogicalKeyboardKey.digit8, meta: true): () => onDigitPressed(8),
+          const SingleActivator(LogicalKeyboardKey.digit9, meta: true): () => onDigitPressed(9),
         } else ...{
           const SingleActivator(LogicalKeyboardKey.keyU, alt: true): () =>
               onShortcutPasteSilently(FluentChatMessageType.textHuman),
@@ -197,15 +197,15 @@ class _InputFieldState extends State<_InputField> {
               onShortcutPasteSilently(FluentChatMessageType.textAi),
           const SingleActivator(LogicalKeyboardKey.keyV, control: true): onShortcutPasteToField,
           // digits
-          SingleActivator(LogicalKeyboardKey.digit1, control: true): () => onDigitPressed(1),
-          SingleActivator(LogicalKeyboardKey.digit2, control: true): () => onDigitPressed(2),
-          SingleActivator(LogicalKeyboardKey.digit3, control: true): () => onDigitPressed(3),
-          SingleActivator(LogicalKeyboardKey.digit4, control: true): () => onDigitPressed(4),
-          SingleActivator(LogicalKeyboardKey.digit5, control: true): () => onDigitPressed(5),
-          SingleActivator(LogicalKeyboardKey.digit6, control: true): () => onDigitPressed(6),
-          SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
-          SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
-          SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
+          const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => onDigitPressed(1),
+          const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => onDigitPressed(2),
+          const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => onDigitPressed(3),
+          const SingleActivator(LogicalKeyboardKey.digit4, control: true): () => onDigitPressed(4),
+          const SingleActivator(LogicalKeyboardKey.digit5, control: true): () => onDigitPressed(5),
+          const SingleActivator(LogicalKeyboardKey.digit6, control: true): () => onDigitPressed(6),
+          const SingleActivator(LogicalKeyboardKey.digit7, control: true): () => onDigitPressed(7),
+          const SingleActivator(LogicalKeyboardKey.digit8, control: true): () => onDigitPressed(8),
+          const SingleActivator(LogicalKeyboardKey.digit9, control: true): () => onDigitPressed(9),
         },
         const SingleActivator(LogicalKeyboardKey.enter, meta: true): onShortcutCopyToThirdParty,
         const SingleActivator(LogicalKeyboardKey.arrowUp, meta: true): () {},
@@ -217,7 +217,7 @@ class _InputFieldState extends State<_InputField> {
         textInputAction: TextInputAction.send,
         suffix: const MicrophoneButton(),
         controller: chatProvider.messageController,
-        style: TextStyle(fontSize: 24),
+        style: const TextStyle(fontSize: 24),
         placeholder: 'Type your message here'.tr,
         onSubmitted: (value) => onSubmit(value, chatProvider),
       ),
@@ -390,7 +390,7 @@ class _InputFieldState extends State<_InputField> {
     if (text[0] == '/' && aliasesCommandsOverlay == null) {
       // show overlay
       aliasesCommandsOverlay = OverlayEntry(
-        builder: (context) => AliasesOverlay(),
+        builder: (context) => const AliasesOverlay(),
         opaque: false,
       );
       Overlay.of(context).insert(aliasesCommandsOverlay!);
@@ -462,8 +462,8 @@ class _MessagesList extends StatelessWidget {
           return Center(
             child: TextAnimator(
               randWelcome,
-              initialDelay: Duration(milliseconds: 200),
-              style: TextStyle(fontSize: 30),
+              initialDelay: const Duration(milliseconds: 200),
+              style: const TextStyle(fontSize: 30),
               textAlign: TextAlign.center,
             ),
           );

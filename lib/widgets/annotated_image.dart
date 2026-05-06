@@ -113,7 +113,7 @@ class _AnnotatedImageOverlayState extends State<AnnotatedImageOverlay> {
                       ),
                     ),
                     ConstrainedBox(
-                      constraints: BoxConstraints(
+                      constraints: const BoxConstraints(
                         // maxWidth: maxLabelWidth,
                       ),
                       child: Container(

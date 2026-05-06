@@ -35,7 +35,7 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: const Text('Add custom action'),
-      constraints: BoxConstraints(maxWidth: 600.0),
+      constraints: const BoxConstraints(maxWidth: 600.0),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,7 +48,7 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
               regFocus.requestFocus();
             },
           ),
-          Text('If message contains this RegExp'),
+          const Text('If message contains this RegExp'),
           Row(
             children: [
               Expanded(
@@ -65,19 +65,19 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
                   title: const Text('Examples'),
                   items: [
                     MenuFlyoutItem(
-                      text: Text('If text contains "Clipboard" quotes'),
+                      text: const Text('If text contains "Clipboard" quotes'),
                       onPressed: () {
                         regExpController.text = copyToCliboardRegex.pattern;
                       },
                     ),
                     MenuFlyoutItem(
-                      text: Text('If text contains "Open URL" quotes'),
+                      text: const Text('If text contains "Open URL" quotes'),
                       onPressed: () {
                         regExpController.text = openUrlRegex.pattern;
                       },
                     ),
                     MenuFlyoutItem(
-                      text: Text('If text contains "Run CLI" quotes'),
+                      text: const Text('If text contains "Run CLI" quotes'),
                       onPressed: () {
                         regExpController.text = runShellRegex.pattern;
                       },
@@ -88,7 +88,7 @@ class _CustomActionDialogState extends State<CustomActionDialog> {
             ],
           ),
           spacer,
-          Text('Do this action'),
+          const Text('Do this action'),
           spacer,
           DropDownButton(
             focusNode: actionFocus,
@@ -127,7 +127,7 @@ link
       ),
       actions: [
         FilledButton(
-          child: widget.action != null ? Text('Save') : const Text('Add'),
+          child: widget.action != null ? const Text('Save') : const Text('Add'),
           onPressed: () {
             final newAction = OnMessageAction(
               actionName: actionNameController.text,

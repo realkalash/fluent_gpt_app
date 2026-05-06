@@ -173,7 +173,7 @@ class _MessageCardState extends State<MessageCard> {
     super.initState();
     _isMarkdownView = AppCache.isMarkdownViewEnabled.value ?? true;
     if (widget.shouldBlink && mounted) {
-      Timer.periodic(Duration(milliseconds: 600), (timer) {
+      Timer.periodic(const Duration(milliseconds: 600), (timer) {
         if (!mounted) {
           timer.cancel();
           return;
@@ -352,11 +352,11 @@ class _MessageCardState extends State<MessageCard> {
                         ),
                       ),
                       SqueareIconButtonSized(
-                        icon: Row(
+                        icon: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(FluentIcons.checkmark_16_filled),
-                            const SizedBox(width: 4),
+                            Icon(FluentIcons.checkmark_16_filled),
+                            SizedBox(width: 4),
                             HotkeyText([LogicalKeyboardKey.alt, LogicalKeyboardKey.enter]),
                           ],
                         ),
@@ -503,7 +503,7 @@ class _MessageCardState extends State<MessageCard> {
                                   child: SingleChildScrollView(
                                     child: SelectableText(
                                       content,
-                                      style: TextStyle(fontSize: 16),
+                                      style: const TextStyle(fontSize: 16),
                                     ),
                                   ),
                                 ),
@@ -523,9 +523,9 @@ class _MessageCardState extends State<MessageCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (widget.message.path?.endsWith('.pdf') == false)
-                          Icon(FluentIcons.document_24_filled, size: 24)
+                          const Icon(FluentIcons.document_24_filled, size: 24)
                         else
-                          Icon(
+                          const Icon(
                             FluentIcons.document_pdf_24_filled,
                             size: 24,
                             color: Colors.warningPrimaryColor,
@@ -605,7 +605,7 @@ class _MessageCardState extends State<MessageCard> {
                     ],
                   ),
                 Tooltip(
-                  style: TooltipThemeData(waitDuration: const Duration(milliseconds: 200)),
+                  style: const TooltipThemeData(waitDuration: Duration(milliseconds: 200)),
                   message: _messageStatsTooltipBody(widget.message, formatDateTime),
                   child: Text(
                     _messageStatsFooterVisible(widget.message, formatDateTime),
@@ -627,7 +627,7 @@ class _MessageCardState extends State<MessageCard> {
       shortcuts: {
         LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.enter): const ActivateIntent(),
         LogicalKeySet(LogicalKeyboardKey.escape): const DoNothingIntent(),
-        LogicalKeySet(LogicalKeyboardKey.delete): DeleteIntent(),
+        LogicalKeySet(LogicalKeyboardKey.delete): const DeleteIntent(),
         LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyC): CopySelectionTextIntent.copy,
         LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyC): CopySelectionTextIntent.copy,
       },
@@ -690,7 +690,7 @@ class _MessageCardState extends State<MessageCard> {
             }
             FocusScope.of(context).unfocus(disposition: UnfocusDisposition.previouslyFocusedChild);
             // ideal delay to unfocus the previous tile, but still not loose focus on current one
-            await Future.delayed(Duration(milliseconds: 1));
+            await Future.delayed(const Duration(milliseconds: 1));
             // even if we are focused on current one, since we unfocused unknown previous one we need to focus on current one again
             try {
               FocusManager.instance.primaryFocus?.requestFocus(focusNode);
@@ -721,7 +721,7 @@ class _MessageCardState extends State<MessageCard> {
                   },
                   child: Container(
                     margin: const EdgeInsets.only(top: 4),
-                    padding: EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8.0),
                       color: backgroundColor ?? context.theme.cardColor.withAlpha(127),
@@ -748,7 +748,7 @@ class _MessageCardState extends State<MessageCard> {
                           },
                           tooltip: 'Copy'.tr,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         FlyoutTarget(
                           controller: flyoutController,
                           child: SqueareIconButton(
@@ -810,7 +810,7 @@ class _MessageCardState extends State<MessageCard> {
                             SqueareIconButton(
                               tooltip: 'Read aloud (Requires Speech API)',
                               icon: _isLoadingReadAloud
-                                  ? ProgressRing()
+                                  ? const ProgressRing()
                                   : TextToSpeechService.isReadingAloud
                                       ? Icon(
                                           FluentIcons.stop_24_filled,
@@ -861,7 +861,7 @@ class _MessageCardState extends State<MessageCard> {
                                     if (e is DeadlineExceededException) {
                                       // ignore: use_build_context_synchronously
                                       displayInfoBar(context, builder: (ctx, close) {
-                                        return InfoBar(
+                                        return const InfoBar(
                                           severity: InfoBarSeverity.error,
                                           title: Text('Timeout exceeded. Please try again later.'),
                                         );
@@ -1338,7 +1338,7 @@ class _ImageViewerDialogState extends State<ImageViewerDialog> {
                         padding: const EdgeInsets.only(left: 16),
                         child: SelectableText(
                           widget.description!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),

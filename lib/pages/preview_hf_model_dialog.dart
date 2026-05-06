@@ -167,7 +167,7 @@ class _PreviewHuggingFaceModelState extends State<PreviewHuggingFaceModel> {
         children: [
           const Icon(FluentIcons.box_16_regular),
           const SizedBox(width: 8),
-          Text('Preview and Download Model'),
+          const Text('Preview and Download Model'),
           const Spacer(),
           if (endpointCompatible) const IconToolsSupported(),
         ],
@@ -261,7 +261,7 @@ class _PreviewHuggingFaceModelState extends State<PreviewHuggingFaceModel> {
               const Icon(FluentIcons.arrow_download_20_regular),
               const SizedBox(width: 6),
               Text(isDownloaded ? 'Downloaded'.tr : 'Download'.tr),
-              Spacer(),
+              const Spacer(),
               if (availableQuantizations.isNotEmpty)
                 ComboBox<String>(
                   isExpanded: false,
@@ -499,7 +499,7 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
           received += chunk.length;
           if (!mounted) continue;
           // prevent too many state updates. Check every X MB or when the download is complete
-          final intervalMB = 1024 * 1024 * 5;
+          const intervalMB = 1024 * 1024 * 5;
           if (received >= nextUpdate) {
             if (total > 0) {
               setState(() {
@@ -548,7 +548,7 @@ class _DownloadAnimatedSplashDialogState extends State<DownloadAnimatedSplashDia
       borderRadius: const BorderRadius.all(Radius.circular(8)),
       child: ContentDialog(
         constraints: BoxConstraints(maxWidth: size.width, maxHeight: size.height),
-        style: ContentDialogThemeData(
+        style: const ContentDialogThemeData(
           padding: EdgeInsets.zero,
           bodyPadding: EdgeInsets.zero,
         ),

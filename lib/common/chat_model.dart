@@ -168,7 +168,7 @@ class ChatModelAi {
         return element;
       }
     }
-    return ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom);
+    return const ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom);
   }
 }
 
@@ -195,20 +195,20 @@ class ChatModelProviderBase {
   String toString() => 'ChatModelProviderBase(providerName: $providerName, apiUrl: $apiUrl)';
 
   static List<ChatModelProviderBase> providersList() => [
-        ChatModelProviderBase(
+        const ChatModelProviderBase(
           'OpenAI',
           'https://api.openai.com/v1',
           ownedBy: OwnedByEnum.openai,
           priceUrl: 'https://help.openai.com/en/articles/7127956-how-much-does-gpt-4-cost',
         ),
-        ChatModelProviderBase(
+        const ChatModelProviderBase(
           'OpenRouter',
           'https://openrouter.ai/api/v1',
           ownedBy: OwnedByEnum.openrouter,
           priceUrl: 'https://openrouter.ai/docs/overview/models',
         ),
-        ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.lm_studio),
-        ChatModelProviderBase(
+        const ChatModelProviderBase('LM Studio', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.lm_studio),
+        const ChatModelProviderBase(
           'Deepinfra',
           'https://api.deepinfra.com/v1/openai',
           ownedBy: OwnedByEnum.deepinfra,
@@ -216,7 +216,7 @@ class ChatModelProviderBase {
         ),
         // ChatModelProviderBase('Claude', 'https://api.openai.com/v1', OwnedByEnum.claude),
         // ChatModelProviderBase('Gemini', '', OwnedByEnum.custom, priceUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing'),
-        ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom),
+        const ChatModelProviderBase('Custom', 'http://localhost:1234/v1', ownedBy: OwnedByEnum.custom),
         /// TODO: add support for linux
         if (!Platform.isLinux)
           ChatModelProviderBase('Local', ServerProvider.serverUrl, ownedBy: OwnedByEnum.localServer),

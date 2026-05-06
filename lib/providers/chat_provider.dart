@@ -540,11 +540,11 @@ class ChatProvider
         scoreThreshold: AppCache.ragThreshold.value ?? 0.5,
         documents: [
           // test to see if model will answer based ONLY on this
-          Document(
+          const Document(
             id: 'Flutter docs',
             pageContent: 'Flutter is a game engine builder for mobile apps',
           ),
-          Document(
+          const Document(
             id: 'Personal knowledge base',
             pageContent: 'Donald likes apples',
           ),
@@ -636,7 +636,7 @@ class ChatProvider
             );
           }
           lastMessagesLangChain.add(
-            HumanChatMessage(
+            const HumanChatMessage(
               content: ChatMessageContentText(text: 'End of the file.'),
             ),
           );
@@ -689,30 +689,30 @@ class ChatProvider
       tools: isToolsEnabled
           ? [
               if (AppCache.gptToolCopyToClipboardEnabled.value!)
-                ToolSpec(
+                const ToolSpec(
                   name: 'copy_to_clipboard_tool',
                   description: 'Tool to copy text to user clipboard',
                   inputJsonSchema: copyToClipboardFunctionParameters,
                 ),
               if (AppCache.gptToolAutoOpenUrls.value!)
-                ToolSpec(
+                const ToolSpec(
                   name: 'auto_open_urls_tool',
                   description: 'Tool to open urls in the browser',
                   inputJsonSchema: autoOpenUrlParameters,
                 ),
               if (AppCache.gptToolGenerateImage.value!)
-                ToolSpec(
+                const ToolSpec(
                   name: 'generate_image_tool',
                   description: 'Tool to generate image',
                   inputJsonSchema: generateImageParameters,
                 ),
               if (AppCache.gptToolRememberInfo.value!)
-                ToolSpec(
+                const ToolSpec(
                   name: 'remember_info_tool',
                   description: 'Tool to remember info. Use it to store info about user or important notes',
                   inputJsonSchema: rememberInfoParameters,
                 ),
-              ToolSpec(
+              const ToolSpec(
                 name: 'grep_chat',
                 description:
                     'Agentic tool to grep the chat message using its id and use it to continue answering. Use it when you dont have access to a certain parts of the chat',
@@ -1228,7 +1228,7 @@ class ChatProvider
     } else {
       tokens = await openAI!.countTokens(
         PromptValue.chat(messages),
-        options: ChatOpenAIOptions(
+        options: const ChatOpenAIOptions(
           // for all unknown models we assume it's gpt 3.5 turbo
           model: 'gpt-3.5-turbo-16k-0613',
         ),
@@ -1605,10 +1605,10 @@ class ChatProvider
       final id = toolArgs['id'];
       final message = messages.value[id];
 
-      final systemSuffix = '\nlast messages in your conversation were:';
+      const systemSuffix = '\nlast messages in your conversation were:';
 
       final baseSystemMessage = (selectedChatRoom.systemMessage ?? '') + systemSuffix;
-      final additionalSuffix =
+      const additionalSuffix =
           '(You are messaging to user after grepping tool was used. This is the result. Continue the conversation as usual)';
       addBotHeader(
         FluentChatMessage.header(
@@ -1921,7 +1921,7 @@ class ChatProvider
               revertDeletedMessage();
               close();
             },
-            child: Text('Undo'),
+            child: const Text('Undo'),
           ),
         );
       }

@@ -127,9 +127,9 @@ class _AttachmentImageThumbnailState extends State<AttachmentImageThumbnail> {
                     },
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Color.fromARGB(206, 0, 0, 0),
-                        borderRadius: const BorderRadius.all(Radius.circular(6)),
+                        borderRadius: BorderRadius.all(Radius.circular(6)),
                       ),
                       child: const Icon(
                         FluentIcons.delete_16_filled,

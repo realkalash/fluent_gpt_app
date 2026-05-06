@@ -22,7 +22,7 @@ class ToolCallingNotSupportedDialog extends StatelessWidget {
           'Tool calling is not supported for model. Please use different model or disable all tools'),
       actions: [
         FilledRedButton(
-            child: Text('Disable tools'),
+            child: const Text('Disable tools'),
             onPressed: () {
               AppCache.gptToolCopyToClipboardEnabled.set(false);
               Navigator.of(context).pop();

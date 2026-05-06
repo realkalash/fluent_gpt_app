@@ -115,7 +115,7 @@ class _ListHuggingFaceModelsDialogState extends State<ListHuggingFaceModelsDialo
   Widget build(BuildContext context) {
     final height = MediaQuery.sizeOf(context).height;
     return ContentDialog(
-      title: Text('Hugging Face Models'),
+      title: const Text('Hugging Face Models'),
       constraints: BoxConstraints(maxWidth: 720, maxHeight: height * 0.8),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

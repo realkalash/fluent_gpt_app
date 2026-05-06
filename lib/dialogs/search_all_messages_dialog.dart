@@ -97,7 +97,7 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: const Text('Global search'),
-      constraints: BoxConstraints(maxWidth: 800),
+      constraints: const BoxConstraints(maxWidth: 800),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -110,8 +110,8 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
             onSubmitted: (_) => _search(context),
           ),
           if (isSearching)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
+            const Padding(
+              padding: EdgeInsets.all(8.0),
               child: ProgressBar(),
             ),
           Expanded(
@@ -123,7 +123,7 @@ class _SearchAllMessagesDialogState extends State<SearchAllMessagesDialog> {
                   title: Text(result.chatRoomName,
                       style: context.theme.typography.subtitle),
                   subtitle: Text(result.message),
-                  margin: EdgeInsets.all(2),
+                  margin: const EdgeInsets.all(2),
                   onTap: () {
                     final provider = context.read<ChatProvider>();
                     Navigator.of(context).pop();

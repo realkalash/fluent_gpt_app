@@ -16,17 +16,17 @@ class PromptRestartAppDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: Text('Please, restart the app to apply changes'),
+      title: const Text('Please, restart the app to apply changes'),
       actions: [
         FilledButton(
           onPressed: () => Platform.isMacOS
               ? windowManager.destroy()
               : windowManager.close(),
-          child: Text('Restart'),
+          child: const Text('Restart'),
         ),
         Button(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Later (not recommended)'),
+          child: const Text('Later (not recommended)'),
         ),
       ],
     );

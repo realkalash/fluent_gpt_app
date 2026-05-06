@@ -44,7 +44,7 @@ import 'providers/weather_provider.dart';
 SharedPreferences? prefs;
 
 const defaultMinimumWindowSize = Size(500, 600);
-Offset mouseLocalPosition = Offset(0, 0);
+Offset mouseLocalPosition = const Offset(0, 0);
 Future<void> initWindow() async {
   if (AppCache.frameless.value!) {
     windowManager.setAsFrameless();

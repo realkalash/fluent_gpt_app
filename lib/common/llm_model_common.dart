@@ -58,7 +58,7 @@ String _extractPipelineTag(dynamic model) {
 class LlmModelCommonUtils {
   static List<LlmModelCommon> getModels() {
     return [
-      LlmModelCommon(
+      const LlmModelCommon(
         modelName: 'Qwen3-1.7B-GGUF',
         modelPath: 'lmstudio-community/Qwen3-1.7B-GGUF:Q6_K',
         modelDescription: """Small model for basic tasks""",
@@ -68,7 +68,7 @@ class LlmModelCommonUtils {
         toolSupported: true,
         minMemoryUsageBytes: 1024 * 1024 * 1024 * 1,
       ),
-      LlmModelCommon(
+      const LlmModelCommon(
         modelName: 'Qwen3-8B',
         modelPath: 'lmstudio-community/Qwen3-8B-GGUF:Q4_K_M',
         modelDescription: """Medium model for basic tasks. Great for chat, tasks and everyday use.
@@ -80,7 +80,7 @@ Excels at creative writing, role-playing, multi-turn dialogues, and instruction 
         toolSupported: true,
         minMemoryUsageBytes: 1024 * 1024 * 1024 * 5,
       ),
-      LlmModelCommon(
+      const LlmModelCommon(
         modelName: 'Qwen3-14B-GGUF',
         modelPath: 'lmstudio-community/Qwen3-14B-GGUF:Q4_K_M',
         modelDescription: 'Large model for complex tasks. Requires more resources to run.',
@@ -90,7 +90,7 @@ Excels at creative writing, role-playing, multi-turn dialogues, and instruction 
         toolSupported: true,
         minMemoryUsageBytes: 1024 * 1024 * 1024 * 8,
       ),
-      LlmModelCommon(
+      const LlmModelCommon(
         modelName: 'gemma-3-12b-it-GGUF',
         modelPath: 'Qwen/Qwen2.5-14B-Instruct-GGUF:Q4_K_M',
         modelDescription:

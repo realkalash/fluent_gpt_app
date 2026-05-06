@@ -296,7 +296,7 @@ class CheckBoxTooltip extends StatelessWidget {
           const SizedBox(width: 10.0),
           Tooltip(
             message: tooltip!,
-            child: Icon(FluentIcons.info_16_filled),
+            child: const Icon(FluentIcons.info_16_filled),
           ),
         ],
       ],
@@ -543,7 +543,7 @@ class _SliderResolutionsStatefullState extends State<SliderResolutionsStatefull>
 
   @override
   Widget build(BuildContext context) {
-    final discreteValues = SliderResolutionsStatefull.discreteValues;
+    const discreteValues = SliderResolutionsStatefull.discreteValues;
     final currentIndex = _sliderValue.round().clamp(0, discreteValues.length - 1);
     final currentResolution = discreteValues[currentIndex];
     final label = SliderResolutionsStatefull.getLabel(currentResolution);

@@ -34,7 +34,7 @@ class MainAppHeaderButtons extends StatelessWidget {
             const RevertMessageHeaderButton(),
             const AddChatButton(),
             const ClearChatButton(),
-            SizedBox(width: 8.0),
+            const SizedBox(width: 8.0),
             if (AppCache.enableOverlay.value == true) const ToggleOverlaySqueareButton(),
 
             const SizedBox(width: 4.0),
@@ -292,13 +292,13 @@ class ServerInitializingIcon extends StatelessWidget {
           duration: const Duration(milliseconds: 1000),
           child: isInitializing
               ? DecoratedBox(
-                  key: Key('starting-server'),
+                  key: const Key('starting-server'),
                   decoration: BoxDecoration(
                     color: Colors.green.withAlpha(86),
                     borderRadius: const BorderRadius.all(Radius.circular(12)),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Text(
                       'Loading AI model',
                       maxLines: 1,

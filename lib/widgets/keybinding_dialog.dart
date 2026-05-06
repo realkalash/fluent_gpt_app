@@ -154,7 +154,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
               ],
             ),
           spacer,
-          Divider(),
+          const Divider(),
           spacer,
           ListTile(
             title: Text('Hotkeys in use (click for details)'.tr),
@@ -187,7 +187,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
                               style:
                                   const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            subtitle: Divider(),
+                            subtitle: const Divider(),
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             color: Colors.transparent,
                           );
@@ -202,7 +202,7 @@ class _KeybindingDialogState extends State<KeybindingDialog> {
                     );
                   });
             },
-            trailing: Icon(FluentIcons.question_circle_20_filled),
+            trailing: const Icon(FluentIcons.question_circle_20_filled),
           ),
         ],
       ),

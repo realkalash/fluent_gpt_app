@@ -110,7 +110,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                     ),
                             ),
                             if (selectedChatRoom.characterAvatarPath == null)
-                              Icon(FluentIcons.camera_20_regular)
+                              const Icon(FluentIcons.camera_20_regular)
                             else ...[
                               Center(
                                 child: Container(
@@ -119,7 +119,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   padding: const EdgeInsets.all(4.0),
-                                  child: Icon(FluentIcons.camera_20_regular),
+                                  child: const Icon(FluentIcons.camera_20_regular),
                                 ),
                               ),
                               Positioned(
@@ -134,7 +134,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                                   child: Container(
                                     decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                                     padding: const EdgeInsets.all(2.0),
-                                    child: Icon(FluentIcons.delete_20_regular, size: 16),
+                                    child: const Icon(FluentIcons.delete_20_regular, size: 16),
                                   ),
                                 ),
                               ),
@@ -190,7 +190,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
             Row(
               children: [
                 const Text('System message'),
-                Spacer(),
+                const Spacer(),
                 SqueareIconButton(
                   onTap: () async {
                     final currentStrippedPrompt = (systemMessageContr.text).isEmpty
@@ -200,7 +200,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
                     systemMessageContr.text = newPrompt;
                     selectedChatRoom.systemMessage = newPrompt;
                   },
-                  icon: Icon(FluentIcons.arrow_counterclockwise_16_regular),
+                  icon: const Icon(FluentIcons.arrow_counterclockwise_16_regular),
                   tooltip: 'Update variables',
                 ),
                 AiLibraryButton(
@@ -240,7 +240,7 @@ class _EditDrawerState extends State<EditChatDrawerContainer> {
             Row(
               children: [
                 Text('T: $tokensInMessage'),
-                Spacer(),
+                const Spacer(),
                 ToggleButton(
                   checked: _expandSystemMessage,
                   child: _expandSystemMessage
@@ -416,7 +416,7 @@ class _GridChildRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: first),
-        SizedBox(width: 10),
+        const SizedBox(width: 10),
         Expanded(child: second),
       ],
     );

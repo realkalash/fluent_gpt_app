@@ -30,7 +30,7 @@ class CustomPromptsSettingsDialog extends StatelessWidget {
           child: Text('Close'.tr),
         ),
       ],
-      content: CustomPromptsSettingsContainer(),
+      content: const CustomPromptsSettingsContainer(),
     );
   }
 }
@@ -319,7 +319,7 @@ class _PromptListTile extends StatelessWidget {
                         updateItem(newPrompt, prompt);
                       },
                     ),
-                    Text('Chat field'.tr, style: TextStyle(fontSize: 10)),
+                    Text('Chat field'.tr, style: const TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
@@ -337,7 +337,7 @@ class _PromptListTile extends StatelessWidget {
                         updateItem(newPrompt, prompt);
                       },
                     ),
-                    Text('Overlay'.tr, style: TextStyle(fontSize: 10)),
+                    Text('Overlay'.tr, style: const TextStyle(fontSize: 10)),
                   ],
                 ),
               ),
@@ -356,7 +356,7 @@ class _PromptListTile extends StatelessWidget {
                       },
                     ),
                     Text('Context menu'.tr,
-                        style: TextStyle(fontSize: 10), maxLines: 1),
+                        style: const TextStyle(fontSize: 10), maxLines: 1),
                   ],
                 ),
               ),

@@ -64,7 +64,7 @@ class _StorageAppDirConfigureDialogState
             await FileUtils.init();
             showDialog(
                 context: chatProvider.context!,
-                builder: (ctx) => PromptRestartAppDialog());
+                builder: (ctx) => const PromptRestartAppDialog());
           },
           child: const Text('Save'),
         ),
@@ -72,7 +72,7 @@ class _StorageAppDirConfigureDialogState
       content: ListView(
         shrinkWrap: true,
         children: [
-          LabelText('Choose where to store the app data'),
+          const LabelText('Choose where to store the app data'),
           TextFormBox(
             controller: _controller,
             suffix: Row(
@@ -102,9 +102,9 @@ class _StorageAppDirConfigureDialogState
               ],
             ),
           ),
-          CaptionText(
+          const CaptionText(
               'The app will create a folder "fluent_gpt" in the selected directory'),
-          LabelText('Fetch data periodically'),
+          const LabelText('Fetch data periodically'),
           Row(
             children: [
               Expanded(
@@ -140,8 +140,8 @@ class _StorageAppDirConfigureDialogState
             ],
           ),
           biggerSpacer,
-          LabelText('Export/Import settings'),
-          CaptionText(
+          const LabelText('Export/Import settings'),
+          const CaptionText(
               'It will export settings like api keys, locale, etc, global system prompt, additional tools, etc. to "fluent_gpt" folder'),
           spacer,
           Wrap(
@@ -174,7 +174,7 @@ class _StorageAppDirConfigureDialogState
   static const useSouceNao = BoolPref("useSouceNao", false);
   static const useYandexImageSearch = BoolPref("useYandexImageSearch", false);
    */
-    final settingsToExport = AppCache.settingsToExportList;
+    const settingsToExport = AppCache.settingsToExportList;
     final settings = <String, dynamic>{};
     for (final setting in settingsToExport) {
       if (setting is BoolPref) {

@@ -174,7 +174,7 @@ class _UpdateSettingsWidgetState extends State<UpdateSettingsWidget> {
                 Button(
                   onPressed: _isCheckingForUpdates ? null : _checkForUpdatesNow,
                   child: _isCheckingForUpdates
-                      ? Row(
+                      ? const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             SizedBox(
@@ -182,8 +182,8 @@ class _UpdateSettingsWidgetState extends State<UpdateSettingsWidget> {
                               height: 12,
                               child: ProgressRing(strokeWidth: 1.5),
                             ),
-                            const SizedBox(width: 8),
-                            const Text('Checking...'),
+                            SizedBox(width: 8),
+                            Text('Checking...'),
                           ],
                         )
                       : const Text('Check Now'),
@@ -251,7 +251,7 @@ class _UpdateSettingsWidgetState extends State<UpdateSettingsWidget> {
                       _updateSetting('checkIntervalHours', value);
                     }
                   },
-                  items: [
+                  items: const [
                     ComboBoxItem(value: 1, child: Text('Every hour')),
                     ComboBoxItem(value: 6, child: Text('Every 6 hours')),
                     ComboBoxItem(value: 12, child: Text('Every 12 hours')),

@@ -49,7 +49,7 @@ class TextToSpeechService {
   }) async {
     if (isReadingAloud) {
       await stopReadingAloud();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
     if (stripText) {
       text = text

@@ -86,7 +86,7 @@ class _CostDialogState extends State<StorageUsage> {
                   ],
                 ),
               ),
-              SizedBox(width: 20),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

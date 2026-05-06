@@ -84,13 +84,13 @@ class InputFieldMain extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Tooltip(
+                                const Tooltip(
                                   richMessage: WidgetSpan(
                                     child: ModelsTooltipContainer(),
                                     alignment: PlaceholderAlignment.top,
                                   ),
-                                  style: const TooltipThemeData(waitDuration: Duration.zero),
-                                  child: const ChooseModelButton(),
+                                  style: TooltipThemeData(waitDuration: Duration.zero),
+                                  child: ChooseModelButton(),
                                 ),
                                 AiLibraryButton(
                                   onPressed: () async {
@@ -165,7 +165,7 @@ class InputFieldMain extends StatelessWidget {
                               height: 30,
                               child: ToggleButtonAdvenced(
                                 padding: EdgeInsets.zero,
-                                icon: Icon(FluentIcons.send),
+                                icon: const Icon(FluentIcons.send),
                                 onChanged: (bool v) => onSubmit(ChatProvider.messageControllerGlobal.text),
                                 tooltip: 'Send message',
                               ),
@@ -191,7 +191,7 @@ class InputFieldMain extends StatelessWidget {
                   onPressed: () {
                     context.read<ChatProvider>().stopAnswering(StopReason.canceled);
                   },
-                  icon: Icon(ic.FluentIcons.stop_24_filled, size: 24),
+                  icon: const Icon(ic.FluentIcons.stop_24_filled, size: 24),
                 ),
               );
             },
