@@ -1,5 +1,11 @@
 part of 'input_field_main.dart';
 
+String _agentModeLabel(AgentMode mode) => switch (mode) {
+  AgentMode.agent => 'Auto',
+  AgentMode.ask => 'Ask',
+  AgentMode.plan => 'Plan',
+};
+
 class AgentModeSwitcher extends StatefulWidget {
   const AgentModeSwitcher({super.key});
   static const colors = {
@@ -42,42 +48,45 @@ class _AgentModeSwitcherState extends State<AgentModeSwitcher> {
     final agentMode = context.select<ChatProvider, AgentMode>((provider) => provider.agentMode);
     final color = AgentModeSwitcher.colors[agentMode.name];
     final colorText = AgentModeSwitcher.colorsText[agentMode.name];
-    return GestureDetector(
-      onTap: () {
-        flyoutController!.showFlyout(
-          builder: (context) => _AgentModeOptionsFlyout(flyoutController: flyoutController!),
-        );
-      },
-      child: FlyoutTarget(
-        controller: flyoutController!,
-        child: Container(
-          height: 30,
-          width: 75,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.all(Radius.circular(4)),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 4),
-              IconTheme(
-                data: IconThemeData(color: colorText, size: 20),
-                child: AgentModeSwitcher.icons[agentMode.name]!,
-              ),
-              Expanded(
-                child: Text(
-                  agentMode.name.capitalize,
-                  style: TextStyle(color: colorText, fontSize: 12),
-                  maxLines: 1,
-                  overflow: TextOverflow.clip,
-                  textAlign: TextAlign.center,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          flyoutController!.showFlyout(
+            builder: (context) => _AgentModeOptionsFlyout(flyoutController: flyoutController!),
+          );
+        },
+        child: FlyoutTarget(
+          controller: flyoutController!,
+          child: Container(
+            height: 30,
+            width: 75,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: const BorderRadius.all(Radius.circular(4)),
+            ),
+            child: Row(
+              children: [
+                const SizedBox(width: 4),
+                IconTheme(
+                  data: IconThemeData(color: colorText, size: 20),
+                  child: AgentModeSwitcher.icons[agentMode.name]!,
                 ),
-              ),
-              // chevron down
-              Icon(ic.FluentIcons.chevron_down_24_regular, size: 12, color: colorText),
-              const SizedBox(width: 4),
-            ],
+                Expanded(
+                  child: Text(
+                    _agentModeLabel(agentMode),
+                    style: TextStyle(color: colorText, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // chevron down
+                Icon(ic.FluentIcons.chevron_down_24_regular, size: 12, color: colorText),
+                const SizedBox(width: 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -86,14 +95,14 @@ class _AgentModeSwitcherState extends State<AgentModeSwitcher> {
 }
 
 class _AgentModeOptionsFlyout extends StatelessWidget {
-  const _AgentModeOptionsFlyout({super.key, required this.flyoutController});
+  const _AgentModeOptionsFlyout({required this.flyoutController});
   final FlyoutController flyoutController;
 
   @override
   Widget build(BuildContext context) {
     return FlyoutContent(
       child: SizedBox(
-        width: 300,
+        width: 150,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -105,7 +114,7 @@ class _AgentModeOptionsFlyout extends StatelessWidget {
                   builder: (context, agentMode, child) => HoverBasicListTile(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     color: Colors.transparent,
-                    title: Text(e.name.capitalize),
+                    title: Text(_agentModeLabel(e)),
                     leading: Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: AgentModeSwitcher.icons[e.name],

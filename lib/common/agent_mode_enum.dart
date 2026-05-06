@@ -1,7 +1,13 @@
 enum AgentMode {
   agent,
   ask,
-  plan,
+  plan;
+
+  String get runtimeName => switch (this) {
+        AgentMode.agent => 'auto',
+        AgentMode.ask => 'ask',
+        AgentMode.plan => 'plan',
+      };
 }
 
 class AgentModeUtils {

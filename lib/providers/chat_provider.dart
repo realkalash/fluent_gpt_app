@@ -76,6 +76,11 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../common/last_deleted_message.dart';
 
+class _StreamingToolAgg {
+  String name = '';
+  final StringBuffer argumentsRaw = StringBuffer();
+}
+
 class ChatProvider
     with
         ChangeNotifier,
@@ -654,12 +659,12 @@ class ChatProvider
       );
     }
 
-    if (selectedChatRoom.systemMessage?.isNotEmpty == true && useSystemPrompt) {
+    if (useSystemPrompt && selectedChatRoom.systemMessage?.isNotEmpty == true) {
+      final runtimeLine = 'Runtime mode: ${agentMode.runtimeName}';
+      final substituted = selectedChatRoom.systemMessage!.replaceAll('{runtime_mode}', runtimeLine);
       messagesToSend.insert(
         0,
-        SystemChatMessage(
-          content: formatArgsInSystemPrompt(selectedChatRoom.systemMessage!),
-        ),
+        SystemChatMessage(content: formatArgsInSystemPrompt(substituted)),
       );
     }
 
@@ -694,18 +699,6 @@ class ChatProvider
                   description: 'Tool to copy text to user clipboard',
                   inputJsonSchema: copyToClipboardFunctionParameters,
                 ),
-              if (AppCache.gptToolAutoOpenUrls.value!)
-                const ToolSpec(
-                  name: 'auto_open_urls_tool',
-                  description: 'Tool to open urls in the browser',
-                  inputJsonSchema: autoOpenUrlParameters,
-                ),
-              if (AppCache.gptToolGenerateImage.value!)
-                const ToolSpec(
-                  name: 'generate_image_tool',
-                  description: 'Tool to generate image',
-                  inputJsonSchema: generateImageParameters,
-                ),
               if (AppCache.gptToolRememberInfo.value!)
                 const ToolSpec(
                   name: 'remember_info_tool',
@@ -734,8 +727,7 @@ class ChatProvider
 
       responseStream = openAI!.stream(PromptValue.chat(messagesToSend), options: options);
 
-      String functionCallString = '';
-      String functionName = '';
+      final toolAggs = <_StreamingToolAgg>[];
       String responseContent = '';
       int chunkNumber = 0;
       int tokensReceivedInResponse = 0;
@@ -770,9 +762,15 @@ class ChatProvider
             );
           } else {
             if (message.toolCalls.isNotEmpty) {
-              functionCallString += message.toolCalls.first.argumentsRaw;
-              if (message.toolCalls.first.name.isNotEmpty == true) {
-                functionName = message.toolCalls.first.name;
+              for (var i = 0; i < message.toolCalls.length; i++) {
+                while (toolAggs.length <= i) {
+                  toolAggs.add(_StreamingToolAgg());
+                }
+                final tc = message.toolCalls[i];
+                if (tc.name.isNotEmpty) {
+                  toolAggs[i].name = tc.name;
+                }
+                toolAggs[i].argumentsRaw.write(tc.argumentsRaw);
               }
             }
           }
@@ -783,26 +781,15 @@ class ChatProvider
             tokensReceivedInResponse += chunk.usage.responseTokens ?? 0;
             tokensSentInResponse += chunk.usage.promptTokens ?? 0;
           }
-          // print('function: $functionCallString, chunk.finishReason: ${chunk.finishReason}');
           if (chunk.finishReason == FinishReason.stop) {
             saveToDisk([selectedChatRoom]);
             onResponseEnd(messageContent, responseId, tokensReceivedInResponse);
-            if (functionCallString.isNotEmpty) {
-              final lastChar = functionCallString[functionCallString.length - 1];
-              if (lastChar == '}') {
-                final decoded = jsonDecode(functionCallString);
-                _onToolsResponseEnd(messageContent, decoded, functionName, tokensReceivedInResponse);
-              }
-            }
+            _dispatchToolAggs(toolAggs, messageContent, tokensReceivedInResponse);
           } else if (chunk.finishReason == FinishReason.length) {
             isAnswering = false;
             notifyListeners();
           } else if (chunk.finishReason == FinishReason.toolCalls) {
-            final lastChar = functionCallString[functionCallString.length - 1];
-            if (lastChar == '}') {
-              final decoded = jsonDecode(functionCallString);
-              _onToolsResponseEnd(messageContent, decoded, functionName);
-            }
+            _dispatchToolAggs(toolAggs, messageContent, tokensReceivedInResponse);
           }
         },
         onDone: () async {
@@ -1517,6 +1504,27 @@ class ChatProvider
     }
   }
 
+  void _dispatchToolAggs(
+    List<_StreamingToolAgg> aggs,
+    String userContent,
+    int tokensReceivedInResponse,
+  ) {
+    for (final agg in aggs) {
+      final raw = agg.argumentsRaw.toString().trim();
+      if (raw.isEmpty || agg.name.isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          _onToolsResponseEnd(userContent, decoded, agg.name, tokensReceivedInResponse);
+        } else {
+          logError('Tool "${agg.name}" returned non-object args: $raw');
+        }
+      } catch (e) {
+        logError('Tool "${agg.name}" args parse failed: $e. Raw: $raw');
+      }
+    }
+  }
+
   Future _onToolsResponseEnd(
     String userContent,
     Map<String, dynamic> toolArgs,
@@ -1525,8 +1533,8 @@ class ChatProvider
   ]) async {
     log('assistantArgs: $toolArgs');
     if (toolName == 'copy_to_clipboard_tool' && AppCache.gptToolCopyToClipboardEnabled.value!) {
-      final text = toolArgs['responseMessage'];
-      final textToCopy = toolArgs['clipboard'];
+      final text = toolArgs['responseMessage'] ?? '';
+      final textToCopy = toolArgs['clipboard'] ?? '';
       await Clipboard.setData(ClipboardData(text: textToCopy));
       displayCopiedToClipboard();
       final newId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -1535,8 +1543,8 @@ class ChatProvider
       );
     } else if (toolName == 'auto_open_urls_tool' && AppCache.gptToolAutoOpenUrls.value!) {
       final url = toolArgs['url'];
-      final text = toolArgs['responseMessage'];
-      final appendedText = text + '\n```func\n$url\n```';
+      final text = toolArgs['responseMessage'] ?? '';
+      final appendedText = '$text\n```func\n$url\n```';
       final time = DateTime.now().millisecondsSinceEpoch;
       final tokens = tokensReceivedInResponse > 0 ? tokensReceivedInResponse : await countTokensString(appendedText);
       addBotMessageToList(

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/conversaton_style_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -1599,6 +1600,10 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
         if (conversationStyleStream.value != ConversationStyleEnum.normal) {
           sb.writeln('YOU SHOULD ANSWER VERY: ${conversationStyleStream.value.name}');
         }
+        break;
+      case '{runtime_mode}':
+        final mode = AgentModeUtils.fromValue(AppCache.agentMode.value);
+        sb.writeln('Runtime mode: ${mode.runtimeName}');
         break;
     }
   }
