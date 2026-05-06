@@ -140,10 +140,10 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                           style: const ButtonStyle(
                             padding: WidgetStatePropertyAll(EdgeInsets.all(4)),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(ic.FluentIcons.arrow_down_16_filled, size: 16),
+                              Icon(ic.FluentIcons.arrow_down_16_filled, size: 16),
                               Text('[esc]'),
                             ],
                           ),
@@ -181,7 +181,7 @@ class _AliasesOverlayState extends State<AliasesOverlay> {
                               child: BasicListTile(
                                 title: Text(command),
                                 color: isHovered ? theme.accentColor.withAlpha(51) : Colors.black.withAlpha(26),
-                                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
                                 onTap: () async {
                                   final isGlobalCommand = command[0] == '/';
                                   if (!isGlobalCommand) {

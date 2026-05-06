@@ -48,7 +48,7 @@ class ModelsTooltipContainer extends StatelessWidget {
               },
             ),
           ),
-          Icon(LucideIcons.mouse, size: 16),
+          const Icon(LucideIcons.mouse, size: 16),
         ],
       ),
     );

@@ -48,13 +48,13 @@ class WeatherProvider extends ChangeNotifier {
 
   void initTimers() {
     fetchTimer?.cancel();
-    fetchTimer = Timer.periodic(Duration(hours: 4), (timer) {
+    fetchTimer = Timer.periodic(const Duration(hours: 4), (timer) {
       if (AppCache.userCityName.value != null) {
         fetchWeather(AppCache.userCityName.value!, false);
       }
     });
     updateTickTimer?.cancel();
-    updateTickTimer = Timer.periodic(Duration(minutes: 50), (timer) {
+    updateTickTimer = Timer.periodic(const Duration(minutes: 50), (timer) {
       refreshGlobalVariables();
       notifyListeners();
     });
@@ -69,7 +69,7 @@ class WeatherProvider extends ChangeNotifier {
     final list = <WeatherDay>[];
     final allWeatherHourly = weatherData?.getWeatherDays();
     // subtract 1 so we can get current time. Otherwise it will start from +1 hour
-    final currentDateTime = DateTime.now().subtract(Duration(hours: 1));
+    final currentDateTime = DateTime.now().subtract(const Duration(hours: 1));
     for (WeatherDay weatherDay in allWeatherHourly ?? []) {
       final date = (weatherDay.date ?? DateTime(1970));
       if (date.isAfter(currentDateTime)) list.add(weatherDay);
@@ -83,7 +83,7 @@ class WeatherProvider extends ChangeNotifier {
     weatherTomorrowMax = null;
     if (filteredWeather.isNotEmpty) {
       final todayNow = DateTime.now();
-      final tomorrow = todayNow.add(Duration(days: 1));
+      final tomorrow = todayNow.add(const Duration(days: 1));
 
       final todayWeather = filteredWeather
           .where(

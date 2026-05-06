@@ -35,8 +35,8 @@ class ServerTouchFilesPromptDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: Text('The app needs permission to run these files'),
-      content: Column(
+      title: const Text('The app needs permission to run these files'),
+      content: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -45,7 +45,7 @@ class ServerTouchFilesPromptDialog extends StatelessWidget {
             'Click here to open the official llama.cpp repository. (https://github.com/ggml-org/llama.cpp/releases/tag/b6082)',
             url: 'https://github.com/ggml-org/llama.cpp/releases/tag/b6082',
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text("""INSTRUCTIONS:
 1. Click on the "Grant" button
 2. Open the privacy and security settings

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 
 BehaviorSubject<Map<String, String?>> currentLocalization = BehaviorSubject.seeded(I18n._localizations['en']!);
-BehaviorSubject<Locale> localeSubject = BehaviorSubject<Locale>.seeded(Locale('en'));
+BehaviorSubject<Locale> localeSubject = BehaviorSubject<Locale>.seeded(const Locale('en'));
 
 class I18n {
   static Stream<Map<String, String?>> get currentLocalizationStream => currentLocalization.stream;
@@ -15,7 +15,7 @@ class I18n {
   static void init() {
     final localeCache = AppCache.locale.value;
     if (localeCache == null) {
-      localeSubject.add(Locale('en'));
+      localeSubject.add(const Locale('en'));
     } else {
       localeSubject.add(Locale(localeCache));
     }

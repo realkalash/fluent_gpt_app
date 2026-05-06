@@ -70,11 +70,11 @@ class ElevenlabsSpeech {
     showDialog(
       context: context,
       builder: (ctx) => ContentDialog(
-        content: ElevenLabsConfigContainer(),
+        content: const ElevenLabsConfigContainer(),
         actions: [
           Button(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Close'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -116,7 +116,7 @@ class ElevenlabsSpeech {
       text: text,
       // can be "eleven_monolingual_v1"
       modelId: selectedModel,
-      voiceSettings: VoiceSettings(
+      voiceSettings: const VoiceSettings(
         similarityBoost: 0.75,
         stability: 0.50,
       ),
@@ -210,7 +210,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
                 onPressed: () {
                   Navigator.of(ctx).pop();
                 },
-                child: Text('Ok'),
+                child: const Text('Ok'),
               ),
             ],
           );
@@ -225,7 +225,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ElevenLabs API Key*'),
+        const Text('ElevenLabs API Key*'),
         TextFormBox(
           obscureText: obscure,
           onChanged: (value) {
@@ -238,7 +238,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
             loadVoices();
           },
           suffix: IconButton(
-              icon: Icon(FluentIcons.eye_20_regular),
+              icon: const Icon(FluentIcons.eye_20_regular),
               onPressed: () {
                 setState(() {
                   obscure = !obscure;
@@ -258,12 +258,12 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
             url: 'https://elevenlabs.io/app/speech-synthesis/text-to-speech',
           ),
         ),
-        if (isLoadingVoices) ProgressBar(),
+        if (isLoadingVoices) const ProgressBar(),
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.end,
           children: [
             Button(
-              child: Text('Load voices'),
+              child: const Text('Load voices'),
               onPressed: () async {
                 await ElevenlabsSpeech.init();
                 loadVoices();
@@ -273,7 +273,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Voice ID*'),
+                  const Text('Voice ID*'),
                   DropDownButton(
                     title: Text(ElevenlabsSpeech.selectedVoiceName),
                     items: [
@@ -296,7 +296,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Model (Can make voice smarter)'),
+                  const Text('Model (Can make voice smarter)'),
                   DropDownButton(
                     title: Text(ElevenlabsSpeech.selectedModel),
                     items: [
@@ -306,7 +306,7 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
                               message: voice.value, child: Text(voice.key)),
                           trailing: Tooltip(
                             message: voice.value,
-                            child: Icon(FluentIcons.question_circle_24_regular),
+                            child: const Icon(FluentIcons.question_circle_24_regular),
                           ),
                           onPressed: () {
                             ElevenlabsSpeech.selectedModel = voice.key;
@@ -323,9 +323,9 @@ class _ElevenLabsConfigContainerState extends State<ElevenLabsConfigContainer> {
           ],
         ),
         spacer,
-        Divider(),
+        const Divider(),
         Button(
-          child: Text('Usage'),
+          child: const Text('Usage'),
           onPressed: () {
             loadUsage(context);
           },

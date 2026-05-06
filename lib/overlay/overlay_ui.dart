@@ -391,8 +391,8 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
                     return Center(
                       child: TextAnimator(
                         randWelcome,
-                        initialDelay: Duration(milliseconds: 200),
-                        style: TextStyle(fontSize: 30),
+                        initialDelay: const Duration(milliseconds: 200),
+                        style: const TextStyle(fontSize: 30),
                         textAlign: TextAlign.center,
                       ),
                     );

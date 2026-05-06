@@ -80,7 +80,7 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
               ),
             if (AppCache.enableQuestionHelpers.value == null)
               Tooltip(
-                style: TooltipThemeData(waitDuration: const Duration(milliseconds: 200)),
+                style: const TooltipThemeData(waitDuration: Duration(milliseconds: 200)),
                 richMessage: WidgetSpan(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -126,14 +126,14 @@ class QuickHelperButtonsFromLLMRow extends StatelessWidget {
                 child: Button(
                   style: ButtonStyle(
                     padding: WidgetStateProperty.all(
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     ),
                   ),
                   onPressed: () async {
                     final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
                     provider.sendMessage(item.getPromptText(clipboard?.text));
                   },
-                  child: Text(item.title.tr, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: Text(item.title.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ),
           ],

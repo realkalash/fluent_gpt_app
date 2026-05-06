@@ -105,13 +105,13 @@ class CommandRequestAnswerOverlayState extends State<CommandRequestAnswerOverlay
               blurAmount: 5,
               tint: Colors.black,
               child: AnimatedContainer(
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints(
                   minHeight: 100,
                   minWidth: 100,
                   // maxHeight: widget.screenSize.height * 0.5,
                   maxWidth: 500,
                 ),
-                duration: Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 500),
                 padding: const EdgeInsets.all(8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,9 +141,9 @@ class CommandRequestAnswerOverlayState extends State<CommandRequestAnswerOverlay
                             if (answer?.content != null)
                               SelectableText(
                                 answer!.content,
-                                style: TextStyle(color: Colors.white, fontSize: 18),
+                                style: const TextStyle(color: Colors.white, fontSize: 18),
                               ),
-                            if (isAnwering) ProgressBar(),
+                            if (isAnwering) const ProgressBar(),
                           ],
                         ),
                       ),

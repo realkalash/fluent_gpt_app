@@ -15,7 +15,7 @@ class MicrophoneSettingsDialog extends StatefulWidget {
 
 class _MicrophoneSettingsDialogState extends State<MicrophoneSettingsDialog> {
   List<InputDevice> devices = [
-    InputDevice(id: 'null', label: 'Default microphone'),
+    const InputDevice(id: 'null', label: 'Default microphone'),
   ];
   @override
   initState() {
@@ -44,7 +44,7 @@ class _MicrophoneSettingsDialogState extends State<MicrophoneSettingsDialog> {
       content: ListView(
         shrinkWrap: true,
         children: [
-          LabelText('Select microphone'),
+          const LabelText('Select microphone'),
           DropDownButton(
             title: AppCache.micrpohoneDeviceId.value == null
                 ? const Text('Default microphone')

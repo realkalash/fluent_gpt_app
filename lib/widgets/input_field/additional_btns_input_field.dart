@@ -102,7 +102,7 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
                 maxWidthContextMenu: 84,
                 checked: PushToTalkTool.isRecording,
                 padding: EdgeInsets.zero,
-                icon: Icon(ic.FluentIcons.mic_24_regular),
+                icon: const Icon(ic.FluentIcons.mic_24_regular),
                 tooltip: 'Use voice input'.tr,
               ),
             ),
@@ -213,9 +213,9 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (e == selectedModel)
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: const Icon(ic.FluentIcons.checkmark_16_filled),
+                          const Padding(
+                            padding: EdgeInsets.all(10.0),
+                            child: Icon(ic.FluentIcons.checkmark_16_filled),
                           ),
                         SqueareIconButton(
                           onTap: () async {
@@ -232,7 +232,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
                               provider.selectNewModel(changedModel);
                             }
                           },
-                          icon: Icon(ic.FluentIcons.edit_16_regular),
+                          icon: const Icon(ic.FluentIcons.edit_16_regular),
                           tooltip: 'Edit'.tr,
                         ),
                         const SizedBox(width: 4),
@@ -248,7 +248,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
                               provider.saveModelsToDisk();
                               setState(() {});
                             },
-                            icon: Icon(ic.FluentIcons.arrow_up_12_regular),
+                            icon: const Icon(ic.FluentIcons.arrow_up_12_regular),
                             tooltip: 'Move up'.tr,
                           ),
                       ],
@@ -266,7 +266,7 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
               text: Text('Edit'.tr),
               onPressed: () {
                 Navigator.of(ctx).pop();
-                showDialog(context: ctx, builder: (ctx) => ModelsListDialog());
+                showDialog(context: ctx, builder: (ctx) => const ModelsListDialog());
               },
             ),
           ],
@@ -396,7 +396,7 @@ class HotShurtcutsWidget extends StatelessWidget {
                         txtController.clear();
                       }),
                   ToggleButtonAdvenced(
-                    icon: Icon(ic.FluentIcons.settings_20_regular),
+                    icon: const Icon(ic.FluentIcons.settings_20_regular),
                     onChanged: (_) => showDialog(
                       context: context,
                       builder: (ctx) => const CustomPromptsSettingsDialog(),
@@ -430,7 +430,7 @@ class HotShurtcutsOneLineWidget extends StatelessWidget {
                 spacing: 4,
                 children: [
                   ToggleButtonAdvenced(
-                    icon: Icon(ic.FluentIcons.settings_20_regular),
+                    icon: const Icon(ic.FluentIcons.settings_20_regular),
                     onChanged: (_) => showDialog(
                       context: context,
                       builder: (ctx) => const CustomPromptsSettingsDialog(),

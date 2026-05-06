@@ -236,8 +236,8 @@ class _ShellExecutionWidgetState extends State<ShellExecutionWidget> {
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: stdout.isNotEmpty ? stdout : stderr));
                       displayInfoBar(context, builder: (context, close) {
-                        return InfoBar(
-                          title: const Text('Copied to clipboard'),
+                        return const InfoBar(
+                          title: Text('Copied to clipboard'),
                           severity: InfoBarSeverity.success,
                         );
                       });

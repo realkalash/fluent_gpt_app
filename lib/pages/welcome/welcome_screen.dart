@@ -66,8 +66,8 @@ class _WelcomePageState extends State<WelcomePage> {
                       const SizedBox(height: 16),
                       TextAnimator(
                         'WELCOME!'.tr,
-                        initialDelay: Duration(milliseconds: 500),
-                        style: TextStyle(
+                        initialDelay: const Duration(milliseconds: 500),
+                        style: const TextStyle(
                             color: Colors.white,
                             fontSize: 40,
                             fontWeight: FontWeight.bold),

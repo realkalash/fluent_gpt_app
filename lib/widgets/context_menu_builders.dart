@@ -1,3 +1,4 @@
+import 'package:extended_text_field/extended_text_field.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -11,7 +12,7 @@ class ContextMenuBuilders {
   static String? previousClipboardData;
   static String selectedText = '';
 
-  static Widget spellCheckContextMenuBuilder(BuildContext context, EditableTextState editableTextState) {
+  static Widget spellCheckContextMenuBuilder(BuildContext context, ExtendedEditableTextState editableTextState) {
     final chatProvider = context.read<ChatProvider>();
     final undoController = editableTextState.widget.undoController;
     final correctSpell = AppCache.useLocalSpellCheck.value == true
@@ -110,7 +111,7 @@ class ContextMenuBuilders {
           left: anchor.dx,
           child: FlyoutContent(
             useAcrylic: false,
-            constraints: BoxConstraints(maxWidth: 200),
+            constraints: const BoxConstraints(maxWidth: 200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,7 +119,7 @@ class ContextMenuBuilders {
                 if (selectedText.isNotEmpty)
                   FlyoutListTile(
                     text: Text('Copy'.tr),
-                    icon: Icon(FluentIcons.copy_16_regular),
+                    icon: const Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
                       editableTextState.copySelection(SelectionChangedCause.tap);
@@ -127,20 +128,20 @@ class ContextMenuBuilders {
                   ),
                 FlyoutListTile(
                   text: Text('Select all'.tr),
-                  icon: Icon(FluentIcons.select_object_skew_20_regular),
+                  icon: const Icon(FluentIcons.select_object_skew_20_regular),
                   onPressed: () {
                     editableTextState.selectAll(SelectionChangedCause.tap);
                     editableTextState.hideToolbar();
                   },
                 ),
                 if (selectedText.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
                     child: Divider(),
                   ),
                   FlyoutListTile(
                     text: Text('${'Improve'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    icon: Icon(FluentIcons.sparkle_16_regular),
+                    icon: const Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
                       onImproveSelectedText(selectedText);
                       _updateSelectedText(editableTextState, fullText);
@@ -149,7 +150,7 @@ class ContextMenuBuilders {
                   ),
                   FlyoutListTile(
                     text: Text('${'Quote'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    icon: Icon(FluentIcons.arrow_reply_16_regular),
+                    icon: const Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
                       onQuoteSelectedText(selectedText);
                       _updateSelectedText(editableTextState, fullText);
@@ -157,13 +158,13 @@ class ContextMenuBuilders {
                     },
                   ),
                 ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
                   child: Divider(),
                 ),
                 FlyoutListTile(
                   text: Text('Commands'.tr),
-                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  trailing: const Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onShowCommandsPressed(selectedText);
                     editableTextState.hideToolbar();
@@ -171,14 +172,14 @@ class ContextMenuBuilders {
                 ),
                 FlyoutListTile(
                   text: Text('More'.tr),
-                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  trailing: const Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onMorePressed();
                     editableTextState.hideToolbar();
                   },
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
                   child: Divider(),
                 ),
               ],
@@ -212,7 +213,7 @@ class ContextMenuBuilders {
           left: anchor.dx,
           child: FlyoutContent(
             useAcrylic: false,
-            constraints: BoxConstraints(maxWidth: 200),
+            constraints: const BoxConstraints(maxWidth: 200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,7 +221,7 @@ class ContextMenuBuilders {
                 if (editableTextState.copyEnabled)
                   FlyoutListTile(
                     text: Text('Copy'.tr),
-                    icon: Icon(FluentIcons.copy_16_regular),
+                    icon: const Icon(FluentIcons.copy_16_regular),
                     autofocus: true,
                     onPressed: () {
                       editableTextState.copySelection(SelectionChangedCause.tap);
@@ -229,20 +230,20 @@ class ContextMenuBuilders {
                   ),
                 FlyoutListTile(
                   text: Text('Select all'.tr),
-                  icon: Icon(FluentIcons.select_object_skew_20_regular),
+                  icon: const Icon(FluentIcons.select_object_skew_20_regular),
                   onPressed: () {
                     editableTextState.selectAll(SelectionChangedCause.tap);
                     editableTextState.hideToolbar();
                   },
                 ),
                 if (selectedText.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2),
                     child: Divider(),
                   ),
                   FlyoutListTile(
                     text: Text('${'Improve'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    icon: Icon(FluentIcons.sparkle_16_regular),
+                    icon: const Icon(FluentIcons.sparkle_16_regular),
                     onPressed: () {
                       onImproveSelectedText(selectedText);
 
@@ -251,20 +252,20 @@ class ContextMenuBuilders {
                   ),
                   FlyoutListTile(
                     text: Text('${'Quote'.tr} "$selectedText"', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    icon: Icon(FluentIcons.arrow_reply_16_regular),
+                    icon: const Icon(FluentIcons.arrow_reply_16_regular),
                     onPressed: () {
                       onQuoteSelectedText(selectedText);
                       editableTextState.hideToolbar();
                     },
                   ),
                 ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 2),
                   child: Divider(),
                 ),
                 FlyoutListTile(
                   text: Text('Commands'.tr),
-                  trailing: Icon(FluentIcons.chevron_right_20_regular),
+                  trailing: const Icon(FluentIcons.chevron_right_20_regular),
                   onPressed: () {
                     onShowCommandsPressed(selectedText);
                     editableTextState.hideToolbar();
@@ -272,7 +273,7 @@ class ContextMenuBuilders {
                 ),
                 FlyoutListTile(
                   text: Text('More'.tr),
-                  trailing: Icon(FluentIcons.more_vertical_20_regular),
+                  trailing: const Icon(FluentIcons.more_vertical_20_regular),
                   onPressed: () {
                     onMorePressed();
                     editableTextState.hideToolbar();

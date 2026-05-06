@@ -88,18 +88,18 @@ class WeatherCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text('Weather in'.tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
                         Text(' ${AppCache.userCityName.value}',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.bold)),
-                        Spacer(),
+                        const Spacer(),
                         MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: GestureDetector(
                             onTap: () =>
                                 launchUrlString('https://open-meteo.com/'),
-                            child: Text(
+                            child: const Text(
                               'by Open-Meteo',
                               style: TextStyle(
                                 fontSize: 12,
@@ -121,7 +121,7 @@ class WeatherCard extends StatelessWidget {
                     ),
                     if (provider.isLoading) const Center(child: ProgressBar()),
                     if (weatherNow != null) ...[
-                      WeatherNowCard(),
+                      const WeatherNowCard(),
                     ],
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -131,7 +131,7 @@ class WeatherCard extends StatelessWidget {
                             provider.fetchWeather(
                                 AppCache.userCityName.value!, true);
                           },
-                          icon: Icon(
+                          icon: const Icon(
                               FluentIcons.arrow_counterclockwise_12_regular),
                           tooltip: 'Refresh',
                         ),

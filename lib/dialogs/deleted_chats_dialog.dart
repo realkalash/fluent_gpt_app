@@ -86,7 +86,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
   Widget build(BuildContext context) {
     return ContentDialog(
       title: Text('Storage usage'.tr),
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         maxWidth: 600,
         maxHeight: 1200,
       ),
@@ -112,7 +112,7 @@ class _DeletedChatsDialogState extends State<DeletedChatsDialog> {
                   ],
                 ),
               ),
-              SizedBox(width: 20),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

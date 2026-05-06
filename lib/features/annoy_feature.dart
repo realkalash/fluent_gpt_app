@@ -35,7 +35,7 @@ class AnnoyFeature {
     await showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => AnnoyConfigDialog(),
+      builder: (context) => const AnnoyConfigDialog(),
     );
   }
 
@@ -109,7 +109,7 @@ class AnnoyFeature {
       aiMessage.content,
       thumbnailFilePath: selectedChatRoom.characterAvatarPath,
     );
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 300));
     if (AppCache.autoPlayMessagesFromAi.value!) {
       if (TextToSpeechService.isValid()) {
         await TextToSpeechService.readAloud(
@@ -127,7 +127,7 @@ class AnnoyConfigDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ContentDialog(
-      title: Text('Autonomous mode configuration'),
+      title: const Text('Autonomous mode configuration'),
       actions: [
         FilledButton(
           onPressed: () {
@@ -138,21 +138,21 @@ class AnnoyConfigDialog extends StatelessWidget {
             );
             Navigator.of(context).pop();
           },
-          child: Text('Start'),
+          child: const Text('Start'),
         ),
         Button(
           onPressed: () {
             AppCache.enableAutonomousMode.value = false;
             Navigator.of(context).pop();
           },
-          child: Text('Close'),
+          child: const Text('Close'),
         ),
       ],
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
               'Ai can use your last open chat to generate new messages in random range between X and Y minutes.'),
           spacer,
           Row(
@@ -160,7 +160,7 @@ class AnnoyConfigDialog extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Timer in minutes min: '),
+                    const Text('Timer in minutes min: '),
                     SizedBox(
                       width: 100,
                       child: NumberBox(
@@ -179,7 +179,7 @@ class AnnoyConfigDialog extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text('Timer in minutes max '),
+                    const Text('Timer in minutes max '),
                     SizedBox(
                       width: 100,
                       child: NumberBox(

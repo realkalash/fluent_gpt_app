@@ -89,7 +89,7 @@ class _OverlayUIState extends State<SidebarOverlayUI> {
     final backgroundColor = appTheme.isDark
         ? appTheme.darkBackgroundColor
         : appTheme.lightBackgroundColor;
-    final openWindowIconSize = 30.0;
+    const openWindowIconSize = 30.0;
 
     return fluent.StreamBuilder<Object>(
         stream: SidebarOverlayUI.isChatVisible,

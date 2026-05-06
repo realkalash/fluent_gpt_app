@@ -1,46 +1,134 @@
 #!/bin/bash
 
-# Get version from parameter or use default
-VERSION=${1:-"1.0.75"}
-# Remove 'v' prefix if present
-VERSION=${VERSION#v}
+set -euo pipefail
 
-echo "Building macOS version $VERSION..."
+usage() {
+  echo "Usage:"
+  echo "  ./build-macos.sh local [vX.Y.Z]"
+  echo "  ./build-macos.sh release [vX.Y.Z]"
+  echo
+  echo "Modes:"
+  echo "  local   Build app and create DMG (unsigned)."
+  echo "  release Build signed app and signed/notarized PKG only."
+  echo
+  echo "Required env vars for release mode:"
+  echo "  DEV_ID_APP_CERT"
+  echo "  DEV_ID_INSTALLER_CERT"
+  echo "  NOTARY_PROFILE"
+}
 
-flutter build macos --release --no-tree-shake-icons
+get_version_from_pubspec() {
+  local raw
+  raw="$(awk -F': ' '/^version:/ {print $2; exit}' pubspec.yaml)"
+  raw="${raw%%+*}"
+  echo "$raw"
+}
 
-# Set variables
+require_command() {
+  local cmd="$1"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: Required command not found: $cmd"
+    exit 1
+  fi
+}
+
+MODE="${1:-local}"
+INPUT_VERSION="${2:-$(get_version_from_pubspec)}"
+VERSION="${INPUT_VERSION#v}"
+
+if [[ "$MODE" != "local" && "$MODE" != "release" ]]; then
+  echo "ERROR: Unknown mode '$MODE'."
+  usage
+  exit 1
+fi
+
+require_command flutter
+require_command codesign
+require_command productbuild
+
+if [[ "$MODE" == "local" ]]; then
+  require_command create-dmg
+fi
+
+if [[ "$MODE" == "release" ]]; then
+  require_command xcrun
+  : "${DEV_ID_APP_CERT:?Set DEV_ID_APP_CERT in your environment.}"
+  : "${DEV_ID_INSTALLER_CERT:?Set DEV_ID_INSTALLER_CERT in your environment.}"
+  : "${NOTARY_PROFILE:?Set NOTARY_PROFILE in your environment.}"
+fi
+
 APP_NAME="FluentGPT"
-DMG_NAME="FluentGPT-${VERSION}.dmg"
 SOURCE_DIR="build/macos/Build/Products/Release"
 APP_PATH="${SOURCE_DIR}/${APP_NAME}.app"
 OUTPUT_DIR="installers"
-TMP_DIR=$(mktemp -d)
+PKG_PATH="${OUTPUT_DIR}/${APP_NAME}-${VERSION}.pkg"
+DMG_PATH="${OUTPUT_DIR}/${APP_NAME}-${VERSION}.dmg"
+TMP_DIR="$(mktemp -d)"
+PLUGINS_SRC="plugins/cpp_build_macos_arm64"
+PLUGINS_DST="${APP_PATH}/Contents/MacOS/plugins"
 
-# Create output directory if it doesn't exist
+cleanup() {
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
+
 mkdir -p "$OUTPUT_DIR"
 
-# Copy only the .app file to a temporary directory
-cp -R "$APP_PATH" "$TMP_DIR"
-# Copy everything in 'external_files' to the .app file
-# cp -r external_files/* "$TMP_DIR/${APP_NAME}.app/Contents/MacOS"
+echo "Building macOS (${MODE}) version ${VERSION}..."
+flutter build macos --release --no-tree-shake-icons
 
-# Bundle llama.cpp binaries into the app (so installed app can start local server)
-PLUGINS_SRC="plugins/cpp_build_macos_arm64"
-PLUGINS_DST="$TMP_DIR/${APP_NAME}.app/Contents/MacOS/plugins"
-if [ -d "$PLUGINS_SRC" ]; then
-  echo "Copying local server binaries from $PLUGINS_SRC to app bundle..."
-  mkdir -p "$PLUGINS_DST"
-  cp -R "$PLUGINS_SRC" "$PLUGINS_DST/"
-  # Ensure all files are executable where needed (safe to set for all)
-  find "$PLUGINS_DST" -type f -exec chmod +x {} \; || true
-  # Remove quarantine attributes to reduce Gatekeeper prompts (users may still need to allow at first run)
-  xattr -dr com.apple.quarantine "$TMP_DIR/${APP_NAME}.app" || true
-else
-  echo "WARNING: $PLUGINS_SRC not found. DMG will not contain local server binaries."
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "ERROR: App not found at ${APP_PATH}"
+  exit 1
 fi
 
-# Create DMG
+# Bundle local server binaries into the built app so all release artifacts include them.
+if [[ -d "$PLUGINS_SRC" ]]; then
+  echo "Copying local server binaries from ${PLUGINS_SRC} to app bundle..."
+  mkdir -p "$PLUGINS_DST"
+  rm -rf "${PLUGINS_DST}/cpp_build_macos_arm64"
+  cp -R "$PLUGINS_SRC" "$PLUGINS_DST/"
+  find "$PLUGINS_DST" -type f -exec chmod +x {} \; || true
+  xattr -dr com.apple.quarantine "$APP_PATH" || true
+else
+  echo "WARNING: ${PLUGINS_SRC} not found. Build artifacts will not include local server binaries."
+fi
+
+if [[ "$MODE" == "release" ]]; then
+  echo "Signing app with Developer ID Application cert..."
+  codesign --force --deep --options runtime --timestamp \
+    --sign "$DEV_ID_APP_CERT" \
+    "$APP_PATH"
+
+  echo "Verifying app signature..."
+  codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+  spctl -a -vvv "$APP_PATH" || true
+
+  echo "Building signed PKG..."
+  rm -f "$PKG_PATH"
+  productbuild \
+    --component "$APP_PATH" /Applications \
+    --sign "$DEV_ID_INSTALLER_CERT" \
+    "$PKG_PATH"
+
+  echo "Submitting PKG for notarization..."
+  xcrun notarytool submit "$PKG_PATH" \
+    --keychain-profile "$NOTARY_PROFILE" \
+    --wait
+
+  echo "Stapling notarization ticket..."
+  xcrun stapler staple "$PKG_PATH"
+  xcrun stapler validate "$PKG_PATH"
+
+  echo "Validating installer with Gatekeeper..."
+  spctl -a -vvv --type install "$PKG_PATH"
+
+  echo "Release PKG created at ${PKG_PATH}"
+  exit 0
+fi
+
+echo "Creating unsigned DMG for local testing..."
+cp -R "$APP_PATH" "$TMP_DIR"
 create-dmg \
   --volname "${APP_NAME}" \
   --window-pos 200 120 \
@@ -49,10 +137,7 @@ create-dmg \
   --icon "${APP_NAME}.app" 200 190 \
   --hide-extension "${APP_NAME}.app" \
   --app-drop-link 600 185 \
-  "${OUTPUT_DIR}/${DMG_NAME}" \
+  "$DMG_PATH" \
   "$TMP_DIR"
 
-# Clean up temporary directory
-rm -rf "$TMP_DIR"
-
-echo "DMG created at ${OUTPUT_DIR}/${DMG_NAME}"
+echo "Local DMG created at ${DMG_PATH}"

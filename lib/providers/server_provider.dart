@@ -158,7 +158,7 @@ class ServerProvider extends ChangeNotifier {
       final serverExecPath = getServerExecPath();
       if (Platform.isMacOS) {
         if (AppCache.serverFilesTouched.value != true) {
-          final res = await showDialog(context: context, builder: (context) => ServerTouchFilesPromptDialog());
+          final res = await showDialog(context: context, builder: (context) => const ServerTouchFilesPromptDialog());
           if (res == true) {
             log('Getting permission to run files');
             await _touchFiles();

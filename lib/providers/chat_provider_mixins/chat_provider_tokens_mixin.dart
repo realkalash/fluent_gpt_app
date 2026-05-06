@@ -67,7 +67,7 @@ mixin ChatProviderTokensMixin on ChangeNotifier, ChatProviderBaseMixin {
           ));
     } else {
       tokens = await openAI!.countTokens(PromptValue.chat(messages),
-          options: ChatOpenAIOptions(
+          options: const ChatOpenAIOptions(
             // for all unknown models we assume it's gpt 3.5 turbo
             model: 'gpt-3.5-turbo-16k-0613',
           ));

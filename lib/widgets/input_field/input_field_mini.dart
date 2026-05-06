@@ -24,7 +24,7 @@ class InputFieldMini extends StatelessWidget {
           children: [
             IconButton(
               // visualDensity: VisualDensity.compact,
-              icon: Icon(ic.FluentIcons.chat_add_20_filled),
+              icon: const Icon(ic.FluentIcons.chat_add_20_filled),
               onPressed: () {
                 // if messages are not empty
                 if (messages.value.isEmpty) return;

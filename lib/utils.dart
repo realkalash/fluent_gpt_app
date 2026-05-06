@@ -253,7 +253,7 @@ extension ListExtension<T> on List<T> {
 Future<void> displayCopiedToClipboard() {
   return displayInfoBar(
     appContext!,
-    alignment: Alignment(0.0, 0.9),
+    alignment: const Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: const Text('Copied'),
       severity: InfoBarSeverity.info,
@@ -265,7 +265,7 @@ Future<void> displayCopiedToClipboard() {
 Future<void> displaySuccessInfoBar({String? title}) {
   return displayInfoBar(
     appContext!,
-    alignment: Alignment(0.0, 0.9),
+    alignment: const Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: Text(title ?? 'Success'),
       severity: InfoBarSeverity.success,
@@ -293,7 +293,7 @@ Future<void> displayErrorInfoBar({String? title, String? message, Widget? action
   logError('displayErrorInfoBar: $title, $message');
   return displayInfoBar(
     appContext!,
-    alignment: Alignment(0.0, 0.9),
+    alignment: const Alignment(0.0, 0.9),
     builder: (context, close) => InfoBar(
       title: Text(title ?? 'Error'),
       content: message != null ? Text(message) : null,

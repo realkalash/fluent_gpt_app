@@ -67,8 +67,8 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
       return Material(
         color: Colors.transparent,
         child: ExpansionTile(
-          title: Text('function'),
-          leading: Icon(Icons.code_rounded),
+          title: const Text('function'),
+          leading: const Icon(Icons.code_rounded),
           dense: true,
           minTileHeight: 10,
           showTrailingIcon: false,
@@ -87,8 +87,8 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
       return Material(
         color: Colors.transparent,
         child: ExpansionTile(
-          title: Text('Saved new info'),
-          leading: Icon(FluentIcons.book_32_filled),
+          title: const Text('Saved new info'),
+          leading: const Icon(FluentIcons.book_32_filled),
           dense: true,
           minTileHeight: 10,
           showTrailingIcon: false,
@@ -196,11 +196,11 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                         if (hasCopied) return;
                         await Clipboard.setData(ClipboardData(text: widget.content));
                         displayCopiedToClipboard();
-                        _switchWidget = Icon(Icons.check);
+                        _switchWidget = const Icon(Icons.check);
                         refresh();
                         Future.delayed(const Duration(seconds: 2), () {
                           hasCopied = false;
-                          _switchWidget = Icon(Icons.copy_rounded);
+                          _switchWidget = const Icon(Icons.copy_rounded);
                           refresh();
                         });
                       },
@@ -216,7 +216,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                       style: fluent.ButtonStyle(
                         padding: fluent.WidgetStateProperty.all(fluent.EdgeInsets.zero),
                       ),
-                      child: Icon(FluentIcons.open_20_filled),
+                      child: const Icon(FluentIcons.open_20_filled),
                       onPressed: () => openInVsCode(widget.content),
                     ),
                   ),
@@ -228,7 +228,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                         border: Border.all(width: 0.5, color: isDark ? Colors.white : Colors.black)),
                     child: fluent.Padding(
                       padding: const EdgeInsets.all(6.0),
-                      child: Text(widget.language, style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
+                      child: Text(widget.language, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
                     ),
                   ),
               ],

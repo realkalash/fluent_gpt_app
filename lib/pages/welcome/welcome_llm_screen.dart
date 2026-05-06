@@ -73,9 +73,9 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                     const SizedBox(height: 16),
                     TextAnimator(
                       'Configure your AI'.tr,
-                      initialDelay: Duration(milliseconds: 1000),
-                      characterDelay: Duration(milliseconds: 15),
-                      style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+                      initialDelay: const Duration(milliseconds: 1000),
+                      characterDelay: const Duration(milliseconds: 15),
+                      style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     TextAnimator(
@@ -101,7 +101,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                         const NerdySelectorDropdown(),
                         ListTile(
                           title: Text('Choose your AI'.tr),
-                          trailing: _ChooseModelButton(),
+                          trailing: const _ChooseModelButton(),
                         ),
                         const SizedBox(height: 24),
                         Padding(
@@ -171,8 +171,8 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                         const SizedBox(height: 24),
                         Text('Currently supported providers:'.tr,
                             style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 14)),
-                        LinkTextButton('https://platform.openai.com/api-keys'),
-                        LinkTextButton('https://deepinfra.com/dash/deployments'),
+                        const LinkTextButton('https://platform.openai.com/api-keys'),
+                        const LinkTextButton('https://deepinfra.com/dash/deployments'),
                         const SizedBox(height: 24),
                         Text('You can add info about you to improve AI response'.tr,
                             style: TextStyle(color: Colors.white.withAlpha(178), fontSize: 14)),
@@ -203,7 +203,7 @@ class _WelcomePermissionsPageState extends State<WelcomeLLMConfigPage> {
                                 },
                                 clearButtonEnabled: false,
                                 trailingIcon: IconButton(
-                                  icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
+                                  icon: const Icon(FluentIcons.delete_20_filled, color: Colors.red),
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () {
                                     AppCache.userCityName.value = '';
@@ -290,7 +290,7 @@ class _NerdySelectorDropdownState extends State<NerdySelectorDropdown> {
         },
         trailing: FlyoutTarget(
           controller: flyoutController,
-          child: Icon(FluentIcons.chevron_down_24_regular),
+          child: const Icon(FluentIcons.chevron_down_24_regular),
         ),
       ),
     );
@@ -323,7 +323,7 @@ class _ChooseModelButtonState extends State<_ChooseModelButton> {
         stream: selectedChatRoomIdStream,
         builder: (context, asyncSnapshot) {
           if (selectedModel.modelName == 'Unknown' || allModels.value.isEmpty) {
-            return SizedBox.shrink();
+            return const SizedBox.shrink();
           }
           return FlyoutTarget(
             controller: flyoutController,

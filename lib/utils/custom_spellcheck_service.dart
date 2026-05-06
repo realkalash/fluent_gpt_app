@@ -1,3 +1,4 @@
+import 'package:extended_text_field/extended_text_field.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:spell_check_on_client/spell_check_on_client.dart';
@@ -14,6 +15,15 @@ class CustomSpellCheckService extends SpellCheckService {
   static SpellCheckConfiguration? getSpellCheckConfiguration(SpellCheck? spellCheck) {
     return spellCheck != null
         ? SpellCheckConfiguration(
+            spellCheckService: CustomSpellCheckService(spellCheck: spellCheck),
+            misspelledTextStyle: misspelledTextStyle,
+          )
+        : null;
+  }
+
+  static ExtendedSpellCheckConfiguration? getExtendedSpellCheckConfiguration(SpellCheck? spellCheck) {
+    return spellCheck != null
+        ? ExtendedSpellCheckConfiguration(
             spellCheckService: CustomSpellCheckService(spellCheck: spellCheck),
             misspelledTextStyle: misspelledTextStyle,
           )

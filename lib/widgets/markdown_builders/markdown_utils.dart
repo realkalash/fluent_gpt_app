@@ -41,7 +41,7 @@ String _compactPathLinkLabel(String type, String content) {
 /// emphasis, Markdown treats asterisks (*) and underscores (_) as indicators of emphasis
 class EmCustomNode extends ElementNode {
   @override
-  TextStyle get style => parentStyle!.merge(TextStyle(fontStyle: FontStyle.italic, color: Colors.amber));
+  TextStyle get style => parentStyle!.merge(const TextStyle(fontStyle: FontStyle.italic, color: Colors.amber));
 }
 
 ///Custom Think Block Node
@@ -245,7 +245,7 @@ class _PathLinkWidgetState extends State<PathLinkWidget> {
                         color: _isHovered ? Colors.blue.withAlpha(30) : Colors.transparent,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         FluentIcons.copy_20_filled,
                         size: 10,
                         color: Colors.blue,
@@ -287,7 +287,7 @@ class _ThinkBlockWidgetState extends State<ThinkBlockWidget> {
           decoration: BoxDecoration(
             color: Colors.orange.withAlpha(20),
             borderRadius: BorderRadius.circular(12),
-            border: Border(
+            border: const Border(
               left: BorderSide(
                 color: Colors.orange,
                 width: 4,
@@ -308,7 +308,7 @@ class _ThinkBlockWidgetState extends State<ThinkBlockWidget> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(FluentIcons.brain_sparkle_20_filled, color: Colors.orange, size: 18),
+                  const Icon(FluentIcons.brain_sparkle_20_filled, color: Colors.orange, size: 18),
                   const SizedBox(width: 12),
                   Text(
                     'Thinking...'.tr,
@@ -320,7 +320,7 @@ class _ThinkBlockWidgetState extends State<ThinkBlockWidget> {
                     ),
                   ),
                   const Spacer(),
-                  Icon(FluentIcons.chevron_down_20_filled, color: Colors.orange, size: 18),
+                  const Icon(FluentIcons.chevron_down_20_filled, color: Colors.orange, size: 18),
                 ],
               ),
             ),
@@ -335,9 +335,9 @@ class _ThinkBlockWidgetState extends State<ThinkBlockWidget> {
                       color: Colors.orange.withAlpha(51),
                       shape: BoxShape.circle,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: const Icon(
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
                         FluentIcons.brain_sparkle_20_filled,
                         color: Colors.orange,
                         size: 18,

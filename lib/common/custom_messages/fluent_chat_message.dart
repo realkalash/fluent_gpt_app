@@ -603,7 +603,7 @@ class FluentChatMessage {
   FluentChatMessage imageToHiddenText() {
     return copyWith(
       content:
-          'SYSTEM MESSAGE: [image ${path ?? fileName ?? ''} hidden due to your limitations. If you want to access the image content, use "grep_chat" tool with message id: "$id". It will enable agent and download image for you automatically and you will continue answering]',
+          'SYSTEM MESSAGE: [image ${path ?? fileName ?? ''} hidden due to your limitations.]',
       type: type == FluentChatMessageType.image ? FluentChatMessageType.textHuman : type,
     );
   }

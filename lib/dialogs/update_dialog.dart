@@ -162,7 +162,7 @@ class _UpdateDialogState extends State<UpdateDialog>
                   children: [
                     Row(
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 20,
                           height: 20,
                           child: ProgressRing(

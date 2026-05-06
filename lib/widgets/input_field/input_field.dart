@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cross_file/cross_file.dart';
 
+import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
@@ -205,7 +206,7 @@ class _InputFieldState extends State<InputField> {
       // Move focus to previous focusable widget in the focus tree
       // FocusScope.of(context).requestFocus(messagesFocusScopeNode);
       FocusScope.of(context).unfocus();
-      await Future.delayed(Duration(milliseconds: 5));
+      await Future.delayed(const Duration(milliseconds: 5));
       // ignore: use_build_context_synchronously
       FocusScope.of(context).requestFocus(messagesFocusScopeNode);
       return;
@@ -220,7 +221,7 @@ class _InputFieldState extends State<InputField> {
 
     if (prevNewline == -1) {
       // If there is no previous line, move caret to start
-      controller.selection = TextSelection.collapsed(offset: 0);
+      controller.selection = const TextSelection.collapsed(offset: 0);
       return;
     }
 
@@ -253,6 +254,13 @@ class _InputFieldState extends State<InputField> {
     );
     if (elementkey == null) return;
     provider.scrollToMessage(elementkey);
+  }
+
+  void onShortcutCycleAgentModeForward() {
+    final provider = context.read<ChatProvider>();
+    final currentIndex = provider.agentMode.index;
+    final nextIndex = (currentIndex + 1) % AgentMode.values.length;
+    provider.setAgentMode(AgentMode.values[nextIndex]);
   }
 
   Future onDigitPressed(int number) async {
@@ -319,6 +327,7 @@ class _InputFieldState extends State<InputField> {
         onDigitPressed,
         arrowUpPressed,
         onShortcutCopyToThirdParty,
+        onShortcutCycleAgentModeForward,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -342,7 +351,7 @@ class _InputFieldState extends State<InputField> {
                 return const SizedBox.shrink();
               },
             ),
-            if (chatProvider.fileInputs.isNotEmpty) FileThumbnails(),
+            if (chatProvider.fileInputs.isNotEmpty) const FileThumbnails(),
             if (widget.isMini) InputFieldMini(onSubmit: onSubmit),
             if (!widget.isMini)
               InputFieldMain(
@@ -389,7 +398,7 @@ class _InputFieldState extends State<InputField> {
         items: [
           MenuFlyoutItem(
               text: Text('Add to chat as SYSTEM'.tr),
-              trailing: Text('(alt+enter)'),
+              trailing: const Text('(alt+enter)'),
               onPressed: () async {
                 if (text.isNotEmpty)
                   provider.addCustomMessageToList(
@@ -407,7 +416,7 @@ class _InputFieldState extends State<InputField> {
               }),
           MenuFlyoutItem(
               text: Text('Add to chat as USER'.tr),
-              trailing: Text('(alt+u)'),
+              trailing: const Text('(alt+u)'),
               onPressed: () async {
                 final timestamp = DateTime.now().millisecondsSinceEpoch;
                 if (text.isNotEmpty)
@@ -427,7 +436,7 @@ class _InputFieldState extends State<InputField> {
           MenuFlyoutItem(
               text:
                   Text('Add to chat as {name}'.tr.replaceAll('{{name}}', selectedChatRoom.characterName.toUpperCase())),
-              trailing: Text('(alt+i)'),
+              trailing: const Text('(alt+i)'),
               onPressed: () async {
                 final timestamp = DateTime.now().millisecondsSinceEpoch;
                 if (text.isNotEmpty)
@@ -460,7 +469,7 @@ class _InputFieldState extends State<InputField> {
     if (text[0] == '/' && aliasesCommandsOverlay == null) {
       // show overlay
       aliasesCommandsOverlay = OverlayEntry(
-        builder: (context) => AliasesOverlay(),
+        builder: (context) => const AliasesOverlay(),
         opaque: false,
       );
       Overlay.of(context).insert(aliasesCommandsOverlay!);

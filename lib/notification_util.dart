@@ -41,7 +41,7 @@ InitializationSettings get notificationInitSettingsPlatform {
   if (Platform.isWindows) {
     throw UnsupportedError('Windows is not supported. Use WindowsPlugin');
   }
-  return InitializationSettings(
+  return const InitializationSettings(
     iOS: initializationSettingsDarwin,
     macOS: initializationSettingsDarwin,
     linux: initializationSettingsLinux,

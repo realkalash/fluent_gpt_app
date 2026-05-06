@@ -138,7 +138,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
             ],
           ),
           spacer,
-          if (isLoading) ProgressBar(),
+          if (isLoading) const ProgressBar(),
           Wrap(
             spacing: 4,
             children: groups
@@ -277,7 +277,7 @@ class _AiPromptsLibraryDialogState extends State<AiPromptsLibraryDialog> {
       builder: (context) => EditPromptDialog(
         allowKeybinding: false,
         allowSubPrompts: false,
-        prompt: CustomPrompt(title: '', prompt: 'You are a helpful ai'),
+        prompt: const CustomPrompt(title: '', prompt: 'You are a helpful ai'),
         autocompleteTagsList: groups,
       ),
     );

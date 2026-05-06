@@ -113,8 +113,8 @@ class _AiLensDialogState extends State<AiLensDialog> {
                   Navigator.of(ctx).pop();
                   setState(() {});
                 },
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
                   child: Text('Auto'),
                 ),
               ),
@@ -225,7 +225,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(FluentIcons.arrow_download_32_filled, size: 24),
+                                child: const Icon(FluentIcons.arrow_download_32_filled, size: 24),
                               ),
                             ),
                           GestureDetector(
@@ -236,7 +236,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                                 color: getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature.translate),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(FluentIcons.translate_24_regular, size: 24),
+                              child: const Icon(FluentIcons.translate_24_regular, size: 24),
                             ),
                           ),
                           GestureDetector(
@@ -247,7 +247,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                                 color: getSelectedFeatureBackgroundColorButton(AiLensSelectedFeature.scan),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(FluentIcons.scan_camera_20_filled, size: 24),
+                              child: const Icon(FluentIcons.scan_camera_20_filled, size: 24),
                             ),
                           ),
                         ],
@@ -335,7 +335,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-                              child: Text('Transcript points'),
+                              child: const Text('Transcript points'),
                             ),
                           ),
                         ),
@@ -376,7 +376,7 @@ class _AiLensDialogState extends State<AiLensDialog> {
                         ),
                       ),
                     ),
-                    HomeDropOverlay(),
+                    const HomeDropOverlay(),
                     HomeDropRegion(
                       onDrop: () => Navigator.of(context).pop(),
                       showAiLens: true,

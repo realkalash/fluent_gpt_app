@@ -53,7 +53,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
     characterAvatarPath = widget.room.characterAvatarPath;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // to improve animation performance
-      Future.delayed(Duration(seconds: 1), () {
+      Future.delayed(const Duration(seconds: 1), () {
         countTokens();
       });
     });
@@ -165,7 +165,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                                 ),
                         ),
                         if (characterAvatarPath == null)
-                          Icon(FluentIcons.camera_20_regular)
+                          const Icon(FluentIcons.camera_20_regular)
                         else ...[
                           Center(
                             child: Container(
@@ -174,7 +174,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               padding: const EdgeInsets.all(4.0),
-                              child: Icon(FluentIcons.camera_20_regular),
+                              child: const Icon(FluentIcons.camera_20_regular),
                             ),
                           ),
                           Positioned(
@@ -192,7 +192,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(2.0),
-                                child: Icon(FluentIcons.delete_20_regular, size: 16),
+                                child: const Icon(FluentIcons.delete_20_regular, size: 16),
                               ),
                             ),
                           ),
@@ -229,7 +229,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
             Row(
               children: [
                 Text('System message'.tr),
-                Spacer(),
+                const Spacer(),
                 SqueareIconButton(
                   onTap: () async {
                     final currentStrippedPrompt = (systemMessageContr.text).isEmpty
@@ -240,7 +240,7 @@ class _EditChatRoomDialogState extends State<EditChatRoomDialog> {
                     );
                     systemMessageContr.text = newPrompt;
                   },
-                  icon: Icon(FluentIcons.arrow_counterclockwise_16_regular),
+                  icon: const Icon(FluentIcons.arrow_counterclockwise_16_regular),
                   tooltip: 'Update variables'.tr,
                 ),
                 AiLibraryButton(onPressed: () async {

@@ -33,7 +33,7 @@ class PinnedMessagesDialog extends StatelessWidget {
                 return HoverListTile(
                   cursor: SystemMouseCursors.click,
                   child: BasicListTile(
-                    title: Text(message.content, style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold)),
+                    title: Text(message.content, style: const TextStyle(fontSize: 16,fontWeight: FontWeight.bold)),
                     color: Colors.transparent,
                     onTap: () async {
                       await Navigator.maybePop(context);

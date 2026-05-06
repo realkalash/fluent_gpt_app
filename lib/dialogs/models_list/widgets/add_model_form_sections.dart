@@ -41,7 +41,7 @@ class AddModelTestProgress extends StatelessWidget {
         children: [
           Text('Testing…'.tr),
           const SizedBox(height: 6),
-          ProgressBar(),
+          const ProgressBar(),
           const SizedBox(height: 4),
           Text(
             phaseLabel!,

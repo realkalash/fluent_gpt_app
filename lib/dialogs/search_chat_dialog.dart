@@ -273,7 +273,7 @@ class ImagesDialog extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               child: Column(
                 children: [
-                  Icon(FluentIcons.file_image, size: 48),
+                  const Icon(FluentIcons.file_image, size: 48),
                   const SizedBox(height: 8),
                   Expanded(
                       child: Text(

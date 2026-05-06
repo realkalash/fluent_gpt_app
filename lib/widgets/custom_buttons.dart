@@ -145,7 +145,7 @@ class _ImproveTextSparkleButtonState extends State<ImproveTextSparkleButton> {
       color: context.theme.accentColor,
       enabled: isImproving,
       child: SqueareIconButton(
-        icon: Icon(FluentIcons.sparkle_24_filled),
+        icon: const Icon(FluentIcons.sparkle_24_filled),
         tooltip: 'Improve',
         onTap: () async {
           try {

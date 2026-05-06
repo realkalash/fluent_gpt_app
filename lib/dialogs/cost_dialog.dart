@@ -66,7 +66,7 @@ class _CostCalcDialogState extends State<CostCalcDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Price per 1M sent tokens (input):'),
+                            const Text('Price per 1M sent tokens (input):'),
                             TextBox(
                               controller: _controllerPriceSent,
                               placeholder: '1',
@@ -82,7 +82,7 @@ class _CostCalcDialogState extends State<CostCalcDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Price per 1M received tokens (output):'),
+                            const Text('Price per 1M received tokens (output):'),
                             TextBox(
                               controller: _controllerPriceReceived,
                               placeholder: '1',
@@ -96,8 +96,8 @@ class _CostCalcDialogState extends State<CostCalcDialog> {
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
                     child: Divider(),
                   ),
                   Row(
@@ -114,9 +114,9 @@ class _CostCalcDialogState extends State<CostCalcDialog> {
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Divider(),
                   ),
                   // Text('Total cost for this chat: \$${totalCost.toStringAsFixed(3)}'),
                   Text.rich(

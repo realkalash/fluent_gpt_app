@@ -21,7 +21,7 @@ import 'package:window_manager/window_manager.dart';
 import '../common/custom_prompt.dart';
 import 'overlay_ui.dart';
 
-BehaviorSubject<OverlayStatus> overlayVisibility = BehaviorSubject<OverlayStatus>.seeded(OverlayStatus());
+BehaviorSubject<OverlayStatus> overlayVisibility = BehaviorSubject<OverlayStatus>.seeded(const OverlayStatus());
 
 BehaviorSubject<List<CustomPrompt>> customPrompts = BehaviorSubject.seeded([...basePromptsTemplate]);
 BehaviorSubject<List<CustomPrompt>> archivedPrompts = BehaviorSubject.seeded([...baseArchivedPromptsTemplate]);
@@ -261,12 +261,12 @@ class OverlayManager {
     // final compactOverlaySize = ;
     await windowManager.setMinimumSize(SearchOverlayUI.defaultWindowSize());
     await windowManager.setSize(
-        haveMessages ? SearchOverlayUI.defaultWindowSize() + Offset(0, 470) : SearchOverlayUI.defaultWindowSize());
+        haveMessages ? SearchOverlayUI.defaultWindowSize() + const Offset(0, 470) : SearchOverlayUI.defaultWindowSize());
     overlayVisibility.add(OverlayStatus.searchEnabled);
     Size windowSize = await windowManager.getSize();
     Offset position = await calcWindowPosition(windowSize, Alignment.topCenter);
-    await Future.delayed(Duration(milliseconds: 100));
-    await windowManager.setPosition(position + Offset(0, 200), animate: false);
+    await Future.delayed(const Duration(milliseconds: 100));
+    await windowManager.setPosition(position + const Offset(0, 200), animate: false);
   }
 
   static Future<void> hideOverlay() async {
@@ -368,7 +368,7 @@ class OverlayManager {
       }
 
       // Safe margin to prevent window from touching screen edges when repositioning
-      final safeMargin = 0.0;
+      const safeMargin = 0.0;
 
       double newX = currentPosition.dx;
       double newY = currentPosition.dy;

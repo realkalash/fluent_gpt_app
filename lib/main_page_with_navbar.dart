@@ -57,7 +57,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                   height: 200,
                   child: Row(
                     children: [
-                      Icon(FluentIcons.search_24_regular),
+                      const Icon(FluentIcons.search_24_regular),
                       const SizedBox(width: 8),
                       Text('Search'.tr),
                     ],
@@ -156,7 +156,7 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                 if (Platform.isWindows || Platform.isMacOS)
                   PaneItem(
                     key: const ValueKey('/local_server'),
-                    icon: Icon(FluentIcons.developer_board_16_filled),
+                    icon: const Icon(FluentIcons.developer_board_16_filled),
                     title: Text('Local server'.tr),
                     body: const LocalServerPage(),
                     infoBadge: StreamBuilder(
@@ -165,10 +165,10 @@ class _MainPageWithNavigationState extends State<MainPageWithNavigation> {
                       builder: (context, snapshot) {
                         final isRunning = snapshot.data ?? false;
                         if (isRunning)
-                          return SizedBox.square(
+                          return const SizedBox.square(
                             dimension: 8,
                             child: DecoratedBox(
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 color: Color(0xff6aad6a),
                                 shape: BoxShape.circle,
                               ),
@@ -305,7 +305,7 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               Expanded(
                                 child: Text(
                                   chatRoom.chatRoomName,
-                                  style: TextStyle(overflow: TextOverflow.ellipsis),
+                                  style: const TextStyle(overflow: TextOverflow.ellipsis),
                                   maxLines: 2,
                                 ),
                               ),
@@ -383,23 +383,23 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                   onSecondaryTap: () {
                     flyoutController.showFlyout(builder: (ctx) {
                       return FlyoutContent(
-                        constraints: BoxConstraints(maxWidth: 200),
+                        constraints: const BoxConstraints(maxWidth: 200),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               chatRoom.chatRoomName,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Divider(),
+                            const Divider(),
                             FlyoutListTile(
-                              text: Text('Pin/unpin chat'.tr, style: TextStyle()),
-                              icon: Icon(FluentIcons.pin_24_regular),
+                              text: Text('Pin/unpin chat'.tr, style: const TextStyle()),
+                              icon: const Icon(FluentIcons.pin_24_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
                                 if (chatRoom.isPinned)
@@ -409,11 +409,11 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 _updateUI();
                               },
                             ),
-                            Divider(),
+                            const Divider(),
                             if (chatRoom.isFolder)
                               FlyoutListTile(
-                                text: Text('Ungroup'.tr, style: TextStyle()),
-                                icon: Icon(FluentIcons.group_20_regular),
+                                text: Text('Ungroup'.tr, style: const TextStyle()),
+                                icon: const Icon(FluentIcons.group_20_regular),
                                 onPressed: () {
                                   final provider = context.read<ChatProvider>();
                                   provider.ungroupByFolder(chatRoom);
@@ -424,8 +424,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                             // if root we can create folder
                             if (widget.parentFolderId == null)
                               FlyoutListTile(
-                                text: Text('Create folder'.tr, style: TextStyle()),
-                                icon: Icon(FluentIcons.folder_24_filled),
+                                text: Text('Create folder'.tr, style: const TextStyle()),
+                                icon: const Icon(FluentIcons.folder_24_filled),
                                 onPressed: () {
                                   final provider = context.read<ChatProvider>();
                                   provider.createChatRoomFolder(
@@ -437,8 +437,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 },
                               ),
                             FlyoutListTile(
-                              text: Text('Move to Folder'.tr, style: TextStyle()),
-                              icon: Icon(FluentIcons.folder_24_filled),
+                              text: Text('Move to Folder'.tr, style: const TextStyle()),
+                              icon: const Icon(FluentIcons.folder_24_filled),
                               onPressed: () {
                                 Navigator.of(context).pop();
                                 _showMoveToFolderMenu(
@@ -448,10 +448,10 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                                 );
                               },
                             ),
-                            Divider(),
+                            const Divider(),
                             FlyoutListTile(
-                              text: Text('Edit chat'.tr, style: TextStyle()),
-                              icon: Icon(FluentIcons.chat_settings_20_regular),
+                              text: Text('Edit chat'.tr, style: const TextStyle()),
+                              icon: const Icon(FluentIcons.chat_settings_20_regular),
                               onPressed: () async {
                                 Navigator.of(context).pop();
                                 EditChatRoomDialog.show(
@@ -462,8 +462,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                               },
                             ),
                             FlyoutListTile(
-                              text: Text('Duplicate chat'.tr, style: TextStyle()),
-                              icon: Icon(FluentIcons.document_copy_20_regular),
+                              text: Text('Duplicate chat'.tr, style: const TextStyle()),
+                              icon: const Icon(FluentIcons.document_copy_20_regular),
                               onPressed: () async {
                                 final provider = context.read<ChatProvider>();
                                 await provider.duplicateChatRoom(chatRoom);
@@ -498,25 +498,25 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                         // if compact we should show overlay flyout
                         flyoutController.showFlyout(builder: (ctx) {
                           return FlyoutContent(
-                            constraints: BoxConstraints(maxWidth: 200),
+                            constraints: const BoxConstraints(maxWidth: 200),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(chatRoom.chatRoomName,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                     )),
                                 const SizedBox(height: 4),
-                                Divider(),
+                                const Divider(),
                                 ...List.generate(
                                   chatRoom.children!.length,
                                   (i) {
                                     final child = chatRoom.children![i];
                                     return FlyoutListTile(
-                                      text: Text(child.chatRoomName, style: TextStyle()),
-                                      icon: Icon(FluentIcons.chat_20_regular),
+                                      text: Text(child.chatRoomName, style: const TextStyle()),
+                                      icon: const Icon(FluentIcons.chat_20_regular),
                                       onPressed: () {
                                         provider.selectChatRoom(child);
                                         Navigator.of(context).pop();
@@ -560,24 +560,24 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
     final chatRoomFolders = getChatRoomsFoldersRecursive(chatRooms.values.toList());
     flyoutController.showFlyout(builder: (ctx) {
       return FlyoutContent(
-        constraints: BoxConstraints(maxWidth: 200),
+        constraints: const BoxConstraints(maxWidth: 200),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'Move to Folder'.tr,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
-            Divider(),
+            const Divider(),
             if (parentFolderId != null)
               FlyoutListTile(
-                text: Text('Move out'.tr, style: TextStyle()),
-                icon: Icon(FluentIcons.folder_arrow_up_24_regular),
+                text: Text('Move out'.tr, style: const TextStyle()),
+                icon: const Icon(FluentIcons.folder_arrow_up_24_regular),
                 onPressed: () {
                   provider.moveChatRoomToParentFolder(chatRoom);
                   Navigator.of(context).pop();
@@ -590,8 +590,8 @@ class _PaneItemButtonState extends State<_PaneItemButton> {
                 final folder = chatRoomFolders[i];
                 if (folder.id == parentFolderId) return const SizedBox.shrink();
                 return FlyoutListTile(
-                  text: Text(folder.chatRoomName, style: TextStyle()),
-                  icon: Icon(FluentIcons.folder_24_filled),
+                  text: Text(folder.chatRoomName, style: const TextStyle()),
+                  icon: const Icon(FluentIcons.folder_24_filled),
                   onPressed: () {
                     provider.moveChatRoomToFolder(
                       chatRoom,
