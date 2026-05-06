@@ -11,6 +11,14 @@ typedef ChatToolSideEffect = Future<void> Function(
   int tokensReceivedInResponse,
 );
 
+/// Returns a string result that is fed back to the model in the next agent
+/// turn as a ToolChatMessage. [provider] is the ChatProvider; pure handlers
+/// can ignore it.
+typedef AgentToolHandler = Future<String> Function(
+  dynamic provider,
+  Map<String, dynamic> args,
+);
+
 class ToolDef {
   final String name;
   final String description;
@@ -18,11 +26,13 @@ class ToolDef {
   final Set<AgentMode> allowedModes;
   final BoolPref? enableFlag;
 
-  /// Side-effect handler for non-agent paths (Ask/Plan/normal). The agent path
-  /// has its own dispatch; tools available there are filtered via allowedModes
-  /// containing AgentMode.agent. May be null when a tool only exists for the
-  /// agent path.
+  /// Side-effect handler for non-agent paths (Ask/Plan/normal). May be null
+  /// when a tool only exists for the agent path.
   final ChatToolSideEffect? sideEffect;
+
+  /// Handler for the agent loop. Required for any tool whose [allowedModes]
+  /// includes [AgentMode.agent].
+  final AgentToolHandler? agentExecute;
 
   const ToolDef({
     required this.name,
@@ -31,6 +41,7 @@ class ToolDef {
     required this.allowedModes,
     this.enableFlag,
     this.sideEffect,
+    this.agentExecute,
   });
 
   bool get isEnabled => enableFlag?.value ?? true;

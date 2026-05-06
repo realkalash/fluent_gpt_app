@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/common/tools/agent_tool_handlers.dart';
 import 'package:fluent_gpt/common/tools/tool_def.dart';
 import 'package:fluent_gpt/gpt_tools.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -22,6 +23,7 @@ final List<ToolDef> allTools = <ToolDef>[
     sideEffect: (p, args, _) async {
       await (p as ChatProvider).runCopyToClipboardSideEffect(args);
     },
+    agentExecute: AgentToolHandlers.copyToClipboard,
   ),
   ToolDef(
     name: 'remember_info_tool',
@@ -32,6 +34,7 @@ final List<ToolDef> allTools = <ToolDef>[
     sideEffect: (p, args, _) async {
       await (p as ChatProvider).runRememberInfoSideEffect(args);
     },
+    agentExecute: AgentToolHandlers.rememberInfo,
   ),
   ToolDef(
     name: 'auto_open_urls_tool',
@@ -42,6 +45,7 @@ final List<ToolDef> allTools = <ToolDef>[
     sideEffect: (p, args, tokensReceived) async {
       await (p as ChatProvider).runAutoOpenUrlsSideEffect(args, tokensReceived);
     },
+    agentExecute: AgentToolHandlers.autoOpenUrls,
   ),
   ToolDef(
     name: 'generate_image_tool',
@@ -52,51 +56,61 @@ final List<ToolDef> allTools = <ToolDef>[
     sideEffect: (p, args, _) async {
       await (p as ChatProvider).runGenerateImageSideEffect(args);
     },
+    agentExecute: AgentToolHandlers.generateImage,
   ),
-  // Agent-only tools (no side-effect closure — the agent path dispatches them
-  // through its own internal switch).
+  // Agent-only tools.
   const ToolDef(
     name: 'read_file_tool',
     description:
-        'Read a file from the user\'s filesystem by line range. Use offset+limit (1-based lines) to chunk large files.',
+        'Read a slice of a text file by line range. Prefer offset+limit on large files; omitting both caps output (~500 lines) to save tokens',
     schema: readFileToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.readFile,
   ),
   const ToolDef(
     name: 'list_directory_tool',
-    description: 'List directory contents. Supports glob filtering and skipping common heavy folders.',
+    description: 'List files and/or directories with optional glob filter, excludes, and recursive mode',
     schema: listDirectoryToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.listDirectory,
   ),
   const ToolDef(
     name: 'search_files_tool',
-    description: 'Find files by filename pattern under a directory tree.',
+    description: 'Find files by filename pattern (wildcards * and ?) under a directory',
     schema: searchFilesToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.searchFiles,
   ),
   const ToolDef(
     name: 'grep_tool',
-    description: 'Search file contents by regex. Uses ripgrep when available.',
+    description:
+        'Search file contents by regex (fast via ripgrep when installed; otherwise scans files). Use after search_files_tool or to locate symbols before read_file_tool',
     schema: grepToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.grep,
   ),
   const ToolDef(
     name: 'edit_file_tool',
-    description: 'Replace one unique old_string with new_string in a file.',
+    description:
+        'Replace exactly one occurrence of old_string with new_string in an existing file. Prefer this over write_file_tool for small edits',
     schema: editFileToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.editFile,
   ),
   const ToolDef(
     name: 'write_file_tool',
-    description: 'Write or append full content to a file. Use for new files or complete rewrites.',
+    description:
+        'Write or append full file content. Use for new files or full rewrites; prefer edit_file_tool for targeted edits',
     schema: writeFileToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.writeFile,
   ),
   const ToolDef(
     name: 'execute_shell_command_tool',
-    description: 'Run a shell command. 30s timeout, 10KB output cap. Always check exit codes.',
+    description: 'Execute a shell/terminal command and return the output',
     schema: executeShellCommandToolParameters,
     allowedModes: {AgentMode.agent},
+    agentExecute: AgentToolHandlers.executeShellCommand,
   ),
 ];
 
