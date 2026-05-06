@@ -1,3 +1,4 @@
+import 'package:extended_text_field/extended_text_field.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
@@ -11,7 +12,7 @@ class ContextMenuBuilders {
   static String? previousClipboardData;
   static String selectedText = '';
 
-  static Widget spellCheckContextMenuBuilder(BuildContext context, EditableTextState editableTextState) {
+  static Widget spellCheckContextMenuBuilder(BuildContext context, ExtendedEditableTextState editableTextState) {
     final chatProvider = context.read<ChatProvider>();
     final undoController = editableTextState.widget.undoController;
     final correctSpell = AppCache.useLocalSpellCheck.value == true

@@ -1,3 +1,5 @@
+import 'package:extended_text_field/extended_text_field.dart';
+import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/custom_prompt.dart';
 import 'package:fluent_gpt/common/stop_reason_enum.dart';
 import 'package:fluent_gpt/dialogs/ai_prompts_library_dialog.dart';
@@ -13,7 +15,6 @@ import 'package:fluent_gpt/widgets/input_field/additional_btns_input_field.dart'
 import 'package:fluent_gpt/widgets/input_field/input_field.dart';
 import 'package:fluent_gpt/widgets/input_field/input_path_url_span_builder.dart';
 import 'package:fluent_gpt/widgets/input_field/models_tooltip.dart';
-import 'package:extended_text_field/extended_text_field.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 import 'package:flutter/material.dart'
@@ -21,27 +22,23 @@ import 'package:flutter/material.dart'
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:spell_check_on_client/spell_check_on_client.dart';
+import 'package:flutter/material.dart' as mat;
 
-class InputFieldMain extends StatefulWidget {
-  const InputFieldMain(
-      {super.key,
-      required this.countTokensInInputField,
-      required this.onSubmit,
-      required this.onSecondaryTap,
-      required this.menuController});
+part '_agent_mode_switcher.dart';
+
+class InputFieldMain extends StatelessWidget {
+  const InputFieldMain({
+    super.key,
+    required this.countTokensInInputField,
+    required this.onSubmit,
+    required this.onSecondaryTap,
+    required this.menuController,
+  });
   final Function() countTokensInInputField;
   final Function(String) onSubmit;
   final Function() onSecondaryTap;
   final FlyoutController menuController;
-
-  @override
-  State<InputFieldMain> createState() => _InputFieldMainState();
-}
-
-class _InputFieldMainState extends State<InputFieldMain> {
-  bool _useShimmer = false;
 
   @override
   Widget build(BuildContext context) {
@@ -54,42 +51,37 @@ class _InputFieldMainState extends State<InputFieldMain> {
           Expanded(
             child: Selector<ChatProvider, SpellCheck?>(
               selector: (context, chatProvider) => chatProvider.spellCheck,
-              builder: (context, spellCheck, child) => Shimmer(
-                enabled: _useShimmer,
-                duration: const Duration(milliseconds: 600),
-                color: theme.accentColor,
-                child: ListenableBuilder(
-                  listenable: ChatProvider.messageControllerGlobal,
-                  builder: (context, _) {
-                    final spellCfg = CustomSpellCheckService.getSpellCheckConfiguration(spellCheck);
-                    final extendedSpell = spellCfg != null
-                        ? ExtendedSpellCheckConfiguration(
-                            spellCheckService: spellCfg.spellCheckService,
-                            misspelledTextStyle: spellCfg.misspelledTextStyle,
-                          )
-                        : null;
-                    final bodyStyle = theme.typography.body;
-                    final spanBuilder = InputFieldRichSpanBuilder(
-                      accentColor: theme.accentColor,
-                      chipBackground: theme.accentColor.withValues(alpha: 0.14),
-                      linkColor: theme.accentColor,
-                      baseStyle: TextStyle(
-                        fontSize: bodyStyle?.fontSize ?? 14,
-                        color: bodyStyle?.color,
-                      ),
-                    );
-                    return Row(
-                      key: ValueKey(spellCheck),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Focus(
-                          skipTraversal: true,
-                          canRequestFocus: false,
-                          descendantsAreFocusable: false,
-                          descendantsAreTraversable: false,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 8, top: 10, right: 4),
-                            child: Row(
+              builder: (context, spellCheck, child) => ListenableBuilder(
+                listenable: ChatProvider.messageControllerGlobal,
+                builder: (context, _) {
+                  final spellCfg = CustomSpellCheckService.getSpellCheckConfiguration(spellCheck);
+                  final extendedSpell = spellCfg != null
+                      ? ExtendedSpellCheckConfiguration(
+                          spellCheckService: spellCfg.spellCheckService,
+                          misspelledTextStyle: spellCfg.misspelledTextStyle,
+                        )
+                      : null;
+                  final bodyStyle = theme.typography.body;
+                  final spanBuilder = InputFieldRichSpanBuilder(
+                    accentColor: theme.accentColor,
+                    chipBackground: theme.accentColor.withValues(alpha: 0.14),
+                    linkColor: theme.accentColor,
+                    baseStyle: TextStyle(fontSize: bodyStyle?.fontSize ?? 14, color: bodyStyle?.color),
+                  );
+                  return Row(
+                    key: ValueKey(spellCheck),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Focus(
+                        skipTraversal: true,
+                        canRequestFocus: false,
+                        descendantsAreFocusable: false,
+                        descendantsAreTraversable: false,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Tooltip(
@@ -110,8 +102,9 @@ class _InputFieldMainState extends State<InputFieldMain> {
                                       barrierDismissible: true,
                                     );
                                     if (prompt != null) {
-                                      controller.messageController.text =
-                                          prompt.getPromptText(controller.messageController.text);
+                                      controller.messageController.text = prompt.getPromptText(
+                                        controller.messageController.text,
+                                      );
                                       promptTextFocusNode.requestFocus();
                                     }
                                   },
@@ -119,88 +112,70 @@ class _InputFieldMainState extends State<InputFieldMain> {
                                 ),
                               ],
                             ),
+                            const AgentModeSwitcher(),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ExtendedTextField(
+                          autofocus: true,
+                          focusNode: promptTextFocusNode,
+                          controller: ChatProvider.messageControllerGlobal,
+                          minLines: 3,
+                          maxLines: 30,
+                          onChanged: (_) => countTokensInInputField(),
+                          onSubmitted: onSubmit,
+                          textInputAction: TextInputAction.done,
+                          specialTextSpanBuilder: spanBuilder,
+                          extendedSpellCheckConfiguration: extendedSpell,
+                          extendedContextMenuBuilder: (ctx, state) =>
+                              ContextMenuBuilders.spellCheckContextMenuBuilder(ctx, state),
+                          style: TextStyle(fontSize: bodyStyle?.fontSize ?? 14, height: 1.35, color: bodyStyle?.color),
+                          cursorColor: theme.accentColor,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: theme.resources.controlFillColorDefault,
+                            hintText: 'Use "/" or type your message here'.tr,
+                            hintStyle: TextStyle(color: theme.typography.caption?.color?.withValues(alpha: 0.65)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4),
+                              borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4),
+                              borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(4),
+                              borderSide: BorderSide(color: theme.accentColor, width: 1.5),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
                           ),
                         ),
-                        Expanded(
-                          child: ExtendedTextField(
-                            autofocus: true,
-                            focusNode: promptTextFocusNode,
-                            controller: ChatProvider.messageControllerGlobal,
-                            minLines: 3,
-                            maxLines: 30,
-                            onChanged: (_) => widget.countTokensInInputField(),
-                            onSubmitted: widget.onSubmit,
-                            textInputAction: TextInputAction.done,
-                            specialTextSpanBuilder: spanBuilder,
-                            extendedSpellCheckConfiguration: extendedSpell,
-                            extendedContextMenuBuilder: (ctx, state) =>
-                                ContextMenuBuilders.spellCheckContextMenuBuilder(
-                              ctx,
-                              state as EditableTextState,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, top: 0),
+                        child: Column(
+                          crossAxisAlignment: .start,
+                          children: [
+                            const MicrophoneButton(),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: 42,
+                              height: 30,
+                              child: ToggleButtonAdvenced(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(FluentIcons.send),
+                                onChanged: (bool v) => onSubmit(ChatProvider.messageControllerGlobal.text),
+                                tooltip: 'Send message',
+                              ),
                             ),
-                            style: TextStyle(
-                              fontSize: bodyStyle?.fontSize ?? 14,
-                              height: 1.35,
-                              color: bodyStyle?.color,
-                            ),
-                            cursorColor: theme.accentColor,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: theme.resources.controlFillColorDefault,
-                              hintText: 'Use "/" or type your message here'.tr,
-                              hintStyle: TextStyle(
-                                color: theme.typography.caption?.color?.withValues(alpha: 0.65),
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: theme.resources.controlStrokeColorDefault),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: theme.accentColor, width: 1.5),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              isDense: true,
-                            ),
-                          ),
+                          ],
                         ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4, top: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const MicrophoneButton(),
-                              if (ChatProvider.messageControllerGlobal.text.isNotEmpty)
-                                ImproveTextSparkleButton(
-                                  onStateChange: (state) {
-                                    if (state == ImproveTextSparkleButtonState.improving) {
-                                      setState(() {
-                                        _useShimmer = true;
-                                      });
-                                    }
-                                    if (state == ImproveTextSparkleButtonState.improved) {
-                                      setState(() {
-                                        _useShimmer = false;
-                                      });
-                                    }
-                                  },
-                                  onTextImproved: (text) {
-                                    ChatProvider.messageControllerGlobal.text = text;
-                                  },
-                                  input: () => ChatProvider.messageControllerGlobal.text.trim(),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -212,17 +187,11 @@ class _InputFieldMainState extends State<InputFieldMain> {
               return SizedBox.square(
                 dimension: 52,
                 child: IconButton(
-                  style: ButtonStyle(
-                      backgroundColor: WidgetStatePropertyAll(
-                    theme.scaffoldBackgroundColor,
-                  )),
+                  style: ButtonStyle(backgroundColor: WidgetStatePropertyAll(theme.scaffoldBackgroundColor)),
                   onPressed: () {
                     context.read<ChatProvider>().stopAnswering(StopReason.canceled);
                   },
-                  icon: Icon(
-                    ic.FluentIcons.stop_24_filled,
-                    size: 24,
-                  ),
+                  icon: Icon(ic.FluentIcons.stop_24_filled, size: 24),
                 ),
               );
             },
@@ -234,10 +203,7 @@ class _InputFieldMainState extends State<InputFieldMain> {
 }
 
 class PromptChipWidget extends StatefulWidget {
-  const PromptChipWidget({
-    super.key,
-    required this.prompt,
-  });
+  const PromptChipWidget({super.key, required this.prompt});
 
   final CustomPrompt prompt;
 
@@ -288,7 +254,7 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
                           leading: Icon(child.icon),
                           text: Text(child.title.tr),
                           onPressed: () => _onTap(context, child),
-                        )
+                        ),
                     ],
                   ),
                 ),
@@ -302,51 +268,49 @@ class _PromptChipWidgetState extends State<PromptChipWidget> {
   void _onRightClick(BuildContext context) {
     final item = widget.prompt;
 
-    flyoutContr.showFlyout(builder: (ctx) {
-      return FlyoutContent(
-        constraints: const BoxConstraints(maxWidth: 220),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final child in item.children)
+    flyoutContr.showFlyout(
+      builder: (ctx) {
+        return FlyoutContent(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final child in item.children)
+                FlyoutListTile(icon: Icon(child.icon), text: Text(child.title), onPressed: () => _onTap(ctx, child)),
+              if (item.children.isNotEmpty) const Divider(),
               FlyoutListTile(
-                icon: Icon(child.icon),
-                text: Text(child.title),
-                onPressed: () => _onTap(ctx, child),
-              ),
-            if (item.children.isNotEmpty) const Divider(),
-            FlyoutListTile(
-              icon: const Icon(ic.FluentIcons.settings_20_regular),
-              text: Text('Edit'.tr),
-              onPressed: () async {
-                final prompt = await showDialog<CustomPrompt?>(
-                  context: context,
-                  builder: (context) => EditPromptDialog(prompt: item),
-                );
-                if (prompt != null) {
-                  // ignore: use_build_context_synchronously
-                  final list = customPrompts.value.toList();
-                  list.removeWhere((element) => element.id == item.id);
-                  list.add(prompt);
-                  list.sort((a, b) => a.index.compareTo(b.index));
-                  customPrompts.add(list);
-                  // ignore: use_build_context_synchronously
-                  Navigator.of(ctx).pop();
+                icon: const Icon(ic.FluentIcons.settings_20_regular),
+                text: Text('Edit'.tr),
+                onPressed: () async {
+                  final prompt = await showDialog<CustomPrompt?>(
+                    context: context,
+                    builder: (context) => EditPromptDialog(prompt: item),
+                  );
+                  if (prompt != null) {
+                    // ignore: use_build_context_synchronously
+                    final list = customPrompts.value.toList();
+                    list.removeWhere((element) => element.id == item.id);
+                    list.add(prompt);
+                    list.sort((a, b) => a.index.compareTo(b.index));
+                    customPrompts.add(list);
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(ctx).pop();
 
-                  //unbind old hotkey
-                  if (item.hotkey != null) {
-                    await hotKeyManager.unregister(item.hotkey!);
+                    //unbind old hotkey
+                    if (item.hotkey != null) {
+                      await hotKeyManager.unregister(item.hotkey!);
 
-                    /// wait native channel to finish
-                    await Future.delayed(const Duration(milliseconds: 200));
+                      /// wait native channel to finish
+                      await Future.delayed(const Duration(milliseconds: 200));
+                    }
+                    OverlayManager.bindHotkeys(customPrompts.value);
                   }
-                  OverlayManager.bindHotkeys(customPrompts.value);
-                }
-              },
-            ),
-          ],
-        ),
-      );
-    });
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

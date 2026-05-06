@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'package:fluent_gpt/common/agent_mode_enum.dart';
 import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/common/chat_model.dart';
 import 'package:fluent_gpt/common/custom_messages/fluent_chat_message.dart';
@@ -98,17 +99,10 @@ class ChatProvider
   ChatProvider() {
     init();
     listenTray();
-
-    // spellChecker = spell_checker.SimpleSpellChecker(
-    //   language: AppCache.locale.value ?? 'en',
-    //   whiteList: <String>[],
-    //   caseSensitive: false,
-    // );
-    // messageControllerGlobal = SpellCheckerController(spellchecker: spellChecker);
-    // messageControllerGlobal = TextEditingController();
     initSpellCheck();
     textSize = AppCache.messageTextSize.value ?? 14;
     selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
+    agentMode = AgentModeUtils.fromValue(AppCache.agentMode.value);
   }
 
   // late spell_checker.SimpleSpellChecker spellChecker;
@@ -170,32 +164,40 @@ class ChatProvider
         );
       } else if (command == TrayCommand.push_to_talk_message.name) {
         messageController.clear();
-        sendMessage(text, hidePrompt: true, onFinishResponse: () async {
-          /// if we already have enabled this, it will be played automatically in [onResponseEnd] function
-          if (AppCache.autoPlayMessagesFromAi.value == true) return;
-          final aiAnswer = messages.value.entries.last.value;
-          // use text-to-speech to read the answer
-          if (TextToSpeechService.isValid()) {
-            isAnswering = true;
-            notifyListeners();
-            await TextToSpeechService.readAloud(aiAnswer.content, onCompleteReadingAloud: () {
-              isAnswering = false;
+        sendMessage(
+          text,
+          hidePrompt: true,
+          onFinishResponse: () async {
+            /// if we already have enabled this, it will be played automatically in [onResponseEnd] function
+            if (AppCache.autoPlayMessagesFromAi.value == true) return;
+            final aiAnswer = messages.value.entries.last.value;
+            // use text-to-speech to read the answer
+            if (TextToSpeechService.isValid()) {
+              isAnswering = true;
               notifyListeners();
-            });
-          }
-        });
+              await TextToSpeechService.readAloud(
+                aiAnswer.content,
+                onCompleteReadingAloud: () {
+                  isAnswering = false;
+                  notifyListeners();
+                },
+              );
+            }
+          },
+        );
       } else if (command == TrayCommand.show_dialog.name) {
         showDialog(
-            context: context!,
-            builder: (ctx) => ContentDialog(
-                  content: Text(text),
-                  actions: [
-                    Button(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: Text('Close'.tr),
-                    )
-                  ],
-                ));
+          context: context!,
+          builder: (ctx) => ContentDialog(
+            content: Text(text),
+            actions: [
+              Button(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text('Close'.tr),
+              ),
+            ],
+          ),
+        );
       } else if (command == TrayCommand.grammar.name) {
         sendMessage('Check spelling and grammar: "$text"', hidePrompt: true);
       } else if (command == TrayCommand.explain.name) {
@@ -236,11 +238,12 @@ class ChatProvider
         }
         addHumanMessageToList(
           FluentChatMessage.humanText(
-              id: '$timestamp',
-              content: text,
-              creator: AppCache.userName.value!,
-              timestamp: timestamp,
-              tokens: await countTokensString(text)),
+            id: '$timestamp',
+            content: text,
+            creator: AppCache.userName.value!,
+            timestamp: timestamp,
+            tokens: await countTokensString(text),
+          ),
         );
         isGeneratingImage = true;
         notifyListeners();
@@ -283,18 +286,19 @@ class ChatProvider
           );
           if (e.toString().contains('401')) {
             displayErrorInfoBar(
-                title: 'API key error',
-                message: 'Please check your api key',
-                action: Button(
-                  child: Text('Settings'.tr),
-                  onPressed: () {
-                    Navigator.of(context!).push(
-                      FluentPageRoute(
-                        builder: (context) => NewSettingsPage(initialIndex: NewSettingsPage.apiUrlsIndex),
-                      ),
-                    );
-                  },
-                ));
+              title: 'API key error',
+              message: 'Please check your api key',
+              action: Button(
+                child: Text('Settings'.tr),
+                onPressed: () {
+                  Navigator.of(context!).push(
+                    FluentPageRoute(
+                      builder: (context) => NewSettingsPage(initialIndex: NewSettingsPage.apiUrlsIndex),
+                    ),
+                  );
+                },
+              ),
+            );
           }
         }
 
@@ -451,23 +455,25 @@ class ChatProvider
     final aiName = selectedChatRoom.characterName;
     final userName = AppCache.userName.value ?? 'User';
     final dateFormatter = DateFormat('EEE M/d HH:mm');
-    final result = messages.map((e) {
-      final date = dateFormatter.format(DateTime.fromMillisecondsSinceEpoch(e.timestamp));
-      if (e.type == FluentChatMessageType.textAi) {
-        return '$date $aiName: ${e.content}';
-      }
-      if (e.type == FluentChatMessageType.textHuman) {
-        return '$date $userName: ${e.content}';
-      }
-      if (e.type == FluentChatMessageType.webResult) {
-        final results = e.webResults;
-        return 'Web search results: ${results!.map((e) => '${e.title}->${e.description}').join(';')}';
-      }
-      if (includeSystemMessages && e.type == FluentChatMessageType.system) {
-        return 'System: ${e.content}';
-      }
-      return '';
-    }).join('\n');
+    final result = messages
+        .map((e) {
+          final date = dateFormatter.format(DateTime.fromMillisecondsSinceEpoch(e.timestamp));
+          if (e.type == FluentChatMessageType.textAi) {
+            return '$date $aiName: ${e.content}';
+          }
+          if (e.type == FluentChatMessageType.textHuman) {
+            return '$date $userName: ${e.content}';
+          }
+          if (e.type == FluentChatMessageType.webResult) {
+            final results = e.webResults;
+            return 'Web search results: ${results!.map((e) => '${e.title}->${e.description}').join(';')}';
+          }
+          if (includeSystemMessages && e.type == FluentChatMessageType.system) {
+            return 'System: ${e.content}';
+          }
+          return '';
+        })
+        .join('\n');
     return result;
   }
 
@@ -525,8 +531,9 @@ class ChatProvider
       return;
     }
     if (AppCache.useRAG.value == true) {
-      final String? openAiKey =
-          allModels.valueOrNull?.firstWhereOrNull((element) => element.ownedBy == OwnedByEnum.openai.name)?.apiKey;
+      final String? openAiKey = allModels.valueOrNull
+          ?.firstWhereOrNull((element) => element.ownedBy == OwnedByEnum.openai.name)
+          ?.apiKey;
       final enhancedPrompt = await RAGOpenAi.getEnhancedPromptWithDocs(
         query: messageContent,
         apiKey: openAiKey!,
@@ -583,7 +590,7 @@ class ChatProvider
       }
     }
     // Check if agent mode is enabled
-    if (AppCache.enableAgentMode.value == true) {
+    if (agentMode == AgentMode.agent) {
       await sendAgentMessage(messageContent);
       return;
     }
@@ -812,13 +819,14 @@ class ChatProvider
               final time = DateTime.now().millisecondsSinceEpoch;
               addBotErrorMessageToList(
                 FluentChatMessage.ai(
-                    id: time.toString(),
-                    content: 'Empty response. Try disabling tools',
-                    creator: 'error',
-                    timestamp: time,
-                    buttons: {
-                      MesssageListTileButtons.disable_tools_btn.name: true,
-                    }),
+                  id: time.toString(),
+                  content: 'Empty response. Try disabling tools',
+                  creator: 'error',
+                  timestamp: time,
+                  buttons: {
+                    MesssageListTileButtons.disable_tools_btn.name: true,
+                  },
+                ),
               );
             }
           }
@@ -828,7 +836,7 @@ class ChatProvider
                 id: '-1',
                 content: selectedChatRoom.systemMessage!,
               ),
-            ...messages.value.values
+            ...messages.value.values,
           ]);
           isAnswering = false;
           notifyListeners();
@@ -887,16 +895,17 @@ class ChatProvider
         }
         addBotErrorMessageToList(
           FluentChatMessage.ai(
-              id: now.toString(),
-              content:
-                  'Error: ${e.message}.\nCode: ${e.code}.\nUri: ${e.uri}${detailsMessage != null ? '\n\n*Details: $detailsMessage*' : ''}',
-              creator: 'error',
-              tokens: await countTokensString(e.toString()),
-              timestamp: now,
-              buttons: {
-                MesssageListTileButtons.disable_tools_btn.name: true,
-                MesssageListTileButtons.retry_btn.name: true,
-              }),
+            id: now.toString(),
+            content:
+                'Error: ${e.message}.\nCode: ${e.code}.\nUri: ${e.uri}${detailsMessage != null ? '\n\n*Details: $detailsMessage*' : ''}',
+            creator: 'error',
+            tokens: await countTokensString(e.toString()),
+            timestamp: now,
+            buttons: {
+              MesssageListTileButtons.disable_tools_btn.name: true,
+              MesssageListTileButtons.retry_btn.name: true,
+            },
+          ),
         );
       } else {
         addBotErrorMessageToList(
@@ -967,7 +976,9 @@ class ChatProvider
         final List<WebSearchResult> shortResults = results.take(15).map((e) => e).toList();
         addWebResultsToMessages(shortResults);
         await answerBasedOnWebResults(
-            shortResults, 'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"');
+          shortResults,
+          'User asked: $messageContent. Search prompt from search Agent: "$searchPrompt"',
+        );
       } else {
         final threeRessults = results.take(3).map((e) => e).toList();
         addWebResultsToMessages(threeRessults);
@@ -975,12 +986,14 @@ class ChatProvider
       }
     } catch (e) {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      addBotErrorMessageToList(FluentChatMessage.ai(
-        id: '$timestamp',
-        content: 'Error while searching: $e',
-        creator: 'system',
-        timestamp: timestamp,
-      ));
+      addBotErrorMessageToList(
+        FluentChatMessage.ai(
+          id: '$timestamp',
+          content: 'Error while searching: $e',
+          creator: 'system',
+          timestamp: timestamp,
+        ),
+      );
     }
 
     isAnswering = false;
@@ -1028,20 +1041,22 @@ class ChatProvider
       isGeneratingQuestionHelpers = true;
       questionHelpers.clear();
       notifyListeners();
-      agentMessageActions.askForPromptsFromLLM(userContent, response.content).then(
-        (questionMessages) {
-          if (questionMessages.isNotEmpty) {
-            questionHelpers.addAll(questionMessages);
-          }
-          isGeneratingQuestionHelpers = false;
-          notifyListeners();
-        },
-        onError: (e, stack) {
-          logError('Error while generating question helpers: $e', stack);
-          isGeneratingQuestionHelpers = false;
-          notifyListeners();
-        },
-      );
+      agentMessageActions
+          .askForPromptsFromLLM(userContent, response.content)
+          .then(
+            (questionMessages) {
+              if (questionMessages.isNotEmpty) {
+                questionHelpers.addAll(questionMessages);
+              }
+              isGeneratingQuestionHelpers = false;
+              notifyListeners();
+            },
+            onError: (e, stack) {
+              logError('Error while generating question helpers: $e', stack);
+              isGeneratingQuestionHelpers = false;
+              notifyListeners();
+            },
+          );
     }
 
     /// calculate tokens and swap message
@@ -1090,10 +1105,13 @@ class ChatProvider
           }
           // wait for the message to be added
           await Future.delayed(const Duration(milliseconds: 50));
-          sendMessage('Answer based on the result (answer short)', onMessageSent: () {
-            final lastMessage = messages.value.entries.last;
-            deleteMessage(lastMessage.key, false);
-          });
+          sendMessage(
+            'Answer based on the result (answer short)',
+            onMessageSent: () {
+              final lastMessage = messages.value.entries.last;
+              deleteMessage(lastMessage.key, false);
+            },
+          );
         }
       }
     }
@@ -1161,19 +1179,21 @@ class ChatProvider
     final lastMessages = await getLastMessagesLimitToTokens(maxTokensLenght);
     final userName = AppCache.userName.value ?? 'User';
     final characterName = selectedChatRoom.characterName;
-    return lastMessages.map((e) {
-      if (e.type == FluentChatMessageType.textHuman) {
-        return '$userName: ${e.content}';
-      }
-      if (e.type == FluentChatMessageType.textAi) {
-        return '$characterName: ${e.content}';
-      }
-      if (e.type == FluentChatMessageType.webResult) {
-        final results = e.webResults;
-        return 'Web search results: ${results?.map((e) => '${e.title}->${e.description}').join(';')}';
-      }
-      return '';
-    }).join('\n');
+    return lastMessages
+        .map((e) {
+          if (e.type == FluentChatMessageType.textHuman) {
+            return '$userName: ${e.content}';
+          }
+          if (e.type == FluentChatMessageType.textAi) {
+            return '$characterName: ${e.content}';
+          }
+          if (e.type == FluentChatMessageType.webResult) {
+            final results = e.webResults;
+            return 'Web search results: ${results?.map((e) => '${e.title}->${e.description}').join(';')}';
+          }
+          return '';
+        })
+        .join('\n');
   }
 
   @override
@@ -1199,16 +1219,20 @@ class ChatProvider
   Future<int> countTokensFromMessages(List<ChatMessage> messages) async {
     int tokens = 0;
     if (selectedChatRoom.model.ownedBy == 'openai') {
-      tokens = await openAI!.countTokens(PromptValue.chat(messages),
-          options: ChatOpenAIOptions(
-            model: selectedChatRoom.model.modelName,
-          ));
+      tokens = await openAI!.countTokens(
+        PromptValue.chat(messages),
+        options: ChatOpenAIOptions(
+          model: selectedChatRoom.model.modelName,
+        ),
+      );
     } else {
-      tokens = await openAI!.countTokens(PromptValue.chat(messages),
-          options: ChatOpenAIOptions(
-            // for all unknown models we assume it's gpt 3.5 turbo
-            model: 'gpt-3.5-turbo-16k-0613',
-          ));
+      tokens = await openAI!.countTokens(
+        PromptValue.chat(messages),
+        options: ChatOpenAIOptions(
+          // for all unknown models we assume it's gpt 3.5 turbo
+          model: 'gpt-3.5-turbo-16k-0613',
+        ),
+      );
     }
     return tokens;
   }
@@ -1256,10 +1280,11 @@ class ChatProvider
     } else {
       messagesToSend.add(
         HumanChatMessage(
-            content: ChatMessageContent.multiModal([
-          ChatMessageContent.text(messageContent),
-          ChatMessageContent.image(data: imageBase64, mimeType: 'image/jpeg'),
-        ])),
+          content: ChatMessageContent.multiModal([
+            ChatMessageContent.text(messageContent),
+            ChatMessageContent.image(data: imageBase64, mimeType: 'image/jpeg'),
+          ]),
+        ),
       );
     }
     if (showPromptInChat) {
@@ -1350,8 +1375,11 @@ class ChatProvider
         messagesToSend.add(SystemChatMessage(content: systemMessage));
       }
       if (additionalPreMessages.isNotEmpty) {
-        messagesToSend.addAll(additionalPreMessages
-            .map((e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported)));
+        messagesToSend.addAll(
+          additionalPreMessages.map(
+            (e) => e.toLangChainChatMessage(shouldCleanReasoning: selectedModel.reasoningSupported),
+          ),
+        );
       }
 
       messagesToSend.add(HumanChatMessage(content: ChatMessageContent.text(message)));
@@ -1762,7 +1790,7 @@ class ChatProvider
           id: '-1',
           content: room.systemMessage!,
         ),
-      ...messages.value.values
+      ...messages.value.values,
     ]).then((value) {
       totalTokensByMessages = value;
     });
@@ -1802,8 +1830,10 @@ class ChatProvider
         // in this case id is the path
         FileUtils.deleteFile(chatRoomId);
       } else {
-        await FileUtils.moveFile('$dir${FileUtils.separatior}$chatRoomId.json',
-            '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId.json');
+        await FileUtils.moveFile(
+          '$dir${FileUtils.separatior}$chatRoomId.json',
+          '$archivedChatRoomsPath${FileUtils.separatior}$chatRoomId.json',
+        );
       }
     } catch (e) {
       displayErrorInfoBar(title: 'Error while deleting chat room', message: '$e');
@@ -2040,10 +2070,11 @@ class ChatProvider
     notifyListeners();
   }
 
-  bool isAutonomousMode = AppCache.enableAgentMode.value ?? false;
-  void updateAutonomousModeUI(bool value) {
-    isAutonomousMode = value;
-    AppCache.enableAgentMode.value = value;
+  AgentMode agentMode = AgentMode.agent;
+
+  void updateAutonomousModeUI(AgentMode value) {
+    agentMode = value;
+    AppCache.agentMode.value = value.index;
     notifyListeners();
   }
 
@@ -2055,23 +2086,26 @@ class ChatProvider
   Future<bool> startListeningForInput() async {
     try {
       if (!DeepgramSpeech.isValid()) {
-        displayInfoBar(context!, builder: (ctx, close) {
-          return InfoBar(
-            title: Text('Deepgram API key is not set'.tr),
-            severity: InfoBarSeverity.warning,
-            action: Button(
-              onPressed: () async {
-                close();
-                // ensure its closed
-                await Future.delayed(const Duration(milliseconds: 200));
-                Navigator.of(context!).push(
-                  FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
-                );
-              },
-              child: Text('Settings'.tr),
-            ),
-          );
-        });
+        displayInfoBar(
+          context!,
+          builder: (ctx, close) {
+            return InfoBar(
+              title: Text('Deepgram API key is not set'.tr),
+              severity: InfoBarSeverity.warning,
+              action: Button(
+                onPressed: () async {
+                  close();
+                  // ensure its closed
+                  await Future.delayed(const Duration(milliseconds: 200));
+                  Navigator.of(context!).push(
+                    FluentPageRoute(builder: (ctx) => const NewSettingsPage()),
+                  );
+                },
+                child: Text('Settings'.tr),
+              ),
+            );
+          },
+        );
         return false;
       }
       recorder = AudioRecorder();
@@ -2089,7 +2123,9 @@ class ChatProvider
           numChannels: 1,
           device: AppCache.micrpohoneDeviceId.value != null
               ? InputDevice(
-                  id: AppCache.micrpohoneDeviceId.value!, label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name')
+                  id: AppCache.micrpohoneDeviceId.value!,
+                  label: AppCache.micrpohoneDeviceName.value ?? 'Unknown name',
+                )
               : devices.first,
         ),
       );
@@ -2360,7 +2396,7 @@ class ChatProvider
           id: '-1',
           content: selectedChatRoom.systemMessage!,
         ),
-      ...messages.value.values
+      ...messages.value.values,
     ]);
     notifyListeners();
     if (showPromptToOverride == false) return;
@@ -2379,7 +2415,9 @@ class ChatProvider
 
   Future<void> deleteMessagesAbove(String id) async {
     final confirmed = await ConfirmationDialog.show(
-        context: context!, message: 'Everything above will be deleted in current chat'.tr);
+      context: context!,
+      message: 'Everything above will be deleted in current chat'.tr,
+    );
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
@@ -2394,7 +2432,9 @@ class ChatProvider
 
   Future<void> deleteMessagesBelow(String id) async {
     final confirmed = await ConfirmationDialog.show(
-        context: context!, message: 'Everything below will be deleted in current chat'.tr);
+      context: context!,
+      message: 'Everything below will be deleted in current chat'.tr,
+    );
     if (!confirmed) return;
     final messagesList = messages.value;
     final keys = messagesList.keys.toList();
