@@ -169,6 +169,17 @@ Future<String> _grepDartFallback({
   return results.join('\n');
 }
 
+/// Trim [s] to at most [max] bytes by keeping the head and tail and eliding
+/// the middle. Useful for shell output where the banner/first error and the
+/// final lines are both informative.
+String _truncateHeadTail(String s, {int max = 10240}) {
+  if (s.length <= max) return s;
+  final head = max ~/ 5; // ~2KB head, ~8KB tail by default
+  final tail = max - head;
+  final elided = s.length - head - tail;
+  return '${s.substring(0, head)}\n... ($elided bytes elided) ...\n${s.substring(s.length - tail)}';
+}
+
 List<String> _parseShellCommand(String command) {
   final parts = <String>[];
   final buffer = StringBuffer();
@@ -469,6 +480,9 @@ class AgentToolHandlers {
     }
   }
 
+  // TODO: no path sandboxing — agent can edit any file the user can write
+  // (incl. system files, secrets, source-controlled config). Allowlist or
+  // confirm-before-write would be the proper fix.
   static Future<String> editFile(dynamic _, Map<String, dynamic> args) async {
     try {
       final path = args['path'];
@@ -504,6 +518,8 @@ class AgentToolHandlers {
     }
   }
 
+  // TODO: no path sandboxing — same risk as editFile, plus this can create
+  // new files anywhere the user has write perms.
   static Future<String> writeFile(dynamic _, Map<String, dynamic> args) async {
     try {
       final path = args['path'];
@@ -527,23 +543,23 @@ class AgentToolHandlers {
     }
   }
 
+  // Best-effort filter; not a sandbox. Sophisticated payloads still get through.
+  static final _dangerousCommandRegex = RegExp(
+    r'\brm\s+-[a-z]*r[a-z]*f[a-z]*\s+/(\s|$)' // rm -rf /
+    r'|\bdel\s+/[fsq](\s|/)' // del /f|/s|/q ...
+    r'|\bformat\b' // format
+    r'|\bmkfs\b' // mkfs / mkfs.*
+    r'|:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:', // fork bomb
+    caseSensitive: false,
+  );
+
   static Future<String> executeShellCommand(dynamic provider, Map<String, dynamic> args) async {
     try {
       final String command = args['command'];
       final String? workingDirectory = args['workingDirectory'];
 
-      final lowerCommand = command.toLowerCase();
-      const dangerousPatterns = [
-        'rm -rf /',
-        'del /f /s /q c:\\',
-        'format',
-        'mkfs',
-        ':(){:|:&};:',
-      ];
-      for (final pattern in dangerousPatterns) {
-        if (lowerCommand.contains(pattern)) {
-          return 'Error: Dangerous command blocked for safety: $command';
-        }
+      if (_dangerousCommandRegex.hasMatch(command)) {
+        return 'Error: Dangerous command blocked for safety: $command';
       }
 
       var shell = Shell();
@@ -561,20 +577,26 @@ class AgentToolHandlers {
       String stderr = '';
       int exitCode = 0;
 
+      final process = await shell.start(commandName, arguments: commandArgs);
       try {
-        final process = await shell.start(commandName, arguments: commandArgs).timeout(const Duration(seconds: 30));
-        stdout = await process.stdout.readAsString();
-        stderr = await process.stderr.readAsString();
-        exitCode = await process.exitCode;
+        // Time-bound the entire stdout/stderr/exit triple. Without this, a
+        // hung process leaves the agent waiting forever.
+        final results = await Future.wait<dynamic>([
+          process.stdout.readAsString(),
+          process.stderr.readAsString(),
+          process.exitCode,
+        ]).timeout(const Duration(seconds: 60));
+        stdout = results[0] as String;
+        stderr = results[1] as String;
+        exitCode = results[2] as int;
 
-        if (stdout.length > 10240) {
-          stdout = '${stdout.substring(0, 10240)}\n... (output truncated)';
-        }
-        if (stderr.length > 10240) {
-          stderr = '${stderr.substring(0, 10240)}\n... (output truncated)';
-        }
+        stdout = _truncateHeadTail(stdout);
+        stderr = _truncateHeadTail(stderr);
       } on TimeoutException {
-        return 'Error: Command timed out after 30 seconds';
+        try {
+          process.process.kill();
+        } catch (_) {}
+        return 'Error: Command timed out after 60 seconds';
       } catch (e) {
         return 'Error executing command: $e';
       }
@@ -610,6 +632,8 @@ class AgentToolHandlers {
     }
   }
 
+  // TODO: no type validation on args — if the model passes a non-string
+  // 'clipboard' field, ClipboardData throws. Add `is String` checks.
   static Future<String> copyToClipboard(dynamic _, Map<String, dynamic> args) async {
     final textToCopy = args['clipboard'];
     await Clipboard.setData(ClipboardData(text: textToCopy));
@@ -617,6 +641,7 @@ class AgentToolHandlers {
     return 'Successfully copied to clipboard: $textToCopy';
   }
 
+  // TODO: no type validation — `canLaunchUrlString(null)` will throw.
   static Future<String> autoOpenUrls(dynamic _, Map<String, dynamic> args) async {
     final url = args['url'];
     if (await canLaunchUrlString(url)) {
@@ -626,6 +651,8 @@ class AgentToolHandlers {
     return 'Was not able to open url: $url';
   }
 
+  // TODO: no type validation — `prompt` may be null and `generateImageFromTool`
+  // requires a non-null String.
   static Future<String> generateImage(dynamic provider, Map<String, dynamic> args) async {
     final prompt = args['prompt'];
     final size = args['size'];
@@ -634,19 +661,20 @@ class AgentToolHandlers {
 
   static Future<String> rememberInfo(dynamic provider, Map<String, dynamic> args) async {
     final p = provider as ChatProvider;
-    final info = args['info'];
-    final responseMessage = args['responseMessage'];
+    final info = (args['info'] ?? '').toString();
+    final responseMessage = (args['responseMessage'] ?? '').toString();
     final time = DateTime.now().millisecondsSinceEpoch;
     final funcText = '```remember\n$info\n```';
     AppCache.userInfo.saveInfoToFile(info);
 
+    final body = responseMessage.isEmpty ? funcText : '$funcText\n$responseMessage';
     p.addBotMessageToList(
       FluentChatMessage.ai(
         id: time.toString(),
-        content: '$funcText\n$responseMessage',
+        content: body,
         timestamp: time,
         creator: selectedChatRoom.characterName,
-        tokens: await p.countTokensString('$funcText\n$responseMessage'),
+        tokens: await p.countTokensString(body),
       ),
     );
     return 'Successfully remembered info: $info';

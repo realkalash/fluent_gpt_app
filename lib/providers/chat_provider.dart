@@ -1483,11 +1483,12 @@ class ChatProvider
     }
   }
 
-  void _dispatchToolAggs(
+  Future<void> _dispatchToolAggs(
     List<ToolStreamAgg> aggs,
     String userContent,
     int tokensReceivedInResponse,
-  ) {
+  ) async {
+    var first = true;
     for (final agg in aggs) {
       final raw = agg.argumentsRaw.toString();
       if (raw.trim().isEmpty || agg.name.isEmpty) continue;
@@ -1499,7 +1500,11 @@ class ChatProvider
       if (parsed.warning != null) {
         log('Tool "${agg.name}": ${parsed.warning}');
       }
-      _onToolsResponseEnd(userContent, parsed.map, agg.name, tokensReceivedInResponse);
+      // Serialize side-effects and space them out by >1ms so each generated
+      // message gets a unique millisecond-based id.
+      if (!first) await Future.delayed(const Duration(milliseconds: 10));
+      first = false;
+      await _onToolsResponseEnd(userContent, parsed.map, agg.name, tokensReceivedInResponse);
     }
   }
 
@@ -1594,18 +1599,19 @@ class ChatProvider
   }
 
   Future<void> runRememberInfoSideEffect(Map<String, dynamic> args) async {
-    final info = args['info'];
-    final responseMessage = args['responseMessage'];
+    final info = (args['info'] ?? '').toString();
+    final responseMessage = (args['responseMessage'] ?? '').toString();
     final time = DateTime.now().millisecondsSinceEpoch;
     final funcText = '```remember\n$info\n```';
     AppCache.userInfo.saveInfoToFile(info);
+    final body = responseMessage.isEmpty ? funcText : '$funcText\n$responseMessage';
     addBotMessageToList(
       FluentChatMessage.ai(
         id: time.toString(),
-        content: '$funcText\n$responseMessage',
+        content: body,
         timestamp: time,
         creator: selectedChatRoom.characterName,
-        tokens: await countTokensString('$funcText\n$responseMessage'),
+        tokens: await countTokensString(body),
       ),
     );
   }
