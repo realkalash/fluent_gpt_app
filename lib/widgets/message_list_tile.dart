@@ -168,9 +168,17 @@ class _MessageCardState extends State<MessageCard> {
   bool isFocused = false;
   String? selectedContent;
   final FocusNode focusNode = FocusNode();
+
+  // Subscribes to the per-message notifier so this tile rebuilds in isolation
+  // on token streaming, instead of being rebuilt by a global `messages` emit.
+  MessageNotifier? _notifier;
+  late FluentChatMessage _liveMessage;
+
   @override
   void initState() {
     super.initState();
+    _liveMessage = widget.message;
+    _subscribeToNotifier();
     _isMarkdownView = AppCache.isMarkdownViewEnabled.value ?? true;
     if (widget.shouldBlink && mounted) {
       Timer.periodic(const Duration(milliseconds: 600), (timer) {
@@ -191,29 +199,60 @@ class _MessageCardState extends State<MessageCard> {
     }
   }
 
+  void _subscribeToNotifier() {
+    _notifier = messageNotifiers[widget.message.id];
+    final n = _notifier;
+    if (n != null) {
+      // Pick up any updates the registry has accumulated since the parent
+      // built us (e.g. tokens that arrived between addBotHeader and our
+      // mount frame).
+      _liveMessage = n.value;
+      n.addListener(_onNotifierChanged);
+    }
+  }
+
+  void _onNotifierChanged() {
+    final n = _notifier;
+    if (n == null || !mounted) return;
+    setState(() {
+      _liveMessage = n.value;
+    });
+  }
+
+  @override
+  void didUpdateWidget(MessageCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.id != widget.message.id) {
+      _notifier?.removeListener(_onNotifierChanged);
+      _liveMessage = widget.message;
+      _subscribeToNotifier();
+    }
+  }
+
   @override
   dispose() {
+    _notifier?.removeListener(_onNotifierChanged);
     flyoutController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final formatDateTime = DateFormat('HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(widget.message.timestamp));
+    final formatDateTime = DateFormat('HH:mm:ss').format(DateTime.fromMillisecondsSinceEpoch(_liveMessage.timestamp));
     final appTheme = context.read<AppTheme>();
     final myMessageStyle = TextStyle(color: appTheme.color, fontSize: 14);
     Widget tileWidget;
-    final isContentText = widget.message.isTextMessage;
+    final isContentText = _liveMessage.isTextMessage;
     final theme = FluentTheme.of(context);
 
-    if (widget.message.type == FluentChatMessageType.shellExec ||
-        widget.message.type == FluentChatMessageType.shellProposal) {
-      return ShellExecutionWidget(message: widget.message);
+    if (_liveMessage.type == FluentChatMessageType.shellExec ||
+        _liveMessage.type == FluentChatMessageType.shellProposal) {
+      return ShellExecutionWidget(message: _liveMessage);
     }
 
-    if (widget.message.type == FluentChatMessageType.header) {
+    if (_liveMessage.type == FluentChatMessageType.header) {
       return Text(
-        widget.message.content,
+        _liveMessage.content,
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 14,
@@ -221,11 +260,11 @@ class _MessageCardState extends State<MessageCard> {
         ),
       );
     }
-    if (widget.message.type == FluentChatMessageType.executionHeader) {
-      return AgentExecutionHeaderTile(message: widget.message);
+    if (_liveMessage.type == FluentChatMessageType.executionHeader) {
+      return AgentExecutionHeaderTile(message: _liveMessage);
     }
 
-    if (widget.message.type == FluentChatMessageType.system)
+    if (_liveMessage.type == FluentChatMessageType.system)
       return Focus(
         autofocus: false,
         descendantsAreTraversable: false,
@@ -273,7 +312,7 @@ class _MessageCardState extends State<MessageCard> {
                     ],
                   ),
                   if (_isExpanded)
-                    SelectableText(widget.message.content, style: TextStyle(fontSize: widget.textSize.toDouble())),
+                    SelectableText(_liveMessage.content, style: TextStyle(fontSize: widget.textSize.toDouble())),
                 ],
               ),
             ),
@@ -282,12 +321,12 @@ class _MessageCardState extends State<MessageCard> {
       );
 
     tileWidget = MessageListTile(
-      title: Text(widget.message.creator, style: myMessageStyle),
+      title: Text(_liveMessage.creator, style: myMessageStyle),
       subtitle: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (widget.message.type == FluentChatMessageType.textAi && selectedChatRoom.characterAvatarPath != null)
+          if (_liveMessage.type == FluentChatMessageType.textAi && selectedChatRoom.characterAvatarPath != null)
             GestureDetector(
               onTap: () {
                 final base64Image = base64Encode(File(selectedChatRoom.characterAvatarPath!).readAsBytesSync());
@@ -317,19 +356,19 @@ class _MessageCardState extends State<MessageCard> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.message.indexPin != null) Icon(ic.FluentIcons.pin_20_filled, size: 12, color: Colors.orange),
-                if (widget.message.type == FluentChatMessageType.image ||
-                    widget.message.type == FluentChatMessageType.imageAi)
+                if (_liveMessage.indexPin != null) Icon(ic.FluentIcons.pin_20_filled, size: 12, color: Colors.orange),
+                if (_liveMessage.type == FluentChatMessageType.image ||
+                    _liveMessage.type == FluentChatMessageType.imageAi)
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () => _showImageDialog(context, widget.message),
+                      onTap: () => _showImageDialog(context, _liveMessage),
                       child: Padding(
                         padding: const EdgeInsets.only(left: 0.0, right: 12, top: 8, bottom: 12),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10.0),
                           child: Image.memory(
-                            decodeImage(widget.message.content),
+                            decodeImage(_liveMessage.content),
                             fit: BoxFit.cover,
                             gaplessPlayback: true,
                           ),
@@ -365,8 +404,8 @@ class _MessageCardState extends State<MessageCard> {
                         onTap: () async {
                           final provider = context.read<ChatProvider>();
                           await provider.editMessage(
-                            widget.message.id,
-                            widget.message.copyWith(
+                            _liveMessage.id,
+                            _liveMessage.copyWith(
                               content: textEditingController!.text,
                             ),
                           );
@@ -378,7 +417,7 @@ class _MessageCardState extends State<MessageCard> {
                 else if (isContentText && _isMarkdownView)
                   buildMarkdown(
                     context,
-                    widget.message.content,
+                    _liveMessage.content,
                     textSize: widget.textSize.toDouble(),
                     focusNode: FocusNode(descendantsAreTraversable: false),
                     onSelectionChanged: (text) {
@@ -440,7 +479,7 @@ class _MessageCardState extends State<MessageCard> {
                   )
                 else if (isContentText)
                   SelectableText(
-                    widget.message.content,
+                    _liveMessage.content,
                     contextMenuBuilder: (ctx, state) => ContextMenuBuilders.textChatMessageContextMenuBuilder(
                       ctx,
                       state,
@@ -468,11 +507,11 @@ class _MessageCardState extends State<MessageCard> {
                     ),
                     style: TextStyle(fontSize: widget.textSize.toDouble(), fontWeight: FontWeight.normal),
                   ),
-                if (widget.message.type == FluentChatMessageType.file)
+                if (_liveMessage.type == FluentChatMessageType.file)
                   Button(
                     onPressed: () async {
-                      if (widget.message.path?.endsWith('.pdf') == true) {
-                        final pdfImages = await PdfUtils.getImagesFromPdfPath(widget.message.path!);
+                      if (_liveMessage.path?.endsWith('.pdf') == true) {
+                        final pdfImages = await PdfUtils.getImagesFromPdfPath(_liveMessage.path!);
                         ImagesDialog.show(
                           // ignore: use_build_context_synchronously
                           context,
@@ -481,13 +520,13 @@ class _MessageCardState extends State<MessageCard> {
                         return;
                       }
                       if (Platform.isWindows) {
-                        final content = widget.message.content;
+                        final content = _liveMessage.content;
                         showDialog(
                             context: context,
                             barrierDismissible: true,
                             builder: (ctx) {
                               return ContentDialog(
-                                title: Text(widget.message.fileName ?? 'File'),
+                                title: Text(_liveMessage.fileName ?? 'File'),
                                 constraints: const BoxConstraints(
                                   maxWidth: 800,
                                   maxHeight: 1200,
@@ -513,8 +552,8 @@ class _MessageCardState extends State<MessageCard> {
                       }
                       final tempDir = Directory.systemTemp;
                       final file = File(
-                          '${tempDir.path}${Platform.pathSeparator}${widget.message.fileName?.isEmpty == true ? 'file' : widget.message.fileName}');
-                      await file.writeAsString(widget.message.content);
+                          '${tempDir.path}${Platform.pathSeparator}${_liveMessage.fileName?.isEmpty == true ? 'file' : _liveMessage.fileName}');
+                      await file.writeAsString(_liveMessage.content);
                       final mimeType = mime(file.path);
                       await OpenFilex.open(file.path, type: mimeType);
                     },
@@ -522,7 +561,7 @@ class _MessageCardState extends State<MessageCard> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.message.path?.endsWith('.pdf') == false)
+                        if (_liveMessage.path?.endsWith('.pdf') == false)
                           const Icon(FluentIcons.document_24_filled, size: 24)
                         else
                           const Icon(
@@ -531,22 +570,22 @@ class _MessageCardState extends State<MessageCard> {
                             color: Colors.warningPrimaryColor,
                           ),
                         Text(
-                          widget.message.fileName ?? 'File',
+                          _liveMessage.fileName ?? 'File',
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),
                       ],
                     ),
                   ),
-                if (widget.message.type == FluentChatMessageType.webResult)
+                if (_liveMessage.type == FluentChatMessageType.webResult)
                   Wrap(
                     children: [
-                      if (widget.message.content.isNotEmpty)
+                      if (_liveMessage.content.isNotEmpty)
                         SelectableText(
-                          widget.message.content,
+                          _liveMessage.content,
                           style: TextStyle(fontSize: widget.textSize.toDouble()),
                         ),
-                      for (final result in (widget.message.webResults ?? <WebSearchResult>[]))
+                      for (final result in (_liveMessage.webResults ?? <WebSearchResult>[]))
                         SizedBox(
                           width: 200,
                           child: Button(
@@ -587,17 +626,17 @@ class _MessageCardState extends State<MessageCard> {
                         )
                     ],
                   ),
-                if (widget.message.buttons != null)
+                if (_liveMessage.buttons != null)
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
                     children: [
-                      for (final button in widget.message.buttons!.entries)
+                      for (final button in _liveMessage.buttons!.entries)
                         Button(
                           onPressed: button.value
                               ? () {
                                   final provider = context.read<ChatProvider>();
-                                  provider.onMessageButtonTap(button.key, widget.message);
+                                  provider.onMessageButtonTap(button.key, _liveMessage);
                                 }
                               : null,
                           child: Text(button.key.tr),
@@ -606,9 +645,9 @@ class _MessageCardState extends State<MessageCard> {
                   ),
                 Tooltip(
                   style: const TooltipThemeData(waitDuration: Duration(milliseconds: 200)),
-                  message: _messageStatsTooltipBody(widget.message, formatDateTime),
+                  message: _messageStatsTooltipBody(_liveMessage, formatDateTime),
                   child: Text(
-                    _messageStatsFooterVisible(widget.message, formatDateTime),
+                    _messageStatsFooterVisible(_liveMessage, formatDateTime),
                     style: TextStyle(
                       fontSize: widget.textSize * 0.9,
                       fontWeight: FontWeight.w200,
@@ -645,8 +684,8 @@ class _MessageCardState extends State<MessageCard> {
               if (isEditing) {
                 final provider = context.read<ChatProvider>();
                 await provider.editMessage(
-                  widget.message.id,
-                  widget.message.copyWith(
+                  _liveMessage.id,
+                  _liveMessage.copyWith(
                     content: textEditingController!.text,
                   ),
                 );
@@ -674,7 +713,7 @@ class _MessageCardState extends State<MessageCard> {
                 FocusScope.of(context).requestFocus(focusNode);
                 return;
               }
-              provider.deleteMessage(widget.message.id);
+              provider.deleteMessage(_liveMessage.id);
               // ignore: use_build_context_synchronously
               FocusScope.of(context).nextFocus();
               return null;
@@ -743,7 +782,7 @@ class _MessageCardState extends State<MessageCard> {
                         SqueareIconButton(
                           icon: const Icon(FluentIcons.copy_16_regular),
                           onTap: () {
-                            Clipboard.setData(ClipboardData(text: widget.message.content));
+                            Clipboard.setData(ClipboardData(text: _liveMessage.content));
                             displayCopiedToClipboard();
                           },
                           tooltip: 'Copy'.tr,
@@ -775,7 +814,7 @@ class _MessageCardState extends State<MessageCard> {
                       child: Wrap(
                         spacing: 4,
                         children: [
-                          if (widget.message.isTextMessage) ...[
+                          if (_liveMessage.isTextMessage) ...[
                             SqueareIconButton(
                               tooltip: _isMarkdownView ? 'Show text' : 'Show markdown',
                               icon: const Icon(FluentIcons.paint_brush_12_regular),
@@ -790,7 +829,7 @@ class _MessageCardState extends State<MessageCard> {
                               tooltip: 'Edit'.tr,
                               icon: const Icon(FluentIcons.edit_12_regular),
                               onTap: () {
-                                // _showEditMessageDialog(context, widget.message);
+                                // _showEditMessageDialog(context, _liveMessage);
                                 _toggleEditing();
                               },
                             ),
@@ -798,13 +837,13 @@ class _MessageCardState extends State<MessageCard> {
                             if (widget.indexMessage < 1)
                               SqueareIconButton(
                                 tooltip: 'Regenerate message',
-                                icon: widget.message.isTextFromMe
+                                icon: _liveMessage.isTextFromMe
                                     ? const Icon(FluentIcons.arrow_down_12_regular)
                                     : const Icon(FluentIcons.arrow_counterclockwise_16_filled),
                                 onTap: () {
                                   final provider = context.read<ChatProvider>();
-                                  final indexInReversedList = messagesReversedList.indexOf(widget.message);
-                                  provider.regenerateMessage(widget.message, indexInReversedList: indexInReversedList);
+                                  final indexInReversedList = messagesReversedList.indexOf(_liveMessage);
+                                  provider.regenerateMessage(_liveMessage, indexInReversedList: indexInReversedList);
                                 },
                               ),
                             SqueareIconButton(
@@ -844,7 +883,7 @@ class _MessageCardState extends State<MessageCard> {
                                       _isLoadingReadAloud = true;
                                     });
                                     await TextToSpeechService.readAloud(
-                                      widget.message.content,
+                                      _liveMessage.content,
                                       onCompleteReadingAloud: () {
                                         setState(() {
                                           _isLoadingReadAloud = false;
@@ -888,16 +927,16 @@ class _MessageCardState extends State<MessageCard> {
                             tooltip: 'Copy'.tr,
                             icon: const Icon(FluentIcons.copy_16_regular),
                             onTap: () async {
-                              if (widget.message.type == FluentChatMessageType.image ||
-                                  widget.message.type == FluentChatMessageType.imageAi) {
+                              if (_liveMessage.type == FluentChatMessageType.image ||
+                                  _liveMessage.type == FluentChatMessageType.imageAi) {
                                 {
-                                  final bytes = decodeImage(widget.message.content);
+                                  final bytes = decodeImage(_liveMessage.content);
                                   await Pasteboard.writeImage(bytes);
                                   displayCopiedToClipboard();
                                   return;
                                 }
                               }
-                              Clipboard.setData(ClipboardData(text: widget.message.content));
+                              Clipboard.setData(ClipboardData(text: _liveMessage.content));
                               displayCopiedToClipboard();
                             },
                           ),
@@ -906,7 +945,7 @@ class _MessageCardState extends State<MessageCard> {
                             icon: Icon(FluentIcons.delete_16_filled, color: Colors.red),
                             onTap: () async {
                               final provider = context.read<ChatProvider>();
-                              provider.deleteMessage(widget.message.id);
+                              provider.deleteMessage(_liveMessage.id);
                             },
                           ),
                           FlyoutTarget(
@@ -936,7 +975,7 @@ class _MessageCardState extends State<MessageCard> {
   void _toggleEditing() {
     // final focusScope = FocusScope.of(context);
     textEditingController?.dispose();
-    textEditingController = TextEditingController(text: widget.message.content);
+    textEditingController = TextEditingController(text: _liveMessage.content);
     textEditingFocus = FocusNode();
     isEditing = !isEditing;
     setState(() {});
@@ -1027,13 +1066,13 @@ class _MessageCardState extends State<MessageCard> {
 
   MenuFlyout _showCommandsFlyout(String? selectedText) {
     if (selectedText == null || selectedText.isEmpty) {
-      selectedText = widget.message.content;
+      selectedText = _liveMessage.content;
     }
     return MenuFlyout(items: _buildMenuItems(customPrompts.value, selectedText));
   }
 
   MenuFlyout _showOptionsFlyout() {
-    final message = widget.message;
+    final message = _liveMessage;
     return MenuFlyout(
       items: [
         if (message.indexPin == null)
@@ -1057,14 +1096,14 @@ class _MessageCardState extends State<MessageCard> {
             leading: const Icon(FluentIcons.text_align_justify_low_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.shortenMessage(widget.message.id);
+              provider.shortenMessage(_liveMessage.id);
             }),
         MenuFlyoutItem(
             text: Text('Longer'.tr),
             leading: const Icon(FluentIcons.text_description_16_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.lengthenMessage(widget.message.id);
+              provider.lengthenMessage(_liveMessage.id);
             }),
         const MenuFlyoutSeparator(),
         MenuFlyoutItem(
@@ -1072,7 +1111,7 @@ class _MessageCardState extends State<MessageCard> {
             leading: const Icon(FluentIcons.arrow_forward_20_filled),
             onPressed: () {
               final provider = context.read<ChatProvider>();
-              provider.continueMessage(widget.message.id);
+              provider.continueMessage(_liveMessage.id);
             }),
         if (message.isTextMessage) ...[
           MenuFlyoutItem(
@@ -1129,7 +1168,7 @@ class _MessageCardState extends State<MessageCard> {
         MenuFlyoutSubItem(
           text: Text('Commands'.tr),
           trailing: const Icon(FluentIcons.chevron_right_16_filled),
-          items: (context) => _buildMenuItems(customPrompts.value, widget.message.content),
+          items: (context) => _buildMenuItems(customPrompts.value, _liveMessage.content),
         ),
         if ((message.type == FluentChatMessageType.imageAi) || message.type == FluentChatMessageType.image) ...[
           const MenuFlyoutSeparator(),
@@ -1150,7 +1189,7 @@ class _MessageCardState extends State<MessageCard> {
           leading: const Icon(FluentIcons.branch_20_regular),
           onPressed: () {
             final provider = context.read<ChatProvider>();
-            provider.createNewBranchFromLastMessage(widget.message.id);
+            provider.createNewBranchFromLastMessage(_liveMessage.id);
           },
         ),
         const MenuFlyoutSeparator(),
@@ -1159,7 +1198,7 @@ class _MessageCardState extends State<MessageCard> {
           leading: Icon(FluentIcons.arrow_up_exclamation_20_regular, color: Colors.red),
           onPressed: () async {
             final provider = context.read<ChatProvider>();
-            await provider.deleteMessagesAbove(widget.message.id);
+            await provider.deleteMessagesAbove(_liveMessage.id);
             // ignore: use_build_context_synchronously
             Navigator.of(context).maybePop();
           },
@@ -1169,7 +1208,7 @@ class _MessageCardState extends State<MessageCard> {
           leading: Icon(FluentIcons.arrow_down_exclamation_20_regular, color: Colors.red),
           onPressed: () async {
             final provider = context.read<ChatProvider>();
-            await provider.deleteMessagesBelow(widget.message.id);
+            await provider.deleteMessagesBelow(_liveMessage.id);
             // ignore: use_build_context_synchronously
             Navigator.of(context).maybePop();
           },
@@ -1179,7 +1218,7 @@ class _MessageCardState extends State<MessageCard> {
           leading: Icon(FluentIcons.delete_12_regular, color: Colors.red),
           onPressed: () {
             final provider = context.read<ChatProvider>();
-            provider.deleteMessage(widget.message.id);
+            provider.deleteMessage(_liveMessage.id);
           },
         ),
       ],
@@ -1187,7 +1226,7 @@ class _MessageCardState extends State<MessageCard> {
   }
 
   Future<void> _saveImageToFile(BuildContext context) async {
-    final fileBytesString = widget.message.content;
+    final fileBytesString = _liveMessage.content;
     final fileBytes = base64.decode(fileBytesString);
     final file = XFile.fromData(
       fileBytes,
@@ -1216,7 +1255,7 @@ class _MessageCardState extends State<MessageCard> {
   Future<void> _copyImageToClipboard(BuildContext context) async {
     Navigator.of(context).maybePop();
 
-    final imageBytesString = widget.message.content;
+    final imageBytesString = _liveMessage.content;
     final imageBytes = base64.decode(imageBytesString);
     Pasteboard.writeImage(imageBytes);
     displayCopiedToClipboard();

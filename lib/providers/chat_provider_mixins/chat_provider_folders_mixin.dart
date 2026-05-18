@@ -34,6 +34,12 @@ mixin ChatProviderFoldersMixin on ChangeNotifier, ChatProviderBaseMixin {
     chatRooms[newChatId] = newChatRoom;
     chatRoomsStream.add(chatRooms);
     selectedChatRoomId = newChatId;
+    // Rebuild notifiers for the branched set — the previous chat's notifiers
+    // may include ids that aren't in the branch.
+    disposeAllMessageNotifiers();
+    for (final entry in listNewMessages.entries) {
+      ensureMessageNotifier(entry.key, entry.value);
+    }
     messages.add(listNewMessages);
     notifyRoomsStream();
     saveToDisk([newChatRoom]);
@@ -75,6 +81,12 @@ mixin ChatProviderFoldersMixin on ChangeNotifier, ChatProviderBaseMixin {
         selectedChatRoom.systemMessage =
             '${selectedChatRoom.systemMessage}\n{{pinnedMessages}}';
       }
+    }
+    // Replace any leftover notifiers with fresh ones for the loaded set,
+    // so each tile in the new chat has its own per-message notifier.
+    disposeAllMessageNotifiers();
+    for (final entry in roomMessages.entries) {
+      ensureMessageNotifier(entry.key, entry.value);
     }
     messages.add(roomMessages);
     notifyListeners();
