@@ -101,6 +101,7 @@ class ChatProvider
     init();
     listenTray();
     initSpellCheck();
+    initStickyScroll();
     textSize = AppCache.messageTextSize.value ?? 14;
     selectedChatRoomId = AppCache.selectedChatRoomId.value ?? 'Default';
     agentMode = AgentModeUtils.fromValue(AppCache.agentMode.value);
@@ -331,7 +332,7 @@ class ChatProvider
     final values = messages.value;
     final dateTime = DateTime.now();
     final id = dateTime.toIso8601String();
-    values[id] = FluentChatMessage(
+    final message = FluentChatMessage(
       id: id,
       content: '',
       creator: 'search',
@@ -339,6 +340,8 @@ class ChatProvider
       type: FluentChatMessageType.webResult,
       webResults: webpage,
     );
+    values[id] = message;
+    ensureMessageNotifier(id, message);
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
@@ -1030,7 +1033,8 @@ class ChatProvider
     final newResponse = response.copyWith(tokens: tokens, content: newContent);
     final values = messages.value;
     values[id] = newResponse;
-    messages.add(values);
+    // Content-only update (same id, same shape) — wake just the streaming tile.
+    notifyMessageContent(id, newResponse);
 
     for (var action in onMessageActions.value) {
       if (action.isEnabled == false) continue;
@@ -1382,32 +1386,48 @@ class ChatProvider
     final values = messages.value;
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final lastMessage = values[message.id];
-    String newString = '';
-    if (lastMessage != null) {
-      newString = lastMessage.concat(message.content).content;
-    } else {
-      newString = message.content;
-    }
-    values[message.id] = message.copyWith(
-      content: newString,
+    final isFirstInsert = lastMessage == null;
+    final newContent = isFirstInsert
+        ? message.content
+        : lastMessage.concat(message.content).content;
+    final updated = (lastMessage ?? message).copyWith(
+      content: newContent,
       timestamp: timestamp,
     );
-    // if (kDebugMode) print(newString);
-    messages.add(values);
+    values[message.id] = updated;
+
+    if (isFirstInsert) {
+      // First time we see this id — structural change: create the notifier
+      // and emit on `messages` so the list grows a new tile.
+      ensureMessageNotifier(message.id, updated);
+      messages.add(values);
+    } else {
+      // Hot path (continuation): do NOT emit on `messages` — only wake the
+      // streaming tile via its own notifier.
+      notifyMessageContent(message.id, updated);
+    }
     autoScrollToEnd(withDelay: false);
   }
 
   void addBotHeader(FluentChatMessage message) {
     final values = messages.value;
     values[message.id] = message;
+    ensureMessageNotifier(message.id, message);
     messages.add(values);
+    markStreamingStart(message.id);
   }
 
   /// Update an existing message in the chat
   void updateMessage(FluentChatMessage message) {
     final values = messages.value;
+    final isNew = !values.containsKey(message.id);
     values[message.id] = message;
-    messages.add(values);
+    if (isNew) {
+      ensureMessageNotifier(message.id, message);
+      messages.add(values);
+    } else {
+      notifyMessageContent(message.id, message);
+    }
     saveToDisk([selectedChatRoom]);
     notifyListeners();
   }
@@ -1416,6 +1436,7 @@ class ChatProvider
   Future<void> addBotErrorMessageToList(FluentChatMessage message) async {
     final values = messages.value;
     values[message.id] = message;
+    ensureMessageNotifier(message.id, message);
     messages.add(values);
     await scrollToEnd();
     updateChatRoomTimestamp();
@@ -1431,6 +1452,8 @@ class ChatProvider
       final newIdPrev = values.keys.toList()[indexError - 1];
       values.remove(message.id);
       values.remove(newIdPrev);
+      disposeMessageNotifier(message.id);
+      disposeMessageNotifier(newIdPrev);
       messages.add(values);
       saveToDisk([selectedChatRoom]);
     }
@@ -1442,6 +1465,7 @@ class ChatProvider
 
     final values = messages.value;
     values[message.id] = message;
+    ensureMessageNotifier(message.id, message);
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
@@ -1452,7 +1476,8 @@ class ChatProvider
       final tokens = await countTokensString(message.content);
       final updatedMessage = message.copyWith(tokens: tokens);
       values[message.id] = updatedMessage;
-      messages.add(values);
+      // Content-only update — same id, same shape; wake just this tile.
+      notifyMessageContent(message.id, updatedMessage);
       notifyListeners();
     }
   }
@@ -1461,6 +1486,7 @@ class ChatProvider
   void addCustomMessageToList(FluentChatMessage message) {
     final values = messages.value;
     values[message.id] = message;
+    ensureMessageNotifier(message.id, message);
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
@@ -1619,6 +1645,7 @@ class ChatProvider
   Future<void> clearChatMessages() async {
     final confirmed = await ConfirmationDialog.show(context: appContext!, message: 'Clear current chat?');
     if (!confirmed) return;
+    disposeAllMessageNotifiers();
     messages.add({});
     questionHelpers.clear();
     saveToDisk([selectedChatRoom]);
@@ -1675,6 +1702,7 @@ class ChatProvider
     notifyRoomsStream();
     selectedChatRoomId = id;
     AppCache.selectedChatRoomId.value = id;
+    disposeAllMessageNotifiers();
     messages.add({});
 
     saveToDisk([selectedChatRoom]);
@@ -1701,6 +1729,7 @@ class ChatProvider
     AppCache.selectedChatRoomId.value = room.id;
     initModelsApi();
 
+    disposeAllMessageNotifiers();
     messages.add({});
 
     await loadMessagesFromDisk(room.id);
@@ -1789,17 +1818,18 @@ class ChatProvider
     if (selectedChatRoomId == oldChatRoomId) {
       switchToForeground = true;
       if (isCharNameChanged) {
-        // ignore: no_leading_underscores_for_local_identifiers
-        final Map<String, FluentChatMessage> _messages = {};
+        final values = messages.value;
         // we need to go through all messages and change the creator name
-        for (var message in messages.value.values) {
+        final ids = values.keys.toList();
+        for (var id in ids) {
+          final message = values[id]!;
           if (message.type == FluentChatMessageType.textAi) {
-            _messages[message.id] = message.copyWith(creator: chatRoom.characterName);
-          } else {
-            _messages[message.id] = message;
+            final updated = message.copyWith(creator: chatRoom.characterName);
+            values[id] = updated;
+            // Content-only update — wake just this tile, no list emit.
+            notifyMessageContent(id, updated);
           }
         }
-        messages.add(_messages);
       }
     }
     chatRooms.remove(oldChatRoomId);
@@ -1834,6 +1864,7 @@ class ChatProvider
         lastDeletedMessage = lastDeletedMessage.sublist(0, 10);
       }
 
+      disposeMessageNotifier(id);
       messages.add(_messages);
       saveToDisk([selectedChatRoom]);
       notifyListeners();
@@ -1861,6 +1892,7 @@ class ChatProvider
     final _messages = messages.value;
     final removed = _messages.remove(id);
     if (removed == null) return false;
+    disposeMessageNotifier(id);
     messages.add(_messages);
     saveToDisk([selectedChatRoom]);
     notifyListeners();
@@ -1872,6 +1904,7 @@ class ChatProvider
       final lastDeleted = lastDeletedMessage.first;
       final _messages = messages.value;
       _messages[lastDeleted.message.id] = lastDeleted.message;
+      ensureMessageNotifier(lastDeleted.message.id, lastDeleted.message);
       messages.add(_messages);
       saveToDisk([selectedChatRoom]);
       lastDeletedMessage = lastDeletedMessage.sublist(1);
@@ -1916,35 +1949,6 @@ class ChatProvider
         editMessage(lastMessage.value.id, lastMessage.value);
       }
       notifyListeners();
-    }
-  }
-
-  @override
-  Future<void> scrollToEnd({bool withDelay = true}) async {
-    try {
-      if (withDelay) await Future.delayed(const Duration(milliseconds: 100));
-      if (messages.value.isEmpty) return;
-
-      // '_positions.isNotEmpty': ScrollController not attached to any scroll views.
-      if (listItemsScrollController.hasClients) {
-        // 0 because list is reversed
-        listItemsScrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error while scrolling to end: $e');
-      }
-    }
-  }
-
-  @override
-  Future autoScrollToEnd({bool withDelay = true}) async {
-    if (scrollToBottomOnAnswer) {
-      return scrollToEnd(withDelay: withDelay);
     }
   }
 
@@ -2102,8 +2106,10 @@ class ChatProvider
       final newLenghtTokens = await countTokensString(message.content);
 
       final messagesList = messages.value;
-      messagesList[id] = message.copyWith(tokens: newLenghtTokens);
-      messages.add(messagesList);
+      final updated = message.copyWith(tokens: newLenghtTokens);
+      messagesList[id] = updated;
+      // Content-only update (same id, same shape) — wake just this tile.
+      notifyMessageContent(id, updated);
       // recalculate total tokens without iterating the list
       if (lastTokenLenght != newLenghtTokens) {
         totalTokensByMessages += newLenghtTokens - lastTokenLenght;
@@ -2111,7 +2117,7 @@ class ChatProvider
     } else {
       final messagesList = messages.value;
       messagesList[id] = message;
-      messages.add(messagesList);
+      notifyMessageContent(id, message);
     }
 
     saveToDisk([selectedChatRoom]);
@@ -2128,6 +2134,7 @@ class ChatProvider
         final continueRequestMessage = messages.value.entries.last;
         final listMessages = messages.value;
         listMessages.remove(continueRequestMessage.key);
+        disposeMessageNotifier(continueRequestMessage.key);
         messages.add(listMessages);
       },
       onFinishResponse: () {
@@ -2136,7 +2143,11 @@ class ChatProvider
         final concatMessage = lastMessageToMerge!.concat(aiAnswer.value.content);
         final listMessages = messages.value;
         listMessages.remove(aiAnswer.key);
+        disposeMessageNotifier(aiAnswer.key);
         listMessages[id] = concatMessage;
+        // The merge target id stays; its content grew. Notify + emit because
+        // an id was removed (structural change to the list shape).
+        notifyMessageContent(id, concatMessage);
         messages.add(listMessages);
         saveToDisk([selectedChatRoom]);
       },
@@ -2171,23 +2182,6 @@ class ChatProvider
     await Future.delayed(const Duration(seconds: 2));
     isTypingSimulate = false;
     notifyListeners();
-  }
-
-  /// Finds the last message that is visible for the ai to see
-  /// Scrolls up to the last message that is visible for the ai to see
-  @override
-  Future<void> scrollToLastOverflowMessage() async {
-    final maxTokens = maxTokenLenght;
-    final messagesList = messagesReversedList.toList();
-    messagesList.add(FluentChatMessage.system(id: '000', content: selectedChatRoom.systemMessage ?? ''));
-    int tokens = 0;
-    for (var message in messagesList) {
-      tokens += message.tokens == 0 ? await countTokensString(message.content) : message.tokens;
-      if (tokens > maxTokens) {
-        scrollToMessage(message.id);
-        break;
-      }
-    }
   }
 
   void createChatRoomFolder({
@@ -2348,6 +2342,7 @@ class ChatProvider
     final index = keys.indexOf(id);
     for (var i = 0; i < index; i++) {
       messagesList.remove(keys[i]);
+      disposeMessageNotifier(keys[i]);
     }
     messages.add(messagesList);
     recalculateTokensFromLocalMessages(false);
@@ -2365,6 +2360,7 @@ class ChatProvider
     final index = keys.indexOf(id);
     for (var i = index + 1; i < keys.length; i++) {
       messagesList.remove(keys[i]);
+      disposeMessageNotifier(keys[i]);
     }
     messages.add(messagesList);
     recalculateTokensFromLocalMessages(false);

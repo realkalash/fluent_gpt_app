@@ -372,7 +372,7 @@ class _InputFieldState extends State<InputField> {
                         _ContextUsageRing(
                           totalTokens: totalTokens,
                           maxTokenLength: selectedChatRoom.maxTokenLength,
-                          onTap: chatProvider.scrollToLastOverflowMessage,
+                          onTap: (){},
                         ),
                       if (tokensInInputField > 0 && AppCache.nerdySelectorType.value != 0)
                         Text('${'Tokens in field'.tr}: $tokensInInputField', style: context.theme.typography.caption),

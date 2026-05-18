@@ -216,7 +216,9 @@ mixin ChatProviderAgentMixin on ChangeNotifier, ChatProviderBaseMixin, ChatProvi
           }
         }
 
-        if (chunk.finishReason == FinishReason.stop || chunk.finishReason == FinishReason.toolCalls) {
+        if ((chunk.finishReason == FinishReason.stop ||
+                chunk.finishReason == FinishReason.toolCalls) &&
+            !completer.isCompleted) {
           completer.complete(
             _agentBuildStreamedAiMessage(
               fullContent: fullContent,

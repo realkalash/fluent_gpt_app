@@ -24,7 +24,7 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
     final values = messages.value;
     final dateTime = DateTime.now();
     final id = dateTime.toIso8601String();
-    values[id] = FluentChatMessage(
+    final message = FluentChatMessage(
       id: id,
       content: '',
       creator: 'search',
@@ -32,6 +32,8 @@ mixin ChatProviderWebSearchMixin on ChangeNotifier, ChatProviderBaseMixin {
       type: FluentChatMessageType.webResult,
       webResults: webpage,
     );
+    values[id] = message;
+    ensureMessageNotifier(id, message);
     messages.add(values);
     saveToDisk([selectedChatRoom]);
     scrollToEnd();

@@ -44,7 +44,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
-import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:shimmer_animation/shimmer_animation.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
@@ -1039,7 +1038,7 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
               child: StreamBuilder(
                 stream: messages,
                 builder: (context, snapshot) {
-                  final reverseList = messagesReversedList;
+                  final chronoList = messages.value.values.toList();
                   return FocusScope(
                     node: messagesFocusScopeNode,
                     onKeyEvent: (node, event) {
@@ -1051,20 +1050,18 @@ class _ChatGPTContentState extends State<ChatGPTContent> {
                     },
                     child: ListView.builder(
                       controller: chatProvider.listItemsScrollController,
-                      itemCount: messages.value.entries.length,
+                      itemCount: chronoList.length,
                       addAutomaticKeepAlives: false,
                       addRepaintBoundaries: true,
-                      reverse: true,
                       // twice the screen size to avoid flickering on scroll
                       cacheExtent: (screenSize * 2).toDouble(),
                       itemBuilder: (context, index) {
-                        final FluentChatMessage message = reverseList.elementAt(index);
-
-                        return AutoScrollTag(
-                          controller: chatProvider.listItemsScrollController,
-                          key: ValueKey('message_$index'),
-                          index: index,
-                          highlightColor: Colors.red,
+                        final FluentChatMessage message = chronoList[index];
+                        final isStreaming = message.id == chatProvider.streamingMessageId;
+                        return KeyedSubtree(
+                          key: isStreaming
+                              ? chatProvider.streamingMessageKey
+                              : ValueKey('message_${message.id}'),
                           child: MessageCard(
                             message: message,
                             selectionMode: false,
@@ -1432,10 +1429,9 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
           ),
         ),
         onChanged: (value) {
-          // if not at the bottom we should just scroll to the bottom
-          // The list is reversed so the bottom is the top
-          if (provider.listItemsScrollController.position.pixels !=
-              provider.listItemsScrollController.position.minScrollExtent) {
+          // If user has scrolled up, jump back to the bottom first.
+          final pos = provider.listItemsScrollController.position;
+          if (pos.pixels < pos.maxScrollExtent - 80) {
             provider.scrollToEnd();
             return;
           }
