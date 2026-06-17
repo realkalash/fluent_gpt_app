@@ -107,6 +107,61 @@ class NativeChannelUtils {
     }
   }
 
+  // region snip-to-chat (Phase 0) ---------------------------------------------
+
+  /// Installs the global Cmd+Option+drag event tap on macOS.
+  /// Returns `false` if Accessibility permission is not yet granted (the system
+  /// prompt is triggered in that case — grant it and call again).
+  static Future<bool> startRegionCaptureService() async {
+    if (!Platform.isMacOS) return false;
+    try {
+      final result = await overlayChannel.invokeMethod('startRegionCaptureService');
+      return result == true;
+    } on PlatformException catch (e) {
+      print("Failed to start region capture service: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<void> stopRegionCaptureService() async {
+    if (!Platform.isMacOS) return;
+    try {
+      await overlayChannel.invokeMethod('stopRegionCaptureService');
+    } on PlatformException catch (e) {
+      print("Failed to stop region capture service: '${e.message}'.");
+    }
+  }
+
+  static Future<bool> isRegionCaptureAccessibilityGranted() async {
+    if (!Platform.isMacOS) return true;
+    try {
+      return (await overlayChannel.invokeMethod('isRegionCaptureAccessibilityGranted')) == true;
+    } on PlatformException catch (e) {
+      print("Failed to check accessibility: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<bool> isScreenRecordingGranted() async {
+    if (!Platform.isMacOS) return true;
+    try {
+      return (await overlayChannel.invokeMethod('isScreenRecordingGranted')) == true;
+    } on PlatformException catch (e) {
+      print("Failed to check screen recording: '${e.message}'.");
+      return false;
+    }
+  }
+
+  static Future<bool> requestScreenRecordingAccess() async {
+    if (!Platform.isMacOS) return true;
+    try {
+      return (await overlayChannel.invokeMethod('requestScreenRecordingAccess')) == true;
+    } on PlatformException catch (e) {
+      print("Failed to request screen recording: '${e.message}'.");
+      return false;
+    }
+  }
+
   // Currenlty only used for macOS
   static Future<bool> requestMicrophonePermissions() async {
     if (Platform.isLinux) return true;

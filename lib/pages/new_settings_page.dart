@@ -1231,6 +1231,32 @@ class DebugPage extends StatelessWidget {
                   final mousePosition = await NativeChannelUtils.getMousePosition();
                   log('mousePosition: $mousePosition');
                 }),
+            FilledRedButton(
+                child: const Text('Start region capture (Cmd+Opt OR Cmd+Shift + drag)'),
+                onPressed: () async {
+                  final started = await NativeChannelUtils.startRegionCaptureService();
+                  log('startRegionCaptureService -> $started');
+                  if (!started) {
+                    log('Grant Accessibility permission, then press again. '
+                        'Then Cmd+Option+drag (or Cmd+Shift+drag) anywhere on screen.');
+                  }
+                }),
+            FilledRedButton(
+                child: const Text('Stop region capture'),
+                onPressed: () => NativeChannelUtils.stopRegionCaptureService()),
+            FilledRedButton(
+                child: const Text('Request screen recording'),
+                onPressed: () async {
+                  final ok = await NativeChannelUtils.requestScreenRecordingAccess();
+                  log('requestScreenRecordingAccess -> $ok');
+                }),
+            FilledRedButton(
+                child: const Text('Check permissions (a11y + screen rec)'),
+                onPressed: () async {
+                  final a11y = await NativeChannelUtils.isRegionCaptureAccessibilityGranted();
+                  final screen = await NativeChannelUtils.isScreenRecordingGranted();
+                  log('accessibility=$a11y screenRecording=$screen');
+                }),
           ],
         )
       ]),

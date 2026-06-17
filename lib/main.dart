@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_gpt/features/additional_features.dart';
@@ -103,6 +104,28 @@ void setupMethodChannel() {
       case 'onTextSelected':
       // TODO: enable when ready
       case 'onMouseUp':
+        break;
+      case 'onRegionCaptureDebug':
+        log('[RegionCapture][native] ${call.arguments}');
+        break;
+      case 'onRegionCaptured':
+        // Phase 0: prove the native pipeline. Log metadata + dump the PNG to temp.
+        final args = Map<String, dynamic>.from(call.arguments as Map);
+        final base64Str = (args['imageBase64'] as String?) ?? '';
+        log('[RegionCapture] app=${args['focusedApp']} bundle=${args['bundleId']} '
+            'title="${args['windowTitle']}" '
+            'rect=(${args['rectX']},${args['rectY']},${args['rectW']},${args['rectH']}) '
+            'cursor=(${args['cursorX']},${args['cursorY']}) imageB64Len=${base64Str.length}');
+        if (base64Str.isNotEmpty) {
+          try {
+            final bytes = base64Decode(base64Str);
+            final path = '${Directory.systemTemp.path}${Platform.pathSeparator}region_capture_test.png';
+            await File(path).writeAsBytes(bytes);
+            log('[RegionCapture] saved ${bytes.length} bytes -> $path');
+          } catch (e) {
+            log('[RegionCapture] failed to decode/save image: $e');
+          }
+        }
         break;
       case 'onTimerFired':
         break;

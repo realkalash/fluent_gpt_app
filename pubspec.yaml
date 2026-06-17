@@ -100,6 +100,11 @@ dev_dependencies:
 dependency_overrides:
   intl: ^0.20.2
   uuid: ^4.1.0
+  # Flutter 3.44 removed ExtendSelectionByPageIntent; upstream fix pending release.
+  extended_text_field:
+    git:
+      url: https://github.com/polbatllo/extended_text_field.git
+      ref: flutter-3.44-compat
 
 flutter:
   assets:

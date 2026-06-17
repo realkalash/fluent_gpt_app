@@ -11,6 +11,7 @@ import Quartz
 class AppDelegate: FlutterAppDelegate {
   var overlayWindow: NSWindow?
   var methodChannel: FlutterMethodChannel?
+  var regionCaptureManager: RegionCaptureManager?
   // let customTimer = CustomTimer()
 
   override func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -42,7 +43,9 @@ class AppDelegate: FlutterAppDelegate {
     }
 
     methodChannel = FlutterMethodChannel(name: "com.realk.fluent_gpt", binaryMessenger: controller.engine.binaryMessenger)
-    
+
+    regionCaptureManager = RegionCaptureManager(methodChannel: methodChannel)
+
     setupMethodCallHandler()
     
     // TODO: Uncomment when accessibility features are needed
@@ -97,6 +100,20 @@ class AppDelegate: FlutterAppDelegate {
       case "getMousePosition":
         let cursorPosition = getCurrentCursorPosition()
         result(["positionX": cursorPosition.x, "positionY": cursorPosition.y])
+      case "startRegionCaptureService":
+        // Installs the global Cmd+Option+drag event tap. Returns false if Accessibility
+        // is not yet granted (and triggers the system prompt in that case).
+        let started = self.regionCaptureManager?.startService() ?? false
+        result(started)
+      case "stopRegionCaptureService":
+        self.regionCaptureManager?.stopService()
+        result(nil)
+      case "isRegionCaptureAccessibilityGranted":
+        result(AXIsProcessTrusted())
+      case "isScreenRecordingGranted":
+        result(self.regionCaptureManager?.isScreenRecordingGranted() ?? false)
+      case "requestScreenRecordingAccess":
+        result(self.regionCaptureManager?.requestScreenRecordingAccess() ?? false)
       case "captureActiveScreen":
         if let image = self.captureActiveScreen(),
            let imageData = image.tiffRepresentation,
@@ -370,5 +387,361 @@ extension AXUIElement {
     var rawValue: AnyObject?
     let error = AXUIElementCopyAttributeValue(self, attribute as CFString, &rawValue)
     return error == .success ? rawValue : nil
+  }
+}
+
+// MARK: - Region snip-to-chat (Phase 0)
+
+/// Seam that lets us swap the overlay's renderer later (e.g. a Metal "AI Lens" view)
+/// without touching the event-tap / window / capture plumbing. Points are in the
+/// overlay view's coordinate space (bottom-left origin).
+protocol SelectionRenderer: AnyObject {
+  func update(start: CGPoint?, end: CGPoint?)
+}
+
+/// Dims the whole desktop and punches a transparent hole with a red border for the
+/// current selection. Pure Core Graphics for now; a future `MetalLensOverlayView`
+/// can implement the same `SelectionRenderer` seam.
+final class SnipOverlayView: NSView, SelectionRenderer {
+  private var startPoint: CGPoint?
+  private var endPoint: CGPoint?
+
+  func update(start: CGPoint?, end: CGPoint?) {
+    startPoint = start
+    endPoint = end
+    needsDisplay = true
+  }
+
+  private var selectionRect: NSRect? {
+    guard let s = startPoint, let e = endPoint else { return nil }
+    return NSRect(x: min(s.x, e.x), y: min(s.y, e.y),
+                  width: abs(s.x - e.x), height: abs(s.y - e.y))
+  }
+
+  override func draw(_ dirtyRect: NSRect) {
+    guard let ctx = NSGraphicsContext.current?.cgContext else { return }
+    ctx.setFillColor(NSColor.black.withAlphaComponent(0.3).cgColor)
+    ctx.fill(bounds)
+    guard let rect = selectionRect else { return }
+    ctx.clear(rect) // punch a transparent hole so the real content shows through
+    ctx.setStrokeColor(NSColor.systemRed.cgColor)
+    ctx.setLineWidth(2)
+    ctx.stroke(rect)
+  }
+}
+
+/// Borderless, transparent, click-through panel that never steals focus.
+/// `ignoresMouseEvents = true` because the event tap is the geometry source.
+final class SnipOverlayWindow: NSPanel {
+  init(frame: NSRect) {
+    super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel],
+               backing: .buffered, defer: false)
+    isOpaque = false
+    backgroundColor = .clear
+    hasShadow = false
+    level = .screenSaver
+    ignoresMouseEvents = true
+    isReleasedWhenClosed = false
+    collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+  }
+  override var canBecomeKey: Bool { false }
+  override var canBecomeMain: Bool { false }
+}
+
+/// Owns the global Cmd+Option+drag event tap, the selection overlay, the metadata
+/// grab, and the capture-below-overlay screenshot. Sends the finished payload to
+/// Flutter via `onRegionCaptured`.
+final class RegionCaptureManager {
+  private weak var methodChannel: FlutterMethodChannel?
+
+  private var eventTap: CFMachPort?
+  private var runLoopSource: CFRunLoopSource?
+
+  private var overlayWindow: SnipOverlayWindow?
+  private var overlayView: SnipOverlayView?
+
+  private var isSnipping = false
+  private var cursorPushed = false
+  // CG global coordinates (top-left origin), taken straight from the events.
+  private var startCG: CGPoint?
+  private var lastCG: CGPoint?
+  private var moveEventCount = 0
+
+  // Metadata grabbed at mouse-down, before the overlay steals frontmost.
+  private var frontAppName: String?
+  private var frontBundleId: String?
+  private var frontWindowTitle: String?
+
+  init(methodChannel: FlutterMethodChannel?) {
+    self.methodChannel = methodChannel
+  }
+
+  /// Routes native diagnostics to the Dart `[log]` stream (and stdout) so they are
+  /// visible while debugging the gesture. Called on the main thread from the tap callback.
+  private func sendDebug(_ message: String) {
+    print("[Swift][RegionCapture] \(message)")
+    methodChannel?.invokeMethod("onRegionCaptureDebug", arguments: message)
+  }
+
+  // MARK: Permissions
+
+  func isScreenRecordingGranted() -> Bool {
+    return CGPreflightScreenCaptureAccess()
+  }
+
+  func requestScreenRecordingAccess() -> Bool {
+    return CGRequestScreenCaptureAccess()
+  }
+
+  // MARK: Service lifecycle
+
+  /// Returns false (and triggers the system prompt) if Accessibility is not granted yet.
+  func startService() -> Bool {
+    if eventTap != nil { return true }
+
+    if !AXIsProcessTrusted() {
+      let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+      AXIsProcessTrustedWithOptions(options)
+      print("[Swift] Region capture needs Accessibility permission.")
+      return false
+    }
+
+    let mask = (1 << CGEventType.leftMouseDown.rawValue)
+      | (1 << CGEventType.leftMouseDragged.rawValue)
+      | (1 << CGEventType.mouseMoved.rawValue)
+      | (1 << CGEventType.leftMouseUp.rawValue)
+      | (1 << CGEventType.keyDown.rawValue)
+
+    guard let tap = CGEvent.tapCreate(
+      tap: .cgSessionEventTap,
+      place: .headInsertEventTap,
+      options: .defaultTap,
+      eventsOfInterest: CGEventMask(mask),
+      callback: { _, type, event, refcon in
+        guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
+        let manager = Unmanaged<RegionCaptureManager>.fromOpaque(refcon).takeUnretainedValue()
+        return manager.handle(type: type, event: event)
+      },
+      userInfo: Unmanaged.passUnretained(self).toOpaque()
+    ) else {
+      print("[Swift] Failed to create event tap for region capture.")
+      return false
+    }
+
+    eventTap = tap
+    let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+    runLoopSource = source
+    CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+    CGEvent.tapEnable(tap: tap, enable: true)
+    sendDebug("service started, tap enabled (Cmd+Option or Cmd+Shift + drag).")
+    return true
+  }
+
+  func stopService() {
+    if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: false) }
+    if let source = runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes) }
+    eventTap = nil
+    runLoopSource = nil
+    cancelSnip()
+    print("[Swift] Region capture service stopped.")
+  }
+
+  // MARK: Event handling (runs on the main run loop)
+
+  private func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+    switch type {
+    case .tapDisabledByTimeout, .tapDisabledByUserInput:
+      if let tap = eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+      return Unmanaged.passUnretained(event)
+
+    case .keyDown:
+      if isSnipping, event.getIntegerValueField(.keyboardEventKeycode) == 53 { // Escape
+        cancelSnip()
+        return nil
+      }
+      return Unmanaged.passUnretained(event)
+
+    case .leftMouseDown:
+      let flags = event.flags
+      let cmd = flags.contains(.maskCommand)
+      let opt = flags.contains(.maskAlternate)
+      let shift = flags.contains(.maskShift)
+      if cmd {
+        sendDebug("mouseDown cmd=\(cmd) opt=\(opt) shift=\(shift) flagsRaw=\(flags.rawValue)")
+      }
+      // Accept Cmd+Option OR Cmd+Shift while we debug which combo behaves best.
+      if !isSnipping, cmd, (opt || shift) {
+        beginSnip(combo: opt ? "Cmd+Option" : "Cmd+Shift", atCG: event.location)
+        return nil // consume so the app underneath never sees the gesture
+      }
+      return Unmanaged.passUnretained(event)
+
+    case .leftMouseDragged, .mouseMoved:
+      // After we consume the mouse-down, the window server treats motion as mouseMoved
+      // (it never saw a button-down), so we must track both. Don't consume mouseMoved —
+      // consuming it would freeze the visible cursor.
+      if isSnipping {
+        updateSnip(toCG: event.location)
+        return type == .mouseMoved ? Unmanaged.passUnretained(event) : nil
+      }
+      return Unmanaged.passUnretained(event)
+
+    case .leftMouseUp:
+      if isSnipping {
+        endSnip()
+        return nil
+      }
+      return Unmanaged.passUnretained(event)
+
+    default:
+      return Unmanaged.passUnretained(event)
+    }
+  }
+
+  // MARK: Snip session
+
+  private func beginSnip(combo: String, atCG cg: CGPoint) {
+    isSnipping = true
+    startCG = cg
+    lastCG = cg
+    moveEventCount = 0
+    sendDebug("beginSnip via \(combo) atCG=(\(cg.x), \(cg.y))")
+    grabMetadata() // BEFORE the overlay shows, while the target app is still frontmost
+    showOverlay()
+    overlayView?.update(start: cgToViewPoint(cg), end: cgToViewPoint(cg))
+    NSCursor.crosshair.push()
+    cursorPushed = true
+  }
+
+  private func updateSnip(toCG cg: CGPoint) {
+    guard let start = startCG else { return }
+    lastCG = cg
+    moveEventCount += 1
+    overlayView?.update(start: cgToViewPoint(start), end: cgToViewPoint(cg))
+  }
+
+  private func endSnip() {
+    guard let start = startCG, let end = lastCG else { cancelSnip(); return }
+    isSnipping = false
+
+    let rectCG = CGRect(x: min(start.x, end.x), y: min(start.y, end.y),
+                        width: abs(start.x - end.x), height: abs(start.y - end.y))
+
+    // Capture BELOW the overlay (excludes the dim tint) while it is still on screen.
+    let windowNumber = CGWindowID(overlayWindow?.windowNumber ?? 0)
+    let image: CGImage? = (rectCG.width >= 5 && rectCG.height >= 5)
+      ? captureBelowCG(rectCG: rectCG, windowNumber: windowNumber)
+      : nil
+
+    teardownOverlay()
+    let cursorEnd = end
+    let moves = moveEventCount
+    startCG = nil
+    lastCG = nil
+
+    sendDebug("endSnip rectCG=(\(rectCG.width)x\(rectCG.height)) moves=\(moves) windowNum=\(windowNumber) imageNil=\(image == nil)")
+    if image == nil {
+      return
+    }
+    sendResultCG(image: image, rectCG: rectCG, cursorCG: cursorEnd)
+  }
+
+  private func cancelSnip() {
+    isSnipping = false
+    startCG = nil
+    lastCG = nil
+    teardownOverlay()
+  }
+
+  // MARK: Overlay
+
+  private func unionFrame() -> NSRect {
+    return NSScreen.screens.reduce(NSRect.zero) { $0.union($1.frame) }
+  }
+
+  private func showOverlay() {
+    let frame = unionFrame()
+    if overlayWindow == nil {
+      let window = SnipOverlayWindow(frame: frame)
+      let view = SnipOverlayView(frame: NSRect(origin: .zero, size: frame.size))
+      view.autoresizingMask = [.width, .height]
+      window.contentView = view
+      overlayWindow = window
+      overlayView = view
+    } else {
+      overlayWindow?.setFrame(frame, display: false)
+    }
+    overlayView?.update(start: nil, end: nil)
+    overlayWindow?.orderFrontRegardless()
+    sendDebug("overlay shown frame=\(overlayWindow?.frame ?? .zero) visible=\(overlayWindow?.isVisible ?? false)")
+  }
+
+  private func teardownOverlay() {
+    if cursorPushed {
+      NSCursor.pop()
+      cursorPushed = false
+    }
+    overlayView?.update(start: nil, end: nil)
+    overlayWindow?.orderOut(nil)
+  }
+
+  /// CG global point (top-left origin) -> overlay view coordinates (bottom-left origin).
+  private func cgToViewPoint(_ cg: CGPoint) -> CGPoint {
+    let primaryHeight = NSScreen.screens.first?.frame.height ?? 0
+    let origin = overlayWindow?.frame.origin ?? .zero
+    return CGPoint(x: cg.x - origin.x, y: (primaryHeight - cg.y) - origin.y)
+  }
+
+  // MARK: Capture + metadata
+
+  private func grabMetadata() {
+    let app = NSWorkspace.shared.frontmostApplication
+    frontAppName = app?.localizedName
+    frontBundleId = app?.bundleIdentifier
+    frontWindowTitle = nil
+    guard let pid = app?.processIdentifier else { return }
+
+    if let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+      as NSArray? as? [[String: Any]] {
+      for info in list {
+        guard (info[kCGWindowOwnerPID as String] as? pid_t) == pid,
+              (info[kCGWindowLayer as String] as? Int) == 0 else { continue }
+        if let name = info[kCGWindowName as String] as? String, !name.isEmpty {
+          frontWindowTitle = name
+          break
+        }
+      }
+    }
+  }
+
+  private func captureBelowCG(rectCG: CGRect, windowNumber: CGWindowID) -> CGImage? {
+    // rectCG is already CG global (top-left). Captures everything below our overlay
+    // window, so the dim tint is excluded. CGWindowListCreateImage is deprecated on
+    // macOS 14+; swap to ScreenCaptureKit later.
+    return CGWindowListCreateImage(rectCG, .optionOnScreenBelowWindow, windowNumber,
+                                   [.boundsIgnoreFraming, .bestResolution])
+  }
+
+  private func sendResultCG(image: CGImage?, rectCG: CGRect, cursorCG: CGPoint) {
+    var base64 = ""
+    if let cg = image {
+      let rep = NSBitmapImageRep(cgImage: cg)
+      if let png = rep.representation(using: .png, properties: [:]) {
+        base64 = png.base64EncodedString()
+      }
+    }
+    let args: [String: Any] = [
+      "imageBase64": base64,
+      "focusedApp": frontAppName ?? "",
+      "bundleId": frontBundleId ?? "",
+      "windowTitle": frontWindowTitle ?? "",
+      "rectX": rectCG.minX,
+      "rectY": rectCG.minY,
+      "rectW": rectCG.width,
+      "rectH": rectCG.height,
+      "cursorX": cursorCG.x,
+      "cursorY": cursorCG.y,
+    ]
+    methodChannel?.invokeMethod("onRegionCaptured", arguments: args)
   }
 }

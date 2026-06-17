@@ -411,10 +411,11 @@ packages:
   extended_text_field:
     dependency: "direct main"
     description:
-      name: extended_text_field
-      sha256: "3996195c117c6beb734026a7bc0ba80d7e4e84e4edd4728caa544d8209ab4d7d"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "flutter-3.44-compat"
+      resolved-ref: e433ae1aac3daeecc63a7a6d000e9926a4c57cfe
+      url: "https://github.com/polbatllo/extended_text_field.git"
+    source: git
     version: "16.0.2"
   extended_text_library:
     dependency: transitive
