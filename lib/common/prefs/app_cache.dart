@@ -91,6 +91,9 @@ class AppCache {
   static const windowWidth = IntPref("windowWidth");
   static const windowHeight = IntPref("windowHeight");
 
+  /// Milliseconds since epoch when the main window was last hidden to tray.
+  static const lastAppHiddenAtMs = IntPref("lastAppHiddenAtMs");
+
   static const globalSystemPrompt = StringPref("globalSystemPrompt", '');
   static const hideEditSystemPromptInHomePage = BoolPref("hideEditSystemPromptInHomePage", true);
   static const tokensUsedTotal = IntPref("tokensUsedTotal");

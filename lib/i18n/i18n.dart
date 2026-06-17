@@ -42,6 +42,10 @@ class I18n {
           'FluentGPT is not the creator, originator, or owner of any Model featured in the Community Model Program. Each Community Model is created and provided by third parties',
     },
     'ru': {
+      'Yes': 'Да',
+      'No': 'Нет',
+      'Confirm close': 'Подтвердить закрытие',
+      'Are you sure you want to close this window?': 'Вы уверены, что хотите закрыть это окно?',
       'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools. Your system message will be ignored in order to use this mode':
           'Режим агента: ИИ будет планировать и выполнять задачи автономно, используя операции с файлами и другие инструменты. Ваше системное сообщение будет игнорироваться для использования этого режима',
       'AI can see only the last image in this chat': 'ИИ может видеть только последнее изображение в этом чате',
@@ -408,6 +412,10 @@ class I18n {
       'What\'s New': 'Что нового',
     },
     'es': {
+      'Yes': 'Sí',
+      'No': 'No',
+      'Confirm close': 'Confirmar cierre',
+      'Are you sure you want to close this window?': '¿Estás seguro de querer cerrar esta ventana?',
       'Agent Mode: AI will plan and execute tasks autonomously using file operations and other tools. Your system message will be ignored in order to use this mode':
           'Modo agente: La IA planificará y ejecutará tareas de forma autónoma utilizando operaciones de archivos y otras herramientas. Su mensaje de sistema será ignorado para usar este modo',
       'AI can see only the last image in this chat': 'La IA puede ver solo la última imagen en este chat',

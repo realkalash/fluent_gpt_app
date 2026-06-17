@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/auto_new_chat_on_open.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/push_to_talk_tool.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
@@ -153,7 +154,11 @@ enum TrayCommand {
 
 Future showWindow() async {
   log('Showing Window');
+  final wasHidden = !await windowManager.isVisible();
   await windowManager.show(inactive: false);
+  if (wasHidden) {
+    await AutoNewChatOnOpen.maybeCreateNewChatAfterIdle();
+  }
   if (Platform.isMacOS) {
     // await windowManager.focus();
   }

@@ -242,52 +242,56 @@ class _MyAppState extends State<MyApp> with ProtocolListener {
             builder: (ctx, child) {
               final appTheme = ctx.watch<AppTheme>();
               return ChangeNotifierProvider(
-                  create: (ctx) => WeatherProvider(context),
-                  lazy: true,
-                  builder: (context, snapshot) {
-                    return Listener(
-                      onPointerDown: (event) => mouseLocalPosition = event.position,
-                      child: FluentApp(
-                        title: '',
-                        navigatorKey: navigatorKey,
-                        onGenerateTitle: (context) => 'ChatGPT',
-                        themeMode: appTheme.mode,
-                        debugShowCheckedModeBanner: false,
-                        home: const GlobalPage(),
-                        color: appTheme.color,
-                        supportedLocales: const [Locale('en')],
-                        darkTheme: FluentThemeData(
-                          brightness: Brightness.dark,
-                          visualDensity: appTheme.visualDensity,
-                          scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
-                          infoBarTheme:
-                              InfoBarThemeData(decoration: (severity) => appTheme.buildInfoBarDecoration(severity)),
-                          accentColor: appTheme.color,
-                          iconTheme: const IconThemeData(size: 20, color: Colors.white),
-                          cardColor: _appTheme.darkCardColor,
+                create: (ctx) => WeatherProvider(context),
+                lazy: true,
+                builder: (context, snapshot) {
+                  return Listener(
+                    onPointerDown: (event) => mouseLocalPosition = event.position,
+                    child: FluentApp(
+                      title: '',
+                      navigatorKey: navigatorKey,
+                      onGenerateTitle: (context) => 'ChatGPT',
+                      themeMode: appTheme.mode,
+                      debugShowCheckedModeBanner: false,
+                      home: const GlobalPage(),
+                      color: appTheme.color,
+                      supportedLocales: const [Locale('en')],
+                      darkTheme: FluentThemeData(
+                        brightness: Brightness.dark,
+                        visualDensity: appTheme.visualDensity,
+                        scaffoldBackgroundColor: _appTheme.darkBackgroundColor,
+                        infoBarTheme: InfoBarThemeData(
+                          decoration: (severity) => appTheme.buildInfoBarDecoration(severity),
                         ),
-                        theme: FluentThemeData(
-                          accentColor: appTheme.color,
-                          visualDensity: appTheme.visualDensity,
-                          scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
-                          infoBarTheme:
-                              InfoBarThemeData(decoration: (severity) => appTheme.buildInfoBarDecoration(severity)),
-                          iconTheme: const IconThemeData(size: 20),
-                          cardColor: _appTheme.lightCardColor,
-                        ),
-                        locale: appTheme.locale,
-                        builder: (ctx, child) {
-                          return NavigationPaneTheme(
-                            data: NavigationPaneThemeData(
-                              backgroundColor:
-                                  appTheme.isDark ? _appTheme.darkBackgroundColor : _appTheme.lightBackgroundColor,
-                            ),
-                            child: child!,
-                          );
-                        },
+                        accentColor: appTheme.color,
+                        iconTheme: const IconThemeData(size: 20, color: Colors.white),
+                        cardColor: _appTheme.darkCardColor,
                       ),
-                    );
-                  });
+                      theme: FluentThemeData(
+                        accentColor: appTheme.color,
+                        visualDensity: appTheme.visualDensity,
+                        scaffoldBackgroundColor: _appTheme.lightBackgroundColor,
+                        infoBarTheme: InfoBarThemeData(
+                          decoration: (severity) => appTheme.buildInfoBarDecoration(severity),
+                        ),
+                        iconTheme: const IconThemeData(size: 20),
+                        cardColor: _appTheme.lightCardColor,
+                      ),
+                      locale: appTheme.locale,
+                      builder: (ctx, child) {
+                        return NavigationPaneTheme(
+                          data: NavigationPaneThemeData(
+                            backgroundColor: appTheme.isDark
+                                ? _appTheme.darkBackgroundColor
+                                : _appTheme.lightBackgroundColor,
+                          ),
+                          child: child!,
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),
@@ -314,10 +318,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
 
   @override
   void dispose() {
-    // final navigationProvider = context.read<NavigationProvider>();
     windowManager.removeListener(this);
-    // navigationProvider.searchController.dispose();
-    // navigationProvider.searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -359,20 +360,21 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
             }
           },
           child: StreamBuilder<OverlayStatus>(
-              stream: overlayVisibility,
-              initialData: overlayVisibility.value,
-              builder: (context, snapshot) {
-                if (snapshot.data?.isShowingOverlay == true) {
-                  return const OverlayUI();
-                }
-                if (snapshot.data?.isShowingSidebarOverlay == true) {
-                  return const SidebarOverlayUI();
-                }
-                if (snapshot.data?.isShowingSearchOverlay == true) {
-                  return const SearchOverlayUI();
-                }
-                return const MainPageWithNavigation();
-              }),
+            stream: overlayVisibility,
+            initialData: overlayVisibility.value,
+            builder: (context, snapshot) {
+              if (snapshot.data?.isShowingOverlay == true) {
+                return const OverlayUI();
+              }
+              if (snapshot.data?.isShowingSidebarOverlay == true) {
+                return const SidebarOverlayUI();
+              }
+              if (snapshot.data?.isShowingSearchOverlay == true) {
+                return const SearchOverlayUI();
+              }
+              return const MainPageWithNavigation();
+            },
+          ),
         ),
       ),
     );
@@ -386,18 +388,18 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
         context: context,
         builder: (_) {
           return ContentDialog(
-            title: const Text('Confirm close'),
-            content: const Text('Are you sure you want to close this window?'),
+            title: Text('Confirm close'.tr),
+            content: Text('Are you sure you want to close this window?'.tr),
             actions: [
               FilledButton(
-                child: const Text('Yes'),
+                child: Text('Yes'.tr),
                 onPressed: () {
                   Navigator.pop(context);
                   windowManager.destroy();
                 },
               ),
               Button(
-                child: const Text('No'),
+                child: Text('No'.tr),
                 onPressed: () {
                   Navigator.pop(context);
                 },

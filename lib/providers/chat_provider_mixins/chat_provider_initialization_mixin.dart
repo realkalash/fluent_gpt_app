@@ -6,6 +6,7 @@ import 'package:fluent_gpt/common/on_message_actions/on_message_action.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
 import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/features/agent_get_message_actions.dart';
+import 'package:fluent_gpt/features/auto_new_chat_on_open.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
@@ -27,6 +28,7 @@ mixin ChatProviderInitializationMixin on ChangeNotifier, ChatProviderBaseMixin {
     initSettingsFromCache();
     initTimers();
     initListeners();
+    await AutoNewChatOnOpen.maybeCreateNewChatAfterIdle(chatProvider: this as ChatProvider);
   }
 
   void initMessagesListener() {

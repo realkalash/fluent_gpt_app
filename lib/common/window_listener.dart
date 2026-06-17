@@ -1,5 +1,6 @@
 import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/prefs/app_cache.dart';
+import 'package:fluent_gpt/features/auto_new_chat_on_open.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
@@ -97,8 +98,10 @@ class AppWindowListener extends WindowListener {
       windowVisibilityStream.add(true);
     } else if (eventName == 'hide') {
       windowVisibilityStream.add(false);
+      AutoNewChatOnOpen.recordAppHidden();
     } else if (eventName == 'minimize') {
       windowVisibilityStream.add(false);
+      AutoNewChatOnOpen.recordAppHidden();
     }
   }
 }
