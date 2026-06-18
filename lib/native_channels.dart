@@ -203,6 +203,32 @@ class NativeChannelUtils {
     }
   }
 
+  // region OCR (native text recognition) ------------------------------------
+
+  /// Runs on-device OCR over [bytes] (encoded PNG/JPEG) using the platform's
+  /// native text recognizer (macOS Vision). Returns a map with `text` (full
+  /// joined string) and `blocks` (list of `{text, x, y, w, h, confidence}` where
+  /// the rect is normalized 0..1, top-left origin). Null on non-macOS or failure.
+  static Future<Map<String, dynamic>?> recognizeText(
+    Uint8List bytes, {
+    List<String>? languages,
+    bool fast = false,
+  }) async {
+    if (!Platform.isMacOS) return null;
+    try {
+      final res = await overlayChannel.invokeMethod('recognizeText', {
+        'imageBytes': bytes,
+        if (languages != null && languages.isNotEmpty) 'languages': languages,
+        'fast': fast,
+      });
+      if (res == null) return null;
+      return Map<String, dynamic>.from(res as Map);
+    } on PlatformException catch (e) {
+      print("Failed to recognize text: '${e.message}'.");
+      return null;
+    }
+  }
+
   // Currenlty only used for macOS
   static Future<bool> requestMicrophonePermissions() async {
     if (Platform.isLinux) return true;

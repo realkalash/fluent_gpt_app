@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:fluent_gpt/common/attachment.dart';
@@ -7,6 +8,8 @@ import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
+import 'package:fluent_gpt/services/ocr_service.dart';
+import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 // ignore: unnecessary_import
@@ -27,6 +30,10 @@ import 'package:provider/provider.dart';
 /// Cached lens fragment program. Warmed once at app startup ([warmLensShader])
 /// so opening the lens doesn't pay the shader-compile cost on first use.
 ui.FragmentProgram? _lensProgram;
+
+/// Debug: dump the exact bytes sent to OCR (+ an annotated copy with the
+/// recognized boxes drawn on it) to the temp dir. Flip to false to disable.
+const bool kDumpOcrCrop = true;
 
 /// Loads + caches the lens shader. Safe to call repeatedly; call once early
 /// (e.g. on app start) to pre-warm it.
@@ -72,6 +79,12 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   // immediately so the engine resumes during capture). We listen for the
   // capture to arrive, then decode the frozen frame.
   StreamSubscription<LensCapture?>? _captureSub;
+
+  // OCR (Live Text) state. Recognized text for the current selection; rebuilt
+  // each time the Text chip runs and cleared whenever the selection changes.
+  OcrResult? _ocr;
+  bool _ocrLoading = false;
+  final FocusNode _ocrFocus = FocusNode(debugLabel: 'lensOcr');
 
   @override
   void initState() {
@@ -123,7 +136,105 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     _frozen?.dispose();
     _promptController.dispose();
     _promptFocus.dispose();
+    _ocrFocus.dispose();
     super.dispose();
+  }
+
+  /// Runs native OCR over the current selection and shows the Live Text overlay.
+  /// On-demand (triggered by the Text chip); reuses the same crop as [_submit].
+  Future<void> _runOcr() async {
+    final selection = _selection;
+    final capture = lensCapture.valueOrNull;
+    if (selection == null || capture == null || _ocrLoading) return;
+    if (!OcrService.instance.isSupported) {
+      log('[AiLens] OCR not supported on this platform');
+      return;
+    }
+    if (kDumpOcrCrop) {
+      final mq = MediaQuery.maybeOf(context);
+      log('[AiLens] drag start=$_dragStart cur=$_dragCurrent sel=$selection | '
+          'view=${mq?.size} dpr=${mq?.devicePixelRatio} | '
+          'capturePt=${capture.pointWidth}x${capture.pointHeight}');
+    }
+    setState(() => _ocrLoading = true);
+    try {
+      final pngBytes = await _cropSelection(capture, selection);
+      if (pngBytes == null) {
+        log('[AiLens] OCR crop failed');
+        return;
+      }
+      final result = await OcrService.instance.recognize(pngBytes, fast: false);
+      if (!mounted) return;
+      log('[AiLens] OCR: ${result.blocks.length} blocks, ${result.text.length} chars\n${result.text}');
+      if (kDumpOcrCrop) await _debugDumpCrop(pngBytes, result);
+      setState(() => _ocr = result);
+      if (result.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _ocrFocus.requestFocus();
+        });
+      }
+    } catch (e) {
+      log('[AiLens] OCR failed: $e');
+    } finally {
+      if (mounted) setState(() => _ocrLoading = false);
+    }
+  }
+
+  /// Clears any recognized text (called when the selection changes / is reset).
+  void _clearOcr() {
+    if (_ocr == null && !_ocrLoading) return;
+    setState(() {
+      _ocr = null;
+      _ocrLoading = false;
+    });
+  }
+
+  /// Debug aid: writes the exact crop sent to OCR to the temp dir, plus an
+  /// annotated copy with the recognized boxes drawn on it (red = each block's
+  /// rect mapped to pixels the same way the live overlay maps them). Comparing
+  /// the two tells us whether the offset/truncation lives in the crop, in
+  /// Vision's boxes, or only in the live display.
+  Future<void> _debugDumpCrop(Uint8List pngBytes, OcrResult result) async {
+    try {
+      final dir = Directory.systemTemp.path;
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final rawPath = '$dir/fluent_ocr_${ts}_crop.png';
+      await File(rawPath).writeAsBytes(pngBytes);
+      log('[AiLens] OCR crop  -> $rawPath');
+
+      if (result.blocks.isEmpty) return;
+      final codec = await ui.instantiateImageCodec(pngBytes);
+      final img = (await codec.getNextFrame()).image;
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawImage(img, Offset.zero, Paint());
+      final stroke = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFFFF3B30);
+      for (final b in result.blocks) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+            b.rect.left * img.width,
+            b.rect.top * img.height,
+            b.rect.width * img.width,
+            b.rect.height * img.height,
+          ),
+          stroke,
+        );
+      }
+      final picture = recorder.endRecording();
+      final annotated = await picture.toImage(img.width, img.height);
+      final data = await annotated.toByteData(format: ui.ImageByteFormat.png);
+      final boxPath = '$dir/fluent_ocr_${ts}_boxes.png';
+      if (data != null) await File(boxPath).writeAsBytes(data.buffer.asUint8List());
+      log('[AiLens] OCR boxes -> $boxPath');
+      img.dispose();
+      picture.dispose();
+      annotated.dispose();
+    } catch (e) {
+      log('[AiLens] OCR crop dump failed: $e');
+    }
   }
 
   Rect? get _selection {
@@ -201,6 +312,13 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     // since a selection requires the frame to be visible). The shared [_frozen]
     // is owned by this State (disposed in [dispose]) — never dispose it here.
     ui.Image? owned;
+    // The frozen frame is displayed BoxFit.fill across the Flutter VIEW, whose
+    // logical size can be smaller than the captured display (the lens window
+    // doesn't cover the menu bar / has chrome). Selection coords live in this
+    // view space, so map them to image pixels via the view size — matching
+    // exactly how the shader samples the texture (uv = fragCoord / viewSize).
+    // Using pointWidth (the full display) under-scales and clips the crop.
+    final viewSize = MediaQuery.sizeOf(context);
     try {
       ui.Image src;
       if (_frozen != null) {
@@ -211,8 +329,8 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
         owned = frame.image;
         src = owned;
       }
-      final sx = capture.pxWidth / capture.pointWidth;
-      final sy = capture.pxHeight / capture.pointHeight;
+      final sx = src.width / viewSize.width;
+      final sy = src.height / viewSize.height;
       var px = Rect.fromLTRB(
         (selPoints.left * sx).clamp(0, src.width.toDouble()),
         (selPoints.top * sy).clamp(0, src.height.toDouble()),
@@ -221,6 +339,14 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
       );
       final outW = px.width.round();
       final outH = px.height.round();
+      if (kDumpOcrCrop) {
+        log('[crop] sel=${selPoints.left.toStringAsFixed(0)},${selPoints.top.toStringAsFixed(0)} '
+            '${selPoints.width.toStringAsFixed(0)}x${selPoints.height.toStringAsFixed(0)} | '
+            'sx=${sx.toStringAsFixed(3)} sy=${sy.toStringAsFixed(3)} | '
+            'src=${src.width}x${src.height} pxW=${capture.pxWidth} ptW=${capture.pointWidth} '
+            'scale=${capture.scale} | px=${px.left.toStringAsFixed(0)},${px.top.toStringAsFixed(0)} '
+            '${px.width.toStringAsFixed(0)}x${px.height.toStringAsFixed(0)} out=${outW}x$outH');
+      }
       if (outW <= 0 || outH <= 0) return null;
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -246,8 +372,11 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
       autofocus: true,
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          // Esc clears the selection first, then (on a second press) closes.
-          if (_dragStart != null) {
+          // Esc peels back state: recognized text first, then the selection,
+          // then (on a final press) closes the lens.
+          if (_ocr != null || _ocrLoading) {
+            _clearOcr();
+          } else if (_dragStart != null) {
             setState(() {
               _dragStart = null;
               _dragCurrent = null;
@@ -271,87 +400,107 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     // Listener (raw pointer) instead of GestureDetector so the selection drag
     // can't be stolen by the ancestor window-drag recognizer in GlobalPage.
     return Listener(
-        onPointerDown: (e) {
-          // Don't start a new selection when interacting with the prompt pill.
-          if (selection != null && _hudRect(capture, selection).contains(e.localPosition)) {
-            return;
-          }
-          setState(() {
-            _selecting = true;
-            _dragStart = e.localPosition;
-            _dragCurrent = e.localPosition;
+      onPointerDown: (e) {
+        // Don't start a new selection when interacting with the prompt pill.
+        if (selection != null && _hudRect(capture, selection).contains(e.localPosition)) {
+          return;
+        }
+        // While the Live Text overlay is up, taps inside the selection belong
+        // to the selectable text region (drag-select), not a brand-new snip.
+        if (_ocr != null && selection != null && selection.contains(e.localPosition)) {
+          return;
+        }
+        setState(() {
+          _selecting = true;
+          _dragStart = e.localPosition;
+          _dragCurrent = e.localPosition;
+          // Starting a fresh selection invalidates any recognized text.
+          _ocr = null;
+          _ocrLoading = false;
+        });
+      },
+      onPointerMove: (e) {
+        if (!_selecting) return;
+        setState(() => _dragCurrent = e.localPosition);
+      },
+      onPointerUp: (e) {
+        if (!_selecting) return;
+        setState(() => _selecting = false);
+        // Auto-focus the prompt field once a real selection has been drawn.
+        if (_selection != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _promptFocus.requestFocus();
           });
-        },
-        onPointerMove: (e) {
-          if (!_selecting) return;
-          setState(() => _dragCurrent = e.localPosition);
-        },
-        onPointerUp: (e) {
-          if (!_selecting) return;
-          setState(() => _selecting = false);
-          // Auto-focus the prompt field once a real selection has been drawn.
-          if (_selection != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) _promptFocus.requestFocus();
-            });
-          }
-        },
-        child: MouseRegion(
-          cursor: SystemMouseCursors.precise,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // 1. The whole visual: frozen frame + elastic-glass distortion +
-              //    drifting aurora tint + sparkles, with a crisp selection cutout.
-              //    Falls back to the plain frozen frame until shader+image load.
-              Positioned.fill(
-                child: (_shader != null && _frozen != null)
-                    ? ValueListenableBuilder<double>(
-                        valueListenable: _clock,
-                        builder: (context, t, _) {
-                          // Anchor the ripple to the first *visible* frame. The
-                          // ticker only advances while the window renders, so a
-                          // launch from a hidden window still plays the ripple.
-                          _readyTime ??= t;
-                          final openT = ((t - _readyTime!) / 1.4).clamp(0.0, 1.0);
-                          return CustomPaint(
-                            painter: _LensShaderPainter(
-                              shader: _shader!,
-                              image: _frozen!,
-                              time: t,
-                              openT: openT,
-                              selection: selection,
-                              cursor: Offset(capture.cursorX, capture.cursorY),
-                            ),
-                          );
-                        },
-                      )
-                    : Image.memory(bytes, fit: BoxFit.fill, gaplessPlayback: true),
-              ),
+        }
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.precise,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 1. The whole visual: frozen frame + elastic-glass distortion +
+            //    drifting aurora tint + sparkles, with a crisp selection cutout.
+            //    Falls back to the plain frozen frame until shader+image load.
+            Positioned.fill(
+              child: (_shader != null && _frozen != null)
+                  ? ValueListenableBuilder<double>(
+                      valueListenable: _clock,
+                      builder: (context, t, _) {
+                        // Anchor the ripple to the first *visible* frame. The
+                        // ticker only advances while the window renders, so a
+                        // launch from a hidden window still plays the ripple.
+                        _readyTime ??= t;
+                        final openT = ((t - _readyTime!) / 1.4).clamp(0.0, 1.0);
+                        return CustomPaint(
+                          painter: _LensShaderPainter(
+                            shader: _shader!,
+                            image: _frozen!,
+                            time: t,
+                            openT: openT,
+                            selection: selection,
+                            cursor: Offset(capture.cursorX, capture.cursorY),
+                          ),
+                        );
+                      },
+                    )
+                  : Image.memory(bytes, fit: BoxFit.fill, gaplessPlayback: true),
+            ),
 
-              // 2. Selection border + glow.
-              if (selection != null)
-                Positioned.fromRect(
-                  rect: selection,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFCFEFFF), width: 1.5),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x6699D6FF), blurRadius: 16, spreadRadius: 1),
-                        ],
-                      ),
+            // 2. Selection border + glow.
+            if (selection != null)
+              Positioned.fromRect(
+                rect: selection,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFCFEFFF), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x6699D6FF), blurRadius: 16, spreadRadius: 1),
+                      ],
                     ),
                   ),
                 ),
+              ),
 
-              // 3. Floating prompt pill, anchored under the selection.
-              if (selection != null) _buildHud(capture, selection),
-            ],
-          ),
+            // 2.5 Live Text overlay: selectable OCR results laid over the
+            //     frozen frame, positioned by each block's normalized rect.
+            if (selection != null && _ocr != null && _ocr!.isNotEmpty)
+              Positioned.fromRect(
+                rect: selection,
+                child: _LiveTextLayer(
+                  result: _ocr!,
+                  size: selection.size,
+                  focusNode: _ocrFocus,
+                ),
+              ),
+
+            // 3. Floating prompt pill, anchored under the selection.
+            if (selection != null) _buildHud(capture, selection),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildHud(LensCapture capture, Rect selection) {
@@ -365,6 +514,101 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
         focusNode: _promptFocus,
         onSubmit: _submit,
         onClose: _close,
+        onText: _runOcr,
+        ocrLoading: _ocrLoading,
+        ocrText: _ocr?.text,
+        onClearText: _clearOcr,
+      ),
+    );
+  }
+}
+
+/// Selectable "Live Text" overlay laid over the selection. Each OCR block is a
+/// transparent, selectable text box positioned by its normalized rect (scaled to
+/// the selection size). Wrapping them in a [CustomSelectableRegion] lets the user
+/// drag-select across lines and copy (Cmd+C) just like macOS Live Text.
+class _LiveTextLayer extends StatelessWidget {
+  const _LiveTextLayer({
+    required this.result,
+    required this.size,
+    required this.focusNode,
+  });
+  final OcrResult result;
+  final Size size; // selection size in display points
+  final FocusNode focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    // Reading-order sort so cross-line selection + copy concatenate sanely.
+    final blocks = result.blocks.where((b) => b.text.trim().isNotEmpty).toList()
+      ..sort((a, b) {
+        final dy = a.rect.top.compareTo(b.rect.top);
+        return dy != 0 ? dy : a.rect.left.compareTo(b.rect.left);
+      });
+    // Make the selection highlight clearly visible (the glyphs themselves are
+    // transparent — the frozen frame already shows the text underneath).
+    return DefaultSelectionStyle(
+      selectionColor: const Color(0x6635C4FF),
+      child: SizedBox.fromSize(
+        size: size,
+        child: CustomSelectableRegion(
+          focusNode: focusNode,
+          selectionControls: fluentTextSelectionControls,
+          child: Stack(
+            children: [
+              for (final block in blocks)
+                Positioned(
+                  left: block.rect.left * size.width,
+                  top: block.rect.top * size.height,
+                  width: block.rect.width * size.width,
+                  // No height: the line sizes to its font (set from the box
+                  // height below), so the highlight hugs the glyphs instead of
+                  // being stretched to fill a fixed box.
+                  child: _LiveTextBox(
+                    text: block.text,
+                    fontSize: (block.rect.height * size.height).clamp(6.0, 200.0),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single selectable OCR line, stretched to fill its bounding box so the
+/// selection highlight lines up with the text under it on the frozen frame.
+/// The glyphs themselves are kept near-transparent (Live-Text style).
+class _LiveTextBox extends StatelessWidget {
+  const _LiveTextBox({required this.text, required this.fontSize});
+  final String text;
+
+  /// Logical-pixel font size, derived from the OCR block's height so the line
+  /// box (and thus the selection highlight) matches the text on the frozen frame.
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    // Transparent glyphs (the frozen frame already shows the text); only the
+    // selection highlight is visible. forceStrutHeight pins the line box to
+    // exactly [fontSize] so the highlight hugs the glyphs vertically.
+    return Text(
+      text,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.clip,
+      strutStyle: StrutStyle(
+        fontSize: fontSize,
+        height: 1.0,
+        leading: 0,
+        forceStrutHeight: true,
+      ),
+      style: TextStyle(
+        color: const Color(0x00FFFFFF),
+        fontSize: fontSize,
+        height: 1.0,
+        leadingDistribution: TextLeadingDistribution.even,
       ),
     );
   }
@@ -417,11 +661,27 @@ class _LensPromptPill extends StatelessWidget {
     required this.focusNode,
     required this.onSubmit,
     required this.onClose,
+    required this.onText,
+    required this.ocrLoading,
+    required this.ocrText,
+    required this.onClearText,
   });
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onSubmit;
   final VoidCallback onClose;
+
+  /// Runs OCR on the current selection (the "Text" chip).
+  final VoidCallback onText;
+
+  /// True while OCR is in flight — swaps the Text chip icon for a spinner.
+  final bool ocrLoading;
+
+  /// Recognized text once OCR has run (null = not run yet, '' = nothing found).
+  final String? ocrText;
+
+  /// Dismisses the Live Text overlay.
+  final VoidCallback onClearText;
 
   @override
   Widget build(BuildContext context) {
@@ -471,10 +731,22 @@ class _LensPromptPill extends StatelessWidget {
               const SizedBox(height: 8),
               Container(height: 1, color: const Color(0x14FFFFFF)),
               const SizedBox(height: 8),
-              // Feature actions — placeholders for now (OCR / translate / search).
+              // OCR status / actions, shown once the Text chip has run.
+              if (ocrText != null) ...[
+                _OcrStatusRow(ocrText: ocrText!, onClear: onClearText),
+                const SizedBox(height: 8),
+              ],
+              // Feature actions. "Text" = native OCR (Live Text overlay); the
+              // rest are placeholders for now (translate / search).
               Row(
                 children: [
-                  _PillChip(icon: ic.FluentIcons.text_grammar_wand_24_regular, label: 'Text'.tr, onTap: () {}),
+                  _PillChip(
+                    icon: ic.FluentIcons.text_grammar_wand_24_regular,
+                    label: 'Text'.tr,
+                    onTap: onText,
+                    loading: ocrLoading,
+                    active: ocrText != null && ocrText!.isNotEmpty,
+                  ),
                   const SizedBox(width: 6),
                   _PillChip(icon: ic.FluentIcons.translate_24_regular, label: 'Translate'.tr, onTap: () {}),
                   const SizedBox(width: 6),
@@ -491,10 +763,22 @@ class _LensPromptPill extends StatelessWidget {
 
 /// Labeled feature chip in the bottom row of the prompt pill.
 class _PillChip extends StatefulWidget {
-  const _PillChip({required this.icon, required this.label, required this.onTap});
+  const _PillChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.loading = false,
+    this.active = false,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+
+  /// Shows a spinner in place of the icon (action in flight).
+  final bool loading;
+
+  /// Highlights the chip when its result is currently displayed.
+  final bool active;
 
   @override
   State<_PillChip> createState() => _PillChipState();
@@ -505,29 +789,76 @@ class _PillChipState extends State<_PillChip> {
 
   @override
   Widget build(BuildContext context) {
+    const accent = Color(0xFFCFEFFF);
+    final Color bg = widget.active
+        ? const Color(0x33CFEFFF)
+        : (_hover ? const Color(0x1FFFFFFF) : const Color(0x12FFFFFF));
+    final Color border = widget.active ? const Color(0x66CFEFFF) : const Color(0x1AFFFFFF);
+    final Color fg = widget.active ? accent : const Color(0xDDFFFFFF);
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
-        onTap: widget.onTap,
+        onTap: widget.loading ? null : widget.onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: _hover ? const Color(0x1FFFFFFF) : const Color(0x12FFFFFF),
+            color: bg,
             borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0x1AFFFFFF)),
+            border: Border.all(color: border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 16, color: const Color(0xDDFFFFFF)),
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: widget.loading ? const ProgressRing(strokeWidth: 2) : Icon(widget.icon, size: 16, color: fg),
+              ),
               const SizedBox(width: 6),
-              Text(widget.label, style: const TextStyle(color: Color(0xDDFFFFFF), fontSize: 12)),
+              Text(widget.label, style: TextStyle(color: fg, fontSize: 12)),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Status line shown in the pill once OCR has run: a "select text on the image"
+/// hint with Copy-all + dismiss actions, or a "no text found" note.
+class _OcrStatusRow extends StatelessWidget {
+  const _OcrStatusRow({required this.ocrText, required this.onClear});
+  final String ocrText;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = ocrText.trim().isEmpty;
+    return Row(
+      children: [
+        Icon(
+          empty ? ic.FluentIcons.text_grammar_dismiss_24_regular : ic.FluentIcons.text_grammar_checkmark_24_regular,
+          size: 14,
+          color: const Color(0xAAFFFFFF),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            empty ? 'No text found'.tr : 'Select text on the image, or copy it all'.tr,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xAAFFFFFF), fontSize: 11),
+          ),
+        ),
+        if (!empty)
+          _PillIconButton(
+            icon: ic.FluentIcons.copy_24_regular,
+            onTap: () => Clipboard.setData(ClipboardData(text: ocrText)),
+          ),
+        _PillIconButton(icon: ic.FluentIcons.dismiss_24_regular, onTap: onClear),
+      ],
     );
   }
 }

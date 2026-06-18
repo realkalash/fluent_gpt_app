@@ -4,6 +4,7 @@ import FlutterMacOS
 import Foundation
 import AVFoundation
 import Quartz
+import Vision
 // This is required for calling FlutterLocalNotificationsPlugin.setPluginRegistrantCallback method.
 // import flutter_local_notifications
 
@@ -126,6 +127,15 @@ class AppDelegate: FlutterAppDelegate {
         }
       case "captureDisplayUnderCursor":
         result(self.captureDisplayUnderCursor())
+      case "recognizeText":
+        guard let args = call.arguments as? [String: Any],
+              let data = (args["imageBytes"] as? FlutterStandardTypedData)?.data else {
+          result(FlutterError(code: "BAD_ARGS", message: "imageBytes (Uint8List) required", details: nil))
+          return
+        }
+        let languages = args["languages"] as? [String]
+        let fast = (args["fast"] as? Bool) ?? false
+        self.recognizeText(imageData: data, languages: languages, fast: fast, result: result)
       case "enterLensMode":
         self.enterLensMode()
         result(true)
@@ -324,6 +334,70 @@ class AppDelegate: FlutterAppDelegate {
         return nil
     }
 }
+
+  // MARK: - OCR (Vision framework)
+
+  /// On-device text recognition via Vision. Accepts encoded image bytes (PNG/JPEG),
+  /// runs `VNRecognizeTextRequest`, and returns the joined text plus per-line blocks
+  /// with their bounding boxes normalized 0..1 in **top-left** origin (flipped from
+  /// Vision's bottom-left) so the Flutter side can position a Live-Text overlay
+  /// directly. Runs off the main thread; `result` is always called exactly once.
+  private func recognizeText(imageData: Data, languages: [String]?, fast: Bool, result: @escaping FlutterResult) {
+    guard let nsImage = NSImage(data: imageData),
+          let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+      result(FlutterError(code: "DECODE_FAILED", message: "Could not decode image bytes", details: nil))
+      return
+    }
+
+    let request = VNRecognizeTextRequest { req, error in
+      if let error = error {
+        DispatchQueue.main.async {
+          result(FlutterError(code: "OCR_FAILED", message: error.localizedDescription, details: nil))
+        }
+        return
+      }
+      let observations = (req.results as? [VNRecognizedTextObservation]) ?? []
+      var blocks: [[String: Any]] = []
+      var lines: [String] = []
+      for obs in observations {
+        guard let candidate = obs.topCandidates(1).first else { continue }
+        let bb = obs.boundingBox // normalized, bottom-left origin
+        blocks.append([
+          "text": candidate.string,
+          "x": bb.minX,
+          "y": 1.0 - bb.maxY, // flip to top-left origin for Flutter
+          "w": bb.width,
+          "h": bb.height,
+          "confidence": candidate.confidence,
+        ])
+        lines.append(candidate.string)
+      }
+      let payload: [String: Any] = [
+        "text": lines.joined(separator: "\n"),
+        "blocks": blocks,
+      ]
+      DispatchQueue.main.async { result(payload) }
+    }
+
+    request.recognitionLevel = fast ? .fast : .accurate
+    request.usesLanguageCorrection = true
+    if let languages = languages, !languages.isEmpty {
+      request.recognitionLanguages = languages
+    } else if #available(macOS 13.0, *) {
+      request.automaticallyDetectsLanguage = true
+    }
+
+    let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+    DispatchQueue.global(qos: .userInitiated).async {
+      do {
+        try handler.perform([request])
+      } catch {
+        DispatchQueue.main.async {
+          result(FlutterError(code: "OCR_FAILED", message: error.localizedDescription, details: nil))
+        }
+      }
+    }
+  }
 
   // MARK: - AI Lens (fullscreen frozen-frame mode)
 
