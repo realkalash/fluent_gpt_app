@@ -124,6 +124,14 @@ class AppDelegate: FlutterAppDelegate {
         } else {
           result(FlutterError(code: "UNAVAILABLE", message: "Image conversion failed", details: nil))
         }
+      case "captureDisplayUnderCursor":
+        result(self.captureDisplayUnderCursor())
+      case "enterLensMode":
+        self.enterLensMode()
+        result(true)
+      case "exitLensMode":
+        self.exitLensMode()
+        result(nil)
       default:
         result("not implemented")
       }
@@ -316,6 +324,142 @@ class AppDelegate: FlutterAppDelegate {
         return nil
     }
 }
+
+  // MARK: - AI Lens (fullscreen frozen-frame mode)
+
+  private var lensSavedFrame: NSRect?
+  private var lensSavedLevel: NSWindow.Level?
+  private var lensSavedCollectionBehavior: NSWindow.CollectionBehavior?
+
+  // Snapshot of the world taken just before the lens window steals focus, so
+  // the captured frame/metadata reflect what the user was actually looking at
+  // (our own window must not be the frontmost app or appear in the screenshot).
+  private var lensFrontApp: NSRunningApplication?
+  private var lensFrontWindowTitle: String = ""
+  private var lensCursorGlobal: NSPoint = .zero
+  private var lensScreen: NSScreen?
+
+  /// Captures the display currently under the cursor as a JPEG, plus that
+  /// display's geometry, the cursor position within it (top-left origin, points),
+  /// and the frontmost app/window — everything the Flutter lens needs to freeze
+  /// the frame, position itself, and map a selection back to pixels.
+  private func captureDisplayUnderCursor() -> [String: Any]? {
+    // Use the snapshot taken in enterLensMode (before our window stole focus).
+    // Fall back to live values if the lens wasn't entered first.
+    let mouse = lensCursorGlobal != .zero ? lensCursorGlobal : NSEvent.mouseLocation
+    let screen = lensScreen
+      ?? NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) })
+      ?? NSScreen.main
+    guard let screen = screen,
+          let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+    else {
+      return nil
+    }
+
+    // Capture the desktop strictly BELOW our lens window so our own dark backdrop
+    // (and the dock drawn over it) is excluded — otherwise the frozen frame is just
+    // our black window. CGDisplayBounds gives the display rect in CG global (top-left)
+    // coordinates, exactly what CGWindowListCreateImage expects.
+    let winNum = CGWindowID(mainFlutterWindow?.windowNumber ?? 0)
+    let cgImage: CGImage?
+    if winNum != 0 {
+      cgImage = CGWindowListCreateImage(CGDisplayBounds(displayID), .optionOnScreenBelowWindow,
+                                        winNum, [.boundsIgnoreFraming, .bestResolution])
+    } else {
+      cgImage = CGDisplayCreateImage(displayID)
+    }
+    guard let cgImage = cgImage else { return nil }
+
+    // Return raw JPEG bytes (FlutterStandardTypedData) rather than base64 — far
+    // cheaper to transfer a multi-megapixel frame across the channel.
+    let rep = NSBitmapImageRep(cgImage: cgImage)
+    let jpeg = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.7]) ?? Data()
+
+    // Cursor within the display, top-left origin, in points (matches Flutter).
+    let cursorInDisplayX = mouse.x - screen.frame.minX
+    let cursorInDisplayY = screen.frame.maxY - mouse.y
+
+    // The display's global top-left origin, in points — same space window_manager's
+    // setPosition uses (primary display top-left = 0,0). Lets the Flutter side map a
+    // display-local selection back to a global window position on multi-monitor.
+    let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+    let originX = screen.frame.minX
+    let originY = primaryHeight - screen.frame.maxY
+
+    return [
+      "imageBytes": FlutterStandardTypedData(bytes: jpeg),
+      "pxWidth": cgImage.width,
+      "pxHeight": cgImage.height,
+      "pointWidth": screen.frame.width,
+      "pointHeight": screen.frame.height,
+      "scale": screen.backingScaleFactor,
+      "cursorX": cursorInDisplayX,
+      "cursorY": cursorInDisplayY,
+      "originX": originX,
+      "originY": originY,
+      "focusedApp": lensFrontApp?.localizedName ?? "",
+      "bundleId": lensFrontApp?.bundleIdentifier ?? "",
+      "windowTitle": lensFrontWindowTitle,
+    ]
+  }
+
+  /// Expands the main window to cover the display under the cursor and raises it
+  /// above the menu bar / dock for the fullscreen lens. Prior state is saved so
+  /// `exitLensMode` can restore it exactly.
+  private func enterLensMode() {
+    guard let window = mainFlutterWindow else { return }
+    let mouse = NSEvent.mouseLocation
+    let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main
+    guard let screen = screen else { return }
+    if lensSavedFrame == nil {
+      lensSavedFrame = window.frame
+      lensSavedLevel = window.level
+      lensSavedCollectionBehavior = window.collectionBehavior
+    }
+
+    // Snapshot the real frontmost app + window title + cursor BEFORE we steal
+    // focus. captureDisplayUnderCursor() uses these instead of re-querying, since
+    // by then our lens window is the frontmost app.
+    lensScreen = screen
+    lensCursorGlobal = mouse
+    lensFrontApp = NSWorkspace.shared.frontmostApplication
+    lensFrontWindowTitle = ""
+    if let pid = lensFrontApp?.processIdentifier,
+       let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+         as NSArray? as? [[String: Any]] {
+      for info in list {
+        guard (info[kCGWindowOwnerPID as String] as? pid_t) == pid,
+              (info[kCGWindowLayer as String] as? Int) == 0 else { continue }
+        if let name = info[kCGWindowName as String] as? String, !name.isEmpty {
+          lensFrontWindowTitle = name
+          break
+        }
+      }
+    }
+
+    window.setFrame(screen.frame, display: true)
+    window.level = .screenSaver
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+    window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
+    regionCaptureManager?.isLensActive = true // don't let the snip tap fire inside the lens
+  }
+
+  /// Restores the window's pre-lens frame, level, and collection behavior.
+  private func exitLensMode() {
+    regionCaptureManager?.isLensActive = false
+    guard let window = mainFlutterWindow else { return }
+    if let f = lensSavedFrame { window.setFrame(f, display: true) }
+    if let l = lensSavedLevel { window.level = l }
+    if let cb = lensSavedCollectionBehavior { window.collectionBehavior = cb }
+    lensSavedFrame = nil
+    lensSavedLevel = nil
+    lensSavedCollectionBehavior = nil
+    lensFrontApp = nil
+    lensFrontWindowTitle = ""
+    lensCursorGlobal = .zero
+    lensScreen = nil
+  }
 }
 
 // Will be removed in the future
@@ -462,6 +606,9 @@ final class RegionCaptureManager {
 
   private var isSnipping = false
   private var cursorPushed = false
+  /// True while the fullscreen AI Lens owns the screen. The lens has its own
+  /// (Flutter-side) selection, so the tap must not also fire a Cmd+Shift snip.
+  var isLensActive = false
   // CG global coordinates (top-left origin), taken straight from the events.
   private var startCG: CGPoint?
   private var lastCG: CGPoint?
@@ -569,9 +716,10 @@ final class RegionCaptureManager {
       if cmd {
         sendDebug("mouseDown cmd=\(cmd) opt=\(opt) shift=\(shift) flagsRaw=\(flags.rawValue)")
       }
-      // Accept Cmd+Option OR Cmd+Shift while we debug which combo behaves best.
-      if !isSnipping, cmd, (opt || shift) {
-        beginSnip(combo: opt ? "Cmd+Option" : "Cmd+Shift", atCG: event.location)
+      // Activation gesture: Cmd+Shift+drag. (Cmd+Option was dropped — it collides
+      // with window repositioning in some apps.) Suppressed while the lens is open.
+      if !isSnipping, !isLensActive, cmd, shift {
+        beginSnip(combo: "Cmd+Shift", atCG: event.location)
         return nil // consume so the app underneath never sees the gesture
       }
       return Unmanaged.passUnretained(event)

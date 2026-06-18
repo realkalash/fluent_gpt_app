@@ -32,10 +32,26 @@ import 'package:window_manager/window_manager.dart';
 
 enum AiLensSelectedFeature { translate, scan }
 
+/// Full-screen dialog for inspecting an image with AI-powered tools.
+///
+/// Supports overlaying translated text on the image, scanning and labeling
+/// objects, sending the image with a custom prompt to the active chat,
+/// extracting text to the clipboard, and reverse image search (SauceNao /
+/// Yandex when enabled in settings).
 class AiLensDialog extends StatefulWidget {
+  /// Creates an Ai Lens dialog for the given [bytes].
+  ///
+  /// Prefer [AiLensDialog.show] so image support is validated before opening.
   const AiLensDialog({super.key, required this.bytes});
+
+  /// Raw image data displayed and sent to the model for analysis.
   final Uint8List bytes;
 
+  /// Opens the Ai Lens dialog for [bytes].
+  ///
+  /// Returns `true` if the user sends a message, otherwise `null`. Shows an
+  /// error info bar and returns early when the active chat model does not
+  /// support images.
   static Future<T?> show<T>(BuildContext context, Uint8List bytes) async {
     // if image is not supported, show error
     if (!selectedChatRoom.model.imageSupported) {

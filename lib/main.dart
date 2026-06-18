@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:fluent_gpt/common/attachment.dart';
 import 'package:fluent_gpt/features/additional_features.dart';
 import 'package:fluent_gpt/file_utils.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
@@ -10,7 +10,9 @@ import 'package:fluent_gpt/common/window_listener.dart';
 import 'package:fluent_gpt/main_page_with_navbar.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/notification_util.dart';
+import 'package:fluent_gpt/overlay/ai_lens_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
+import 'package:fluent_gpt/overlay/region_chat_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/widgets/settings_page/settings_page_widgets.dart';
 import 'package:fluent_gpt/pages/welcome/welcome_tab.dart';
@@ -109,21 +111,37 @@ void setupMethodChannel() {
         log('[RegionCapture][native] ${call.arguments}');
         break;
       case 'onRegionCaptured':
-        // Phase 0: prove the native pipeline. Log metadata + dump the PNG to temp.
+        // A screen-region snip (Cmd+Shift+drag) completed natively. Open the
+        // compact chat near the cursor with the screenshot + source context.
         final args = Map<String, dynamic>.from(call.arguments as Map);
         final base64Str = (args['imageBase64'] as String?) ?? '';
-        log('[RegionCapture] app=${args['focusedApp']} bundle=${args['bundleId']} '
-            'title="${args['windowTitle']}" '
-            'rect=(${args['rectX']},${args['rectY']},${args['rectW']},${args['rectH']}) '
-            'cursor=(${args['cursorX']},${args['cursorY']}) imageB64Len=${base64Str.length}');
-        if (base64Str.isNotEmpty) {
+        final focusedApp = args['focusedApp'] as String?;
+        final bundleId = args['bundleId'] as String?;
+        final windowTitle = args['windowTitle'] as String?;
+        final cursorX = (args['cursorX'] as num?)?.toDouble();
+        final cursorY = (args['cursorY'] as num?)?.toDouble();
+        log('[RegionCapture] app=$focusedApp bundle=$bundleId title="$windowTitle" '
+            'cursor=($cursorX,$cursorY) imageB64Len=${base64Str.length}');
+
+        // Publish the source context so the overlay can show it and prepend it
+        // to the outgoing message.
+        regionCaptureContext.add(RegionCaptureContext(
+          appName: focusedApp,
+          bundleId: bundleId,
+          windowTitle: windowTitle,
+        ));
+
+        // Show the compact chat overlay near where the user released the drag.
+        await OverlayManager.showRegionChatOverlay(positionX: cursorX, positionY: cursorY);
+
+        // Attach the captured screenshot to the input (no AiLens dialog — the
+        // region overlay itself is the review surface).
+        if (base64Str.isNotEmpty && appContext != null) {
           try {
-            final bytes = base64Decode(base64Str);
-            final path = '${Directory.systemTemp.path}${Platform.pathSeparator}region_capture_test.png';
-            await File(path).writeAsBytes(bytes);
-            log('[RegionCapture] saved ${bytes.length} bytes -> $path');
+            final attachment = Attachment.fromInternalScreenshot(base64Str);
+            appContext!.read<ChatProvider>().addAttachmentToInput([attachment]);
           } catch (e) {
-            log('[RegionCapture] failed to decode/save image: $e');
+            log('[RegionCapture] failed to attach screenshot: $e');
           }
         }
         break;
@@ -200,6 +218,9 @@ void main(List<String> args) async {
 
   // Initialize the update manager
   UpdateManager.instance.initialize();
+
+  // Pre-warm the AI Lens shader so the first Cmd+Shift+6 doesn't pay compile cost.
+  warmLensShader();
 
   runApp(const MyApp());
 }
@@ -356,7 +377,12 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8.0),
       child: GestureDetector(
-        onPanStart: (v) => WindowManager.instance.startDragging(),
+        onPanStart: (v) {
+          // The fullscreen lens uses drags to draw a selection — don't let the
+          // window-move recognizer interfere.
+          if (overlayVisibility.value.isShowingLensOverlay) return;
+          WindowManager.instance.startDragging();
+        },
         dragStartBehavior: DragStartBehavior.start,
         behavior: HitTestBehavior.translucent,
         child: KeyboardListener(
@@ -394,6 +420,12 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
               }
               if (snapshot.data?.isShowingSearchOverlay == true) {
                 return const SearchOverlayUI();
+              }
+              if (snapshot.data?.isShowingRegionChatOverlay == true) {
+                return const RegionChatOverlayUI();
+              }
+              if (snapshot.data?.isShowingLensOverlay == true) {
+                return const AiLensOverlayUI();
               }
               return const MainPageWithNavigation();
             },

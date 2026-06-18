@@ -9,6 +9,9 @@ class AppCache {
   static const preventClose = BoolPref("preventClose");
   static const showAppInDock = BoolPref("showAppInDock", false);
   static const enableOverlay = BoolPref("enableOverlay", false);
+  // Cmd+Shift+drag screen-region snip (macOS). The fullscreen AI Lens (Cmd+Shift+6)
+  // is the primary capture path; this is the quick secondary one.
+  static const enableRegionSnip = BoolPref("enableRegionSnip", true);
   static const alwaysOnTop = BoolPref("alwaysOnTop", false);
   static const hideTitleBar = BoolPref("hideTitleBar", false);
   static const isMarkdownViewEnabled = BoolPref("isMarkdownView", true);

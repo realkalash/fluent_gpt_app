@@ -6,6 +6,7 @@ import 'package:fluent_gpt/features/notification_service.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/main.dart';
 import 'package:fluent_gpt/native_channels.dart';
+import 'package:fluent_gpt/overlay/region_chat_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/search_overlay_ui.dart';
 import 'package:fluent_gpt/overlay/sidebar_overlay_ui.dart';
 import 'package:fluent_gpt/providers/chat_globals.dart';
@@ -51,19 +52,34 @@ class OverlayStatus {
   final bool isShowingOverlay;
   final bool isShowingSidebarOverlay;
   final bool isShowingSearchOverlay;
+
+  /// Compact chat opened from a screen-region snip (Cmd+Shift+drag on macOS).
+  final bool isShowingRegionChatOverlay;
+
+  /// Fullscreen frozen-frame "AI Lens" (Cmd+Shift+6 on macOS).
+  final bool isShowingLensOverlay;
   const OverlayStatus({
     this.isShowingOverlay = false,
     this.isShowingSidebarOverlay = false,
     this.isShowingSearchOverlay = false,
+    this.isShowingRegionChatOverlay = false,
+    this.isShowingLensOverlay = false,
   });
 
-  bool get isEnabled => isShowingOverlay || isShowingSidebarOverlay || isShowingSearchOverlay;
+  bool get isEnabled =>
+      isShowingOverlay ||
+      isShowingSidebarOverlay ||
+      isShowingSearchOverlay ||
+      isShowingRegionChatOverlay ||
+      isShowingLensOverlay;
 
   static const OverlayStatus enabled = OverlayStatus(isShowingOverlay: true);
   static const OverlayStatus disabled = OverlayStatus(isShowingOverlay: false);
   static const OverlayStatus sidebarEnabled = OverlayStatus(isShowingSidebarOverlay: true);
   static const OverlayStatus sidebarDisabled = OverlayStatus(isShowingSidebarOverlay: false);
   static const OverlayStatus searchEnabled = OverlayStatus(isShowingSearchOverlay: true);
+  static const OverlayStatus regionChatEnabled = OverlayStatus(isShowingRegionChatOverlay: true);
+  static const OverlayStatus lensEnabled = OverlayStatus(isShowingLensOverlay: true);
 
   //equality
   @override
@@ -73,12 +89,84 @@ class OverlayStatus {
     return other is OverlayStatus &&
         other.isShowingOverlay == isShowingOverlay &&
         other.isShowingSidebarOverlay == isShowingSidebarOverlay &&
-        other.isShowingSearchOverlay == isShowingSearchOverlay;
+        other.isShowingSearchOverlay == isShowingSearchOverlay &&
+        other.isShowingRegionChatOverlay == isShowingRegionChatOverlay &&
+        other.isShowingLensOverlay == isShowingLensOverlay;
   }
 
   @override
-  int get hashCode => isShowingOverlay.hashCode ^ isShowingSidebarOverlay.hashCode ^ isShowingSearchOverlay.hashCode;
+  int get hashCode =>
+      isShowingOverlay.hashCode ^
+      isShowingSidebarOverlay.hashCode ^
+      isShowingSearchOverlay.hashCode ^
+      isShowingRegionChatOverlay.hashCode ^
+      isShowingLensOverlay.hashCode;
 }
+
+/// A frozen capture of the display under the cursor, used by the fullscreen
+/// AI Lens. All geometry is in the captured display's own space: [cursorX]/
+/// [cursorY] are top-left-origin points within the display; [pxWidth]/[pxHeight]
+/// are the image's pixel dimensions; [pointWidth]/[pointHeight] are the display
+/// size in points; [scale] is the backing scale factor (px = point * scale).
+class LensCapture {
+  final Uint8List imageBytes;
+  final int pxWidth;
+  final int pxHeight;
+  final double pointWidth;
+  final double pointHeight;
+  final double scale;
+  final double cursorX;
+  final double cursorY;
+
+  /// The captured display's global top-left origin, in points (primary display
+  /// top-left = 0,0). Add to a display-local point to get a global one.
+  final double originX;
+  final double originY;
+  final RegionCaptureContext context;
+
+  const LensCapture({
+    required this.imageBytes,
+    required this.pxWidth,
+    required this.pxHeight,
+    required this.pointWidth,
+    required this.pointHeight,
+    required this.scale,
+    required this.cursorX,
+    required this.cursorY,
+    this.originX = 0,
+    this.originY = 0,
+    required this.context,
+  });
+}
+
+/// The active fullscreen-lens capture, or null when the lens is closed.
+BehaviorSubject<LensCapture?> lensCapture = BehaviorSubject<LensCapture?>.seeded(null);
+
+/// Metadata captured alongside a screen-region snip: the app/window that was
+/// frontmost *before* our overlay grabbed focus. Surfaced in [RegionChatOverlayUI]
+/// and prepended to the outgoing message so the model knows the visual context.
+class RegionCaptureContext {
+  final String? appName;
+  final String? bundleId;
+  final String? windowTitle;
+  const RegionCaptureContext({this.appName, this.bundleId, this.windowTitle});
+
+  bool get hasContext => (appName?.isNotEmpty == true) || (windowTitle?.isNotEmpty == true);
+
+  /// Short human-readable label, e.g. `Firefox — "(2) YouTube"`.
+  String get label {
+    final parts = <String>[];
+    if (appName?.isNotEmpty == true) parts.add(appName!);
+    if (windowTitle?.isNotEmpty == true) parts.add('"$windowTitle"');
+    return parts.join(' — ');
+  }
+
+  /// Line prepended to the user's message so the LLM has the source context.
+  String get promptPrefix => hasContext ? 'Captured from: $label' : '';
+}
+
+/// Most recent region-snip context. `null` until the first snip of a session.
+BehaviorSubject<RegionCaptureContext?> regionCaptureContext = BehaviorSubject<RegionCaptureContext?>.seeded(null);
 
 class OverlayManager {
   static Future<void> init() async {
@@ -269,6 +357,60 @@ class OverlayManager {
     await windowManager.setPosition(position + const Offset(0, 200), animate: false);
   }
 
+  /// Opens the compact region-snip chat near the cursor. [positionX]/[positionY]
+  /// are the cursor-release point in CG (top-left origin) points, which maps
+  /// directly onto window_manager's top-left logical coordinate space on macOS.
+  static Future<void> showRegionChatOverlay({double? positionX, double? positionY}) async {
+    overlayVisibility.add(OverlayStatus.regionChatEnabled);
+    await windowManager.setAlwaysOnTop(true);
+    final size = RegionChatOverlayUI.defaultWindowSize();
+    await windowManager.setMinimumSize(size);
+    await windowManager.setSize(size, animate: false);
+    await windowManager.setResizable(false);
+    // The app is usually hidden while the user is working in another app.
+    await windowManager.show(inactive: false);
+    if (positionX != null && positionY != null) {
+      // Nudge down-right of the cursor so the window doesn't cover the selection.
+      double x = positionX + 12;
+      double y = positionY + 12;
+      if (x < 0) x = 0;
+      if (y < 0) y = 0;
+      await windowManager.setPosition(Offset(x, y), animate: false);
+      await checkAndRepositionOverOffsetWindow();
+    }
+  }
+
+  /// Shows the fullscreen frozen-frame AI Lens for [capture]. The native side
+  /// expands + raises the window to cover the display under the cursor.
+  /// Pre-warm step: reveal the fullscreen lens window IMMEDIATELY (with no
+  /// capture yet, so it shows a dark "entering" backdrop). This wakes the
+  /// Flutter engine — which macOS pauses while the window is hidden — so it can
+  /// resume rendering in parallel with the (native) screenshot capture.
+  static Future<void> beginLensOverlay() async {
+    lensCapture.add(null);
+    overlayVisibility.add(OverlayStatus.lensEnabled);
+    await windowManager.setAlwaysOnTop(true);
+    await NativeChannelUtils.enterLensMode(); // reveals + resizes + raises
+    await windowManager.focus();
+  }
+
+  /// Completes the lens: hands over the captured frame so the frozen image +
+  /// ripple appear. Pairs with [beginLensOverlay].
+  static void completeLensOverlay(LensCapture capture) {
+    lensCapture.add(capture);
+  }
+
+  /// Closes the lens: restores the window geometry/level, resets overlay state,
+  /// and (by default) hides the window so the user returns to their work.
+  static Future<void> hideLensOverlay({bool hideWindow = true}) async {
+    await NativeChannelUtils.exitLensMode();
+    overlayVisibility.add(OverlayStatus.disabled);
+    lensCapture.add(null);
+    if (hideWindow) {
+      await windowManager.hide();
+    }
+  }
+
   static Future<void> hideOverlay() async {
     windowManager.setAlwaysOnTop(AppCache.alwaysOnTop.value!);
     await windowManager.setResizable(true);
@@ -349,63 +491,75 @@ class OverlayManager {
 
   static Future<void> checkAndRepositionOverOffsetWindow() async {
     try {
-      final _primaryDisplay = await screenRetriever.getPrimaryDisplay();
-      final primaryDisplaySize = _primaryDisplay.visibleSize;
       final currentPosition = await windowManager.getPosition();
       final windowSize = await windowManager.getSize();
 
-      late Size resolutionSize;
-      if (primaryDisplaySize != null) {
-        resolutionSize = Size(primaryDisplaySize.width, primaryDisplaySize.height);
-      } else {
-        // Fallback to cached resolution if screen_retriever fails
-        final resolutionString = AppCache.resolution.value ?? '1920x1080';
-        final resList = resolutionString.split('x');
-        if (resList.length != 2) {
-          throw const FormatException('Invalid resolution format');
-        }
-        resolutionSize = Size(double.parse(resList[0]), double.parse(resList[1]));
-      }
-
-      // Safe margin to prevent window from touching screen edges when repositioning
-      const safeMargin = 0.0;
+      // Clamp against the display that actually contains the window, not always
+      // the primary one — otherwise a window opened on a secondary monitor (e.g.
+      // from a snip/lens there) is treated as "off-screen" and yanked back to
+      // the primary display.
+      final bounds = await _displayBoundsContaining(currentPosition, windowSize);
 
       double newX = currentPosition.dx;
       double newY = currentPosition.dy;
       bool needsRepositioning = false;
 
-      // Only adjust X if window is actually off-screen
-      if (newX < 0) {
-        // Window is off-screen to the left - attach to left edge with margin
-        newX = safeMargin;
+      if (newX < bounds.left) {
+        newX = bounds.left;
         needsRepositioning = true;
-      } else if (newX + windowSize.width > resolutionSize.width) {
-        // Window is off-screen to the right - attach to right edge with margin
-        newX = resolutionSize.width - windowSize.width - safeMargin;
+      } else if (newX + windowSize.width > bounds.right) {
+        newX = bounds.right - windowSize.width;
         needsRepositioning = true;
       }
-      // If window is within screen bounds horizontally, don't change X
 
-      // Only adjust Y if window is actually off-screen
-      if (newY < 0) {
-        // Window is off-screen at the top
-        newY = 0;
+      if (newY < bounds.top) {
+        newY = bounds.top;
         needsRepositioning = true;
-      } else if (newY + windowSize.height > resolutionSize.height) {
-        // Window is off-screen at the bottom
-        newY = resolutionSize.height - windowSize.height;
+      } else if (newY + windowSize.height > bounds.bottom) {
+        newY = bounds.bottom - windowSize.height;
         needsRepositioning = true;
       }
-      // If window is within screen bounds vertically, don't change Y
 
-      // Only reposition if we actually detected the window being off-screen
       if (needsRepositioning) {
-        log('Repositioning window from (${currentPosition.dx}, ${currentPosition.dy}) to ($newX, $newY) - Screen size: ${resolutionSize.width}x${resolutionSize.height}');
+        log('Repositioning window from (${currentPosition.dx}, ${currentPosition.dy}) to ($newX, $newY) - Display bounds: $bounds');
         await windowManager.setPosition(Offset(newX, newY), animate: true);
       }
     } catch (e) {
       logError('Error repositioning window: $e');
     }
+  }
+
+  /// Visible bounds (global, logical px) of the display that contains [point]
+  /// (using the window's centre for a stable choice). Falls back to the primary
+  /// display, then to the cached resolution at origin.
+  static Future<Rect> _displayBoundsContaining(Offset point, Size windowSize) async {
+    Rect boundsOf(Display d) {
+      final origin = d.visiblePosition ?? Offset.zero;
+      final size = d.visibleSize ?? d.size;
+      return origin & size;
+    }
+
+    final centre = point + Offset(windowSize.width / 2, windowSize.height / 2);
+    try {
+      final displays = await screenRetriever.getAllDisplays();
+      if (displays.isNotEmpty) {
+        for (final d in displays) {
+          if (boundsOf(d).contains(centre)) return boundsOf(d);
+        }
+        // Centre isn't on any display (fully off-screen) — use the primary.
+        final primary = await screenRetriever.getPrimaryDisplay();
+        return boundsOf(primary);
+      }
+    } catch (_) {
+      // Fall through to the cached-resolution fallback below.
+    }
+
+    final resolutionString = AppCache.resolution.value ?? '1920x1080';
+    final resList = resolutionString.split('x');
+    if (resList.length == 2) {
+      return Offset.zero & Size(double.parse(resList[0]), double.parse(resList[1]));
+    }
+    return Offset.zero & const Size(1920, 1080);
   }
 
   static void bindHotkeys(List<CustomPrompt> customPromptsList) {

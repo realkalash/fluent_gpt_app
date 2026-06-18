@@ -162,6 +162,47 @@ class NativeChannelUtils {
     }
   }
 
+  // region AI Lens (fullscreen frozen-frame mode) -----------------------------
+
+  /// Captures the display under the cursor (raw JPEG bytes) along with its
+  /// geometry, scale, the cursor position within it (top-left origin, points),
+  /// and the frontmost app/window. Returns null on non-macOS or capture failure.
+  ///
+  /// Keys: imageBytes (Uint8List), pxWidth, pxHeight, pointWidth, pointHeight,
+  /// scale, cursorX, cursorY, focusedApp, bundleId, windowTitle.
+  static Future<Map<String, dynamic>?> captureDisplayUnderCursor() async {
+    if (!Platform.isMacOS) return null;
+    try {
+      final res = await overlayChannel.invokeMethod('captureDisplayUnderCursor');
+      if (res == null) return null;
+      return Map<String, dynamic>.from(res as Map);
+    } on PlatformException catch (e) {
+      print("Failed to capture display under cursor: '${e.message}'.");
+      return null;
+    }
+  }
+
+  /// Expands + raises the main window to cover the display under the cursor and
+  /// places it above the menu bar/dock for the fullscreen lens.
+  static Future<void> enterLensMode() async {
+    if (!Platform.isMacOS) return;
+    try {
+      await overlayChannel.invokeMethod('enterLensMode');
+    } on PlatformException catch (e) {
+      print("Failed to enter lens mode: '${e.message}'.");
+    }
+  }
+
+  /// Restores the window's pre-lens frame, level, and collection behavior.
+  static Future<void> exitLensMode() async {
+    if (!Platform.isMacOS) return;
+    try {
+      await overlayChannel.invokeMethod('exitLensMode');
+    } on PlatformException catch (e) {
+      print("Failed to exit lens mode: '${e.message}'.");
+    }
+  }
+
   // Currenlty only used for macOS
   static Future<bool> requestMicrophonePermissions() async {
     if (Platform.isLinux) return true;

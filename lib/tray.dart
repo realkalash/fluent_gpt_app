@@ -195,6 +195,13 @@ HotKey showOverlayForText = HotKey(
   modifiers: [HotKeyModifier.control],
   scope: HotKeyScope.system,
 );
+
+/// Opens the fullscreen frozen-frame AI Lens (macOS only).
+HotKey openAiLensHotkey = HotKey(
+  key: LogicalKeyboardKey.digit6,
+  modifiers: [HotKeyModifier.meta, HotKeyModifier.shift],
+  scope: HotKeyScope.system,
+);
 HotKey? takeScreenshot;
 HotKey? pttScreenshotKey;
 HotKey? pttKey;
@@ -255,6 +262,60 @@ Future<void> initShortcuts() async {
       );
     },
   );
+
+  if (Platform.isMacOS) {
+    await hotKeyManager.register(
+      openAiLensHotkey,
+      keyDownHandler: (hotKey) async {
+        // Pre-warm: reveal the lens window first so the Flutter engine resumes
+        // (macOS pauses it while hidden) IN PARALLEL with the capture below.
+        await OverlayManager.beginLensOverlay();
+        final capture = await NativeChannelUtils.captureDisplayUnderCursor();
+        if (capture == null) {
+          log('[AiLens] capture failed');
+          await OverlayManager.hideLensOverlay();
+          return;
+        }
+        final imageBytes = capture['imageBytes'] as Uint8List?;
+        if (imageBytes == null || imageBytes.isEmpty) {
+          log('[AiLens] empty image');
+          await OverlayManager.hideLensOverlay();
+          return;
+        }
+        final lc = LensCapture(
+          imageBytes: imageBytes,
+          pxWidth: (capture['pxWidth'] as num).toInt(),
+          pxHeight: (capture['pxHeight'] as num).toInt(),
+          pointWidth: (capture['pointWidth'] as num).toDouble(),
+          pointHeight: (capture['pointHeight'] as num).toDouble(),
+          scale: (capture['scale'] as num).toDouble(),
+          cursorX: (capture['cursorX'] as num).toDouble(),
+          cursorY: (capture['cursorY'] as num).toDouble(),
+          originX: (capture['originX'] as num?)?.toDouble() ?? 0,
+          originY: (capture['originY'] as num?)?.toDouble() ?? 0,
+          context: RegionCaptureContext(
+            appName: capture['focusedApp'] as String?,
+            bundleId: capture['bundleId'] as String?,
+            windowTitle: capture['windowTitle'] as String?,
+          ),
+        );
+        OverlayManager.completeLensOverlay(lc);
+      },
+    );
+
+    // Auto-start the Cmd+Shift+drag region-snip tap, but only when Accessibility
+    // is already granted — so we never trigger the system prompt at startup. If
+    // it isn't granted, the user enables it (and gets prompted) from Settings.
+    if (AppCache.enableRegionSnip.value == true) {
+      final granted = await NativeChannelUtils.isRegionCaptureAccessibilityGranted();
+      if (granted) {
+        final started = await NativeChannelUtils.startRegionCaptureService();
+        log('[RegionCapture] auto-start -> $started');
+      } else {
+        log('[RegionCapture] skipped auto-start (Accessibility not granted)');
+      }
+    }
+  }
 
   initCachedHotKeys();
 }
