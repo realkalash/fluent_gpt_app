@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:fluent_gpt/common/attachment.dart';
+import 'package:fluent_gpt/common/debouncer.dart';
 import 'package:fluent_gpt/common/language_list.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
@@ -64,6 +65,11 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   // Selection drag (in display points = this window's local coordinates).
   Offset? _dragStart;
   Offset? _dragCurrent;
+
+  // Live cursor in local points, feeding the shader's idle magnifying lens.
+  // Updated without setState — the shader repaints every ticker frame anyway, so
+  // the next frame picks up the latest value (hover moves stay cheap).
+  Offset? _pointer;
 
   // True while a selection drag is in progress (down started outside the HUD).
   bool _selecting = false;
@@ -554,6 +560,8 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     );
   }
 
+  int debouncerTicker = 0;
+
   Widget _buildLens(LensCapture capture) {
     final bytes = capture.imageBytes;
     final selection = _selection;
@@ -572,6 +580,9 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
         if (_ocr != null && selection != null && selection.contains(e.localPosition)) {
           return;
         }
+        // Subtle trackpad tick to mark the start of a snip (no-op without a
+        // haptic trackpad).
+        NativeChannelUtils.performHaptic('alignment');
         setState(() {
           _selecting = true;
           _dragStart = e.localPosition;
@@ -586,14 +597,21 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
         });
       },
       onPointerMove: (e) {
+        _pointer = e.localPosition; // feed the idle lens (picked up next frame)
         if (!_selecting) return;
+        debouncerTicker++;
+        if (debouncerTicker % 15 == 0) {
+          NativeChannelUtils.performHaptic('generic');
+        }
         setState(() => _dragCurrent = e.localPosition);
       },
       onPointerUp: (e) {
         if (!_selecting) return;
         setState(() => _selecting = false);
-        // Auto-focus the prompt field once a real selection has been drawn.
+        // Auto-focus the prompt field once a real selection has been drawn,
+        // with a firmer tick to confirm the snip landed.
         if (_selection != null) {
+          NativeChannelUtils.performHaptic('levelChange');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _promptFocus.requestFocus();
           });
@@ -601,12 +619,14 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
       },
       child: MouseRegion(
         cursor: SystemMouseCursors.precise,
+        onHover: (e) => _pointer = e.localPosition, // idle lens follows the cursor
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 1. The whole visual: frozen frame + elastic-glass distortion +
-            //    drifting aurora tint + sparkles, with a crisp selection cutout.
-            //    Falls back to the plain frozen frame until shader+image load.
+            // 1. The whole visual: frozen frame + launch ripple + drifting
+            //    aurora tint + a cursor-reactive starfield, with a crisp
+            //    selection cutout. Falls back to the plain frozen frame until
+            //    the shader + image load.
             Positioned.fill(
               child: (_shader != null && _frozen != null)
                   ? ValueListenableBuilder<double>(
@@ -625,6 +645,7 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
                             openT: openT,
                             selection: selection,
                             cursor: Offset(capture.cursorX, capture.cursorY),
+                            pointer: _pointer ?? Offset(capture.cursorX, capture.cursorY),
                           ),
                         );
                       },
@@ -878,13 +899,15 @@ class _LensShaderPainter extends CustomPainter {
     required this.openT,
     required this.selection,
     required this.cursor,
+    required this.pointer,
   });
   final ui.FragmentShader shader;
   final ui.Image image;
   final double time;
   final double openT;
   final Rect? selection;
-  final Offset cursor; // display-local logical px, top-left origin
+  final Offset cursor; // launch ripple origin (frozen capture cursor), logical px
+  final Offset pointer; // live cursor driving the idle lens, logical px
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -899,6 +922,8 @@ class _LensShaderPainter extends CustomPainter {
     shader.setFloat(7, sel?.height ?? 0);
     shader.setFloat(8, cursor.dx);
     shader.setFloat(9, cursor.dy);
+    shader.setFloat(10, pointer.dx);
+    shader.setFloat(11, pointer.dy);
     shader.setImageSampler(0, image);
     canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   }

@@ -142,6 +142,18 @@ class AppDelegate: FlutterAppDelegate {
       case "exitLensMode":
         self.exitLensMode()
         result(nil)
+      case "performHaptic":
+        // Trackpad haptic (Force Touch). `pattern`: "generic" | "alignment" |
+        // "levelChange"; no-op on hardware without a haptic trackpad.
+        let pattern = (call.arguments as? [String: Any])?["pattern"] as? String ?? "generic"
+        let feedback: NSHapticFeedbackManager.FeedbackPattern
+        switch pattern {
+        case "alignment":   feedback = .alignment
+        case "levelChange": feedback = .levelChange
+        default:            feedback = .generic
+        }
+        NSHapticFeedbackManager.defaultPerformer.perform(feedback, performanceTime: .now)
+        result(nil)
       default:
         result("not implemented")
       }

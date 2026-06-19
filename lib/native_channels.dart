@@ -203,6 +203,18 @@ class NativeChannelUtils {
     }
   }
 
+  /// Fires a trackpad haptic (Force Touch). [pattern] is one of `generic`,
+  /// `alignment`, or `levelChange`. No-op on non-macOS or hardware without a
+  /// haptic trackpad — fire-and-forget, never throws to the caller.
+  static Future<void> performHaptic([String pattern = 'generic']) async {
+    if (!Platform.isMacOS) return;
+    try {
+      await overlayChannel.invokeMethod('performHaptic', {'pattern': pattern});
+    } on PlatformException catch (e) {
+      print("Failed to perform haptic: '${e.message}'.");
+    }
+  }
+
   // region OCR (native text recognition) ------------------------------------
 
   /// Runs on-device OCR over [bytes] (encoded PNG/JPEG) using the platform's
