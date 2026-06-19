@@ -403,12 +403,16 @@ class OverlayManager {
   /// Closes the lens: restores the window geometry/level, resets overlay state,
   /// and (by default) hides the window so the user returns to their work.
   static Future<void> hideLensOverlay({bool hideWindow = true}) async {
-    await NativeChannelUtils.exitLensMode();
-    overlayVisibility.add(OverlayStatus.disabled);
-    lensCapture.add(null);
+    // Order matters: hide the window FIRST (while it still shows the lens
+    // frame), then restore geometry + swap the Flutter content. Doing it the
+    // other way round briefly shows the restored-size main chat page on screen
+    // before the hide lands — a visible "blink" of the main window on Esc.
     if (hideWindow) {
       await windowManager.hide();
     }
+    await NativeChannelUtils.exitLensMode();
+    overlayVisibility.add(OverlayStatus.disabled);
+    lensCapture.add(null);
   }
 
   static Future<void> hideOverlay() async {

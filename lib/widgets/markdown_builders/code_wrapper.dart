@@ -59,7 +59,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
         command: widget.content.trim(),
         creator: 'ai',
       );
-      
+
       return ShellExecutionWidget(message: proposalMessage);
     }
 
@@ -113,7 +113,7 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                     },
                     child: Text('Open memory'.tr),
                   ),
-                )
+                ),
               ],
             ),
           ],
@@ -224,8 +224,9 @@ class _PreWrapperState extends State<CodeWrapperWidget> {
                 if (widget.language.isNotEmpty)
                   DecoratedBox(
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(width: 0.5, color: isDark ? Colors.white : Colors.black)),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(width: 0.5, color: isDark ? Colors.white : Colors.black),
+                    ),
                     child: fluent.Padding(
                       padding: const EdgeInsets.all(6.0),
                       child: Text(widget.language, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal)),
@@ -360,9 +361,17 @@ class SqueareIconButton extends fluent.StatelessWidget {
 }
 
 class SqueareIconButtonSized extends fluent.StatelessWidget {
-  const SqueareIconButtonSized(
-      {super.key, required this.onTap, required this.icon, this.width = 30, this.height = 30, required this.tooltip});
+  const SqueareIconButtonSized({
+    super.key,
+    required this.onTap,
+    required this.icon,
+    this.width = 30,
+    this.height = 30,
+    required this.tooltip,
+    this.onLongPress,
+  });
   final void Function()? onTap;
+  final void Function()? onLongPress;
   final Widget icon;
   final String tooltip;
   final double width;
@@ -379,6 +388,7 @@ class SqueareIconButtonSized extends fluent.StatelessWidget {
           height: height,
           child: fluent.Button(
             onPressed: onTap,
+            onLongPress: onLongPress,
             style: const fluent.ButtonStyle(
               padding: WidgetStatePropertyAll(EdgeInsets.zero),
             ),

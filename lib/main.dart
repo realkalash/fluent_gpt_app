@@ -375,7 +375,7 @@ class _GlobalPageState extends State<GlobalPage> with WindowListener {
     appContext = context;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8.0),
+      borderRadius: const BorderRadius.all(Radius.circular(8.0)),
       child: GestureDetector(
         onPanStart: (v) {
           // The fullscreen lens uses drags to draw a selection — don't let the

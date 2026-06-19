@@ -3,19 +3,25 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:fluent_gpt/common/attachment.dart';
+import 'package:fluent_gpt/common/language_list.dart';
 import 'package:fluent_gpt/i18n/i18n.dart';
 import 'package:fluent_gpt/log.dart';
 import 'package:fluent_gpt/native_channels.dart';
 import 'package:fluent_gpt/overlay/overlay_manager.dart';
 import 'package:fluent_gpt/providers/chat_provider.dart';
 import 'package:fluent_gpt/services/ocr_service.dart';
+import 'package:fluent_gpt/services/reverse_image_search.dart';
+import 'package:fluent_gpt/services/translation_service.dart';
+import 'package:fluent_gpt/utils.dart';
 import 'package:fluent_gpt/widgets/custom_selectable_region.dart';
+import 'package:fluent_gpt/widgets/markdown_builders/code_wrapper.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart' as ic;
 // ignore: unnecessary_import
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+part 'ai_lens_widgets/ai_lens_widgets.dart';
 
 /// Fullscreen frozen-frame "AI Lens".
 ///
@@ -33,7 +39,7 @@ ui.FragmentProgram? _lensProgram;
 
 /// Debug: dump the exact bytes sent to OCR (+ an annotated copy with the
 /// recognized boxes drawn on it) to the temp dir. Flip to false to disable.
-const bool kDumpOcrCrop = true;
+const bool kDumpOcrCrop = false;
 
 /// Loads + caches the lens shader. Safe to call repeatedly; call once early
 /// (e.g. on app start) to pre-warm it.
@@ -86,12 +92,55 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   bool _ocrLoading = false;
   final FocusNode _ocrFocus = FocusNode(debugLabel: 'lensOcr');
 
+  // Reverse-image-search: true while the crop is being hosted/launched.
+  bool _searchLoading = false;
+
+  // Translate state. [_translation] is aligned 1:1 with [_ocr!.blocks]; null
+  // until Translate has run. [_showTranslation] toggles the opaque translated
+  // overlay vs. the original frozen frame. [_targetLanguage] defaults to the
+  // app's current locale and can be changed via the language picker.
+  List<String>? _translation;
+  bool _translateLoading = false;
+  bool _showTranslation = false;
+  String _targetLanguage = _localeToLanguageName(I18n.currentLocale.languageCode);
+
+  /// Maps a locale code (e.g. 'en', 'uk') to a [LanguageList] display name used
+  /// in the translate prompt. Falls back to English for unknown codes.
+  static String _localeToLanguageName(String code) {
+    const byCode = {
+      'en': 'English',
+      'es': 'Spanish',
+      'fr': 'French',
+      'de': 'German',
+      'zh': 'Chinese',
+      'ja': 'Japanese',
+      'ar': 'Arabic',
+      'pt': 'Portuguese',
+      'ru': 'Russian',
+      'uk': 'Ukrainian',
+      'hi': 'Hindi',
+    };
+    return byCode[code.toLowerCase()] ?? 'English';
+  }
+
+  // Measures the prompt pill's actual rendered bounds. The pill grows when the
+  // OCR row / engine picker reveal, so a fixed-height estimate (_hudRect) would
+  // wrongly treat taps on the lower chips as "start a new selection".
+  final GlobalKey _pillKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
+    // Esc handling routed through an app-level keyboard handler (not the focus
+    // tree): the lens is a fullscreen modal, and once focus lands on a child
+    // (prompt field, OCR region) and that child later unmounts, focus falls to
+    // nothing and a focus-scoped onKeyEvent would stop receiving Esc. This is
+    // focus-independent for as long as the lens is mounted.
+    HardwareKeyboard.instance.addHandler(_onGlobalKey);
     _ticker = createTicker((elapsed) => _clock.value = elapsed.inMicroseconds / 1e6);
     _ticker.start();
     _loadShader();
+
     if (lensCapture.valueOrNull != null) _decodeFrozenImage();
     _captureSub = lensCapture.listen((capture) {
       if (!mounted) return;
@@ -127,8 +176,37 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     }
   }
 
+  /// App-level Esc handler (see [initState]). Returns true to consume Esc so it
+  /// doesn't leak to other handlers; lets every other key route normally so
+  /// typing in the prompt field still works.
+  bool _onGlobalKey(KeyEvent event) {
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.escape) {
+      return false;
+    }
+    _handleEscape();
+    return true;
+  }
+
+  /// Esc peels back state: translated overlay → recognized text → selection →
+  /// (final press) closes the lens.
+  void _handleEscape() {
+    if (_showTranslation) {
+      setState(() => _showTranslation = false);
+    } else if (_ocr != null || _ocrLoading || _translation != null || _translateLoading) {
+      _clearOcr();
+    } else if (_dragStart != null) {
+      setState(() {
+        _dragStart = null;
+        _dragCurrent = null;
+      });
+    } else {
+      _close();
+    }
+  }
+
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onGlobalKey);
     _captureSub?.cancel();
     _ticker.dispose();
     _clock.dispose();
@@ -152,9 +230,11 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     }
     if (kDumpOcrCrop) {
       final mq = MediaQuery.maybeOf(context);
-      log('[AiLens] drag start=$_dragStart cur=$_dragCurrent sel=$selection | '
-          'view=${mq?.size} dpr=${mq?.devicePixelRatio} | '
-          'capturePt=${capture.pointWidth}x${capture.pointHeight}');
+      log(
+        '[AiLens] drag start=$_dragStart cur=$_dragCurrent sel=$selection | '
+        'view=${mq?.size} dpr=${mq?.devicePixelRatio} | '
+        'capturePt=${capture.pointWidth}x${capture.pointHeight}',
+      );
     }
     setState(() => _ocrLoading = true);
     try {
@@ -165,7 +245,7 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
       }
       final result = await OcrService.instance.recognize(pngBytes, fast: false);
       if (!mounted) return;
-      log('[AiLens] OCR: ${result.blocks.length} blocks, ${result.text.length} chars\n${result.text}');
+      // log('[AiLens] OCR: ${result.blocks.length} blocks, ${result.text.length} chars\n${result.text}');
       if (kDumpOcrCrop) await _debugDumpCrop(pngBytes, result);
       setState(() => _ocr = result);
       if (result.isNotEmpty) {
@@ -181,12 +261,94 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   }
 
   /// Clears any recognized text (called when the selection changes / is reset).
+  /// Translation rides on the OCR blocks, so it's cleared in lockstep.
   void _clearOcr() {
-    if (_ocr == null && !_ocrLoading) return;
+    if (_ocr == null && !_ocrLoading && _translation == null && !_translateLoading) return;
     setState(() {
       _ocr = null;
       _ocrLoading = false;
+      _translation = null;
+      _translateLoading = false;
+      _showTranslation = false;
     });
+  }
+
+  /// Translate chip: ensures OCR has run on the selection, then translates every
+  /// block in one request and shows the opaque translated overlay. Re-running
+  /// (e.g. after switching language) re-translates the same blocks.
+  Future<void> _runTranslate() async {
+    if (_translateLoading) return;
+    setState(() => _translateLoading = true);
+    try {
+      // Translation needs the OCR blocks; run OCR first if it hasn't been.
+      if (_ocr == null) await _runOcr();
+      final ocr = _ocr;
+      if (ocr == null || ocr.blocks.isEmpty) {
+        log('[AiLens] nothing to translate');
+        return;
+      }
+      final translated = await TranslationService.instance.translate(
+        ocr.blocks.map((b) => b.text).toList(),
+        targetLanguage: _targetLanguage,
+      );
+      if (!mounted) return;
+      setState(() {
+        _translation = translated;
+        _showTranslation = true;
+      });
+    } catch (e) {
+      log('[AiLens] translate failed: $e');
+    } finally {
+      if (mounted) setState(() => _translateLoading = false);
+    }
+  }
+
+  /// Flips between the translated overlay and the original frozen frame (only
+  /// meaningful once a translation exists).
+  void _toggleTranslation() {
+    if (_translation == null) return;
+    setState(() => _showTranslation = !_showTranslation);
+  }
+
+  /// Switches the target language and re-translates if a translation is showing.
+  void _setLanguage(String language) {
+    if (language == _targetLanguage) return;
+    setState(() => _targetLanguage = language);
+    if (_ocr != null) _runTranslate();
+  }
+
+  /// Hosts the current selection and opens [engine]'s reverse-image-search page
+  /// in the browser, then closes the lens so the results are visible.
+  Future<void> _runSearch(ReverseSearchEngine engine) async {
+    final selection = _selection;
+    final capture = lensCapture.valueOrNull;
+    if (selection == null || capture == null || _searchLoading) return;
+    setState(() => _searchLoading = true);
+    try {
+      final pngBytes = await _cropSelection(capture, selection);
+      if (pngBytes == null) {
+        log('[AiLens] search crop failed');
+        displayErrorInfoBar(title: 'Search failed', message: 'Could not crop the selection.');
+        return;
+      }
+      final ok = await ReverseImageSearch.instance.launchSearch(pngBytes, engine);
+      if (!mounted) return;
+      if (!ok) {
+        displayErrorInfoBar(
+          title: 'Search failed',
+          message: 'Could not upload the image. Check your connection and try again.',
+        );
+        return;
+      }
+      // Results opened in the browser — leave the lens so they're visible.
+      await NativeChannelUtils.exitLensMode();
+      _close();
+    } catch (e) {
+      log('[AiLens] search failed: $e');
+      if (mounted) displayErrorInfoBar(title: 'Search failed', message: '$e');
+    } finally {
+      if (mounted) setState(() => _searchLoading = false);
+    }
   }
 
   /// Debug aid: writes the exact crop sent to OCR to the temp dir, plus an
@@ -245,6 +407,18 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   }
 
   void _close() => OverlayManager.hideLensOverlay();
+
+  /// Whether [globalPos] (a pointer's global position) falls on the prompt pill.
+  /// Uses the pill's actual rendered RenderBox so it stays correct as the pill
+  /// grows/shrinks; falls back to the static [_hudRect] estimate before layout.
+  bool _pillContains(Offset globalPos, LensCapture capture, Rect selection) {
+    final box = _pillKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) {
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      return rect.contains(globalPos);
+    }
+    return _hudRect(capture, selection).contains(globalPos);
+  }
 
   /// Rectangle the floating prompt pill occupies (only meaningful once a
   /// selection exists). Used both to position it and to keep pointer-downs on
@@ -340,12 +514,14 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
       final outW = px.width.round();
       final outH = px.height.round();
       if (kDumpOcrCrop) {
-        log('[crop] sel=${selPoints.left.toStringAsFixed(0)},${selPoints.top.toStringAsFixed(0)} '
-            '${selPoints.width.toStringAsFixed(0)}x${selPoints.height.toStringAsFixed(0)} | '
-            'sx=${sx.toStringAsFixed(3)} sy=${sy.toStringAsFixed(3)} | '
-            'src=${src.width}x${src.height} pxW=${capture.pxWidth} ptW=${capture.pointWidth} '
-            'scale=${capture.scale} | px=${px.left.toStringAsFixed(0)},${px.top.toStringAsFixed(0)} '
-            '${px.width.toStringAsFixed(0)}x${px.height.toStringAsFixed(0)} out=${outW}x$outH');
+        log(
+          '[crop] sel=${selPoints.left.toStringAsFixed(0)},${selPoints.top.toStringAsFixed(0)} '
+          '${selPoints.width.toStringAsFixed(0)}x${selPoints.height.toStringAsFixed(0)} | '
+          'sx=${sx.toStringAsFixed(3)} sy=${sy.toStringAsFixed(3)} | '
+          'src=${src.width}x${src.height} pxW=${capture.pxWidth} ptW=${capture.pointWidth} '
+          'scale=${capture.scale} | px=${px.left.toStringAsFixed(0)},${px.top.toStringAsFixed(0)} '
+          '${px.width.toStringAsFixed(0)}x${px.height.toStringAsFixed(0)} out=${outW}x$outH',
+        );
       }
       if (outW <= 0 || outH <= 0) return null;
       final recorder = ui.PictureRecorder();
@@ -368,26 +544,10 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final capture = lensCapture.valueOrNull;
+    // Esc is handled app-level in [_onGlobalKey] (focus-independent); this Focus
+    // only seeds keyboard traversal for the prompt field.
     return Focus(
       autofocus: true,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          // Esc peels back state: recognized text first, then the selection,
-          // then (on a final press) closes the lens.
-          if (_ocr != null || _ocrLoading) {
-            _clearOcr();
-          } else if (_dragStart != null) {
-            setState(() {
-              _dragStart = null;
-              _dragCurrent = null;
-            });
-          } else {
-            _close();
-          }
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
       // Dark "entering" backdrop until the captured frame arrives. Pre-warm:
       // the window is revealed immediately so the engine resumes during capture.
       child: capture == null ? const ColoredBox(color: Color(0xE6000000)) : _buildLens(capture),
@@ -402,7 +562,9 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
     return Listener(
       onPointerDown: (e) {
         // Don't start a new selection when interacting with the prompt pill.
-        if (selection != null && _hudRect(capture, selection).contains(e.localPosition)) {
+        // Measure its real bounds (it grows when OCR/engine rows reveal) so taps
+        // on the lower chips aren't mistaken for a fresh snip.
+        if (selection != null && _pillContains(e.position, capture, selection)) {
           return;
         }
         // While the Live Text overlay is up, taps inside the selection belong
@@ -414,9 +576,13 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
           _selecting = true;
           _dragStart = e.localPosition;
           _dragCurrent = e.localPosition;
-          // Starting a fresh selection invalidates any recognized text.
+          // Starting a fresh selection invalidates any recognized text and
+          // its translation.
           _ocr = null;
           _ocrLoading = false;
+          _translation = null;
+          _translateLoading = false;
+          _showTranslation = false;
         });
       },
       onPointerMove: (e) {
@@ -473,7 +639,7 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
                 child: IgnorePointer(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: const BorderRadius.all(Radius.circular(8)),
                       border: Border.all(color: const Color(0xFFCFEFFF), width: 1.5),
                       boxShadow: const [
                         BoxShadow(color: Color(0x6699D6FF), blurRadius: 16, spreadRadius: 1),
@@ -485,8 +651,21 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
 
             // 2.5 Live Text overlay: selectable OCR results laid over the
             //     frozen frame, positioned by each block's normalized rect.
-            if (selection != null && _ocr != null && _ocr!.isNotEmpty)
+            //     When a translation is toggled on, the opaque translated layer
+            //     covers the original text instead.
+            if (selection != null && _showTranslation && _translation != null && _ocr != null)
               Positioned.fromRect(
+                key: const ValueKey('lens-translated'),
+                rect: selection,
+                child: _TranslatedTextLayer(
+                  blocks: _ocr!.blocks,
+                  translations: _translation!,
+                  size: selection.size,
+                ),
+              )
+            else if (selection != null && _ocr != null && _ocr!.isNotEmpty)
+              Positioned.fromRect(
+                key: const ValueKey('lens-livetext'),
                 rect: selection,
                 child: _LiveTextLayer(
                   result: _ocr!,
@@ -506,10 +685,15 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
   Widget _buildHud(LensCapture capture, Rect selection) {
     final rect = _hudRect(capture, selection);
     return Positioned(
+      // Stable key so inserting the Live Text layer above this pill in the
+      // Stack doesn't re-index (and thus rebuild) the pill — which would reset
+      // the reveal AnimatedSwitcher and skip the OCR-row appear animation.
+      key: const ValueKey('lens-hud'),
       left: rect.left,
       top: rect.top,
       width: rect.width,
       child: _LensPromptPill(
+        key: _pillKey,
         controller: _promptController,
         focusNode: _promptFocus,
         onSubmit: _submit,
@@ -518,6 +702,15 @@ class _AiLensOverlayUIState extends State<AiLensOverlayUI> with SingleTickerProv
         ocrLoading: _ocrLoading,
         ocrText: _ocr?.text,
         onClearText: _clearOcr,
+        onSearch: _runSearch,
+        searchLoading: _searchLoading,
+        onTranslate: _runTranslate,
+        onToggleTranslation: _toggleTranslation,
+        translateLoading: _translateLoading,
+        hasTranslation: _translation != null,
+        showingTranslation: _showTranslation,
+        targetLanguage: _targetLanguage,
+        onPickLanguage: _setLanguage,
       ),
     );
   }
@@ -614,6 +807,67 @@ class _LiveTextBox extends StatelessWidget {
   }
 }
 
+/// Opaque "translated" overlay laid over the selection. Each OCR block becomes
+/// an opaque white box (covering the original text on the frozen frame) with the
+/// translated text in black, auto-shrunk to fit its box. Positioned by the same
+/// normalized rects as [_LiveTextLayer], so it lines up with the source text.
+class _TranslatedTextLayer extends StatelessWidget {
+  const _TranslatedTextLayer({
+    required this.blocks,
+    required this.translations,
+    required this.size,
+  });
+  final List<OcrBlock> blocks;
+  final List<String> translations; // aligned 1:1 with [blocks]
+  final Size size; // selection size in display points
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.fromSize(
+      size: size,
+      child: Stack(
+        children: [
+          for (var i = 0; i < blocks.length; i++)
+            if (i < translations.length && translations[i].trim().isNotEmpty)
+              Positioned(
+                left: blocks[i].rect.left * size.width,
+                top: blocks[i].rect.top * size.height,
+                width: blocks[i].rect.width * size.width,
+                height: blocks[i].rect.height * size.height,
+                child: _TranslatedBox(text: translations[i]),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single translated line: opaque white fill with black text scaled down to
+/// fit the original block's box, so longer translations don't overflow.
+class _TranslatedBox extends StatelessWidget {
+  const _TranslatedBox({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFFFFFF),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          maxLines: 1,
+          softWrap: false,
+          style: const TextStyle(color: Color(0xFF000000), height: 1.0),
+        ),
+      ),
+    );
+  }
+}
+
 /// Drives the lens fragment shader: feeds the frozen frame as a texture plus
 /// the time/open-ripple/selection uniforms, and paints it fullscreen.
 class _LensShaderPainter extends CustomPainter {
@@ -655,8 +909,9 @@ class _LensShaderPainter extends CustomPainter {
 
 /// Frosted prompt pill shown under the selection. Enter sends (with the crop);
 /// an empty prompt still sends the attachment. ✕ closes the lens.
-class _LensPromptPill extends StatelessWidget {
+class _LensPromptPill extends StatefulWidget {
   const _LensPromptPill({
+    super.key,
     required this.controller,
     required this.focusNode,
     required this.onSubmit,
@@ -665,6 +920,15 @@ class _LensPromptPill extends StatelessWidget {
     required this.ocrLoading,
     required this.ocrText,
     required this.onClearText,
+    required this.onSearch,
+    required this.searchLoading,
+    required this.onTranslate,
+    required this.onToggleTranslation,
+    required this.translateLoading,
+    required this.hasTranslation,
+    required this.showingTranslation,
+    required this.targetLanguage,
+    required this.onPickLanguage,
   });
   final TextEditingController controller;
   final FocusNode focusNode;
@@ -683,217 +947,194 @@ class _LensPromptPill extends StatelessWidget {
   /// Dismisses the Live Text overlay.
   final VoidCallback onClearText;
 
+  /// Reverse-image-search the selection with the chosen engine.
+  final ValueChanged<ReverseSearchEngine> onSearch;
+
+  /// True while the crop is being hosted/launched — spinner on the Search chip.
+  final bool searchLoading;
+
+  /// Runs OCR (if needed) + translation on the selection (the "Translate" chip).
+  final VoidCallback onTranslate;
+
+  /// Flips between the translated overlay and the original frozen frame.
+  final VoidCallback onToggleTranslation;
+
+  /// True while translation is in flight — spinner on the Translate chip.
+  final bool translateLoading;
+
+  /// Whether a translation result exists (enables the toggle behavior).
+  final bool hasTranslation;
+
+  /// Whether the translated overlay is currently shown.
+  final bool showingTranslation;
+
+  /// Current target language name (e.g. 'English').
+  final String targetLanguage;
+
+  /// Picks a new target language from the language picker.
+  final ValueChanged<String> onPickLanguage;
+
+  @override
+  State<_LensPromptPill> createState() => _LensPromptPillState();
+}
+
+class _LensPromptPillState extends State<_LensPromptPill> {
+  // Whether the reverse-image-search engine picker is expanded.
+  bool _showEngines = false;
+
+  // Whether the translate target-language picker is expanded.
+  bool _showLanguages = false;
+
   @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final focusNode = widget.focusNode;
+    final onSubmit = widget.onSubmit;
+    final onClose = widget.onClose;
+    final onText = widget.onText;
+    final ocrLoading = widget.ocrLoading;
+    final ocrText = widget.ocrText;
+    final onClearText = widget.onClearText;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: const BorderRadius.all(Radius.circular(14)),
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: const Color(0xCC1E1E1E),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: const BorderRadius.all(Radius.circular(14)),
             border: Border.all(color: const Color(0x22FFFFFF)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(ic.FluentIcons.sparkle_24_regular, size: 18, color: Color(0xFFCFEFFF)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextBox(
-                      controller: controller,
-                      focusNode: focusNode,
-                      maxLines: 1,
-                      textInputAction: TextInputAction.send,
-                      placeholder: 'Ask about the selection… (Enter to send)'.tr,
-                      placeholderStyle: const TextStyle(color: Color(0x88FFFFFF)),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      cursorColor: const Color(0xFFCFEFFF),
-                      decoration: const WidgetStatePropertyAll(BoxDecoration(color: Colors.transparent)),
-                      foregroundDecoration: const WidgetStatePropertyAll(BoxDecoration(color: Colors.transparent)),
-                      highlightColor: Colors.transparent,
-                      unfocusedColor: Colors.transparent,
-                      padding: const EdgeInsets.only(left: 8),
-                      onSubmitted: (_) => onSubmit(),
+          // AnimatedSize smoothly grows/shrinks the whole card as sections
+          // (OCR status, engine picker) reveal or collapse below.
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(ic.FluentIcons.sparkle_24_regular, size: 18, color: Color(0xFFCFEFFF)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextBox(
+                        controller: controller,
+                        focusNode: focusNode,
+                        maxLines: 1,
+                        textInputAction: TextInputAction.send,
+                        placeholder: 'Ask about the selection… (Enter to send)'.tr,
+                        placeholderStyle: const TextStyle(color: Color(0x88FFFFFF)),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        cursorColor: const Color(0xFFCFEFFF),
+                        decoration: const WidgetStatePropertyAll(BoxDecoration(color: Colors.transparent)),
+                        foregroundDecoration: const WidgetStatePropertyAll(BoxDecoration(color: Colors.transparent)),
+                        highlightColor: Colors.transparent,
+                        unfocusedColor: Colors.transparent,
+                        padding: const EdgeInsets.only(left: 8),
+                        onSubmitted: (_) => onSubmit(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  _PillIconButton(icon: ic.FluentIcons.send_24_filled, onTap: onSubmit, accent: true),
-                  const SizedBox(width: 2),
-                  _PillIconButton(icon: ic.FluentIcons.dismiss_24_regular, onTap: onClose),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(height: 1, color: const Color(0x14FFFFFF)),
-              const SizedBox(height: 8),
-              // OCR status / actions, shown once the Text chip has run.
-              if (ocrText != null) ...[
-                _OcrStatusRow(ocrText: ocrText!, onClear: onClearText),
+                    const SizedBox(width: 6),
+                    _PillIconButton(icon: ic.FluentIcons.send_24_filled, onTap: onSubmit, accent: true),
+                    const SizedBox(width: 2),
+                    _PillIconButton(icon: ic.FluentIcons.dismiss_24_regular, onTap: onClose),
+                  ],
+                ),
                 const SizedBox(height: 8),
+                Container(height: 1, color: const Color(0x14FFFFFF)),
+                const SizedBox(height: 8),
+                // OCR status / actions, shown once the Text chip has run.
+                // Fades + slides in (and the card grows to fit) via [_Reveal].
+                _Reveal(
+                  child: ocrText != null
+                      ? Padding(
+                          key: const ValueKey('ocr'),
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _OcrStatusRow(ocrText: ocrText, onClear: onClearText),
+                        )
+                      : const SizedBox(key: ValueKey('ocr-empty'), width: double.infinity),
+                ),
+                // Reverse-image-search engine picker, shown when Search is tapped.
+                _Reveal(
+                  child: _showEngines
+                      ? Padding(
+                          key: const ValueKey('engines'),
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _EnginePickerRow(
+                            onPick: (engine) {
+                              setState(() => _showEngines = false);
+                              widget.onSearch(engine);
+                            },
+                          ),
+                        )
+                      : const SizedBox(key: ValueKey('engines-empty'), width: double.infinity),
+                ),
+                // Translate target-language picker, shown when the language chip
+                // is tapped.
+                _Reveal(
+                  child: _showLanguages
+                      ? Padding(
+                          key: const ValueKey('languages'),
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _LanguagePickerRow(
+                            selected: widget.targetLanguage,
+                            onPick: (language) {
+                              setState(() => _showLanguages = false);
+                              widget.onPickLanguage(language);
+                            },
+                          ),
+                        )
+                      : const SizedBox(key: ValueKey('languages-empty'), width: double.infinity),
+                ),
+                // Feature actions. "Text" = native OCR (Live Text overlay);
+                // "Search" = reverse image search (engine picker). Translate is
+                // still a placeholder.
+                Row(
+                  children: [
+                    _PillChip(
+                      icon: ic.FluentIcons.text_grammar_wand_24_regular,
+                      label: 'Text'.tr,
+                      onTap: onText,
+                      loading: ocrLoading,
+                      active: ocrText != null && ocrText.isNotEmpty,
+                    ),
+                    const SizedBox(width: 6),
+                    _PillChip(
+                      icon: ic.FluentIcons.globe_search_24_regular,
+                      label: 'Search'.tr,
+                      loading: widget.searchLoading,
+                      active: _showEngines,
+                      onTap: () => setState(() => _showEngines = !_showEngines),
+                    ),
+                    const SizedBox(width: 6),
+                    _PillChip(
+                      icon: widget.showingTranslation
+                          ? ic.FluentIcons.arrow_undo_24_regular
+                          : ic.FluentIcons.translate_24_regular,
+                      label: widget.hasTranslation
+                          ? (widget.showingTranslation ? 'Original'.tr : 'Translated'.tr)
+                          : 'Translate'.tr,
+                      loading: widget.translateLoading,
+                      active: widget.showingTranslation,
+                      onTap: widget.hasTranslation ? widget.onToggleTranslation : widget.onTranslate,
+                      onLongPress: () => setState(() => _showLanguages = !_showLanguages),
+                      trailing: // Language selector for the translation target.
+                      SqueareIconButtonSized(
+                        width: 32,
+                        height: 16,
+                        icon: const Icon(ic.FluentIcons.chevron_up_24_filled, size: 16, color: Colors.white),
+                        onTap: () => setState(() => _showLanguages = !_showLanguages),
+                        tooltip: widget.targetLanguage,
+                      ),
+                    ),
+                  ],
+                ),
               ],
-              // Feature actions. "Text" = native OCR (Live Text overlay); the
-              // rest are placeholders for now (translate / search).
-              Row(
-                children: [
-                  _PillChip(
-                    icon: ic.FluentIcons.text_grammar_wand_24_regular,
-                    label: 'Text'.tr,
-                    onTap: onText,
-                    loading: ocrLoading,
-                    active: ocrText != null && ocrText!.isNotEmpty,
-                  ),
-                  const SizedBox(width: 6),
-                  _PillChip(icon: ic.FluentIcons.translate_24_regular, label: 'Translate'.tr, onTap: () {}),
-                  const SizedBox(width: 6),
-                  _PillChip(icon: ic.FluentIcons.globe_search_24_regular, label: 'Search'.tr, onTap: () {}),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Labeled feature chip in the bottom row of the prompt pill.
-class _PillChip extends StatefulWidget {
-  const _PillChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.loading = false,
-    this.active = false,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  /// Shows a spinner in place of the icon (action in flight).
-  final bool loading;
-
-  /// Highlights the chip when its result is currently displayed.
-  final bool active;
-
-  @override
-  State<_PillChip> createState() => _PillChipState();
-}
-
-class _PillChipState extends State<_PillChip> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    const accent = Color(0xFFCFEFFF);
-    final Color bg = widget.active
-        ? const Color(0x33CFEFFF)
-        : (_hover ? const Color(0x1FFFFFFF) : const Color(0x12FFFFFF));
-    final Color border = widget.active ? const Color(0x66CFEFFF) : const Color(0x1AFFFFFF);
-    final Color fg = widget.active ? accent : const Color(0xDDFFFFFF);
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.loading ? null : widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: border),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: widget.loading ? const ProgressRing(strokeWidth: 2) : Icon(widget.icon, size: 16, color: fg),
-              ),
-              const SizedBox(width: 6),
-              Text(widget.label, style: TextStyle(color: fg, fontSize: 12)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Status line shown in the pill once OCR has run: a "select text on the image"
-/// hint with Copy-all + dismiss actions, or a "no text found" note.
-class _OcrStatusRow extends StatelessWidget {
-  const _OcrStatusRow({required this.ocrText, required this.onClear});
-  final String ocrText;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final empty = ocrText.trim().isEmpty;
-    return Row(
-      children: [
-        Icon(
-          empty ? ic.FluentIcons.text_grammar_dismiss_24_regular : ic.FluentIcons.text_grammar_checkmark_24_regular,
-          size: 14,
-          color: const Color(0xAAFFFFFF),
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            empty ? 'No text found'.tr : 'Select text on the image, or copy it all'.tr,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xAAFFFFFF), fontSize: 11),
-          ),
-        ),
-        if (!empty)
-          _PillIconButton(
-            icon: ic.FluentIcons.copy_24_regular,
-            onTap: () => Clipboard.setData(ClipboardData(text: ocrText)),
-          ),
-        _PillIconButton(icon: ic.FluentIcons.dismiss_24_regular, onTap: onClear),
-      ],
-    );
-  }
-}
-
-class _PillIconButton extends StatefulWidget {
-  const _PillIconButton({required this.icon, required this.onTap, this.accent = false});
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool accent;
-
-  @override
-  State<_PillIconButton> createState() => _PillIconButtonState();
-}
-
-class _PillIconButtonState extends State<_PillIconButton> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: _hover ? const Color(0x22FFFFFF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Icon(
-            widget.icon,
-            size: 18,
-            color: widget.accent ? const Color(0xFFCFEFFF) : Colors.white,
+            ),
           ),
         ),
       ),
