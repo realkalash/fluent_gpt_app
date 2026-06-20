@@ -32,31 +32,32 @@ class InputFieldMini extends StatelessWidget {
               },
             ),
             const AddFileButton(isMini: true),
-            const ChooseModelButton(),
+            const ChooseModelButton(size: 24),
           ],
         ),
         Expanded(
-            child: Selector<ChatProvider, SpellCheck?>(
-          selector: (context, chatProvider) => chatProvider.spellCheck,
-          builder: (context, spellCheck, child) {
-            return TextBox(
-              key: ValueKey(spellCheck),
-              autofocus: true,
-              autocorrect: true,
-              focusNode: promptTextFocusNode,
-              prefixMode: OverlayVisibilityMode.always,
-              suffix: const MicrophoneButton(),
-              controller: ChatProvider.messageControllerGlobal,
-              expands: false,
-              minLines: 2,
-              maxLines: 30,
-              spellCheckConfiguration: CustomSpellCheckService.getSpellCheckConfiguration(spellCheck),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (value) => onSubmit(value),
-              placeholder: 'Use "/" or type your message here'.tr,
-            );
-          },
-        ))
+          child: Selector<ChatProvider, SpellCheck?>(
+            selector: (context, chatProvider) => chatProvider.spellCheck,
+            builder: (context, spellCheck, child) {
+              return TextBox(
+                key: ValueKey(spellCheck),
+                autofocus: true,
+                autocorrect: true,
+                focusNode: promptTextFocusNode,
+                prefixMode: OverlayVisibilityMode.always,
+                suffix: const MicrophoneButton(),
+                controller: ChatProvider.messageControllerGlobal,
+                expands: false,
+                minLines: 2,
+                maxLines: 30,
+                spellCheckConfiguration: CustomSpellCheckService.getSpellCheckConfiguration(spellCheck),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (value) => onSubmit(value),
+                placeholder: 'Use "/" or type your message here'.tr,
+              );
+            },
+          ),
+        ),
       ],
     );
   }

@@ -352,7 +352,7 @@ class _InputFieldState extends State<InputField> {
               },
             ),
             if (chatProvider.fileInputs.isNotEmpty) const FileThumbnails(),
-            if (widget.isMini) InputFieldMini(onSubmit: onSubmit),
+            if (widget.isMini) Expanded(child: InputFieldMini(onSubmit: onSubmit)),
             if (!widget.isMini)
               InputFieldMain(
                 countTokensInInputField: countTokensInInputField,

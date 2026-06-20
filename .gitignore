@@ -65,3 +65,9 @@ linux/flutter/generated_plugins.cmake
 windows/flutter/generated_plugins.cmake
 windows/flutter/generated_plugin_registrant.h
 windows/flutter/generated_plugin_registrant.cc
+forked-plugins/elevenlabs_flutter/macos/Flutter/ephemeral/Flutter-Generated.xcconfig
+forked-plugins/elevenlabs_flutter/macos/Flutter/ephemeral/flutter_export_environment.sh
+forked-plugins/elevenlabs_flutter/ios/Flutter/Generated.xcconfig
+forked-plugins/elevenlabs_flutter/ios/Flutter/flutter_export_environment.sh
+forked-plugins/elevenlabs_flutter/android/local.properties
+forked-plugins/elevenlabs_flutter/pubspec.lock

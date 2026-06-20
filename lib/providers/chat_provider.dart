@@ -19,6 +19,7 @@ import 'package:fluent_gpt/dialogs/ai_lens_dialog.dart';
 import 'package:fluent_gpt/dialogs/error_message_dialogs.dart';
 import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
+import 'package:fluent_gpt/features/auto_new_chat_feature.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/pdf_utils.dart';
 import 'package:fluent_gpt/features/rag_openai.dart';
@@ -997,6 +998,9 @@ class ChatProvider
 
     /// Will restart autonomous mode and all timers if enabled in cache settings
     AnnoyFeature.init();
+
+    /// Restart the inactivity countdown now that the AI finished answering
+    AutoNewChatFeature.notifyActivity();
     String newContent = response.content;
 
     // if reasoning is disabled, we should remove all blocks with reasoning
@@ -1470,6 +1474,7 @@ class ChatProvider
     saveToDisk([selectedChatRoom]);
     scrollToEnd();
     updateChatRoomTimestamp();
+    AutoNewChatFeature.notifyActivity();
     notifyListeners();
 
     if (message.type == FluentChatMessageType.textHuman) {

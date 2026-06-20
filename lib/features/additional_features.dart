@@ -1,4 +1,5 @@
 import 'package:fluent_gpt/features/annoy_feature.dart';
+import 'package:fluent_gpt/features/auto_new_chat_feature.dart';
 import 'package:fluent_gpt/features/imgur_integration.dart';
 import 'package:fluent_gpt/features/screenshot_tool.dart';
 import 'package:fluent_gpt/features/text_to_speech.dart';
@@ -10,5 +11,6 @@ class AdditionalFeatures {
     TextToSpeechService.init();
     ScreenshotTool.init(isStorageAccessGranted: isStorageAccessGranted);
     AnnoyFeature.init();
+    AutoNewChatFeature.init();
   }
 }

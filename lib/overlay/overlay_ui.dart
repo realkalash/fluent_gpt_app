@@ -81,103 +81,104 @@ class _OverlayUIState extends State<OverlayUI> {
     final backgroundColor = appTheme.isDark ? appTheme.darkBackgroundColor : appTheme.lightBackgroundColor;
     final openWindowIconSize = isSuperCompact ? 20.0 : 30.0;
     return StreamBuilder(
-        stream: OverlayUI.isChatVisible,
-        builder: (context, snapshot) {
-          return GestureDetector(
-            onPanStart: (v) => WindowManager.instance.startDragging(),
-            child: Material(
-              color: Colors.transparent,
-              type: MaterialType.transparency,
-              child: Container(
-                color: backgroundColor,
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    if (isShowChatUI)
-                      const Positioned.fill(
-                        top: 64,
-                        child: ChatPageOverlayUI(),
-                      ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (isSuperCompact == false)
-                            const IconButton(
-                              visualDensity: VisualDensity.compact,
-                              icon: Icon(Icons.close),
-                              onPressed: OverlayManager.hideOverlay,
-                            ),
-                          IconButton(
+      stream: OverlayUI.isChatVisible,
+      builder: (context, snapshot) {
+        return GestureDetector(
+          onPanStart: (v) => WindowManager.instance.startDragging(),
+          child: Material(
+            color: Colors.transparent,
+            type: MaterialType.transparency,
+            child: Container(
+              color: backgroundColor,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  if (isShowChatUI)
+                    const Positioned.fill(
+                      top: 64,
+                      child: ChatPageOverlayUI(),
+                    ),
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (isSuperCompact == false)
+                          const IconButton(
                             visualDensity: VisualDensity.compact,
-                            icon: const Icon(Icons.align_horizontal_left_rounded),
-                            onPressed: _toggleSuperCompactMode,
-                          )
+                            icon: Icon(Icons.close),
+                            onPressed: OverlayManager.hideOverlay,
+                          ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.align_horizontal_left_rounded),
+                          onPressed: _toggleSuperCompactMode,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: isSuperCompact ? 7.0 : 0,
+                    left: 4.0,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          fluent.Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SqueareIconButtonSized(
+                                height: openWindowIconSize,
+                                width: openWindowIconSize,
+                                onTap: () => OverlayManager.switchToMainWindow(),
+                                icon: const Icon(FluentIcons.open_20_filled),
+                                tooltip: 'Open main app'.tr,
+                              ),
+                              if (isSuperCompact == false)
+                                SqueareIconButtonSized(
+                                  height: 24,
+                                  width: 24,
+                                  onTap: () => toggleChatVisibilityStream(),
+                                  icon: Icon(
+                                    isShowChatUI ? FluentIcons.arrow_up_24_filled : FluentIcons.arrow_down_24_filled,
+                                  ),
+                                  tooltip: 'Open chat'.tr,
+                                ),
+                            ],
+                          ),
+                          if (isSuperCompact == false) ...[
+                            ...customPrompts.value
+                                .where((element) => element.showInOverlay)
+                                .map((prompt) => _buildTextOption(prompt, 'custom')),
+                          ],
+                          if (AppCache.showSettingsInOverlay.value == true && isSuperCompact == false)
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(FluentIcons.settings_28_filled),
+                              onPressed: () async {
+                                await OverlayManager.switchToMainWindow();
+                                // ignore: use_build_context_synchronously
+                                Navigator.of(navigatorKey.currentContext!).push(
+                                  fluent.FluentPageRoute(builder: (context) => const NewSettingsPage()),
+                                );
+                              },
+                            ),
                         ],
                       ),
                     ),
-                    Positioned(
-                      top: isSuperCompact ? 7.0 : 0,
-                      left: 4.0,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            fluent.Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SqueareIconButtonSized(
-                                  height: openWindowIconSize,
-                                  width: openWindowIconSize,
-                                  onTap: () => OverlayManager.switchToMainWindow(),
-                                  icon: const Icon(FluentIcons.open_20_filled),
-                                  tooltip: 'Open main app'.tr,
-                                ),
-                                if (isSuperCompact == false)
-                                  SqueareIconButtonSized(
-                                    height: 24,
-                                    width: 24,
-                                    onTap: () => toggleChatVisibilityStream(),
-                                    icon: Icon(isShowChatUI
-                                        ? FluentIcons.arrow_up_24_filled
-                                        : FluentIcons.arrow_down_24_filled),
-                                    tooltip: 'Open chat'.tr,
-                                  ),
-                              ],
-                            ),
-                            if (isSuperCompact == false) ...[
-                              ...customPrompts.value
-                                  .where((element) => element.showInOverlay)
-                                  .map((prompt) => _buildTextOption(prompt, 'custom')),
-                            ],
-                            if (AppCache.showSettingsInOverlay.value == true && isSuperCompact == false)
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                icon: const Icon(FluentIcons.settings_28_filled),
-                                onPressed: () async {
-                                  await OverlayManager.switchToMainWindow();
-                                  // ignore: use_build_context_synchronously
-                                  Navigator.of(navigatorKey.currentContext!).push(
-                                    fluent.FluentPageRoute(builder: (context) => const NewSettingsPage()),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 
   void _onButtonTap(String selectedText, String command) {
@@ -296,8 +297,8 @@ class _OverlayUIState extends State<OverlayUI> {
     final newHeight = isShowChatUI
         ? 400.0
         : isSuperCompact
-            ? OverlayUI.superCompactWindowSize.height
-            : defaultWindowSize.height;
+        ? OverlayUI.superCompactWindowSize.height
+        : defaultWindowSize.height;
 
     await windowManager.setSize(Size(currentWidth, newHeight), animate: true);
     await Future.delayed(const Duration(milliseconds: 250));
@@ -382,47 +383,45 @@ class _ChatPageOverlayUIState extends State<ChatPageOverlayUI> {
         children: [
           Expanded(
             child: StreamBuilder(
-                stream: messages,
-                builder: (context, snapshot) {
-                  final reverseList = messagesReversedList;
-                  if (reverseList.isEmpty) {
-                    final randWelcome = OverlayManager
-                        .welcomesForEmptyList[Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
-                    return Center(
-                      child: TextAnimator(
-                        randWelcome,
-                        initialDelay: const Duration(milliseconds: 200),
-                        style: const TextStyle(fontSize: 30),
-                        textAlign: TextAlign.center,
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: reverseList.length,
-                    controller: _scrollController,
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: true,
-                    reverse: true,
-                    itemBuilder: (context, index) {
-                      final message = reverseList[index];
-
-                      return MessageCard(
-                        message: message,
-                        selectionMode: false,
-                        textSize: AppCache.compactMessageTextSize.value!,
-                        isCompactMode: true,
-                      );
-                    },
+              stream: messages,
+              builder: (context, snapshot) {
+                final reverseList = messagesReversedList;
+                if (reverseList.isEmpty) {
+                  final randWelcome =
+                      OverlayManager.welcomesForEmptyList[Random().nextInt(OverlayManager.welcomesForEmptyList.length)];
+                  return Center(
+                    child: TextAnimator(
+                      randWelcome,
+                      initialDelay: const Duration(milliseconds: 200),
+                      style: const TextStyle(fontSize: 30),
+                      textAlign: TextAlign.center,
+                    ),
                   );
-                }),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(left: 20),
-            child: SizedBox(
-              height: 86,
-              child: InputField(isMini: true),
+                }
+
+                return ListView.builder(
+                  itemCount: reverseList.length,
+                  controller: _scrollController,
+                  addAutomaticKeepAlives: false,
+                  addRepaintBoundaries: true,
+                  reverse: true,
+                  itemBuilder: (context, index) {
+                    final message = reverseList[index];
+
+                    return MessageCard(
+                      message: message,
+                      selectionMode: false,
+                      textSize: AppCache.compactMessageTextSize.value!,
+                      isCompactMode: true,
+                    );
+                  },
+                );
+              },
             ),
+          ),
+          const SizedBox(
+            height: 86,
+            child: InputField(isMini: true),
           ),
         ],
       ),

@@ -38,12 +38,15 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
     final result = await AudioRecorder().hasPermission();
     if (!result) {
       // ignore: use_build_context_synchronously
-      displayInfoBar(context, builder: (ctx, close) {
-        return const InfoBar(
-          title: Text('Permission required'),
-          severity: InfoBarSeverity.warning,
-        );
-      });
+      displayInfoBar(
+        context,
+        builder: (ctx, close) {
+          return const InfoBar(
+            title: Text('Permission required'),
+            severity: InfoBarSeverity.warning,
+          );
+        },
+      );
     }
     return result;
   }
@@ -71,48 +74,50 @@ class _MicrophoneButtonState extends State<MicrophoneButton> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Object>(
-        stream: PushToTalkTool.isRecordingStream,
-        builder: (context, _) {
-          return MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Container(
-              width: 42,
-              height: 30,
-              margin: const EdgeInsets.only(right: 4),
-              child: ToggleButtonAdvenced(
-                onChanged: (v) {
-                  if (PushToTalkTool.isRecording) {
-                    stopRecording();
-                  } else {
-                    startRecording();
-                  }
-                },
-                contextItems: [
-                  for (final locale in gptLocales)
-                    FlyoutListTile(
-                      text: Text(locale.languageCode),
-                      selected: AppCache.speechLanguage.value == locale.languageCode,
-                      onPressed: () {
-                        AppCache.speechLanguage.value = locale.languageCode;
-                        setState(() {});
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                ],
-                maxWidthContextMenu: 84,
-                checked: PushToTalkTool.isRecording,
-                padding: EdgeInsets.zero,
-                icon: const Icon(ic.FluentIcons.mic_24_regular),
-                tooltip: 'Use voice input'.tr,
-              ),
+      stream: PushToTalkTool.isRecordingStream,
+      builder: (context, _) {
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            width: 42,
+            height: 30,
+            margin: const EdgeInsets.only(right: 4),
+            child: ToggleButtonAdvenced(
+              onChanged: (v) {
+                if (PushToTalkTool.isRecording) {
+                  stopRecording();
+                } else {
+                  startRecording();
+                }
+              },
+              contextItems: [
+                for (final locale in gptLocales)
+                  FlyoutListTile(
+                    text: Text(locale.languageCode),
+                    selected: AppCache.speechLanguage.value == locale.languageCode,
+                    onPressed: () {
+                      AppCache.speechLanguage.value = locale.languageCode;
+                      setState(() {});
+                      Navigator.of(context).pop();
+                    },
+                  ),
+              ],
+              maxWidthContextMenu: 84,
+              checked: PushToTalkTool.isRecording,
+              padding: EdgeInsets.zero,
+              icon: const Icon(ic.FluentIcons.mic_24_regular),
+              tooltip: 'Use voice input'.tr,
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 }
 
 class ChooseModelButton extends StatefulWidget {
-  const ChooseModelButton({super.key});
+  const ChooseModelButton({super.key, this.size = 30});
+  final double size;
 
   @override
   State<ChooseModelButton> createState() => _ChooseModelButtonState();
@@ -161,8 +166,8 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
               color: cardColor,
               borderRadius: const BorderRadius.all(Radius.circular(4)),
             ),
-            width: 30,
-            height: 30,
+            width: widget.size,
+            height: widget.size,
             margin: const EdgeInsets.only(left: 4),
             child: SizedBox.square(
               dimension: 20,
@@ -198,81 +203,83 @@ class _ChooseModelButtonState extends State<ChooseModelButton> {
     }
 
     final selectedModel = selectedChatRoom.model;
-    flyoutController.showFlyout(builder: (ctx) {
-      return StatefulBuilder(
-        builder: (_, setState) => MenuFlyout(
-          items: [
-            ...List.generate(models.length, (i) {
-              final e = models[i];
-              return MenuFlyoutItem(
-                selected: e == selectedModel,
-                trailing: StreamBuilder(
-                  stream: selectedChatRoomIdStream,
-                  builder: (context, _) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (e == selectedModel)
-                          const Padding(
-                            padding: EdgeInsets.all(10.0),
-                            child: Icon(ic.FluentIcons.checkmark_16_filled),
-                          ),
-                        SqueareIconButton(
-                          onTap: () async {
-                            Navigator.of(ctx).pop();
-                    
-                            final changedModel = await showDialog<ChatModelAi>(
-                              context: context,
-                              builder: (context) => AddAiModelDialog(initialModel: e),
-                            );
-                            if (changedModel != null) {
-                              provider.removeCustomModel(e);
-                              await provider.addNewCustomModel(changedModel);
-                              await Future.delayed(const Duration(milliseconds: 100));
-                              provider.selectNewModel(changedModel);
-                            }
-                          },
-                          icon: const Icon(ic.FluentIcons.edit_16_regular),
-                          tooltip: 'Edit'.tr,
-                        ),
-                        const SizedBox(width: 4),
-                        if (i != 0)
+    flyoutController.showFlyout(
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (_, setState) => MenuFlyout(
+            items: [
+              ...List.generate(models.length, (i) {
+                final e = models[i];
+                return MenuFlyoutItem(
+                  selected: e == selectedModel,
+                  trailing: StreamBuilder(
+                    stream: selectedChatRoomIdStream,
+                    builder: (context, _) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (e == selectedModel)
+                            const Padding(
+                              padding: EdgeInsets.all(10.0),
+                              child: Icon(ic.FluentIcons.checkmark_16_filled),
+                            ),
                           SqueareIconButton(
                             onTap: () async {
-                              // move this item 1 element up
-                              final index = models.indexOf(e);
-                              final previous = models[index - 1];
-                              models[index - 1] = e;
-                              models[index] = previous;
-                              allModels.value = models;
-                              provider.saveModelsToDisk();
-                              setState(() {});
+                              Navigator.of(ctx).pop();
+
+                              final changedModel = await showDialog<ChatModelAi>(
+                                context: context,
+                                builder: (context) => AddAiModelDialog(initialModel: e),
+                              );
+                              if (changedModel != null) {
+                                provider.removeCustomModel(e);
+                                await provider.addNewCustomModel(changedModel);
+                                await Future.delayed(const Duration(milliseconds: 100));
+                                provider.selectNewModel(changedModel);
+                              }
                             },
-                            icon: const Icon(ic.FluentIcons.arrow_up_12_regular),
-                            tooltip: 'Move up'.tr,
+                            icon: const Icon(ic.FluentIcons.edit_16_regular),
+                            tooltip: 'Edit'.tr,
                           ),
-                      ],
-                    );
-                  }
-                ),
-                leading: SizedBox.square(dimension: 24, child: e.modelIcon),
-                text: Text(e.customName),
-                onPressed: () => provider.selectNewModel(e),
-              );
-            }),
-            const MenuFlyoutSeparator(),
-            MenuFlyoutItem(
-              leading: const Icon(ic.FluentIcons.edit_16_regular),
-              text: Text('Edit'.tr),
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                showDialog(context: ctx, builder: (ctx) => const ModelsListDialog());
-              },
-            ),
-          ],
-        ),
-      );
-    });
+                          const SizedBox(width: 4),
+                          if (i != 0)
+                            SqueareIconButton(
+                              onTap: () async {
+                                // move this item 1 element up
+                                final index = models.indexOf(e);
+                                final previous = models[index - 1];
+                                models[index - 1] = e;
+                                models[index] = previous;
+                                allModels.value = models;
+                                provider.saveModelsToDisk();
+                                setState(() {});
+                              },
+                              icon: const Icon(ic.FluentIcons.arrow_up_12_regular),
+                              tooltip: 'Move up'.tr,
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  leading: SizedBox.square(dimension: 24, child: e.modelIcon),
+                  text: Text(e.customName),
+                  onPressed: () => provider.selectNewModel(e),
+                );
+              }),
+              const MenuFlyoutSeparator(),
+              MenuFlyoutItem(
+                leading: const Icon(ic.FluentIcons.edit_16_regular),
+                text: Text('Edit'.tr),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  showDialog(context: ctx, builder: (ctx) => const ModelsListDialog());
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -311,7 +318,7 @@ class AddFileButton extends StatelessWidget {
           },
           icon: chatProvider.isSendingFiles
               ? const ProgressRing()
-              : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 16 : 24),
+              : Icon(ic.FluentIcons.attach_24_filled, size: isMini ? 14 : 24),
         ),
       ),
     );
@@ -365,49 +372,51 @@ class HotShurtcutsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-        stream: customPrompts,
-        builder: (context, snapshot) {
-          if (snapshot.data == null) {
-            return const SizedBox.shrink();
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: SizedBox(
-              width: double.infinity,
-              child: Wrap(
-                alignment: WrapAlignment.start,
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (final prompt in customPrompts.value)
-                    if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
-                  Button(
-                      child: Text('Answer with tags'.tr),
-                      onPressed: () async {
-                        final chatProvider = context.read<ChatProvider>();
-                        final txtController = chatProvider.messageController;
-                        final textFromClipboard = (await Clipboard.getData('text/plain'))?.text ?? '';
-                        final text = txtController.text.trim().isEmpty ? textFromClipboard : txtController.text;
-                        HotShurtcutsWidget.showAnswerWithTagsDialog(
-                          // ignore: use_build_context_synchronously
-                          context,
-                          text,
-                        );
-                        txtController.clear();
-                      }),
-                  ToggleButtonAdvenced(
-                    icon: const Icon(ic.FluentIcons.settings_20_regular),
-                    onChanged: (_) => showDialog(
-                      context: context,
-                      builder: (ctx) => const CustomPromptsSettingsDialog(),
-                    ),
-                    tooltip: 'Quick prompts'.tr,
+      stream: customPrompts,
+      builder: (context, snapshot) {
+        if (snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.start,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final prompt in customPrompts.value)
+                  if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
+                Button(
+                  child: Text('Answer with tags'.tr),
+                  onPressed: () async {
+                    final chatProvider = context.read<ChatProvider>();
+                    final txtController = chatProvider.messageController;
+                    final textFromClipboard = (await Clipboard.getData('text/plain'))?.text ?? '';
+                    final text = txtController.text.trim().isEmpty ? textFromClipboard : txtController.text;
+                    HotShurtcutsWidget.showAnswerWithTagsDialog(
+                      // ignore: use_build_context_synchronously
+                      context,
+                      text,
+                    );
+                    txtController.clear();
+                  },
+                ),
+                ToggleButtonAdvenced(
+                  icon: const Icon(ic.FluentIcons.settings_20_regular),
+                  onChanged: (_) => showDialog(
+                    context: context,
+                    builder: (ctx) => const CustomPromptsSettingsDialog(),
                   ),
-                ],
-              ),
+                  tooltip: 'Quick prompts'.tr,
+                ),
+              ],
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -417,33 +426,33 @@ class HotShurtcutsOneLineWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-        stream: customPrompts,
-        builder: (context, snapshot) {
-          if (snapshot.data == null) {
-            return const SizedBox.shrink();
-          }
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: SizedBox(
-              width: double.infinity,
-              child: Row(
-                spacing: 4,
-                children: [
-                  ToggleButtonAdvenced(
-                    icon: const Icon(ic.FluentIcons.settings_20_regular),
-                    onChanged: (_) => showDialog(
-                      context: context,
-                      builder: (ctx) => const CustomPromptsSettingsDialog(),
-                    ),
-                    tooltip: 'Quick prompts'.tr,
+      stream: customPrompts,
+      builder: (context, snapshot) {
+        if (snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: Row(
+              spacing: 4,
+              children: [
+                ToggleButtonAdvenced(
+                  icon: const Icon(ic.FluentIcons.settings_20_regular),
+                  onChanged: (_) => showDialog(
+                    context: context,
+                    builder: (ctx) => const CustomPromptsSettingsDialog(),
                   ),
-                  for (final prompt
-                      in customPrompts.value.length > 4 ? customPrompts.value.take(4) : customPrompts.value)
-                    if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
-                ],
-              ),
+                  tooltip: 'Quick prompts'.tr,
+                ),
+                for (final prompt in customPrompts.value.length > 4 ? customPrompts.value.take(4) : customPrompts.value)
+                  if (prompt.showInChatField) PromptChipWidget(prompt: prompt),
+              ],
             ),
-          );
-        });
+          ),
+        );
+      },
+    );
   }
 }

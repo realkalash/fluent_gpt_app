@@ -141,6 +141,12 @@ class AppCache {
       gptToolRememberInfo.value == true;
 
   static const useAiToNameChat = BoolPref("useSecondRequestForNamingChats", false);
+
+  /// When enabled, a fresh empty chat is created automatically after
+  /// [autoNewChatInactivityMinutes] minutes without any chat activity.
+  static const autoNewChatOnInactivity = BoolPref("autoNewChatOnInactivity", false);
+  static const autoNewChatInactivityMinutes = IntPref("autoNewChatInactivityMinutes", 10);
+
   static const enableAutonomousMode = BoolPref("enableAutonomousMode", false);
   static const annoyModeTimerMinMinutes = IntPref("annoyModeTimerMinMinutes", 100);
   static const annoyModeTimerMaxMinutes = IntPref("annoyModeTimerMaxMinutes", 120);

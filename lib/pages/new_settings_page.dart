@@ -13,6 +13,7 @@ import 'package:fluent_gpt/dialogs/info_about_user_dialog.dart';
 import 'package:fluent_gpt/dialogs/microphone_settings_dialog.dart';
 import 'package:fluent_gpt/dialogs/storage_app_dir_configure_dialog.dart';
 import 'package:fluent_gpt/features/annoy_feature.dart';
+import 'package:fluent_gpt/features/auto_new_chat_feature.dart';
 import 'package:fluent_gpt/features/azure_speech.dart';
 import 'package:fluent_gpt/features/deepgram_speech.dart';
 import 'package:fluent_gpt/features/elevenlabs_speech.dart';
@@ -99,10 +100,11 @@ class _NewSettingsPageState extends State<NewSettingsPage> {
     return NavigationView(
       appBar: NavigationAppBar(
         title: GestureDetector(
-            onPanUpdate: (details) {
-              windowManager.startDragging();
-            },
-            child: Text('Settings'.tr)),
+          onPanUpdate: (details) {
+            windowManager.startDragging();
+          },
+          child: Text('Settings'.tr),
+        ),
       ),
       pane: NavigationPane(
         displayMode: PaneDisplayMode.open,
@@ -205,166 +207,172 @@ class _HotkeysSettingsPageState extends State<HotkeysSettingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Button(
-          onPressed: () async {
-            final key = await KeybindingDialog.show(
-              context,
-              initHotkey: openWindowHotkey,
-              title: Text('Open the window keybinding'.tr),
-            );
-            if (key != null && key != openWindowHotkey) {
-              setState(() {
-                openWindowHotkey = key;
-              });
-              await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
-              initShortcuts();
-            }
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Open the window'.tr),
-              const SizedBox(width: 10.0),
-              HotKeyVirtualView(hotKey: openWindowHotkey),
-            ],
-          ),
-        ),
-        spacer,
-        Button(
-          onPressed: () async {
-            final key = await KeybindingDialog.show(
-              context,
-              initHotkey: takeScreenshot,
-              title: Text('Take a screenshot keybinding'.tr),
-            );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
-            if (key != null && key != takeScreenshot) {
-              setState(() {
-                takeScreenshot = key;
-              });
-              if (wasRegistered) {
-                await HotKeyManager.instance.unregister(key);
+      child: ScaffoldPage.scrollable(
+        children: [
+          Button(
+            onPressed: () async {
+              final key = await KeybindingDialog.show(
+                context,
+                initHotkey: openWindowHotkey,
+                title: Text('Open the window keybinding'.tr),
+              );
+              if (key != null && key != openWindowHotkey) {
+                setState(() {
+                  openWindowHotkey = key;
+                });
+                await AppCache.openWindowKey.set(jsonEncode(key.toJson()));
+                initShortcuts();
               }
-              await AppCache.takeScreenshotKey.set(jsonEncode(key.toJson()));
-              initShortcuts();
-            }
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Use visual AI'.tr),
-              const SizedBox(width: 10.0),
-              if (takeScreenshot != null)
-                HotKeyVirtualView(hotKey: takeScreenshot!)
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'.tr),
-                ),
-            ],
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Open the window'.tr),
+                const SizedBox(width: 10.0),
+                HotKeyVirtualView(hotKey: openWindowHotkey),
+              ],
+            ),
           ),
-        ),
-        spacer,
-        Button(
-          onPressed: () async {
-            final key = await KeybindingDialog.show(
-              context,
-              initHotkey: pttScreenshotKey,
-              title: Text('Push-to-talk with screenshot'.tr),
-            );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
-            if (key != null && key != pttScreenshotKey) {
-              setState(() {
-                pttScreenshotKey = key;
-              });
-              if (wasRegistered) {
-                await HotKeyManager.instance.unregister(key);
+          spacer,
+          Button(
+            onPressed: () async {
+              final key = await KeybindingDialog.show(
+                context,
+                initHotkey: takeScreenshot,
+                title: Text('Take a screenshot keybinding'.tr),
+              );
+              final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
+              if (key != null && key != takeScreenshot) {
+                setState(() {
+                  takeScreenshot = key;
+                });
+                if (wasRegistered) {
+                  await HotKeyManager.instance.unregister(key);
+                }
+                await AppCache.takeScreenshotKey.set(jsonEncode(key.toJson()));
+                initShortcuts();
               }
-              await AppCache.pttScreenshotKey.set(jsonEncode(key.toJson()));
-              initShortcuts();
-            }
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Push-to-talk with screenshot'.tr),
-              const SizedBox(width: 10.0),
-              if (pttScreenshotKey != null)
-                HotKeyVirtualView(hotKey: pttScreenshotKey!)
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'.tr),
-                ),
-            ],
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Use visual AI'.tr),
+                const SizedBox(width: 10.0),
+                if (takeScreenshot != null)
+                  HotKeyVirtualView(hotKey: takeScreenshot!)
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text('[Not set]'.tr),
+                  ),
+              ],
+            ),
           ),
-        ),
-        spacer,
-        Button(
-          onPressed: () async {
-            final key = await KeybindingDialog.show(
-              context,
-              initHotkey: pttKey,
-              title: Text('Push-to-talk'.tr),
-            );
-            final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
-            if (key != null && key != pttKey) {
-              setState(() {
-                pttKey = key;
-              });
-              if (wasRegistered) {
-                await HotKeyManager.instance.unregister(key);
+          spacer,
+          Button(
+            onPressed: () async {
+              final key = await KeybindingDialog.show(
+                context,
+                initHotkey: pttScreenshotKey,
+                title: Text('Push-to-talk with screenshot'.tr),
+              );
+              final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
+              if (key != null && key != pttScreenshotKey) {
+                setState(() {
+                  pttScreenshotKey = key;
+                });
+                if (wasRegistered) {
+                  await HotKeyManager.instance.unregister(key);
+                }
+                await AppCache.pttScreenshotKey.set(jsonEncode(key.toJson()));
+                initShortcuts();
               }
-              await AppCache.pttKey.set(jsonEncode(key.toJson()));
-              initShortcuts();
-            }
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Push-to-talk'.tr),
-              const SizedBox(width: 10.0),
-              if (pttKey != null)
-                HotKeyVirtualView(hotKey: pttKey!)
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('[Not set]'.tr),
-                ),
-            ],
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Push-to-talk with screenshot'.tr),
+                const SizedBox(width: 10.0),
+                if (pttScreenshotKey != null)
+                  HotKeyVirtualView(hotKey: pttScreenshotKey!)
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text('[Not set]'.tr),
+                  ),
+              ],
+            ),
           ),
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Divider(),
-        ),
-        Button(
+          spacer,
+          Button(
+            onPressed: () async {
+              final key = await KeybindingDialog.show(
+                context,
+                initHotkey: pttKey,
+                title: Text('Push-to-talk'.tr),
+              );
+              final wasRegistered = HotKeyManager.instance.registeredHotKeyList.any((element) => element == key);
+              if (key != null && key != pttKey) {
+                setState(() {
+                  pttKey = key;
+                });
+                if (wasRegistered) {
+                  await HotKeyManager.instance.unregister(key);
+                }
+                await AppCache.pttKey.set(jsonEncode(key.toJson()));
+                initShortcuts();
+              }
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Push-to-talk'.tr),
+                const SizedBox(width: 10.0),
+                if (pttKey != null)
+                  HotKeyVirtualView(hotKey: pttKey!)
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Text('[Not set]'.tr),
+                  ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Divider(),
+          ),
+          Button(
             child: Text('Show all keybindings'.tr),
             onPressed: () {
-              Navigator.of(context).push(FluentPageRoute(
+              Navigator.of(context).push(
+                FluentPageRoute(
                   builder: (context) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            alignment: AlignmentDirectional.centerStart,
-                            padding: const EdgeInsets.all(4.0),
-                            color: context.theme.cardColor,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: const SmallIconButton(
-                                child: Icon(FluentIcons.arrow_left_20_filled),
-                              ),
-                            ),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        alignment: AlignmentDirectional.centerStart,
+                        padding: const EdgeInsets.all(4.0),
+                        color: context.theme.cardColor,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const SmallIconButton(
+                            child: Icon(FluentIcons.arrow_left_20_filled),
                           ),
-                          const Expanded(child: WelcomeShortcutsHelper()),
-                        ],
-                      )));
-            }),
-      ]),
+                        ),
+                      ),
+                      const Expanded(child: WelcomeShortcutsHelper()),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -376,26 +384,29 @@ class StorageSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Button(
+      child: ScaffoldPage.scrollable(
+        children: [
+          Button(
             child: Text('Application storage location'.tr),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (ctx) => const StorageAppDirConfigureDialog(),
               );
-            }),
-        spacer,
-        Button(
+            },
+          ),
+          spacer,
+          Button(
             child: Text('Delete all chat rooms'.tr),
             onPressed: () => ConfirmationDialog(
-                  isDelete: true,
-                  onAcceptPressed: () {
-                    context.read<ChatProvider>().deleteAllChatRooms();
-                  },
-                )),
-        spacer,
-        Button(
+              isDelete: true,
+              onAcceptPressed: () {
+                context.read<ChatProvider>().deleteAllChatRooms();
+              },
+            ),
+          ),
+          spacer,
+          Button(
             child: Text('Delete temp cache'.tr),
             onPressed: () async {
               final sizeBytes = await FileUtils.calculateSizeRecursive(FileUtils.appTemporaryDirectoryPath!);
@@ -416,10 +427,11 @@ class StorageSettingsPage extends StatelessWidget {
                   }
                 },
               );
-            }),
-        spacer,
-        spacer,
-        FilledRedButton(
+            },
+          ),
+          spacer,
+          spacer,
+          FilledRedButton(
             child: Text('Clear all data'.tr),
             onPressed: () async {
               final navProvider = context.read<NavigationProvider>();
@@ -442,8 +454,10 @@ class StorageSettingsPage extends StatelessWidget {
               if (navigator.canPop()) {
                 navigator.pop();
               }
-            }),
-      ]),
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -460,38 +474,40 @@ class _OverlaySettingsPageState extends State<OverlaySettingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Text('Overlay settings'.tr, style: FluentTheme.of(context).typography.subtitle),
-        CheckBoxTile(
-          isChecked: AppCache.enableOverlay.value!,
-          onChanged: (value) {
-            setState(() {
-              AppCache.enableOverlay.value = value;
-            });
-            Provider.of<AppTheme>(context, listen: false).updateUI();
-          },
-          child: Text('Enable overlay'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.showSettingsInOverlay.value!,
-          onChanged: (value) {
-            setState(() {
-              AppCache.showSettingsInOverlay.value = value;
-            });
-          },
-          child: Text('Show settings icon in overlay'.tr),
-        ),
-        spacer,
-        NumberBox(
-          value: AppCache.overlayVisibleElements.value == -1 ? null : AppCache.overlayVisibleElements.value,
-          placeholder: AppCache.overlayVisibleElements.value == -1 ? 'Adaptive'.tr : null,
-          onChanged: (value) {
-            AppCache.overlayVisibleElements.value = value ?? -1;
-          },
-          min: 4,
-          mode: SpinButtonPlacementMode.inline,
-        ),
-      ]),
+      child: ScaffoldPage.scrollable(
+        children: [
+          Text('Overlay settings'.tr, style: FluentTheme.of(context).typography.subtitle),
+          CheckBoxTile(
+            isChecked: AppCache.enableOverlay.value!,
+            onChanged: (value) {
+              setState(() {
+                AppCache.enableOverlay.value = value;
+              });
+              Provider.of<AppTheme>(context, listen: false).updateUI();
+            },
+            child: Text('Enable overlay'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.showSettingsInOverlay.value!,
+            onChanged: (value) {
+              setState(() {
+                AppCache.showSettingsInOverlay.value = value;
+              });
+            },
+            child: Text('Show settings icon in overlay'.tr),
+          ),
+          spacer,
+          NumberBox(
+            value: AppCache.overlayVisibleElements.value == -1 ? null : AppCache.overlayVisibleElements.value,
+            placeholder: AppCache.overlayVisibleElements.value == -1 ? 'Adaptive'.tr : null,
+            onChanged: (value) {
+              AppCache.overlayVisibleElements.value = value ?? -1;
+            },
+            min: 4,
+            mode: SpinButtonPlacementMode.inline,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -507,10 +523,11 @@ class _QuickPromptsSettingsPageState extends State<QuickPromptsSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-        color: FluentTheme.of(context).inactiveBackgroundColor,
-        child: const ScaffoldPage(
-          content: CustomPromptsSettingsContainer(),
-        ));
+      color: FluentTheme.of(context).inactiveBackgroundColor,
+      child: const ScaffoldPage(
+        content: CustomPromptsSettingsContainer(),
+      ),
+    );
   }
 }
 
@@ -526,62 +543,64 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Card(
-          padding: EdgeInsets.zero,
-          child: BasicListTile(
-            padding: const EdgeInsets.all(8.0),
-            title: Text('Show suggestions after ai response'.tr),
-            leading: Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: Checkbox(
-                checked: AppCache.enableQuestionHelpers.value == true,
-                onChanged: (v) {
-                  setState(() {
-                    AppCache.enableQuestionHelpers.value = v;
-                  });
-                },
-              ),
-            ),
-            trailing: Tooltip(
-              richMessage: WidgetSpan(
-                child: SizedBox(
-                  width: 400,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'
-                              .tr),
-                      const SizedBox(height: 10),
-                      Image.asset('assets/im_suggestions_tip.png', width: 400),
-                    ],
-                  ),
+      child: ScaffoldPage.scrollable(
+        children: [
+          Card(
+            padding: EdgeInsets.zero,
+            child: BasicListTile(
+              padding: const EdgeInsets.all(8.0),
+              title: Text('Show suggestions after ai response'.tr),
+              leading: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Checkbox(
+                  checked: AppCache.enableQuestionHelpers.value == true,
+                  onChanged: (v) {
+                    setState(() {
+                      AppCache.enableQuestionHelpers.value = v;
+                    });
+                  },
                 ),
               ),
-              child: const Icon(FluentIcons.question_circle_20_regular),
+              trailing: Tooltip(
+                richMessage: WidgetSpan(
+                  child: SizedBox(
+                    width: 400,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Will ask AI to produce buttons for each response. It will consume additional tokens in order to generate suggestions'
+                              .tr,
+                        ),
+                        const SizedBox(height: 10),
+                        Image.asset('assets/im_suggestions_tip.png', width: 400),
+                      ],
+                    ),
+                  ),
+                ),
+                child: const Icon(FluentIcons.question_circle_20_regular),
+              ),
+              onTap: () {
+                setState(() {
+                  AppCache.enableQuestionHelpers.value = !(AppCache.enableQuestionHelpers.value ?? false);
+                });
+              },
             ),
-            onTap: () {
-              setState(() {
-                AppCache.enableQuestionHelpers.value = !(AppCache.enableQuestionHelpers.value ?? false);
-              });
-            },
           ),
-        ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 200.0),
-          child: StreamBuilder(
-            stream: onMessageActions.stream,
-            builder: (ctx, list) => ListView.builder(
-              itemCount: list.data?.length ?? 0,
-              itemBuilder: (ctx, index) {
-                final action = onMessageActions.value[index];
-                return Card(
-                  padding: EdgeInsets.zero,
-                  child: BasicListTile(
-                    leading: Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Checkbox(
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 200.0),
+            child: StreamBuilder(
+              stream: onMessageActions.stream,
+              builder: (ctx, list) => ListView.builder(
+                itemCount: list.data?.length ?? 0,
+                itemBuilder: (ctx, index) {
+                  final action = onMessageActions.value[index];
+                  return Card(
+                    padding: EdgeInsets.zero,
+                    child: BasicListTile(
+                      leading: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Checkbox(
                           checked: action.isEnabled,
                           onChanged: (v) {
                             final edited = action.copyWith(isEnabled: v);
@@ -590,48 +609,50 @@ class _OnResponseEndSettingsPageState extends State<OnResponseEndSettingsPage> {
                             onMessageActions.add(actions);
                             final json = actions.map((e) => e.toJson()).toList();
                             AppCache.customActions.set(jsonEncode(json));
-                          }),
+                          },
+                        ),
+                      ),
+                      title: Text(action.actionName),
+                      padding: const EdgeInsets.all(8.0),
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (ctx) => CustomActionDialog(action: action),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(FluentIcons.delete_20_filled),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => ConfirmationDialog(
+                              isDelete: true,
+                              onAcceptPressed: () {
+                                final actions = onMessageActions.value;
+                                actions.removeAt(index);
+                                onMessageActions.add(actions);
+                                final json = actions.map((e) => e.toJson()).toList();
+                                AppCache.customActions.set(jsonEncode(json));
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    title: Text(action.actionName),
-                    padding: const EdgeInsets.all(8.0),
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (ctx) => CustomActionDialog(action: action),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(FluentIcons.delete_20_filled),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => ConfirmationDialog(
-                            isDelete: true,
-                            onAcceptPressed: () {
-                              final actions = onMessageActions.value;
-                              actions.removeAt(index);
-                              onMessageActions.add(actions);
-                              final json = actions.map((e) => e.toJson()).toList();
-                              AppCache.customActions.set(jsonEncode(json));
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-        ),
-        Button(
-          child: Text('Add custom action'.tr),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (ctx) => const CustomActionDialog(),
-            );
-          },
-        ),
-      ]),
+          Button(
+            child: Text('Add custom action'.tr),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const CustomActionDialog(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -660,151 +681,153 @@ class _APIandUrlsSettingsPageState extends State<APIandUrlsSettingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Text(
-          'Brave API key (search engine) \$'.tr,
-          style: FluentTheme.of(context).typography.subtitle,
-        ),
-        TextFormBox(
-          initialValue: AppCache.braveSearchApiKey.value,
-          placeholder: AppCache.braveSearchApiKey.value,
-          obscureText: obscureBraveText,
-          suffix: IconButton(
-            icon: const Icon(FluentIcons.eye_20_regular),
-            onPressed: () {
-              setState(() {
-                obscureBraveText = !obscureBraveText;
-              });
+      child: ScaffoldPage.scrollable(
+        children: [
+          Text(
+            'Brave API key (search engine) \$'.tr,
+            style: FluentTheme.of(context).typography.subtitle,
+          ),
+          TextFormBox(
+            initialValue: AppCache.braveSearchApiKey.value,
+            placeholder: AppCache.braveSearchApiKey.value,
+            obscureText: obscureBraveText,
+            suffix: IconButton(
+              icon: const Icon(FluentIcons.eye_20_regular),
+              onPressed: () {
+                setState(() {
+                  obscureBraveText = !obscureBraveText;
+                });
+              },
+            ),
+            onChanged: (value) {
+              AppCache.braveSearchApiKey.value = value;
             },
           ),
-          onChanged: (value) {
-            AppCache.braveSearchApiKey.value = value;
-          },
-        ),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: LinkTextButton(
-            'https://api.search.brave.com/app/keys',
-            url: 'https://api.search.brave.com/app/keys',
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: LinkTextButton(
+              'https://api.search.brave.com/app/keys',
+              url: 'https://api.search.brave.com/app/keys',
+            ),
           ),
-        ),
-        spacer,
-        DropDownButton(
-          items: [
-            for (var serv in TextToSpeechServiceEnum.values)
+          spacer,
+          DropDownButton(
+            items: [
+              for (var serv in TextToSpeechServiceEnum.values)
+                MenuFlyoutItem(
+                  selected: AppCache.textToSpeechService.value == serv.name,
+                  onPressed: () {
+                    AppCache.textToSpeechService.value = serv.name;
+                    setState(() {});
+                  },
+                  text: Text(serv.name),
+                ),
+            ],
+            title: Text('${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
+          ),
+          if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.deepgram.name)
+            const _DeepgramSettings()
+          else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.azure.name)
+            const _AzureSettings()
+          else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.elevenlabs.name)
+            const _ElevenLabsSettings(),
+          spacer,
+          LabelText('Image generator'.tr),
+          DropDownButton(
+            items: [
+              for (var gen in ImageGeneratorEnum.values)
+                MenuFlyoutItem(
+                  selected: ImageGeneratorFeature.selectedGenerator == gen,
+                  onPressed: () async {
+                    await ImageGeneratorFeature.setGenerator(gen);
+                    setState(() {});
+                  },
+                  text: Text(gen.name.tr),
+                ),
+            ],
+            title: Text(ImageGeneratorFeature.selectedGenerator.name.tr),
+          ),
+          if (ImageGeneratorFeature.selectedGenerator == ImageGeneratorEnum.deepinfraGenerator)
+            const LinkTextButton('https://deepinfra.com/dash/deployments'),
+          spacer,
+          TextBox(
+            controller: apiKeyTextController,
+            placeholder: 'API key for image generator'.tr,
+            minLines: 1,
+            maxLines: 1,
+            obscureText: obscureimageApi,
+            suffix: IconButton(
+              icon: const Icon(FluentIcons.eye_20_regular),
+              onPressed: () {
+                setState(() {
+                  obscureimageApi = !obscureimageApi;
+                });
+              },
+            ),
+            onChanged: (value) {
+              if (value.isEmpty) return;
+              AppCache.imageGeneratorApiKey.value = value;
+            },
+          ),
+          TextBox(
+            controller: imageModelTextController,
+            placeholder: 'Model'.tr,
+            minLines: 1,
+            maxLines: 1,
+            onChanged: (value) {
+              if (value.isEmpty) return;
+              AppCache.imageGeneratorModel.value = value;
+            },
+          ),
+          spacer,
+          CaptionText('Resolution'.tr),
+          DropDownButton(
+            items: [
               MenuFlyoutItem(
-                selected: AppCache.textToSpeechService.value == serv.name,
-                onPressed: () {
-                  AppCache.textToSpeechService.value = serv.name;
-                  setState(() {});
-                },
-                text: Text(serv.name),
-              ),
-          ],
-          title: Text('${'Text-to-Speech service:'.tr} ${AppCache.textToSpeechService.value}'),
-        ),
-        if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.deepgram.name)
-          const _DeepgramSettings()
-        else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.azure.name)
-          const _AzureSettings()
-        else if (AppCache.textToSpeechService.value == TextToSpeechServiceEnum.elevenlabs.name)
-          const _ElevenLabsSettings(),
-        spacer,
-        LabelText('Image generator'.tr),
-        DropDownButton(
-          items: [
-            for (var gen in ImageGeneratorEnum.values)
-              MenuFlyoutItem(
-                selected: ImageGeneratorFeature.selectedGenerator == gen,
+                selected: AppCache.imageGeneratorSize.value == '768x1366',
                 onPressed: () async {
-                  await ImageGeneratorFeature.setGenerator(gen);
+                  AppCache.imageGeneratorSize.value = '768x1366';
                   setState(() {});
                 },
-                text: Text(gen.name.tr),
+                text: const Text('768x1366'),
               ),
-          ],
-          title: Text(ImageGeneratorFeature.selectedGenerator.name.tr),
-        ),
-        if (ImageGeneratorFeature.selectedGenerator == ImageGeneratorEnum.deepinfraGenerator)
-          const LinkTextButton('https://deepinfra.com/dash/deployments'),
-        spacer,
-        TextBox(
-          controller: apiKeyTextController,
-          placeholder: 'API key for image generator'.tr,
-          minLines: 1,
-          maxLines: 1,
-          obscureText: obscureimageApi,
-          suffix: IconButton(
-            icon: const Icon(FluentIcons.eye_20_regular),
-            onPressed: () {
-              setState(() {
-                obscureimageApi = !obscureimageApi;
-              });
-            },
+              MenuFlyoutItem(
+                selected: AppCache.imageGeneratorSize.value == '1366x768',
+                onPressed: () async {
+                  AppCache.imageGeneratorSize.value = '1366x768';
+                  setState(() {});
+                },
+                text: const Text('1366x768'),
+              ),
+              MenuFlyoutItem(
+                selected: AppCache.imageGeneratorSize.value == '1024x1024',
+                onPressed: () async {
+                  AppCache.imageGeneratorSize.value = '1024x1024';
+                  setState(() {});
+                },
+                text: const Text('1024x1024'),
+              ),
+              MenuFlyoutItem(
+                selected: AppCache.imageGeneratorSize.value == '512x512',
+                onPressed: () async {
+                  AppCache.imageGeneratorSize.value = '512x512';
+                  setState(() {});
+                },
+                text: const Text('512x512'),
+              ),
+              MenuFlyoutItem(
+                selected: AppCache.imageGeneratorSize.value == '768x768',
+                onPressed: () async {
+                  AppCache.imageGeneratorSize.value = '768x768';
+                  setState(() {});
+                },
+                text: const Text('768x768'),
+              ),
+            ],
+            title: Text(AppCache.imageGeneratorSize.value ?? '-'),
           ),
-          onChanged: (value) {
-            if (value.isEmpty) return;
-            AppCache.imageGeneratorApiKey.value = value;
-          },
-        ),
-        TextBox(
-          controller: imageModelTextController,
-          placeholder: 'Model'.tr,
-          minLines: 1,
-          maxLines: 1,
-          onChanged: (value) {
-            if (value.isEmpty) return;
-            AppCache.imageGeneratorModel.value = value;
-          },
-        ),
-        spacer,
-        CaptionText('Resolution'.tr),
-        DropDownButton(
-          items: [
-            MenuFlyoutItem(
-              selected: AppCache.imageGeneratorSize.value == '768x1366',
-              onPressed: () async {
-                AppCache.imageGeneratorSize.value = '768x1366';
-                setState(() {});
-              },
-              text: const Text('768x1366'),
-            ),
-            MenuFlyoutItem(
-              selected: AppCache.imageGeneratorSize.value == '1366x768',
-              onPressed: () async {
-                AppCache.imageGeneratorSize.value = '1366x768';
-                setState(() {});
-              },
-              text: const Text('1366x768'),
-            ),
-            MenuFlyoutItem(
-              selected: AppCache.imageGeneratorSize.value == '1024x1024',
-              onPressed: () async {
-                AppCache.imageGeneratorSize.value = '1024x1024';
-                setState(() {});
-              },
-              text: const Text('1024x1024'),
-            ),
-            MenuFlyoutItem(
-              selected: AppCache.imageGeneratorSize.value == '512x512',
-              onPressed: () async {
-                AppCache.imageGeneratorSize.value = '512x512';
-                setState(() {});
-              },
-              text: const Text('512x512'),
-            ),
-            MenuFlyoutItem(
-              selected: AppCache.imageGeneratorSize.value == '768x768',
-              onPressed: () async {
-                AppCache.imageGeneratorSize.value = '768x768';
-                setState(() {});
-              },
-              text: const Text('768x768'),
-            ),
-          ],
-          title: Text(AppCache.imageGeneratorSize.value ?? '-'),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
@@ -840,166 +863,209 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
     final currentLocale = appTheme.locale;
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        LabelText('Global system prompt'.tr),
-        TextFormBox(
-          placeholder: 'Global system prompt'.tr,
-          controller: systemPromptController,
-          minLines: 1,
-          maxLines: 50,
-          suffix: AiLibraryButton(onPressed: () async {
-            final prompt = await showDialog<CustomPrompt?>(
-              context: context,
-              builder: (ctx) => const AiPromptsLibraryDialog(),
-              barrierDismissible: true,
-            );
-            if (prompt != null) {
-              AppCache.globalSystemPrompt.value = prompt.prompt;
-              systemPromptController.text = prompt.prompt;
-              defaultGlobalSystemMessage = prompt.prompt;
-            }
-          }),
-          onChanged: (value) {
-            AppCache.globalSystemPrompt.value = value;
-            defaultGlobalSystemMessage = value;
-          },
-        ),
-        CaptionText(
-          'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below'
-              .tr,
-        ),
-        spacer,
-        Button(
-          child: Text('Click here to check the whole system prompt'.tr),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (ctx) => const GlobalSystemPromptSampleDialog(),
-              barrierDismissible: true,
-            );
-          },
-        ),
-        spacer,
-        const NerdySelectorDropdown(),
-        CheckBoxTooltip(
-          content: Text('Use ai to name chat'.tr),
-          tooltip: 'Can cause additional charges!'.tr,
-          checked: AppCache.useAiToNameChat.value,
-          onChanged: (value) {
-            AppCache.useAiToNameChat.value = value;
-            setState(() {});
-          },
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Divider(),
-        ),
-        Card(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('OS: ${SysInfo.operatingSystemName}'),
-            Text('Cores: ${SysInfo.cores.length}'),
-            Text('Architecture: ${SysInfo.rawKernelArchitecture}'),
-            Text('KernelName: ${SysInfo.kernelName}'),
-            Text('OS version: ${SysInfo.kernelVersion}'),
-            Text('User directory: ${SysInfo.userDirectory}'),
-            Text('User system id: ${SysInfo.userId}'),
-            Text('User name in OS: ${SysInfo.userName}'),
-          ]),
-        ),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Divider(),
-        ),
-        Button(
+      child: ScaffoldPage.scrollable(
+        children: [
+          LabelText('Global system prompt'.tr),
+          TextFormBox(
+            placeholder: 'Global system prompt'.tr,
+            controller: systemPromptController,
+            minLines: 1,
+            maxLines: 50,
+            suffix: AiLibraryButton(
+              onPressed: () async {
+                final prompt = await showDialog<CustomPrompt?>(
+                  context: context,
+                  builder: (ctx) => const AiPromptsLibraryDialog(),
+                  barrierDismissible: true,
+                );
+                if (prompt != null) {
+                  AppCache.globalSystemPrompt.value = prompt.prompt;
+                  systemPromptController.text = prompt.prompt;
+                  defaultGlobalSystemMessage = prompt.prompt;
+                }
+              },
+            ),
+            onChanged: (value) {
+              AppCache.globalSystemPrompt.value = value;
+              defaultGlobalSystemMessage = value;
+            },
+          ),
+          CaptionText(
+            'Customizable Global system prompt will be used for all NEW chats. To check the whole system prompt press button below'
+                .tr,
+          ),
+          spacer,
+          Button(
+            child: Text('Click here to check the whole system prompt'.tr),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => const GlobalSystemPromptSampleDialog(),
+                barrierDismissible: true,
+              );
+            },
+          ),
+          spacer,
+          const NerdySelectorDropdown(),
+          CheckBoxTooltip(
+            content: Text('Use ai to name chat'.tr),
+            tooltip: 'Can cause additional charges!'.tr,
+            checked: AppCache.useAiToNameChat.value,
+            onChanged: (value) {
+              AppCache.useAiToNameChat.value = value;
+              setState(() {});
+            },
+          ),
+          spacer,
+          CheckBoxTooltip(
+            checked: AppCache.autoNewChatOnInactivity.value == true,
+            onChanged: (value) {
+              setState(() {
+                AppCache.autoNewChatOnInactivity.value = value;
+              });
+              AutoNewChatFeature.init();
+            },
+            content: Text('Auto create new chat after inactivity'.tr),
+          ),
+          if (AppCache.autoNewChatOnInactivity.value == true)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Minutes of inactivity before new chat'.tr)),
+                  const SizedBox(width: 10.0),
+                  SizedBox(
+                    width: 120,
+                    child: NumberBox(
+                      value: AppCache.autoNewChatInactivityMinutes.value,
+                      min: 1,
+                      max: 60 * 24,
+                      mode: SpinButtonPlacementMode.none,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        AppCache.autoNewChatInactivityMinutes.value = value;
+                        AutoNewChatFeature.init();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Divider(),
+          ),
+          Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('OS: ${SysInfo.operatingSystemName}'),
+                Text('Cores: ${SysInfo.cores.length}'),
+                Text('Architecture: ${SysInfo.rawKernelArchitecture}'),
+                Text('KernelName: ${SysInfo.kernelName}'),
+                Text('OS version: ${SysInfo.kernelVersion}'),
+                Text('User directory: ${SysInfo.userDirectory}'),
+                Text('User system id: ${SysInfo.userId}'),
+                Text('User name in OS: ${SysInfo.userName}'),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Divider(),
+          ),
+          Button(
             child: Text('Audio and Microphone'.tr),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (ctx) => const MicrophoneSettingsDialog(),
               );
-            }),
-
-        /// dropdown to switch languages
-        Text('Locale'.tr, style: FluentTheme.of(context).typography.subtitle),
-        spacer,
-        Wrap(
-          spacing: 15.0,
-          runSpacing: 10.0,
-          children: List.generate(
-            supportedLocales.length,
-            (index) {
-              final locale = supportedLocales[index];
-              return RadioButton(
-                checked: currentLocale == locale,
-                onChanged: (value) {
-                  if (value) {
-                    appTheme.locale = locale;
-                    // update hotshortcuts on the homepage
-                    customPrompts.add(customPrompts.value);
-                    // setState(() {});
-                  }
-                },
-                content: Text('$locale'),
-              );
             },
           ),
-        ),
-        spacer,
-        CheckBoxTile(
-          isChecked: AppCache.useLocalSpellCheck.value == true,
-          onChanged: (value) async {
-            AppCache.useLocalSpellCheck.value = value;
-            if (value == true) {
-              await context.read<ChatProvider>().initSpellCheck();
-            }
-            setState(() {});
-          },
-          child: Text('${'Use spell check'.tr} (${'Consumes additional RAM'.tr})'),
-        ),
-        // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
-        if (!Platform.isMacOS)
+
+          /// dropdown to switch languages
+          Text('Locale'.tr, style: FluentTheme.of(context).typography.subtitle),
+          spacer,
+          Wrap(
+            spacing: 15.0,
+            runSpacing: 10.0,
+            children: List.generate(
+              supportedLocales.length,
+              (index) {
+                final locale = supportedLocales[index];
+                return RadioButton(
+                  checked: currentLocale == locale,
+                  onChanged: (value) {
+                    if (value) {
+                      appTheme.locale = locale;
+                      // update hotshortcuts on the homepage
+                      customPrompts.add(customPrompts.value);
+                      // setState(() {});
+                    }
+                  },
+                  content: Text('$locale'),
+                );
+              },
+            ),
+          ),
+          spacer,
           CheckBoxTile(
-            isChecked: isLaunchAtStartupEnabled,
+            isChecked: AppCache.useLocalSpellCheck.value == true,
             onChanged: (value) async {
+              AppCache.useLocalSpellCheck.value = value;
               if (value == true) {
-                await launchAtStartup.enable();
-              } else {
-                await launchAtStartup.disable();
+                await context.read<ChatProvider>().initSpellCheck();
               }
-              isLaunchAtStartupEnabled = value!;
               setState(() {});
             },
-            child: Text('Launch at startup'.tr),
+            child: Text('${'Use spell check'.tr} (${'Consumes additional RAM'.tr})'),
           ),
-        CheckBoxTile(
-          isChecked: appTheme.preventClose,
-          expanded: true,
-          onChanged: (value) {
-            appTheme.togglePreventClose();
-            setState(() {});
-          },
-          child: Text('Prevent close app'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.hideEditSystemPromptInHomePage.value == true,
-          onChanged: (value) {
-            AppCache.hideEditSystemPromptInHomePage.value = value;
-          },
-          child: Text('Hide showing system prompt in home page'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.showAppInDock.value == true,
-          onChanged: (value) => appTheme.toggleShowInDock(),
-          child: Text('Show app in dock'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.hideTitleBar.value == true,
-          child: Text('Hide window title'.tr),
-          onChanged: (value) {
-            appTheme.toggleHideTitleBar();
-          },
-        ),
-      ]),
+          // TODO: add macos support (https://pub.dev/packages/launch_at_startup#installation)
+          if (!Platform.isMacOS)
+            CheckBoxTile(
+              isChecked: isLaunchAtStartupEnabled,
+              onChanged: (value) async {
+                if (value == true) {
+                  await launchAtStartup.enable();
+                } else {
+                  await launchAtStartup.disable();
+                }
+                isLaunchAtStartupEnabled = value!;
+                setState(() {});
+              },
+              child: Text('Launch at startup'.tr),
+            ),
+          CheckBoxTile(
+            isChecked: appTheme.preventClose,
+            expanded: true,
+            onChanged: (value) {
+              appTheme.togglePreventClose();
+              setState(() {});
+            },
+            child: Text('Prevent close app'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.hideEditSystemPromptInHomePage.value == true,
+            onChanged: (value) {
+              AppCache.hideEditSystemPromptInHomePage.value = value;
+            },
+            child: Text('Hide showing system prompt in home page'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.showAppInDock.value == true,
+            onChanged: (value) => appTheme.toggleShowInDock(),
+            child: Text('Show app in dock'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.hideTitleBar.value == true,
+            child: Text('Hide window title'.tr),
+            onChanged: (value) {
+              appTheme.toggleHideTitleBar();
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1024,79 +1090,80 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        LabelText('Info about User'.tr),
-        TextFormBox(
-          prefix: BadgePrefix(Text('User name'.tr)),
-          initialValue: AppCache.userName.value,
-          minLines: 1,
-          maxLines: 1,
-          onChanged: (value) {
-            AppCache.userName.value = value;
-          },
-        ),
-        CaptionText('Your name that will be used in the chat'.tr),
-        spacer,
-        AutoSuggestBox(
-          leadingIcon: BadgePrefix(Text('User city'.tr)),
-          placeholder: AppCache.userCityName.value,
-          onChanged: (value, reason) {
-            AppCache.userCityName.value = value;
-          },
-          clearButtonEnabled: false,
-          trailingIcon: IconButton(
-            icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
-            onPressed: () {
-              AppCache.userCityName.value = '';
-              setState(() {});
+      child: ScaffoldPage.scrollable(
+        children: [
+          LabelText('Info about User'.tr),
+          TextFormBox(
+            prefix: BadgePrefix(Text('User name'.tr)),
+            initialValue: AppCache.userName.value,
+            minLines: 1,
+            maxLines: 1,
+            onChanged: (value) {
+              AppCache.userName.value = value;
             },
           ),
-          items: [for (var city in cities) AutoSuggestBoxItem(label: city, value: city)],
-        ),
-        CaptionText('Your city name that will be used in the chat and to get weather'.tr),
-        CheckBoxTile(
-          isChecked: AppCache.includeUserCityNamePrompt.value!,
-          onChanged: (value) {
-            AppCache.includeUserCityNamePrompt.value = value;
-          },
-          child: Text('Include user city name in system prompt'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.includeWeatherPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeWeatherPrompt.value = value;
-          },
-          child: Text('Include weather in system prompt'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.includeUserNameToSysPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeUserNameToSysPrompt.value = value;
-          },
-          child: Text('Include user name in system prompt'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.includeTimeToSystemPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeTimeToSystemPrompt.value = value;
-          },
-          child: Text('Include current date and time in system prompt'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.includeSysInfoToSysPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeSysInfoToSysPrompt.value = value;
-          },
-          child: Text('Include system info in system prompt'.tr),
-        ),
-        CheckBoxTile(
-          isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
-          onChanged: (value) {
-            AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
-          },
-          child: Text('Include knowledge about user'.tr),
-        ),
-        Button(
+          CaptionText('Your name that will be used in the chat'.tr),
+          spacer,
+          AutoSuggestBox(
+            leadingIcon: BadgePrefix(Text('User city'.tr)),
+            placeholder: AppCache.userCityName.value,
+            onChanged: (value, reason) {
+              AppCache.userCityName.value = value;
+            },
+            clearButtonEnabled: false,
+            trailingIcon: IconButton(
+              icon: Icon(FluentIcons.delete_20_filled, color: Colors.red),
+              onPressed: () {
+                AppCache.userCityName.value = '';
+                setState(() {});
+              },
+            ),
+            items: [for (var city in cities) AutoSuggestBoxItem(label: city, value: city)],
+          ),
+          CaptionText('Your city name that will be used in the chat and to get weather'.tr),
+          CheckBoxTile(
+            isChecked: AppCache.includeUserCityNamePrompt.value!,
+            onChanged: (value) {
+              AppCache.includeUserCityNamePrompt.value = value;
+            },
+            child: Text('Include user city name in system prompt'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.includeWeatherPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeWeatherPrompt.value = value;
+            },
+            child: Text('Include weather in system prompt'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.includeUserNameToSysPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeUserNameToSysPrompt.value = value;
+            },
+            child: Text('Include user name in system prompt'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.includeTimeToSystemPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeTimeToSystemPrompt.value = value;
+            },
+            child: Text('Include current date and time in system prompt'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.includeSysInfoToSysPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeSysInfoToSysPrompt.value = value;
+            },
+            child: Text('Include system info in system prompt'.tr),
+          ),
+          CheckBoxTile(
+            isChecked: AppCache.includeKnowledgeAboutUserToSysPrompt.value!,
+            onChanged: (value) {
+              AppCache.includeKnowledgeAboutUserToSysPrompt.value = value;
+            },
+            child: Text('Include knowledge about user'.tr),
+          ),
+          Button(
             child: Text('Open info about User'.tr),
             onPressed: () {
               showDialog(
@@ -1104,47 +1171,49 @@ class _UserSettignsInfoPageState extends State<UserSettignsInfoPage> {
                 builder: (ctx) => const InfoAboutUserDialog(),
                 barrierDismissible: true,
               );
-            }),
-        const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Divider(),
-        ),
-        // Tooltip(
-        //   message:
-        //       'If enabled will summarize chat conversation and append the most'
-        //               ' important information about the user to a file.'
-        //               '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!'
-        //           .tr,
-        //   child: CheckBoxTile(
-        //     isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
-        //     onChanged: (value) {
-        //       AppCache.learnAboutUserAfterCreateNewChat.value = value;
-        //     },
-        //     child: Wrap(
-        //       crossAxisAlignment: WrapCrossAlignment.center,
-        //       children: [
-        //         Text('Learn about the user after creating new chat \$\$'.tr),
-        //         const Icon(FluentIcons.brain_circuit_24_filled),
-        //         SizedBox(width: 10.0),
-        //         SizedBox(
-        //           width: 120,
-        //           height: 32,
-        //           child: NumberBox(
-        //               value: AppCache.maxTokensUserInfo.value!,
-        //               clearButton: false,
-        //               smallChange: 64,
-        //               onChanged: (value) {
-        //                 if (value == null) return;
-        //                 if (value < 64) value = 64;
-        //                 AppCache.maxTokensUserInfo.value = value;
-        //               },
-        //               mode: SpinButtonPlacementMode.inline),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ),
-      ]),
+            },
+          ),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Divider(),
+          ),
+          // Tooltip(
+          //   message:
+          //       'If enabled will summarize chat conversation and append the most'
+          //               ' important information about the user to a file.'
+          //               '\nCAN CAUSE ADDITIONAL SIGNIFICANT CHARGES!'
+          //           .tr,
+          //   child: CheckBoxTile(
+          //     isChecked: AppCache.learnAboutUserAfterCreateNewChat.value!,
+          //     onChanged: (value) {
+          //       AppCache.learnAboutUserAfterCreateNewChat.value = value;
+          //     },
+          //     child: Wrap(
+          //       crossAxisAlignment: WrapCrossAlignment.center,
+          //       children: [
+          //         Text('Learn about the user after creating new chat \$\$'.tr),
+          //         const Icon(FluentIcons.brain_circuit_24_filled),
+          //         SizedBox(width: 10.0),
+          //         SizedBox(
+          //           width: 120,
+          //           height: 32,
+          //           child: NumberBox(
+          //               value: AppCache.maxTokensUserInfo.value!,
+          //               clearButton: false,
+          //               smallChange: 64,
+          //               onChanged: (value) {
+          //                 if (value == null) return;
+          //                 if (value < 64) value = 64;
+          //                 AppCache.maxTokensUserInfo.value = value;
+          //               },
+          //               mode: SpinButtonPlacementMode.inline),
+          //         ),
+          //       ],
+          //     ),
+          //   ),
+          // ),
+        ],
+      ),
     );
   }
 }
@@ -1178,88 +1247,105 @@ class DebugPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: FluentTheme.of(context).inactiveBackgroundColor,
-      child: ScaffoldPage.scrollable(children: [
-        Text('Debug', style: FluentTheme.of(context).typography.subtitle),
-        Wrap(
-          children: [
-            Button(
+      child: ScaffoldPage.scrollable(
+        children: [
+          Text('Debug', style: FluentTheme.of(context).typography.subtitle),
+          Wrap(
+            children: [
+              Button(
                 child: const Text('PN'),
                 onPressed: () {
                   NotificationService.showNotification('title', 'body');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('test native hello world'),
                 onPressed: () {
                   NativeChannelUtils.testChannel();
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('get selected text'),
                 onPressed: () async {
                   final text = await NativeChannelUtils.getSelectedText();
                   log('Selected text: $text');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('show overlay'),
                 onPressed: () {
                   NativeChannelUtils.showOverlay();
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('request native permissions'),
                 onPressed: () {
                   NativeChannelUtils.requestNativePermissions();
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('init accessibility'),
                 onPressed: () {
                   NativeChannelUtils.initAccessibility();
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('is accessibility granted'),
                 onPressed: () async {
                   final isGranted = await NativeChannelUtils.isAccessibilityGranted();
                   log('isAccessibilityGranted: $isGranted');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('get screen size'),
                 onPressed: () async {
                   final screenSize = await NativeChannelUtils.getScreenSize();
                   log('screenSize: $screenSize');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('get mouse position'),
                 onPressed: () async {
                   final mousePosition = await NativeChannelUtils.getMousePosition();
                   log('mousePosition: $mousePosition');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('Start region capture (Cmd+Opt OR Cmd+Shift + drag)'),
                 onPressed: () async {
                   final started = await NativeChannelUtils.startRegionCaptureService();
                   log('startRegionCaptureService -> $started');
                   if (!started) {
-                    log('Grant Accessibility permission, then press again. '
-                        'Then Cmd+Option+drag (or Cmd+Shift+drag) anywhere on screen.');
+                    log(
+                      'Grant Accessibility permission, then press again. '
+                      'Then Cmd+Option+drag (or Cmd+Shift+drag) anywhere on screen.',
+                    );
                   }
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('Stop region capture'),
-                onPressed: () => NativeChannelUtils.stopRegionCaptureService()),
-            FilledRedButton(
+                onPressed: () => NativeChannelUtils.stopRegionCaptureService(),
+              ),
+              FilledRedButton(
                 child: const Text('Request screen recording'),
                 onPressed: () async {
                   final ok = await NativeChannelUtils.requestScreenRecordingAccess();
                   log('requestScreenRecordingAccess -> $ok');
-                }),
-            FilledRedButton(
+                },
+              ),
+              FilledRedButton(
                 child: const Text('Check permissions (a11y + screen rec)'),
                 onPressed: () async {
                   final a11y = await NativeChannelUtils.isRegionCaptureAccessibilityGranted();
                   final screen = await NativeChannelUtils.isScreenRecordingGranted();
                   log('accessibility=$a11y screenRecording=$screen');
-                }),
-          ],
-        )
-      ]),
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1377,13 +1463,14 @@ class _ToolsSettingsState extends State<ToolsSettings> {
               initialValue: AppCache.imgurClientId.value,
               obscureText: true,
               suffix: Tooltip(
-                message: """1. Go to Imgur and create an account.
+                message:
+                    """1. Go to Imgur and create an account.
       2. Navigate to the Imgur API and register your application to get a clientId.
       3. Fill "Application Name" with anything you want. (e.g. "Fluent GPT")
       4. Authorization type: "OAuth 2 authorization without a callback URL
       5. Email: Your email
       6. Paste clientId here"""
-                    .tr,
+                        .tr,
                 child: const Icon(FluentIcons.info_20_filled),
               ),
               onChanged: (value) {
@@ -1534,19 +1621,21 @@ class AppearanceSettings extends StatelessWidget {
         children: [
           Text('Accent Color'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
-          Wrap(children: [
-            Tooltip(
-              message: accentColorNames[0],
-              child: _buildColorBlock(appTheme, systemAccentColor),
-            ),
-            ...List.generate(Colors.accentColors.length, (index) {
-              final color = Colors.accentColors[index];
-              return Tooltip(
-                message: accentColorNames[index + 1],
-                child: _buildColorBlock(appTheme, color),
-              );
-            }),
-          ]),
+          Wrap(
+            children: [
+              Tooltip(
+                message: accentColorNames[0],
+                child: _buildColorBlock(appTheme, systemAccentColor),
+              ),
+              ...List.generate(Colors.accentColors.length, (index) {
+                final color = Colors.accentColors[index];
+                return Tooltip(
+                  message: accentColorNames[index + 1],
+                  child: _buildColorBlock(appTheme, color),
+                );
+              }),
+            ],
+          ),
           Text('Theme'.tr, style: FluentTheme.of(context).typography.subtitle),
           spacer,
           Wrap(
@@ -1662,11 +1751,13 @@ class AppearanceSettings extends StatelessWidget {
             onChanged: (value) {
               appTheme.setAsFrameless(value);
               if (value == false) {
-                displayInfoBar(context,
-                    builder: (context, _) => InfoBar(
-                          title: Text('Restart the app to apply changes'.tr),
-                          severity: InfoBarSeverity.warning,
-                        ));
+                displayInfoBar(
+                  context,
+                  builder: (context, _) => InfoBar(
+                    title: Text('Restart the app to apply changes'.tr),
+                    severity: InfoBarSeverity.warning,
+                  ),
+                );
               }
             },
           ),
@@ -1718,7 +1809,7 @@ class AppearanceSettings extends StatelessWidget {
                     const MessageSamplePreviewCard(isCompact: true),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         ],
@@ -1770,34 +1861,37 @@ class _AzureSettingsState extends State<_AzureSettings> {
           initialValue: AppCache.azureSpeechApiKey.value,
           placeholder: AppCache.azureSpeechApiKey.value,
           obscureText: true,
-          suffix: DropDownButton(leading: Text('${'Voice:'.tr} ${AppCache.azureVoiceModel.value}'), items: [
-            for (var model in AzureSpeech.listModels)
-              MenuFlyoutItem(
-                selected: AppCache.azureVoiceModel.value == model,
-                trailing: SqueareIconButton(
-                  onTap: () {
-                    final previousModel = AppCache.azureVoiceModel.value;
-                    if (AzureSpeech.isValid()) {
-                      AppCache.azureVoiceModel.value = model;
-                      AzureSpeech.readAloud(
-                        'This is a sample text to read aloud',
-                        onCompleteReadingAloud: () {
-                          AppCache.azureVoiceModel.value = previousModel;
-                        },
-                      );
-                    }
+          suffix: DropDownButton(
+            leading: Text('${'Voice:'.tr} ${AppCache.azureVoiceModel.value}'),
+            items: [
+              for (var model in AzureSpeech.listModels)
+                MenuFlyoutItem(
+                  selected: AppCache.azureVoiceModel.value == model,
+                  trailing: SqueareIconButton(
+                    onTap: () {
+                      final previousModel = AppCache.azureVoiceModel.value;
+                      if (AzureSpeech.isValid()) {
+                        AppCache.azureVoiceModel.value = model;
+                        AzureSpeech.readAloud(
+                          'This is a sample text to read aloud',
+                          onCompleteReadingAloud: () {
+                            AppCache.azureVoiceModel.value = previousModel;
+                          },
+                        );
+                      }
+                    },
+                    icon: const Icon(FluentIcons.play_circle_24_filled),
+                    tooltip: 'Read sample'.tr,
+                  ),
+                  onPressed: () {
+                    AppCache.azureVoiceModel.value = model;
+                    DeepgramSpeech.init();
+                    setState(() {});
                   },
-                  icon: const Icon(FluentIcons.play_circle_24_filled),
-                  tooltip: 'Read sample'.tr,
+                  text: Text(model),
                 ),
-                onPressed: () {
-                  AppCache.azureVoiceModel.value = model;
-                  DeepgramSpeech.init();
-                  setState(() {});
-                },
-                text: Text(model),
-              ),
-          ]),
+            ],
+          ),
           onChanged: (value) {
             AppCache.azureSpeechApiKey.value = value.trim();
             AzureSpeech.init();
@@ -1828,27 +1922,30 @@ class _DeepgramSettingsState extends State<_DeepgramSettings> {
           initialValue: AppCache.deepgramApiKey.value,
           placeholder: AppCache.deepgramApiKey.value,
           obscureText: true,
-          suffix: DropDownButton(leading: Text('${'Voice:'.tr} ${AppCache.deepgramVoiceModel.value}'), items: [
-            for (var model in DeepgramSpeech.listModels)
-              MenuFlyoutItem(
-                selected: AppCache.deepgramVoiceModel.value == model,
-                trailing: SqueareIconButton(
-                  onTap: () {
-                    if (DeepgramSpeech.isValid()) {
-                      DeepgramSpeech.readAloud('This is a sample text to read aloud');
-                    }
+          suffix: DropDownButton(
+            leading: Text('${'Voice:'.tr} ${AppCache.deepgramVoiceModel.value}'),
+            items: [
+              for (var model in DeepgramSpeech.listModels)
+                MenuFlyoutItem(
+                  selected: AppCache.deepgramVoiceModel.value == model,
+                  trailing: SqueareIconButton(
+                    onTap: () {
+                      if (DeepgramSpeech.isValid()) {
+                        DeepgramSpeech.readAloud('This is a sample text to read aloud');
+                      }
+                    },
+                    icon: const Icon(FluentIcons.play_circle_24_filled),
+                    tooltip: 'Read sample'.tr,
+                  ),
+                  onPressed: () {
+                    AppCache.deepgramVoiceModel.value = model;
+                    DeepgramSpeech.init();
+                    setState(() {});
                   },
-                  icon: const Icon(FluentIcons.play_circle_24_filled),
-                  tooltip: 'Read sample'.tr,
+                  text: Text(model),
                 ),
-                onPressed: () {
-                  AppCache.deepgramVoiceModel.value = model;
-                  DeepgramSpeech.init();
-                  setState(() {});
-                },
-                text: Text(model),
-              ),
-          ]),
+            ],
+          ),
           onChanged: (value) {
             AppCache.deepgramApiKey.value = value.trim();
             DeepgramSpeech.init();
