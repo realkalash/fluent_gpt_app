@@ -24,8 +24,7 @@ const List<CustomPrompt> basePromptsTemplate = [
     title: 'Explain this',
     iconCodePoint: 62635, // FluentIcons.info_24_filled,
     index: 1,
-    prompt:
-        'Please explain clearly and concisely using:"\${lang}" language: "\${input}"',
+    prompt: 'Please explain clearly and concisely using:"\${lang}" language: "\${input}"',
     showInChatField: true,
     showInOverlay: true,
     children: [],
@@ -50,13 +49,19 @@ Only give me the output and nothing else. Respond in the \${lang} language. Answ
     title: 'Check grammar',
     iconCodePoint: 60703, // FluentIcons.text_grammar_wand_24_filled,
     index: 3,
-    prompt: '''Check spelling and grammar in the following text.
-If the original text has no mistake, write "None". 
-"\${input}"
-Output format:
-```clipboard
-{only corrected output}
-```
+    prompt: '''Act as a spelling corrector and improver. Reply only with the
+rewritten text and nothing else.
+Strictly follow these rules:
+• Correct spelling, grammar and punctuation
+• ALWAYS detect and maintain the original language of the given
+text
+• NEVER surround the rewritten text with quotes
+• Don't replace urls with markdown links
+• Don't change emojis
+Text to rewrite:
+\${input}
+
+Your answer:
 ''',
     showInChatField: true,
     showInOverlay: true,
@@ -69,8 +74,7 @@ Output format:
     title: 'Improve writing',
     iconCodePoint: 60703, // FluentIcons.text_grammar_wand_24_filled,
     index: 4,
-    prompt:
-        '''Please improve the writing in the following text. Make it more engaging and clear.
+    prompt: '''Please improve the writing in the following text. Make it more engaging and clear.
 Answer only in clipboard quotes: \${clipboardAccess}.
 """
 \${input}
@@ -86,8 +90,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
     title: 'Translate',
     index: 5,
     iconCodePoint: 63540, // FluentIcons.translate_24_regular,
-    prompt:
-        '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
+    prompt: '''Please translate the following text to language:"\${lang}". Only give me the output and nothing else:
     "\${input}"''',
     showInChatField: true,
     showInOverlay: true,
@@ -98,8 +101,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         id: 6,
         title: 'Translate to English',
         iconCodePoint: 63540, // FluentIcons.translate_24_regular,
-        prompt:
-            '''Please translate the following text to English. Only give me the output and nothing else:
+        prompt: '''Please translate the following text to English. Only give me the output and nothing else:
     "\${input}"''',
         includeConversation: false,
         includeSystemPrompt: false,
@@ -108,8 +110,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         id: 7,
         title: 'Translate to Russian',
         iconCodePoint: 63540, // FluentIcons.translate_24_regular,
-        prompt:
-            '''Please translate the following text to Russian. Only give me the output and nothing else:
+        prompt: '''Please translate the following text to Russian. Only give me the output and nothing else:
     "\${input}"''',
         includeConversation: false,
         includeSystemPrompt: false,
@@ -118,8 +119,7 @@ Answer only in clipboard quotes: \${clipboardAccess}.
         id: 8,
         title: 'Translate to Ukrainian',
         iconCodePoint: 63540, // FluentIcons.translate_24_regular,
-        prompt:
-            '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
+        prompt: '''Please translate the following text to Ukrainian. Only give me the output and nothing else:
     "\${input}"''',
         includeConversation: false,
         includeSystemPrompt: false,
@@ -187,36 +187,31 @@ const List<CustomPrompt> promptsLibrary = [
   CustomPrompt(
     id: 18,
     title: 'Text to Emoji',
-    prompt:
-        'Based on the input content, summarize the most appropriate emoji. Write only emoji and nothing else',
+    prompt: 'Based on the input content, summarize the most appropriate emoji. Write only emoji and nothing else',
     tags: ['Fun'],
   ),
   CustomPrompt(
     id: 19,
     title: 'Speak well',
-    prompt:
-        'Refine your words in a positive, constructive, cheerful, and pleasant manner',
+    prompt: 'Refine your words in a positive, constructive, cheerful, and pleasant manner',
     tags: ['Writing'],
   ),
   CustomPrompt(
     id: 20,
     title: 'English Idioms',
-    prompt:
-        'I want to learn and practice English idioms in various contexts. Please provide me with some examples',
+    prompt: 'I want to learn and practice English idioms in various contexts. Please provide me with some examples',
     tags: ['Education', 'Teacher'],
   ),
   CustomPrompt(
     id: 21,
     title: 'English Proverbs',
-    prompt:
-        'I want to learn and practice English proverbs in various contexts. Please provide me with some examples',
+    prompt: 'I want to learn and practice English proverbs in various contexts. Please provide me with some examples',
     tags: ['Education', 'Teacher'],
   ),
   CustomPrompt(
     id: 22,
     title: 'English Phrases',
-    prompt:
-        'I want to learn and practice English phrases in various contexts. Please provide me with some examples',
+    prompt: 'I want to learn and practice English phrases in various contexts. Please provide me with some examples',
     tags: ['Education', 'Teacher'],
   ),
   CustomPrompt(
@@ -259,8 +254,7 @@ const List<CustomPrompt> promptsLibrary = [
   CustomPrompt(
     id: 29,
     title: 'Universal Congratulations Letter',
-    prompt:
-        'Generate a universal congratulations letter based on the input content',
+    prompt: 'Generate a universal congratulations letter based on the input content',
     tags: ['Writing'],
   ),
   CustomPrompt(
@@ -446,8 +440,7 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
   CustomPrompt(
     id: 55,
     title: 'Create FAQs',
-    prompt:
-        'Please generate frequently asked questions for the following topic:\n"\${topic}"',
+    prompt: 'Please generate frequently asked questions for the following topic:\n"\${topic}"',
     tags: ['Writing', 'Education'],
   ),
   CustomPrompt(
@@ -471,15 +464,13 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
   CustomPrompt(
     id: 59,
     title: 'Suggest Book Recommendations',
-    prompt:
-        'Please suggest book recommendations based on the following interests:\n"\${text}"',
+    prompt: 'Please suggest book recommendations based on the following interests:\n"\${text}"',
     tags: ['Recommendation', 'Books'],
   ),
   CustomPrompt(
     id: 60,
     title: 'Create Inspirational Quotes',
-    prompt:
-        'Please create an inspirational quote about the following topic:\n"\${topic}"',
+    prompt: 'Please create an inspirational quote about the following topic:\n"\${topic}"',
     tags: ['Creative', 'Motivation'],
   ),
   CustomPrompt(
@@ -491,8 +482,7 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
   CustomPrompt(
     id: 62,
     title: 'Draft an Email',
-    prompt:
-        'Please draft a professional email regarding the following matter:\n"\${text}"',
+    prompt: 'Please draft a professional email regarding the following matter:\n"\${text}"',
     tags: ['Writing', 'Communication'],
   ),
   CustomPrompt(
@@ -504,8 +494,7 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
   CustomPrompt(
     id: 65,
     title: 'Generate Personalized Greeting',
-    prompt:
-        'Create a personalized greeting for **\${name}** on their **\${occasion}**.',
+    prompt: 'Create a personalized greeting for **\${name}** on their **\${occasion}**.',
     tags: ['Creative', 'Personal'],
   ),
   CustomPrompt(
@@ -518,15 +507,13 @@ Let's brainstorm ideas for my next vacation. Start by asking what time of year I
   CustomPrompt(
     id: 67,
     title: 'Event Invitation Message',
-    prompt:
-        'Compose an invitation message for **\${eventType}** happening on **\${date}** at **\${location}**.',
+    prompt: 'Compose an invitation message for **\${eventType}** happening on **\${date}** at **\${location}**.',
     tags: ['Communication', 'Event'],
   ),
   CustomPrompt(
     id: 68,
     title: 'Product Description Generator',
-    prompt:
-        'Write a product description for **\${productName}** highlighting its **\${keyFeatures}**.',
+    prompt: 'Write a product description for **\${productName}** highlighting its **\${keyFeatures}**.',
     tags: ['Marketing', 'Writing'],
   ),
   CustomPrompt(
